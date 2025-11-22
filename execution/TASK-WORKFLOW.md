@@ -48,7 +48,33 @@ Initialize journal with:
 
 **Prerequisites**: Git setup and journal initialization completed by start-task command
 
-### Task Analysis
+### Option A: Use Task Analyzer Subagent (Recommended)
+
+For comprehensive analysis with automated standards validation:
+
+1. **Ask user permission**: "Ready to run Task Analyzer subagent for Phase 1-2 analysis?"
+2. **If approved**, delegate to task-analyzer subagent (see `.claude/agents/task-analyzer.md`)
+3. **Subagent performs**:
+   - Reads task.md, feature.md, plan.md, and all relevant ADRs
+   - Validates dependencies are COMPLETED (blocks if not)
+   - Reviews project standards (coding-standards.md, architecture-principles.md, quality-gates.md, tech-stack.md)
+   - Generates comprehensive analysis report with structured output
+   - Identifies risks, ambiguities, and architectural decisions
+   - Recommends technical approach aligned with standards
+4. **Present analysis** to user for review
+5. **Document key findings** in journal under "Task Understanding" and "Solution Design" sections
+6. **Commit initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
+
+**Benefits of Task Analyzer**:
+- Comprehensive standards compliance check
+- Structured, consistent analysis format
+- Automatic dependency validation
+- Reduces risk of missing critical context
+- Isolates heavy documentation reading from main conversation
+
+### Option B: Manual Analysis (Fallback)
+
+If subagent is unavailable or user prefers manual approach:
 
 1. Read entire task file thoroughly
 2. Review all dependencies are COMPLETED
@@ -63,10 +89,15 @@ Initialize journal with:
 - Clear understanding documented
 - Concerns identified
 - Initial commit made
+- **If using subagent**: Comprehensive analysis report reviewed and approved
 
 **Request permission to proceed to Phase 2**
 
 ## Phase 2: Solution Design
+
+**Note**: If using Task Analyzer subagent, Phase 1 and 2 are performed together. The subagent provides solution design as part of its comprehensive analysis. Skip to Phase 3 if subagent was used.
+
+### Manual Solution Design (when subagent not used)
 
 1. Research technical approach using provided resources
 2. Analyze existing codebase patterns
@@ -82,6 +113,7 @@ Initialize journal with:
 
 - Complete solution design documented
 - Architecture decisions committed
+- **If using subagent**: Technical approach validated against project standards
 
 **Request permission to proceed to Phase 3**
 

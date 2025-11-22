@@ -135,6 +135,54 @@ Once a task is identified (either through selection or direct ID), immediately:
 ### B. Begin Task Execution
 
 4. **Handoff complete**: Setup finished, ready for phase execution
-5. **Ask for explicit permission** to proceed to the appropriate phase:
-   - **New tasks**: Request permission to begin Phase 1 (Task Analysis)
-   - **Ongoing tasks**: Request permission to continue from current phase
+5. **Choose execution approach**:
+   - **New tasks (Phase 1-2)**: Offer to use Task Analyzer subagent (see section C below)
+   - **Ongoing tasks**: Request permission to continue from current phase using standard workflow
+
+### C. Task Analyzer Subagent Integration (Phase 1-2 Only)
+
+**When to offer**: Only for new tasks (PENDING status) or tasks in Phase 1 or Phase 2.
+
+**Subagent workflow**:
+
+1. **Present option to user**:
+   ```
+   This task is ready for Phase 1-2 (Task Analysis & Solution Design).
+
+   I can use the Task Analyzer subagent for comprehensive analysis:
+   - Reads task.md, feature.md, plan.md, and all ADRs
+   - Validates dependencies are COMPLETED
+   - Reviews project standards (coding-standards, architecture, quality gates)
+   - Provides structured analysis with technical approach
+
+   Use Task Analyzer subagent for Phase 1-2? (Recommended)
+   - Yes (use subagent)
+   - No (manual analysis)
+   ```
+
+2. **If user approves subagent**:
+   - Delegate to task-analyzer subagent (see `.claude/agents/task-analyzer.md`)
+   - Wait for subagent to complete comprehensive analysis
+   - Present analysis report to user
+   - Ask: "Review the analysis above. Ready to proceed with this approach?"
+   - If user approves:
+     - Extract key findings and document in journal under:
+       - "Task Understanding" section
+       - "Solution Design" section
+     - Commit initial work: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
+     - **Skip directly to Phase 3** (Test Creation) - Phases 1-2 are complete
+   - If user requests changes:
+     - Address feedback manually
+     - Update journal with modifications
+     - Commit changes
+
+3. **If user declines subagent**:
+   - Follow manual Phase 1 workflow from TASK-WORKFLOW.md Option B
+   - Request permission to proceed through Phase 1, then Phase 2 separately
+
+**Benefits of using Task Analyzer**:
+- Comprehensive and consistent analysis
+- Automated standards compliance checking
+- Dependency validation
+- Structured output format
+- Reduces context clutter in main conversation
