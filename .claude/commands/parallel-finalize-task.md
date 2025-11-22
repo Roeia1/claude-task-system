@@ -94,7 +94,7 @@ This command is for parallel (worktree) tasks only. For regular tasks, use `/pro
 
 ### Step 5: Finalize Journal in Worktree
 
-1. Read journal at `project-tasks/tasks/XXX/journal.md`
+1. Read journal at `execution/tasks/XXX/journal.md`
 2. Update "Current Phase" to "COMPLETED"
 3. Add Phase 8 completion entry
 4. Include note about parallel execution
@@ -120,7 +120,7 @@ This command is for parallel (worktree) tasks only. For regular tasks, use `/pro
 
 ### Step 6: Commit Completion Documentation
 
-1. Stage changes: `git add project-tasks/`
+1. Stage changes: `git add execution/`
 2. Commit: `git commit -m "docs(task-XXX): complete Phase 8 documentation"`
 3. Push: `git push`
 

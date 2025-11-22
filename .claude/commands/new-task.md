@@ -90,7 +90,7 @@ Which direction do you prefer, or do you see another approach?
 ### Only when complete:
 
 1. **ID Assignment**: Next sequential task number
-2. **Directory Creation**: `project-tasks/tasks/XXX/task.md`
+2. **Directory Creation**: `execution/tasks/XXX/task.md`
 3. **Full Task File**: Complete TASK-TEMPLATE.md with all sections populated, including determined task type
 4. **Task List Update**: Add to PENDING in TASK-LIST.md with format: `XXX | P[1-3] | [task-type] | [Title] | [Brief Description]`
 5. **Validation**: Verify task is ready for `start-task` command with appropriate workflow
@@ -99,7 +99,7 @@ Which direction do you prefer, or do you see another approach?
 
 ```
 ✅ Created Task 003: Implement Victory Retailer XML Support
-📁 Location: project-tasks/tasks/003/task.md
+📁 Location: execution/tasks/003/task.md
 
 📋 Generated Content:
    - 4 clear objectives with success criteria

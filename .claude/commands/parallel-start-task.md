@@ -101,7 +101,7 @@ fi
 #### Step 5: Initialize Task Files
 
 1. Prepend isolation instructions to existing CLAUDE.md in worktree root
-2. Create journal file at `worktrees/task-XXX-type/project-tasks/tasks/XXX/journal.md`
+2. Create journal file at `worktrees/task-XXX-type/execution/tasks/XXX/journal.md`
 3. Initialize journal with appropriate workflow template
 
 #### Step 6: Create PR from Main Repo
@@ -134,10 +134,10 @@ fi
 
    ```bash
    # Copy the updated TASK-LIST.md to the worktree
-   cp project-tasks/TASK-LIST.md "worktrees/task-XXX-type/project-tasks/TASK-LIST.md"
+   cp execution/TASK-LIST.md "worktrees/task-XXX-type/execution/TASK-LIST.md"
 
    # Commit in worktree to keep it synchronized
-   git -C worktrees/task-XXX-type add project-tasks/TASK-LIST.md
+   git -C worktrees/task-XXX-type add execution/TASK-LIST.md
    git -C worktrees/task-XXX-type commit -m "chore(task-XXX): sync TASK-LIST.md from main repository"
    git -C worktrees/task-XXX-type push
    ```
@@ -167,7 +167,7 @@ Display success message with:
 
 #### Step 4: Provide Workflow Guidance
 
-1. Read corresponding workflow file: `project-tasks/workflows/{type}.md`
+1. Read corresponding workflow file: `execution/templates/task-types/{type}.md`
 2. Display workflow-specific phase requirements and guidance
 3. Show appropriate next steps based on current phase
 4. Remind about isolation rules

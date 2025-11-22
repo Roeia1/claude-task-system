@@ -73,7 +73,7 @@ This command is for regular (non-worktree) tasks only. For parallel tasks, use `
 
 ### Step 4: Add Journal Completion Entry
 
-1. Read task journal at `project-tasks/tasks/XXX/journal.md`
+1. Read task journal at `execution/tasks/XXX/journal.md`
 2. Update "Current Phase" header to "COMPLETED"
 3. Add Phase 8 completion entry with timestamp
 4. Include summary of achievements and quality impact
@@ -96,7 +96,7 @@ This command is for regular (non-worktree) tasks only. For parallel tasks, use `
 
 ### Step 5: Commit Completion Updates
 
-1. Stage changes: `git add project-tasks/`
+1. Stage changes: `git add execution/`
 2. Commit with message: `git commit -m "docs(task-XXX): complete Phase 8 documentation"`
 3. Push to remote: `git push`
 

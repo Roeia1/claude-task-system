@@ -100,12 +100,12 @@ Once a task is identified (either through selection or direct ID), immediately:
 ### A. Complete Setup Phase
 
 1. **Read appropriate workflow**: Based on task type, read the corresponding workflow file:
-   - Feature tasks: `/home/roei/projects/Titinski/project-tasks/workflows/feature.md`
-   - Refactor tasks: `/home/roei/projects/Titinski/project-tasks/workflows/refactor.md`
-   - Bugfix tasks: `/home/roei/projects/Titinski/project-tasks/workflows/bugfix.md`
-   - Performance tasks: `/home/roei/projects/Titinski/project-tasks/workflows/performance.md`
-   - Deployment tasks: `/home/roei/projects/Titinski/project-tasks/workflows/deployment.md`
-2. **Read the task file**: `project-tasks/tasks/XXX/task.md` to understand requirements, objectives, and acceptance criteria
+   - Feature tasks: `execution/templates/task-types/feature.md`
+   - Refactor tasks: `execution/templates/task-types/refactor.md`
+   - Bugfix tasks: `execution/templates/task-types/bugfix.md`
+   - Performance tasks: `execution/templates/task-types/performance.md`
+   - Deployment tasks: `execution/templates/task-types/deployment.md`
+2. **Read the task file**: `execution/tasks/XXX/task.md` to understand requirements, objectives, and acceptance criteria
 3. **Determine current state and handle setup**:
 
 #### For New Tasks (PENDING):
@@ -116,7 +116,7 @@ Once a task is identified (either through selection or direct ID), immediately:
    - Create feature branch: `git checkout -b feature/task-XXX-brief-description`
    - Create draft PR immediately with task title
 2. **Journal Creation**:
-   - Create task journal file: `tasks/{task-id}/journal.md`
+   - Create task journal file: `execution/tasks/{task-id}/journal.md`
    - Initialize with template structure from appropriate task-type workflow
    - Update journal with git references (branch name, PR number)
    - Include task type in journal header
@@ -127,7 +127,7 @@ Once a task is identified (either through selection or direct ID), immediately:
 1. **Git Setup**:
    - Checkout existing task branch: `git checkout feature/task-XXX-description`
 2. **Progress Review**:
-   - Read existing journal: `project-tasks/tasks/XXX/journal.md`
+   - Read existing journal: `execution/tasks/XXX/journal.md`
    - Identify task type and current phase from journal
    - Verify using correct workflow for task type
    - Summarize current state for user

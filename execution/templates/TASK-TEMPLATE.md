@@ -1,5 +1,16 @@
 # Task [ID]: [Title]
 
+## Feature Context
+
+**Feature**: [NNN-feature-name](../../features/NNN-feature-name/feature.md) *(if task is part of a feature)*
+**Technical Plan**: [plan.md](../../features/NNN-feature-name/plan.md) *(if applicable)*
+**Feature Tasks**: [tasks.md](../../features/NNN-feature-name/tasks.md) *(if applicable)*
+**ADRs**: *(if any architectural decisions are relevant)*
+- [001-decision-title.md](../../features/NNN-feature-name/adr/001-decision-title.md)
+- [NNN-another-decision.md](../../docs/adr/NNN-another-decision.md) *(for project-wide ADRs)*
+
+*Note: Remove this section entirely if task is not part of a feature (ad-hoc tasks, refactors, etc.)*
+
 ## Overview
 Brief description of what needs to be accomplished and why it matters to the project.
 
