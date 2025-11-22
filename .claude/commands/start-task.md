@@ -1,6 +1,6 @@
 # start-task
 
-Shows available actionable tasks and initiates work on the selected task following instructions according to TASK-WORKFLOW.md.
+Shows available actionable tasks and initiates work on the selected task following the appropriate task-type workflow from execution/workflows/.
 
 ## What it does
 
@@ -100,11 +100,11 @@ Once a task is identified (either through selection or direct ID), immediately:
 ### A. Complete Setup Phase
 
 1. **Read appropriate workflow**: Based on task type, read the corresponding workflow file:
-   - Feature tasks: `execution/templates/task-types/feature.md`
-   - Refactor tasks: `execution/templates/task-types/refactor.md`
-   - Bugfix tasks: `execution/templates/task-types/bugfix.md`
-   - Performance tasks: `execution/templates/task-types/performance.md`
-   - Deployment tasks: `execution/templates/task-types/deployment.md`
+   - Feature tasks: `execution/workflows/feature-workflow.md`
+   - Refactor tasks: `execution/workflows/refactor-workflow.md`
+   - Bugfix tasks: `execution/workflows/bugfix-workflow.md`
+   - Performance tasks: `execution/workflows/performance-workflow.md`
+   - Deployment tasks: `execution/workflows/deployment-workflow.md`
 2. **Read the task file**: `execution/tasks/XXX/task.md` to understand requirements, objectives, and acceptance criteria
 3. **Determine current state and handle setup**:
 
@@ -177,7 +177,7 @@ Once a task is identified (either through selection or direct ID), immediately:
      - Commit changes
 
 3. **If user declines subagent**:
-   - Follow manual Phase 1 workflow from TASK-WORKFLOW.md Option B
+   - Follow manual Phase 1 workflow from the appropriate task-type workflow file
    - Request permission to proceed through Phase 1, then Phase 2 separately
 
 **Benefits of using Task Analyzer**:

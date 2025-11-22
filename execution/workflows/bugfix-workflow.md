@@ -44,6 +44,8 @@ Initialize journal with:
 [Updated throughout]
 ```
 
+> **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md) for detailed guidance. For bugfixes, emphasize root cause analysis and validation results.
+
 ## Phase 1: Task Analysis
 
 **Prerequisites**: Git setup and journal initialization completed by start-task command
@@ -63,6 +65,8 @@ Initialize journal with:
 - Clear understanding of bug documented
 - Impact and urgency assessed
 - Initial commit made
+
+> **Phase Transition**: See [Phase Transition Rules](../shared/phase-transition-rules.md)
 
 **Request permission to proceed to Phase 2**
 
@@ -113,10 +117,10 @@ Initialize journal with:
 
 1. Apply targeted fix to make bug reproduction test pass
 2. **Commit minimal fix immediately**: `fix(task-XXX): resolve [specific bug] in [component]` && git push
-3. Avoid scope creep - fix only the reported issue
-4. If test modification seems necessary:
-   - **STOP and READ**: `/home/roei/projects/Titinski/project-tasks/workflows/shared/test-modification-protocol.md`
-   - Follow the protocol exactly as specified in that file
+3. **CRITICAL**: Avoid scope creep - fix only the reported issue
+4. **If test modification seems necessary**:
+   - See: [Test Modification Protocol](../shared/test-modification-protocol.md)
+   - Follow the protocol exactly as specified
 5. Run full test suite to ensure no new regressions
 6. Work through sub-tasks from task file methodically
 7. Update journal with:
@@ -156,166 +160,84 @@ Initialize journal with:
 
 **Request permission to proceed to Phase 6**
 
-## Phase 6: Verification & Polish
+## Phase 6-7: Verification & Reflection
+
+> **Complete Checklist**: See [Verification Checklist](../shared/verification-checklist.md)
+
+### Phase 6: Bugfix-Specific Checks
 
 1. Verify all acceptance criteria from task file met
 2. Ensure all sub-tasks are checked off
 3. Review entire fix against original bug report
-4. Confirm fix is minimal and targeted (no scope creep)
+4. **Confirm fix is minimal and targeted** (no scope creep)
 5. Update documentation if bug affected documented behavior
-6. Ensure code follows project conventions
-7. Run final code quality checks: `pnpm check` (or equivalent)
-8. Document verification results in journal
-9. **Commit and push final polish**: `git add . && git commit -m "docs(task-XXX): final verification and polish" && git push`
-10. **Mark PR ready for review**: Convert from draft to ready for review
-11. **Proactive review request**: Ask user to review for final approval
-
-### Exit Criteria
-
-- All criteria verified
-- Fix is complete and polished
-- PR ready for review
+6. Run final code quality checks
+7. Mark PR ready for review
 
 **Request permission to proceed to Phase 7**
 
-## Phase 7: Reflection & Documentation
+### Phase 7: Bugfix Reflection
 
-1. Review entire bugfix journey
-2. Update task file with:
-   - Root cause insights for future prevention
-   - Additional testing strategies discovered
-   - Lessons learned about the codebase
-3. Final journal entry summarizing:
-   - What was accomplished
-   - Root cause and fix approach
-   - Challenges overcome
-   - Prevention strategies for similar bugs
-4. **Exit Criteria**: Complete documentation updated
-5. **Request permission to complete task**
+Focus on:
+- Root cause insights for future prevention
+- Additional testing strategies discovered
+- Prevention strategies for similar bugs
+
+**Request permission to complete task**
 
 ## Phase 8: Task Completion
 
-After completing Phase 7 reflection and documentation, run the appropriate completion command:
+> **Completion Process**: See [Completion Protocol](../shared/completion-protocol.md)
 
-**For regular workflow (main repository)**:
-```
+After completing Phase 7, run:
+```bash
 /project:complete-task
 ```
 
-**For parallel workflow (in worktree)**:
-```
-/project:parallel-finalize-task
-# Then from main repo: /project:parallel-cleanup-worktree
-```
-
-### What the command does:
-
-1. **Commits any final changes** in your working directory
-2. **Verifies PR is ready** (all checks passing, no conflicts)
-3. **Merges the PR** automatically
-4. **Updates task status** to COMPLETED in TASK-LIST.md
-5. **Finalizes journal** with completion entry
-6. **Cleans up** (removes worktree for parallel tasks)
-
-### Before running:
-
-- Ensure all sub-tasks in task file are marked complete
-- Review if any preventive tasks should be created (refactoring, additional testing)
-- Make sure you're ready for the PR to be merged
-
-**Phase 8 is now a single command - no manual steps required!**
-
-## Journal Entry Guidelines
-
-### When to Update:
-
-- Phase transitions
-- Bug reproduction steps
-- Root cause discoveries
-- Fix implementation decisions
-- Validation results
-- Edge case findings
-
-### Entry Format:
-
-```markdown
-### [Timestamp] - [Phase/Activity]
-
-[Content describing investigation findings, fix decisions, validation results]
-**Root Cause:** [Technical explanation]
-**Next:** [What you plan to do next]
-```
+Before running, review if any preventive tasks should be created (refactoring, additional testing).
 
 ## Important Rules
 
-- NEVER expand scope beyond the specific bug
-- NEVER modify tests after Phase 3 without explicit user permission
-- NEVER proceed to next phase without user permission
-- Apply minimal, targeted fixes
-- Document root cause analysis thoroughly
-- Prioritize regression prevention
-- Address PR reviews immediately when user signals
+- **NEVER expand scope** beyond the specific bug
+- **Test-Driven**: Write bug reproduction test before fix
+- **Minimal fixes**: Apply targeted fixes only
+- **Test Modification**: See [Test Modification Protocol](../shared/test-modification-protocol.md)
+- **Phase Progression**: See [Phase Transition Rules](../shared/phase-transition-rules.md)
+- **Documentation**: Document root cause analysis thoroughly
+- **Regression prevention**: Prioritize preventing similar bugs
+- **PR Reviews**: See [PR Review Protocol](../shared/pr-review-protocol.md)
 
 ## Error Handling
 
 When encountering issues:
 
-1. **Cannot Reproduce Bug**:
+### 1. Cannot Reproduce Bug
+- Document reproduction attempts
+- Ask user for additional details or clarification
+- Request different test scenarios or environments
 
-   - Document reproduction attempts
-   - Ask user for additional details or clarification
-   - Request different test scenarios or environments
+### 2. Root Cause Unclear
+- Document investigation steps taken
+- Present findings to user
+- Ask for guidance or additional context
 
-2. **Root Cause Unclear**:
+### 3. Fix Causes New Issues
+- Document the new issues discovered
+- Discuss with user whether to fix in this task or create separate task
+- Consider if original approach needs revision
 
-   - Document investigation steps taken
-   - Present findings to user
-   - Ask for guidance or additional context
-
-3. **Fix Causes New Issues**:
-
-   - Document the new issues discovered
-   - Discuss with user whether to fix in this task or create separate task
-   - Consider if original approach needs revision
-
-4. **Complex Fix Required**:
-   - Document complexity discovered
-   - Discuss with user whether to split into multiple tasks
-   - Consider if immediate workaround is needed
+### 4. Complex Fix Required
+- Document complexity discovered
+- Discuss with user whether to split into multiple tasks
+- Consider if immediate workaround is needed
 
 ## PR Review Workflow
 
-**IMMEDIATELY READ**: `/home/roei/projects/Titinski/project-tasks/workflows/shared/pr-review-workflow.md`
+> **Full Protocol**: See [PR Review Protocol](../shared/pr-review-protocol.md)
 
-**Follow the standard PR Review Workflow from that file exactly.**
-
-### Proactive Review Requests
-
-Ask user "Should I request a review to [specific purpose]?" when:
-
+**Proactive review requests** when:
 - Root cause is complex or unclear
 - Fix approach has multiple valid options
-- Completing phases 2, 3, 5, 6 (investigation, tests, validation, verification)
+- Completing phases 2, 3, 5, 6
 - Discovering scope creep or additional related issues
 - Finding design problems that extend beyond the bug
-
-### Review Documentation
-
-After each review session, add to journal:
-
-```markdown
-### [Timestamp] - PR Review Response
-
-**Comments addressed**: [number]
-**Changes made**: [summary of fix adjustments]
-**Discussions started**: [topics requiring clarification]
-**Next**: [what to do next]
-```
-
-## Test Modification Protocol
-
-**READ FIRST**: `/home/roei/projects/Titinski/project-tasks/workflows/shared/test-modification-protocol.md`
-
-**Follow the protocol from that file exactly.**
-
-When documenting test modification needs for bugfixes, be sure to explain how the test change relates to the bug fix.

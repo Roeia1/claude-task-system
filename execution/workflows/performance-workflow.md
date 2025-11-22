@@ -44,6 +44,8 @@ Initialize journal with:
 [Updated throughout]
 ```
 
+> **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md). For performance tasks, include specific metrics (X% faster, Y MB saved) in entries.
+
 ## Phase 1: Task Analysis
 
 **Prerequisites**: Git setup and journal initialization completed by start-task command
@@ -63,6 +65,8 @@ Initialize journal with:
 - Clear understanding of performance goals documented
 - Target metrics identified
 - Initial commit made
+
+> **Phase Transition**: See [Phase Transition Rules](../shared/phase-transition-rules.md)
 
 **Request permission to proceed to Phase 2**
 
@@ -115,7 +119,7 @@ Initialize journal with:
 
 1. Apply performance optimizations incrementally
 2. **Measure impact after each optimization**: Run benchmarks to verify improvements
-3. **Commit optimizations individually**: 
+3. **Commit optimizations individually with metrics**:
    - `perf(task-XXX): optimize [specific operation] - [X% improvement]` && git push
    - `perf(task-XXX): reduce memory usage in [component] - [Y MB saved]` && git push
 4. If performance degrades or targets aren't met:
@@ -164,170 +168,81 @@ Initialize journal with:
 
 **Request permission to proceed to Phase 6**
 
-## Phase 6: Verification & Polish
+## Phase 6-7: Verification & Reflection
+
+> **Complete Checklist**: See [Verification Checklist](../shared/verification-checklist.md)
+
+### Phase 6: Performance-Specific Checks
 
 1. Verify all performance objectives from task file achieved
-2. Ensure all sub-tasks are checked off
-3. Review entire optimization against performance requirements
-4. Confirm no functionality was compromised
-5. Update documentation with performance characteristics
-6. Ensure code follows project conventions
-7. Run final code quality checks: `pnpm check` (or equivalent)
-8. Document verification results in journal
-9. **Commit and push final polish**: `git add . && git commit -m "docs(task-XXX): final verification and polish" && git push`
-10. **Mark PR ready for review**: Convert from draft to ready for review
-11. **Proactive review request**: Ask user to review for final approval
-
-### Exit Criteria
-
-- All objectives verified
-- Performance improvements polished
-- PR ready for review
+2. **Confirm no functionality was compromised** for performance
+3. Update documentation with performance characteristics
+4. Run final code quality checks
+5. Mark PR ready for review
 
 **Request permission to proceed to Phase 7**
 
-## Phase 7: Reflection & Documentation
+### Phase 7: Performance Reflection
 
-1. Review entire performance optimization journey
-2. Update task file with:
-   - Performance insights discovered
-   - Additional optimization opportunities found
-   - Lessons learned about system bottlenecks
-3. Final journal entry summarizing:
-   - Performance improvements accomplished
-   - Optimization techniques used
-   - Challenges overcome
-   - Future performance considerations
-4. **Exit Criteria**: Complete documentation updated
-5. **Request permission to complete task**
+Focus on:
+- Performance insights discovered
+- Additional optimization opportunities found
+- Lessons learned about system bottlenecks
+- Future performance considerations
+
+**Request permission to complete task**
 
 ## Phase 8: Task Completion
 
-After completing Phase 7 reflection and documentation, run the appropriate completion command:
+> **Completion Process**: See [Completion Protocol](../shared/completion-protocol.md)
 
-**For regular workflow (main repository)**:
-```
+After completing Phase 7, run:
+```bash
 /project:complete-task
 ```
 
-**For parallel workflow (in worktree)**:
-```
-/project:parallel-finalize-task
-# Then from main repo: /project:parallel-cleanup-worktree
-```
-
-### What the command does:
-
-1. **Commits any final changes** in your working directory
-2. **Verifies PR is ready** (all checks passing, no conflicts)
-3. **Merges the PR** automatically
-4. **Updates task status** to COMPLETED in TASK-LIST.md
-5. **Finalizes journal** with completion entry
-6. **Cleans up** (removes worktree for parallel tasks)
-
-### Before running:
-
-- Ensure all sub-tasks in task file are marked complete
-- Review if any additional performance tasks should be created
-- Make sure you're ready for the PR to be merged
-
-**Phase 8 is now a single command - no manual steps required!**
-
-## Journal Entry Guidelines
-
-### When to Update:
-
-- Phase transitions
-- Each optimization attempt
-- Performance measurement results
-- Bottleneck discoveries
-- Optimization decisions
-- Validation findings
-
-### Entry Format:
-
-```markdown
-### [Timestamp] - [Phase/Activity]
-
-[Content describing optimization approach, measurements, decisions]
-**Performance Impact:** [Specific metrics: X% faster, Y MB less memory, etc.]
-**Next:** [What you plan to optimize next]
-```
+Before running, review if any additional performance tasks should be created.
 
 ## Important Rules
 
-- NEVER sacrifice functionality for performance
-- NEVER proceed to next phase without user permission
-- Measure performance impact of every change
-- Make incremental optimizations with individual commits
-- Document baseline and target metrics clearly
-- Validate stability after optimizations
-- Address PR reviews immediately when user signals
+- **NEVER sacrifice functionality** for performance
+- **Measure everything**: Performance impact of every change must be measured
+- **Incremental optimization**: Make small, measurable commits
+- **Benchmark modification**: See [Test Modification Protocol](../shared/test-modification-protocol.md) - apply to benchmarks
+- **Phase Progression**: See [Phase Transition Rules](../shared/phase-transition-rules.md)
+- **Documentation**: Document baseline and target metrics clearly
+- **Stability validation**: Validate stability after optimizations
+- **PR Reviews**: See [PR Review Protocol](../shared/pr-review-protocol.md)
 
 ## Error Handling
 
 When encountering issues:
 
-1. **Performance Targets Not Met**:
+### 1. Performance Targets Not Met
+- Document which optimizations were attempted
+- Analyze why targets weren't achievable
+- Discuss revised targets or alternative approaches with user
 
-   - Document which optimizations were attempted
-   - Analyze why targets weren't achievable
-   - Discuss revised targets or alternative approaches with user
+### 2. Optimization Causes Regressions
+- Roll back the problematic optimization immediately
+- Document what went wrong
+- Try alternative optimization strategies
 
-2. **Optimization Causes Regressions**:
+### 3. Unclear Performance Requirements
+- Document what is unclear about targets
+- Request specific metrics and acceptable ranges
+- Don't optimize without clear success criteria
 
-   - Roll back the problematic optimization immediately
-   - Document what went wrong
-   - Try alternative optimization strategies
-
-3. **Unclear Performance Requirements**:
-
-   - Document what is unclear about targets
-   - Request specific metrics and acceptable ranges
-   - Don't optimize without clear success criteria
-
-4. **Complex Bottlenecks**:
-   - Document the complexity discovered
-   - Present multiple optimization strategies to user
-   - Discuss tradeoffs and resource requirements
-
-## PR Review Workflow
-
-**IMMEDIATELY READ**: `/home/roei/projects/Titinski/project-tasks/workflows/shared/pr-review-workflow.md`
-
-**Follow the standard PR Review Workflow from that file exactly.**
-
-### Proactive Review Requests
-
-Ask user "Should I request a review to [specific purpose]?" when:
-
-- Setting performance targets and optimization strategy
-- Completing phases 2, 3, 5, 6 (analysis, benchmarks, validation, verification)
-- Discovering significant architectural performance issues
-- Finding tradeoffs between performance and maintainability
-- Hitting diminishing returns on optimization efforts
-
-### Review Documentation
-
-After each review session, add to journal:
-
-```markdown
-### [Timestamp] - PR Review Response
-
-**Comments addressed**: [number]
-**Changes made**: [summary of optimization adjustments]
-**Performance impact**: [how changes affected metrics]
-**Discussions started**: [topics requiring clarification]
-**Next**: [what to optimize next]
-```
+### 4. Complex Bottlenecks
+- Document the complexity discovered
+- Present multiple optimization strategies to user
+- Discuss tradeoffs and resource requirements
 
 ## Benchmark Modification Protocol
 
-**READ FIRST**: `/home/roei/projects/Titinski/project-tasks/workflows/shared/test-modification-protocol.md`
+> **Base Protocol**: See [Test Modification Protocol](../shared/test-modification-protocol.md)
 
-**Apply the protocol from that file to benchmark changes.**
-
-After Phase 3, if benchmarks need modification:
+Apply the test modification protocol to benchmark changes. After Phase 3, if benchmarks need modification:
 
 1. Document in journal:
    - Which benchmark needs changing
@@ -336,3 +251,14 @@ After Phase 3, if benchmarks need modification:
 2. Explain to user with performance reasoning
 3. Wait for explicit permission
 4. Update baselines appropriately when approved
+
+## PR Review Workflow
+
+> **Full Protocol**: See [PR Review Protocol](../shared/pr-review-protocol.md)
+
+**Proactive review requests** when:
+- Setting performance targets and optimization strategy
+- Completing phases 2, 3, 5, 6
+- Discovering significant architectural performance issues
+- Finding tradeoffs between performance and maintainability
+- Hitting diminishing returns on optimization efforts

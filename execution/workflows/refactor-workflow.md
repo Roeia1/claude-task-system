@@ -44,6 +44,8 @@ Initialize journal with:
 [Updated throughout]
 ```
 
+> **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md). For refactoring, emphasize quality improvements and behavior preservation.
+
 ## Phase 1: Task Analysis
 
 **Prerequisites**: Git setup and journal initialization completed by start-task command
@@ -63,6 +65,8 @@ Initialize journal with:
 - Clear understanding documented
 - Quality goals identified
 - Initial commit made
+
+> **Phase Transition**: See [Phase Transition Rules](../shared/phase-transition-rules.md)
 
 **Request permission to proceed to Phase 2**
 
@@ -113,12 +117,12 @@ Initialize journal with:
    - `refactor(task-XXX): simplify [specific area]` && git push
    - `refactor(task-XXX): remove duplication in [component]` && git push
 3. Run full test suite after each change
-4. If any test fails:
+4. **If any test fails**:
    - STOP immediately
    - Analyze why behavior changed unexpectedly
    - Fix refactoring to preserve behavior
    - NEVER modify tests to match refactored behavior
-   - **If test modification needed, READ**: `/home/roei/projects/Titinski/project-tasks/workflows/shared/test-modification-protocol.md`
+   - **If test modification needed**: See [Test Modification Protocol](../shared/test-modification-protocol.md)
 5. Work through sub-tasks from task file methodically
 6. Update journal with:
    - Refactoring decisions and rationale
@@ -159,167 +163,84 @@ Initialize journal with:
 
 **Request permission to proceed to Phase 6**
 
-## Phase 6: Verification & Polish
+## Phase 6-7: Verification & Reflection
+
+> **Complete Checklist**: See [Verification Checklist](../shared/verification-checklist.md)
+
+### Phase 6: Refactoring-Specific Checks
 
 1. Verify all refactoring objectives from task file achieved
-2. Ensure all sub-tasks are checked off
-3. Review entire refactoring against quality goals
-4. Check that no functionality was inadvertently changed
-5. Update documentation if code interfaces changed
-6. Ensure code follows project conventions
-7. Run final code quality checks: `pnpm check` (or equivalent)
-8. Document verification results in journal
-9. **Commit and push final polish**: `git add . && git commit -m "docs(task-XXX): final verification and polish" && git push`
-10. **Mark PR ready for review**: Convert from draft to ready for review
-11. **Proactive review request**: Ask user to review for final approval
-
-### Exit Criteria
-
-- All objectives verified
-- Code polished and quality checks pass
-- PR ready for review
+2. **Check that no functionality was inadvertently changed**
+3. Update documentation if code interfaces changed
+4. Run final code quality checks
+5. Mark PR ready for review
 
 **Request permission to proceed to Phase 7**
 
-## Phase 7: Reflection & Documentation
+### Phase 7: Refactoring Reflection
 
-1. Review entire refactoring journey
-2. Update task file with:
-   - New insights about code quality
-   - Additional refactoring opportunities discovered
-   - Lessons learned about the codebase
-3. Final journal entry summarizing:
-   - Quality improvements accomplished
-   - Refactoring decisions and rationale
-   - Challenges overcome
-   - Future refactoring considerations
-4. **Exit Criteria**: Complete documentation updated
-5. **Request permission to complete task**
+Focus on:
+- New insights about code quality
+- Additional refactoring opportunities discovered
+- Future refactoring considerations
+
+**Request permission to complete task**
 
 ## Phase 8: Task Completion
 
-After completing Phase 7 reflection and documentation, run the appropriate completion command:
+> **Completion Process**: See [Completion Protocol](../shared/completion-protocol.md)
 
-**For regular workflow (main repository)**:
-```
+After completing Phase 7, run:
+```bash
 /project:complete-task
 ```
 
-**For parallel workflow (in worktree)**:
-```
-/project:parallel-finalize-task
-# Then from main repo: /project:parallel-cleanup-worktree
-```
-
-### What the command does:
-
-1. **Commits any final changes** in your working directory
-2. **Verifies PR is ready** (all checks passing, no conflicts)
-3. **Merges the PR** automatically
-4. **Updates task status** to COMPLETED in TASK-LIST.md
-5. **Finalizes journal** with completion entry
-6. **Cleans up** (removes worktree for parallel tasks)
-
-### Before running:
-
-- Ensure all sub-tasks in task file are marked complete
-- Review if any new refactoring tasks should be created based on discoveries
-- Make sure you're ready for the PR to be merged
-
-**Phase 8 is now a single command - no manual steps required!**
-
-## Journal Entry Guidelines
-
-### When to Update:
-
-- Phase transitions
-- Each refactoring increment
-- Quality metric improvements
-- Behavior preservation challenges
-- Problems and solutions
-- Code quality insights
-
-### Entry Format:
-
-```markdown
-### [Timestamp] - [Phase/Activity]
-
-[Content describing what was refactored, decisions, quality improvements]
-**Quality Impact:** [Specific improvements achieved]
-**Next:** [What you plan to refactor next]
-```
+Before running, review if any new refactoring tasks should be created based on discoveries.
 
 ## Important Rules
 
-- NEVER change behavior, only code structure and quality
-- NEVER modify existing tests without explicit user permission
-- NEVER proceed to next phase without user permission
-- Make frequent, small commits for safety
-- Document WHY refactoring decisions were made
-- Run tests after every change
-- Address PR reviews immediately when user signals
+- **NEVER change behavior**, only code structure and quality
+- **Test preservation**: NEVER modify existing tests without explicit permission
+- **Frequent commits**: Make small, safe commits for safety
+- **Continuous testing**: Run tests after every change
+- **Test Modification**: See [Test Modification Protocol](../shared/test-modification-protocol.md)
+- **Phase Progression**: See [Phase Transition Rules](../shared/phase-transition-rules.md)
+- **Documentation**: Document WHY refactoring decisions were made
+- **PR Reviews**: See [PR Review Protocol](../shared/pr-review-protocol.md)
 
 ## Error Handling
 
 When encountering issues:
 
-1. **Test Failures After Refactoring**:
+### 1. Test Failures After Refactoring
+- STOP immediately
+- Analyze what behavior changed unexpectedly
+- Fix refactoring to preserve original behavior
+- NEVER modify tests to match new behavior without permission
+- **Note**: Test failure indicates behavior changed, not a bug
 
-   - STOP immediately
-   - Analyze what behavior changed unexpectedly
-   - Fix refactoring to preserve original behavior
-   - NEVER modify tests to match new behavior without permission
+### 2. Performance Degradation
+- Document the regression
+- Identify which refactoring step caused it
+- Either optimize the refactored code or revert that step
 
-2. **Performance Degradation**:
+### 3. Scope Creep (New Features)
+- STOP adding functionality
+- Focus purely on code quality improvements
+- Document any feature ideas for separate tasks
 
-   - Document the regression
-   - Identify which refactoring step caused it
-   - Either optimize the refactored code or revert that step
-
-3. **Scope Creep (New Features)**:
-
-   - STOP adding functionality
-   - Focus purely on code quality improvements
-   - Document any feature ideas for separate tasks
-
-4. **Complex Dependencies**:
-   - Break refactoring into smaller steps
-   - Document dependency challenges
-   - Ask user for guidance on approach
+### 4. Complex Dependencies
+- Break refactoring into smaller steps
+- Document dependency challenges
+- Ask user for guidance on approach
 
 ## PR Review Workflow
 
-**IMMEDIATELY READ**: `/home/roei/projects/Titinski/project-tasks/workflows/shared/pr-review-workflow.md`
+> **Full Protocol**: See [PR Review Protocol](../shared/pr-review-protocol.md)
 
-**Follow the standard PR Review Workflow from that file exactly.**
-
-### Proactive Review Requests
-
-Ask user "Should I request a review to [specific purpose]?" when:
-
+**Proactive review requests** when:
 - Planning major structural changes
-- Completing phases 2, 3, 5, 6 (analysis, safety net, validation, verification)
+- Completing phases 2, 3, 5, 6
 - Encountering unexpected complexity
 - Finding significant additional refactoring opportunities
 - Hitting performance or dependency concerns
-
-### Review Documentation
-
-After each review session, add to journal:
-
-```markdown
-### [Timestamp] - PR Review Response
-
-**Comments addressed**: [number]
-**Changes made**: [summary of refactoring adjustments]
-**Discussions started**: [topics requiring clarification]
-**Next**: [what to refactor next]
-```
-
-## Test Modification Protocol
-
-**READ FIRST**: `/home/roei/projects/Titinski/project-tasks/workflows/shared/test-modification-protocol.md`
-
-**Follow the protocol from that file exactly.**
-
-If existing tests need modification during refactoring, this likely indicates behavior has changed unexpectedly. Follow the protocol and explain that behavior may have changed.

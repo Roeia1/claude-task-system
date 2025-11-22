@@ -12,8 +12,8 @@ When activated, create a git worktree and start a task in parallel mode for conc
 - **Task List**: `execution/TASK-LIST.md`
 - **Task File**: `execution/tasks/NNN/task.md`
 - **Journal**: `execution/tasks/NNN/journal.md` (created in worktree)
-- **8-Phase Workflow**: `execution/TASK-WORKFLOW.md`
-- **Task Type Workflows**: `execution/templates/task-types/{type}.md`
+- **Task Type Workflows**: `execution/workflows/{type}-workflow.md`
+- **Shared Protocols**: `execution/shared/`
 - **Parallel Guide**: `execution/PARALLEL-WORKFLOW-GUIDE.md`
 - **Full Workflow**: `.claude/commands/parallel-start-task.md`
 
@@ -67,7 +67,7 @@ The skill detects whether it's running from:
    - Task context (ID, type, branch, PR)
    - Working directory location
    - Allowed/forbidden operations
-2. **Read task type workflow** from `execution/templates/task-types/{type}.md`
+2. **Read task type workflow** from `execution/workflows/{type}-workflow.md`
 3. **Create journal** at `worktrees/task-XXX-{type}/execution/tasks/NNN/journal.md`:
    - Initialize with task type-specific template
    - Include git references
@@ -114,7 +114,7 @@ Display success message with:
 3. **Read journal** to determine current phase
 4. **Get PR info**: `gh pr view`
 5. **Display task context** and progress
-6. **Read workflow** from `execution/templates/task-types/{type}.md`
+6. **Read workflow** from `execution/workflows/{type}-workflow.md`
 7. **Provide guidance** for current phase
 8. **Remind about isolation** rules
 9. **Confirm ready** to proceed with work
@@ -158,6 +158,6 @@ When ready to complete:
 
 - Complete workflow details: `.claude/commands/parallel-start-task.md`
 - Parallel execution guide: `execution/PARALLEL-WORKFLOW-GUIDE.md`
-- 8-phase discipline: `execution/TASK-WORKFLOW.md`
-- Task type workflows: `execution/templates/task-types/`
+- Task type workflows: `execution/workflows/`
+- Shared protocols: `execution/shared/`
 - Project guidelines: `CLAUDE.md`

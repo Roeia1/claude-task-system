@@ -10,12 +10,12 @@ When activated, create a comprehensive task definition from user description thr
 ## File Locations
 
 - **Task Template**: `execution/templates/TASK-TEMPLATE.md`
-- **Task Type Workflows**: `execution/templates/task-types/{type}.md`
-  - `feature.md` - New functionality
-  - `bugfix.md` - Error corrections
-  - `refactor.md` - Code improvements
-  - `performance.md` - Optimization
-  - `deployment.md` - Infrastructure
+- **Task Type Workflows**: `execution/workflows/{type}-workflow.md`
+  - `feature-workflow.md` - New functionality
+  - `bugfix-workflow.md` - Error corrections
+  - `refactor-workflow.md` - Code improvements
+  - `performance-workflow.md` - Optimization
+  - `deployment-workflow.md` - Infrastructure
 - **Task List**: `execution/TASK-LIST.md`
 - **Output**: `execution/tasks/NNN/task.md`
 - **Full Workflow**: `.claude/commands/new-task.md`
@@ -32,7 +32,7 @@ When activated, create a comprehensive task definition from user description thr
 
 1. **Analyze description** to determine task type
 2. **Select appropriate workflow** template
-3. **Read task type workflow** from `execution/templates/task-types/{type}.md`
+3. **Read task type workflow** from `execution/workflows/{type}-workflow.md`
 4. **Consider type-specific** requirements and constraints
 
 ### 3. Task Decomposition
@@ -126,5 +126,6 @@ After task creation, suggest using the **task-start** skill to begin execution.
 
 - Complete workflow details: `.claude/commands/new-task.md`
 - Task template: `execution/templates/TASK-TEMPLATE.md`
-- Task type workflows: `execution/templates/task-types/`
+- Task type workflows: `execution/workflows/`
+- Shared protocols: `execution/shared/`
 - Project guidelines: `CLAUDE.md`

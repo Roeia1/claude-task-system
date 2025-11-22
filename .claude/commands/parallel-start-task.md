@@ -167,7 +167,7 @@ Display success message with:
 
 #### Step 4: Provide Workflow Guidance
 
-1. Read corresponding workflow file: `execution/templates/task-types/{type}.md`
+1. Read corresponding workflow file: `execution/workflows/{type}-workflow.md`
 2. Display workflow-specific phase requirements and guidance
 3. Show appropriate next steps based on current phase
 4. Remind about isolation rules

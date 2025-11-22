@@ -44,11 +44,39 @@ Initialize journal with:
 [Updated throughout]
 ```
 
+> **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md) for detailed guidance on when and how to update the journal.
+
 ## Phase 1: Task Analysis
 
 **Prerequisites**: Git setup and journal initialization completed by start-task command
 
-### Task Analysis
+### Option A: Use Task Analyzer Subagent (Recommended)
+
+For comprehensive analysis with automated standards validation:
+
+1. **Ask user permission**: "Ready to run Task Analyzer subagent for Phase 1-2 analysis?"
+2. **If approved**, delegate to task-analyzer subagent (see `.claude/agents/task-analyzer.md`)
+3. **Subagent performs**:
+   - Reads task.md, feature.md, plan.md, and all relevant ADRs
+   - Validates dependencies are COMPLETED (blocks if not)
+   - Reviews project standards (coding-standards.md, architecture-principles.md, quality-gates.md, tech-stack.md)
+   - Generates comprehensive analysis report with structured output
+   - Identifies risks, ambiguities, and architectural decisions
+   - Recommends technical approach aligned with standards
+4. **Present analysis** to user for review
+5. **Document key findings** in journal under "Task Understanding" and "Solution Design" sections
+6. **Commit initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
+
+**Benefits of Task Analyzer**:
+- Comprehensive standards compliance check
+- Structured, consistent analysis format
+- Automatic dependency validation
+- Reduces risk of missing critical context
+- Isolates heavy documentation reading from main conversation
+
+### Option B: Manual Analysis (Fallback)
+
+If subagent is unavailable or user prefers manual approach:
 
 1. Read entire task file thoroughly
 2. Review all dependencies are COMPLETED
@@ -63,10 +91,17 @@ Initialize journal with:
 - Clear understanding documented
 - Concerns identified
 - Initial commit made
+- **If using subagent**: Comprehensive analysis report reviewed and approved
+
+> **Phase Transition**: See [Phase Transition Rules](../shared/phase-transition-rules.md) for permission protocol.
 
 **Request permission to proceed to Phase 2**
 
 ## Phase 2: Solution Design
+
+**Note**: If using Task Analyzer subagent, Phase 1 and 2 are performed together. The subagent provides solution design as part of its comprehensive analysis. Skip to Phase 3 if subagent was used.
+
+### Manual Solution Design (when subagent not used)
 
 1. Research technical approach using provided resources
 2. Analyze existing codebase patterns
@@ -82,6 +117,7 @@ Initialize journal with:
 
 - Complete solution design documented
 - Architecture decisions committed
+- **If using subagent**: Technical approach validated against project standards
 
 **Request permission to proceed to Phase 3**
 
@@ -112,9 +148,9 @@ Initialize journal with:
 2. **Commit and push logical milestones**: Use meaningful commits for each significant piece of functionality
    - `feat(task-XXX): implement core [component] functionality && git push`
    - `feat(task-XXX): add [specific feature] support && git push`
-3. If test modification seems necessary:
-   - **STOP and READ**: `/home/roei/projects/Titinski/project-tasks/workflows/shared/test-modification-protocol.md`
-   - Follow the protocol exactly as specified in that file
+3. **If test modification seems necessary**:
+   - See: [Test Modification Protocol](../shared/test-modification-protocol.md)
+   - Follow the protocol exactly as specified
 4. Work through sub-tasks from task file methodically
 5. Update journal with:
    - Implementation decisions
@@ -157,144 +193,80 @@ Initialize journal with:
 
 **Request permission to proceed to Phase 6**
 
-## Phase 6: Verification & Polish
+## Phase 6-7: Verification & Reflection
+
+> **Complete Checklist**: See [Verification Checklist](../shared/verification-checklist.md) for Phase 6 verification steps and Phase 7 reflection guide.
+
+### Phase 6 Summary
 
 1. Verify all acceptance criteria from task file
-2. Ensure all sub-tasks are checked off
-3. Review entire implementation against objectives
-4. Check edge cases and error handling
-5. Update documentation if needed
-6. Ensure code follows project conventions
-7. Run final code quality checks: `pnpm check` (or equivalent)
-8. Document verification results in journal
-9. **Commit and push final polish**: `git add . && git commit -m "docs(task-XXX): final verification and polish" && git push`
-10. **Mark PR ready for review**: Convert from draft to ready for review
-11. **Proactive review request**: Ask user to review for final approval
-
-### Exit Criteria
-
-- All criteria verified
-- Code polished and quality checks pass
-- PR ready for review
+2. Run final code quality checks
+3. Mark PR ready for review
+4. Request user approval
 
 **Request permission to proceed to Phase 7**
 
-## Phase 7: Reflection & Documentation
+### Phase 7 Summary
 
 1. Review entire task journey
-2. Update task file with:
-   - New risks discovered
-   - Additional resources found
-   - Lessons learned
-3. Final journal entry summarizing:
-   - What was accomplished
-   - Key decisions and why
-   - Challenges overcome
-   - Future considerations
-4. **Exit Criteria**: Complete documentation updated
-5. **Request permission to complete task**
+2. Update task file with learnings
+3. Final journal entry
+
+**Request permission to complete task**
 
 ## Phase 8: Task Completion
 
-After completing Phase 7 reflection and documentation, run the completion command:
+> **Completion Process**: See [Completion Protocol](../shared/completion-protocol.md) for detailed instructions on running the completion command and what it does.
 
-```
+After completing Phase 7, run:
+```bash
 /project:complete-task
-```
-
-### What the command does:
-
-1. **Commits any final changes** in your working directory
-2. **Verifies PR is ready** (all checks passing, no conflicts)
-3. **Merges the PR** automatically
-4. **Updates task status** to COMPLETED in TASK-LIST.md
-5. **Finalizes journal** with completion entry
-6. **Cleans up** (removes worktree for parallel tasks)
-
-The command automatically handles both regular tasks and worktree tasks.
-
-### Before running:
-
-- Ensure all sub-tasks in task file are marked complete
-- Review if any new tasks should be created based on learnings
-- Make sure you're ready for the PR to be merged
-
-**Phase 8 is now a single command - no manual steps required!**
-
-## Journal Entry Guidelines
-
-### When to Update:
-
-- Phase transitions
-- Test strategy decisions
-- Implementation approach chosen
-- Refactoring rationale
-- Problems and solutions
-- Key insights gained
-
-### Entry Format:
-
-```markdown
-### [Timestamp] - [Phase/Activity]
-
-[Content describing what happened, decisions, insights]
-**Next:** [What you plan to do next]
 ```
 
 ## Important Rules
 
-- NEVER write implementation code before tests (Phase 3)
-- NEVER modify tests after Phase 3 without explicit user permission
-- NEVER proceed to next phase without user permission
-- Complete phases sequentially
-- Document WHY, not just WHAT
-- Update journal frequently with meaningful entries
-- Address PR reviews immediately when user signals
+- **Test-Driven Development**: NEVER write implementation code before tests (Phase 3)
+- **Test Modification**: NEVER modify tests after Phase 3 without explicit permission - see [Test Modification Protocol](../shared/test-modification-protocol.md)
+- **Phase Progression**: NEVER proceed to next phase without permission - see [Phase Transition Rules](../shared/phase-transition-rules.md)
+- **Sequential Execution**: Complete phases in order
+- **Documentation**: Document WHY, not just WHAT - see [Journal Guidelines](../shared/journal-guidelines.md)
+- **Commit Discipline**: Commit logical milestones throughout development
+- **PR Reviews**: Address PR reviews immediately when user signals - see [PR Review Protocol](../shared/pr-review-protocol.md)
 
 ## Error Handling
 
 When encountering issues:
 
-1. **Test Failures**:
+### 1. Test Failures
+- Analyze why implementation doesn't meet test expectations
+- Fix implementation to satisfy tests
+- If test seems wrong, discuss with user before any changes
+- See: [Test Modification Protocol](../shared/test-modification-protocol.md)
 
-   - Analyze why implementation doesn't meet test expectations
-   - Fix implementation to satisfy tests
-   - If test seems wrong, discuss with user before any changes
+### 2. Design Flaws
+- Document the flaw discovered
+- Discuss with user whether to revisit Phase 2
 
-2. **Design Flaws**:
+### 3. Technical Blockers
+- Document the blocker in journal
+- Present alternative solutions to user
+- Discuss tradeoffs and get guidance
 
-   - Document the flaw discovered
-   - Discuss with user whether to revisit Phase 2
-
-3. **Technical Blockers**:
-
-   - Document the blocker in journal
-   - Present alternative solutions to user
-   - Discuss tradeoffs and get guidance
-
-4. **Unclear Requirements**:
-   - Document what is unclear
-   - Ask user for clarification
-   - Do not proceed until ambiguity resolved
+### 4. Unclear Requirements
+- Document what is unclear
+- Ask user for clarification
+- Do not proceed until ambiguity resolved
 
 ## PR Review Workflow
 
-**IMMEDIATELY READ**: `/home/roei/projects/Titinski/project-tasks/workflows/shared/pr-review-workflow.md`
+> **Full Protocol**: See [PR Review Protocol](../shared/pr-review-protocol.md) for complete PR review procedures.
 
-**Follow the standard PR Review Workflow from that file exactly.**
+**When user signals review** ("I made a review", "Check the PR comments"):
+1. Immediately pause current phase work
+2. Read entire PR review using GitHub CLI
+3. Address all comments systematically per protocol
 
-### Proactive Review Requests
-
-Ask user "Should I request a review to [specific purpose]?" when:
-
+**Proactive review requests**: Ask user "Should I request a review?" when:
 - Making major technical decisions
-- Completing phases 2, 3, 5, 6 (design, tests, refactor, verification)
-- Encountering scope creep or significant requirement changes
-- Facing performance/complexity concerns
-- Hitting unexpected blockers that change approach
-
-## Test Modification Protocol
-
-**READ FIRST**: `/home/roei/projects/Titinski/project-tasks/workflows/shared/test-modification-protocol.md`
-
-**Follow the protocol from that file exactly.**
+- Completing phases 2, 3, 5, 6
+- Encountering scope creep or requirement changes

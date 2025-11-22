@@ -12,13 +12,13 @@ When activated, help the user start or resume work on a task following the 8-pha
 - **Task List**: `execution/TASK-LIST.md`
 - **Task File**: `execution/tasks/NNN/task.md`
 - **Journal**: `execution/tasks/NNN/journal.md`
-- **8-Phase Workflow**: `execution/TASK-WORKFLOW.md`
-- **Task Type Workflows**: `execution/templates/task-types/{type}.md`
-  - `feature.md` - New functionality
-  - `bugfix.md` - Error corrections
-  - `refactor.md` - Code improvements
-  - `performance.md` - Optimization
-  - `deployment.md` - Infrastructure
+- **Task Type Workflows**: `execution/workflows/{type}-workflow.md`
+  - `feature-workflow.md` - New functionality
+  - `bugfix-workflow.md` - Error corrections
+  - `refactor-workflow.md` - Code improvements
+  - `performance-workflow.md` - Optimization
+  - `deployment-workflow.md` - Infrastructure
+- **Shared Protocols**: `execution/shared/`
 - **Full Workflow**: `.claude/commands/start-task.md`
 
 ## Process
@@ -42,7 +42,7 @@ When activated, help the user start or resume work on a task following the 8-pha
    - Create feature branch: `git checkout -b feature/task-XXX-description`
    - Create draft PR immediately
 2. **Read task file** from `execution/tasks/NNN/task.md`
-3. **Read task type workflow** from `execution/templates/task-types/{type}.md`
+3. **Read task type workflow** from `execution/workflows/{type}-workflow.md`
 4. **Create journal** at `execution/tasks/NNN/journal.md`:
    - Initialize with task type-specific template
    - Include git references (branch, PR number)
@@ -56,7 +56,7 @@ When activated, help the user start or resume work on a task following the 8-pha
 
 ### Begin Execution
 
-1. **Read 8-phase discipline** from `execution/TASK-WORKFLOW.md`
+1. **Follow task type workflow** from `execution/workflows/{type}-workflow.md`
 2. **Request permission** to proceed:
    - New tasks: Ask to begin Phase 1 (Task Analysis)
    - Ongoing tasks: Ask to continue from current phase
@@ -86,6 +86,6 @@ After completing all phases, suggest using the **task-completion** skill to fina
 ## References
 
 - Complete workflow details: `.claude/commands/start-task.md`
-- 8-phase discipline: `execution/TASK-WORKFLOW.md`
-- Task type workflows: `execution/templates/task-types/`
+- Task type workflows: `execution/workflows/`
+- Shared protocols: `execution/shared/`
 - Project guidelines: `CLAUDE.md`

@@ -8,6 +8,8 @@ This workflow guides the deployment of application components to AWS infrastruct
 - **User**: Makes changes in AWS Console
 - **Agent**: Verifies changes via AWS CLI and manages deployment process
 
+> **Note**: This workflow differs from standard 8-phase execution due to the operational nature of deployment tasks. It has deployment-specific phases focused on infrastructure and application deployment.
+
 ## Prerequisites
 
 - AWS credentials configured
@@ -30,7 +32,7 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Confirm resource availability
    - Check service configurations
 
-3. **Document deployment plan** in journal:
+3. **Document deployment plan**:
    - Components to deploy
    - Order of deployment
    - Rollback strategy
@@ -46,6 +48,8 @@ This workflow guides the deployment of application components to AWS infrastruct
 - Deployment scope clearly defined
 - Infrastructure state verified
 - Credentials confirmed working
+
+> **Phase Transition**: See [Phase Transition Rules](../shared/phase-transition-rules.md)
 
 **Request permission to proceed to Phase 2**
 
@@ -74,11 +78,6 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Backup service configurations
    - Document current service versions
 
-5. **Document in journal**:
-   - Environment configuration changes
-   - Backup locations and timestamps
-   - Any environment-specific considerations
-
 ### Exit Criteria
 - All tests passing
 - Environment configs prepared
@@ -97,10 +96,10 @@ This workflow guides the deployment of application components to AWS infrastruct
    ```bash
    # Verify resource creation/updates
    aws [service] describe-[resource]
-   
+
    # Check configuration status
    aws [service] get-[configuration]
-   
+
    # List deployed resources
    aws [service] list-[resources]
    ```
@@ -110,12 +109,6 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Validate configurations match requirements
    - Check IAM roles and permissions
    - Verify network and security settings
-
-4. **Document deployment steps** in journal:
-   - What user deployed in console
-   - CLI verification commands used
-   - Results of verification
-   - Any discrepancies found
 
 ### Exit Criteria
 - User confirms all infrastructure changes applied
@@ -179,8 +172,6 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Review AWS Cost Explorer
    - Verify auto-scaling settings
    - Check for unnecessary resources
-
-5. **Document test results** in journal
 
 ### Exit Criteria
 - All validations passing
@@ -350,7 +341,14 @@ For every deployment:
 
 ## Emergency Contacts
 
-Document in journal:
+Document in deployment journal:
 - AWS support case process
 - Team escalation path
 - Critical issue procedures
+
+## Related Shared Protocols
+
+While deployment workflows differ from standard task execution, these shared protocols may still be useful:
+
+- **[Journal Guidelines](../shared/journal-guidelines.md)** - Document deployment decisions and learnings
+- **[Phase Transition Rules](../shared/phase-transition-rules.md)** - Permission gates between deployment phases

@@ -56,16 +56,24 @@ planning/                       # 📋 PLANNING PHASE
         └── ...
 
 execution/                      # ⚡ EXECUTION PHASE
+├── workflows/                  # Type-specific execution workflows
+│   ├── README.md              # Workflow selection guide
+│   ├── feature-workflow.md    # Feature development workflow
+│   ├── bugfix-workflow.md     # Bug fixing workflow
+│   ├── refactor-workflow.md   # Code refactoring workflow
+│   ├── performance-workflow.md # Performance optimization workflow
+│   └── deployment-workflow.md # AWS deployment workflow
+├── shared/                     # Common protocols and guidelines
+│   ├── README.md              # Shared protocol overview
+│   ├── pr-review-protocol.md  # PR feedback handling
+│   ├── test-modification-protocol.md # Test change rules
+│   ├── journal-guidelines.md  # Journal entry format
+│   ├── completion-protocol.md # Phase 8 completion steps
+│   ├── verification-checklist.md # Phase 6-7 checks
+│   └── phase-transition-rules.md # Permission gates
 ├── templates/                  # Execution artifact templates
-│   ├── TASK-TEMPLATE.md
-│   └── task-types/             # Type-specific workflows
-│       ├── feature.md
-│       ├── bugfix.md
-│       ├── refactor.md
-│       ├── performance.md
-│       └── deployment.md
+│   └── TASK-TEMPLATE.md
 ├── TASK-LIST.md               # Single source of truth for all tasks
-├── TASK-WORKFLOW.md           # 8-phase execution discipline
 ├── PARALLEL-WORKFLOW-GUIDE.md # Concurrent task execution guide
 └── tasks/###/                 # Individual task directories
     ├── task.md                # Task definition and requirements
@@ -156,7 +164,7 @@ execution/                      # ⚡ EXECUTION PHASE
 
 ### 8-Phase Workflow Discipline
 
-Each task follows this sequence (defined in `execution/TASK-WORKFLOW.md`):
+Each task follows this sequence (defined in type-specific workflows in `execution/workflows/`):
 
 1. **Phase 1: Task Analysis**
    - Read task file and linked feature documentation
@@ -231,7 +239,7 @@ git add . && git commit -m "..." && git push
 
 ### Task Types and Workflows
 
-Each task type follows a specialized workflow (in `execution/templates/task-types/`):
+Each task type follows a specialized workflow (in `execution/workflows/`):
 
 - **feature**: New functionality or capabilities
 - **bugfix**: Error corrections and fixes

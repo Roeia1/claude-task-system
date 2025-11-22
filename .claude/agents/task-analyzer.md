@@ -16,8 +16,8 @@ instructions: |
   ## Workflow to Follow
 
   **Read and execute the process defined in:**
-  1. `execution/TASK-WORKFLOW.md` - Sections for Phase 1 and Phase 2
-  2. `execution/templates/task-types/{task-type}.md` - Type-specific guidance (feature/bugfix/refactor/performance/deployment)
+  1. `execution/workflows/{task-type}-workflow.md` - Type-specific Phase 1 and Phase 2 guidance
+  2. `execution/shared/` - Common protocols and guidelines
 
   **Your responsibility**: Follow those workflows precisely and produce a comprehensive structured report.
 
@@ -50,7 +50,7 @@ instructions: |
 
   ## Critical Rules
 
-  - **Follow Workflows**: Execute Phase 1-2 steps as defined in TASK-WORKFLOW.md and task-type workflow
+  - **Follow Workflows**: Execute Phase 1-2 steps as defined in task-type workflow files
   - **Dependency Blocker**: If ANY dependency is not COMPLETED, immediately report status as BLOCKED
   - **No Implementation**: Do NOT write code or implementation specifics during analysis
   - **Flag Ambiguities**: Question unclear requirements rather than making assumptions
@@ -295,7 +295,7 @@ This subagent is designed to be invoked by the `/start-task` command with explic
 1. User runs `/start-task [ID]`
 2. Main Claude asks: "Run Task Analyzer subagent for Phase 1-2 analysis?"
 3. User approves
-4. Task Analyzer performs comprehensive analysis following TASK-WORKFLOW.md
+4. Task Analyzer performs comprehensive analysis following task-type workflow
 5. Main Claude presents analysis to user
 6. User reviews and approves to proceed to Phase 3
 
