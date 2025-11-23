@@ -57,20 +57,7 @@ Initialize journal with:
 3. Analyze refactoring objectives and quality goals
 4. Review existing sub-tasks in task file
 5. Identify ambiguities or concerns
-6. **Invoke journaling subagent** to document analysis:
-   ```
-   task_id: Current task number
-   phase: "Phase 1: Task Analysis"
-   activity: "Phase 1 Complete: Task Analysis Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared summary including:
-      - Refactoring objectives and quality goals
-      - Current code quality issues identified
-      - Dependencies verified
-      - Concerns or ambiguities identified]
-   next_action: "Request user permission to proceed to Phase 2 (Code Analysis & Planning)"
-   ```
+6. **Journal**: Phase 1 completion - document refactoring objectives, quality goals, current code quality issues, verified dependencies, concerns
 7. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 ### Exit Criteria
@@ -92,22 +79,7 @@ Initialize journal with:
 5. Plan incremental refactoring strategy
 6. Consider risks identified in task file
 7. Define quality improvement metrics
-8. **Invoke journaling subagent** to document code analysis:
-   ```
-   task_id: Current task number
-   phase: "Phase 2: Code Analysis & Planning"
-   activity: "Phase 2 Complete: Code Analysis Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared analysis documentation including:
-      - Technical debt and quality issues identified
-      - Current test coverage assessment
-      - Dependencies and impact scope
-      - Behavior patterns that must be preserved
-      - Incremental refactoring strategy
-      - Quality improvement metrics defined]
-   next_action: "Request user permission to proceed to Phase 3 (Safety Net Creation)"
-   ```
+8. **Journal**: Phase 2 completion - document technical debt identified, test coverage assessment, dependencies and impact, behavior patterns to preserve, incremental refactoring strategy, quality metrics
 9. **Commit and push analysis work**: `git add . && git commit -m "docs(task-XXX): complete code analysis and refactoring plan" && git push`
 10. **Consider review request**: For major architectural refactoring, ask user if they want to review the plan
 
@@ -127,21 +99,7 @@ Initialize journal with:
 4. Focus on behavior preservation, not new functionality
 5. Document current behavior patterns in tests
 6. Ensure all new tests pass with current implementation
-7. **Invoke journaling subagent** to document safety net creation:
-   ```
-   task_id: Current task number
-   phase: "Phase 3: Safety Net Creation"
-   activity: "Phase 3 Complete: Safety Net Tests Created"
-   is_phase_transition: true
-   content: |
-     [Prepared safety net documentation including:
-      - Baseline test results (all passing)
-      - Areas where test coverage was added
-      - Behavior patterns now covered by tests
-      - Safety net strategy and rationale
-      - All tests passing with current implementation]
-   next_action: "Request user permission to proceed to Phase 4 (Incremental Refactoring)"
-   ```
+7. **Journal**: Phase 3 completion - document baseline test results, areas where coverage added, behavior patterns now covered, safety net strategy, all tests passing
 8. **Commit and push safety net**: `git add . && git commit -m "test(task-XXX): add safety net tests for refactoring areas" && git push`
 9. **Consider review request**: For complex refactoring with significant test additions
 
@@ -168,38 +126,10 @@ Initialize journal with:
    - NEVER modify tests to match refactored behavior
    - **If test modification needed**: See [Test Modification Protocol](../shared/test-modification-protocol.md)
 5. Work through sub-tasks from task file methodically
-6. **Invoke journaling subagent** when completing significant refactoring milestones:
-   ```
-   task_id: Current task number
-   phase: "Phase 4: Incremental Refactoring"
-   activity: "[Specific Refactoring, e.g., 'Extract Utility Functions']"
-   content: |
-     [Prepared documentation of:
-      - What refactoring was performed
-      - Why this refactoring improves quality
-      - Challenges encountered during refactoring
-      - How behavior was preserved (tests still pass)
-      - Quality improvements achieved]
-   next_action: "[Next refactoring step]"
-   update_sections:
-     "Refactoring Notes": "Brief summary of refactoring improvement"
-   ```
+6. **Journal** (when completing significant refactoring milestones): Document what refactoring performed, why it improves quality, challenges encountered, how behavior preserved, quality improvements achieved
 7. Check off completed sub-tasks in task file
 8. Monitor for performance regressions
-9. **When phase complete, invoke journaling subagent**:
-   ```
-   task_id: Current task number
-   phase: "Phase 4: Incremental Refactoring"
-   activity: "Phase 4 Complete: All Refactoring Applied"
-   is_phase_transition: true
-   content: |
-     [Summary including:
-      - All refactoring increments completed
-      - Quality improvements achieved overall
-      - All tests passing (behavior preserved)
-      - Performance maintained]
-   next_action: "Request user permission to proceed to Phase 5 (Quality Validation)"
-   ```
+9. **Journal**: Phase 4 completion - summarize all refactoring increments completed, quality improvements achieved overall, all tests passing, performance maintained
 10. **Consider mid-phase review**: For complex refactoring, ask user if they want to review progress
 
 ### Exit Criteria
@@ -221,21 +151,7 @@ Initialize journal with:
 3. Verify performance has not degraded
 4. Review code against project conventions
 5. Ensure error handling is preserved or improved
-6. **Invoke journaling subagent** to document quality validation:
-   ```
-   task_id: Current task number
-   phase: "Phase 5: Quality Validation"
-   activity: "Phase 5 Complete: Quality Validation Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared validation documentation including:
-      - All tests passing (no regressions)
-      - Quality metrics improvements (complexity, duplication, maintainability)
-      - Performance validation (maintained or improved)
-      - Convention compliance verified
-      - Error handling preserved/improved]
-   next_action: "Request user permission to proceed to Phase 6 (Verification)"
-   ```
+6. **Journal**: Phase 5 completion - document all tests passing, quality metrics improvements (complexity, duplication, maintainability), performance validation, convention compliance, error handling preserved/improved
 7. **Commit and push validation results**: `git add . && git commit -m "docs(task-XXX): validate refactoring quality improvements" && git push`
 
 ### Exit Criteria
@@ -264,21 +180,7 @@ Initialize journal with:
 ### Phase 7: Refactoring Reflection
 
 1. Review entire refactoring journey
-2. **Invoke journaling subagent** for final reflection:
-   ```
-   task_id: Current task number
-   phase: "Phase 7: Reflection"
-   activity: "Phase 7 Complete: Reflection Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared reflection including:
-      - New insights about code quality gained
-      - Additional refactoring opportunities discovered
-      - Future refactoring considerations
-      - Key learnings from this refactoring
-      - Patterns or practices to reuse]
-   next_action: "Request user permission to complete task (Phase 8)"
-   ```
+2. **Journal**: Phase 7 completion - reflect on code quality insights gained, additional refactoring opportunities discovered, future considerations, key learnings, patterns to reuse
 
 **Request permission to complete task**
 

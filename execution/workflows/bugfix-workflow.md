@@ -57,21 +57,7 @@ Initialize journal with:
 3. Analyze bug description, symptoms, and impact
 4. Review existing sub-tasks in task file
 5. Identify ambiguities or concerns about the bug
-6. **Invoke journaling subagent** to document analysis:
-   ```
-   task_id: Current task number
-   phase: "Phase 1: Task Analysis"
-   activity: "Phase 1 Complete: Task Analysis Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared summary including:
-      - Bug description and symptoms
-      - Impact assessment (severity, affected users)
-      - Initial understanding of issue
-      - Dependencies verified
-      - Concerns or ambiguities identified]
-   next_action: "Request user permission to proceed to Phase 2 (Bug Investigation)"
-   ```
+6. **Journal**: Phase 1 completion - document bug symptoms, impact assessment, initial understanding, verified dependencies, concerns
 7. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 ### Exit Criteria
@@ -92,22 +78,7 @@ Initialize journal with:
 4. Assess urgency and potential for regression
 5. Identify the minimal fix approach
 6. Consider any risks from the proposed fix
-7. **Invoke journaling subagent** to document investigation:
-   ```
-   task_id: Current task number
-   phase: "Phase 2: Bug Investigation"
-   activity: "Phase 2 Complete: Root Cause Identified"
-   is_phase_transition: true
-   content: |
-     [Prepared investigation report including:
-      - Bug reproduction steps (confirmed working)
-      - Root cause analysis and findings
-      - Affected components and scope of impact
-      - Proposed minimal fix approach
-      - Risks and considerations
-      - Why this approach was chosen]
-   next_action: "Request user permission to proceed to Phase 3 (Test Creation)"
-   ```
+7. **Journal**: Phase 2 completion - document bug reproduction steps, root cause analysis, affected components, proposed minimal fix approach, risks and why this approach chosen
 8. **Commit and push investigation work**: `git add . && git commit -m "docs(task-XXX): complete bug investigation and root cause analysis" && git push`
 9. **Consider review request**: For complex bugs or unclear root causes, ask user if they want to review findings
 
@@ -130,20 +101,7 @@ Initialize journal with:
    - Edge cases that might trigger similar issues
    - Integration scenarios if bug affects multiple components
 5. DO NOT write any fix code during this phase
-6. **Invoke journaling subagent** to document test creation:
-   ```
-   task_id: Current task number
-   phase: "Phase 3: Test Creation"
-   activity: "Phase 3 Complete: Bug Reproduction Tests Created"
-   is_phase_transition: true
-   content: |
-     [Prepared test strategy documentation including:
-      - Test successfully reproduces the bug (failing as expected)
-      - Regression prevention tests added for related scenarios
-      - Test strategy rationale (why these tests cover the bug)
-      - Edge cases and integration scenarios covered]
-   next_action: "Request user permission to proceed to Phase 4 (Fix Implementation)"
-   ```
+6. **Journal**: Phase 3 completion - document test reproduces bug (failing as expected), regression prevention tests, test strategy rationale, edge cases covered
 7. **Commit and push test creation**: `git add . && git commit -m "test(task-XXX): add tests reproducing bug and preventing regression" && git push`
 8. **Consider review request**: For complex test strategies or unclear bug reproduction
 
@@ -165,22 +123,7 @@ Initialize journal with:
    - Follow the protocol exactly as specified
 5. Run full test suite to ensure no new regressions
 6. Work through sub-tasks from task file methodically
-7. **Invoke journaling subagent** to document fix implementation:
-   ```
-   task_id: Current task number
-   phase: "Phase 4: Fix Implementation"
-   activity: "Phase 4 Complete: Minimal Fix Applied"
-   is_phase_transition: true
-   content: |
-     [Prepared fix documentation including:
-      - What fix was applied (specific changes made)
-      - Why this fix resolves the root cause
-      - Bug reproduction test now passes
-      - Full test suite passes (no regressions)
-      - Any challenges encountered during fix
-      - Confirmation that scope was kept minimal]
-   next_action: "Request user permission to proceed to Phase 5 (Validation)"
-   ```
+7. **Journal**: Phase 4 completion - document fix applied, why it resolves root cause, tests now passing, no regressions, challenges encountered, scope kept minimal
 8. Check off completed sub-tasks in task file
 9. If significant design issues are discovered during fix:
    - Document the design problem
@@ -203,22 +146,7 @@ Initialize journal with:
 3. Verify fix works across different scenarios/environments
 4. Run performance tests if bug was performance-related
 5. Ensure error handling is appropriate for the fix
-6. **Invoke journaling subagent** to document validation:
-   ```
-   task_id: Current task number
-   phase: "Phase 5: Validation & Edge Cases"
-   activity: "Phase 5 Complete: Validation Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared validation documentation including:
-      - Edge cases tested and results
-      - Integration scenarios verified
-      - Different scenarios/environments tested
-      - Performance validation (if applicable)
-      - Error handling verification
-      - All validation passed successfully]
-   next_action: "Request user permission to proceed to Phase 6 (Verification)"
-   ```
+6. **Journal**: Phase 5 completion - document edge cases tested, integration scenarios verified, different scenarios/environments tested, performance validation, all validation passed
 7. **Commit validation work**: `git add . && git commit -m "test(task-XXX): validate bugfix across edge cases and integration scenarios" && git push`
 
 ### Exit Criteria
@@ -248,21 +176,7 @@ Initialize journal with:
 ### Phase 7: Bugfix Reflection
 
 1. Review entire bugfix journey
-2. **Invoke journaling subagent** for final reflection:
-   ```
-   task_id: Current task number
-   phase: "Phase 7: Reflection"
-   activity: "Phase 7 Complete: Reflection Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared reflection including:
-      - Root cause insights for future prevention
-      - What could prevent similar bugs in the future
-      - Additional testing strategies discovered
-      - Key learnings from this bugfix
-      - Prevention strategies to implement]
-   next_action: "Request user permission to complete task (Phase 8)"
-   ```
+2. **Journal**: Phase 7 completion - reflect on root cause insights for prevention, what could prevent similar bugs, additional testing strategies, key learnings, prevention strategies to implement
 
 **Request permission to complete task**
 

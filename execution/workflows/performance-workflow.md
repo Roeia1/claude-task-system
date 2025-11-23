@@ -57,20 +57,7 @@ Initialize journal with:
 3. Analyze performance requirements and target metrics
 4. Review existing sub-tasks in task file
 5. Identify ambiguities or concerns about performance goals
-6. **Invoke journaling subagent** to document analysis:
-   ```
-   task_id: Current task number
-   phase: "Phase 1: Task Analysis"
-   activity: "Phase 1 Complete: Task Analysis Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared summary including:
-      - Performance requirements and target metrics
-      - Current performance baseline understanding
-      - Dependencies verified
-      - Concerns or ambiguities about performance goals]
-   next_action: "Request user permission to proceed to Phase 2 (Performance Analysis)"
-   ```
+6. **Journal**: Phase 1 completion - document performance requirements and target metrics, baseline understanding, verified dependencies, concerns about performance goals
 7. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 ### Exit Criteria
@@ -92,23 +79,7 @@ Initialize journal with:
 5. Set specific, measurable performance targets
 6. Evaluate optimization opportunities and their potential impact
 7. Consider risks and tradeoffs of different optimization approaches
-8. **Invoke journaling subagent** to document performance analysis:
-   ```
-   task_id: Current task number
-   phase: "Phase 2: Performance Analysis"
-   activity: "Phase 2 Complete: Performance Analysis Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared analysis documentation including:
-      - Baseline performance measurements (specific metrics)
-      - Bottlenecks identified with evidence
-      - Resource usage analysis (CPU, memory, I/O)
-      - Profiling results and hotspots
-      - Performance targets set (specific, measurable)
-      - Optimization opportunities and expected impact
-      - Risks and tradeoffs considered]
-   next_action: "Request user permission to proceed to Phase 3 (Benchmark Test Creation)"
-   ```
+8. **Journal**: Phase 2 completion - document baseline metrics (specific numbers), bottlenecks identified, resource usage analysis, profiling results, performance targets set, optimization opportunities and expected impact, risks and tradeoffs
 9. **Commit and push analysis work**: `git add . && git commit -m "docs(task-XXX): complete performance analysis and optimization planning" && git push`
 10. **Consider review request**: For major performance optimizations, ask user if they want to review the analysis
 
@@ -132,21 +103,7 @@ Initialize journal with:
    - Resource usage monitoring
    - Load testing scenarios
 5. Verify benchmarks accurately reflect real-world usage
-6. **Invoke journaling subagent** to document benchmark strategy:
-   ```
-   task_id: Current task number
-   phase: "Phase 3: Benchmark Test Creation"
-   activity: "Phase 3 Complete: Benchmark Suite Created"
-   is_phase_transition: true
-   content: |
-     [Prepared benchmark documentation including:
-      - Comprehensive benchmark suite created
-      - Baseline metrics documented (specific numbers)
-      - Success criteria thresholds defined
-      - Testing coverage (throughput, latency, resource usage, load)
-      - Benchmark validation (reflects real-world usage)]
-   next_action: "Request user permission to proceed to Phase 4 (Performance Implementation)"
-   ```
+6. **Journal**: Phase 3 completion - document benchmark suite created, baseline metrics (specific numbers), success criteria thresholds, testing coverage (throughput, latency, resources, load), benchmarks reflect real-world usage
 7. **Commit and push benchmark suite**: `git add . && git commit -m "test(task-XXX): add performance benchmark suite with baseline metrics" && git push`
 8. **Consider review request**: For complex performance testing strategies
 
@@ -172,38 +129,10 @@ Initialize journal with:
    - Try alternative approaches
 5. Monitor for functional regressions with each change
 6. Work through sub-tasks from task file methodically
-7. **Invoke journaling subagent** when completing significant optimizations:
-   ```
-   task_id: Current task number
-   phase: "Phase 4: Performance Implementation"
-   activity: "[Specific Optimization, e.g., 'Database Query Optimization']"
-   content: |
-     [Prepared documentation of:
-      - What optimization was applied
-      - Performance measurements achieved (specific metrics)
-      - Why this approach was chosen
-      - Challenges encountered during optimization
-      - Impact on functionality (no regressions)]
-   next_action: "[Next optimization step]"
-   update_sections:
-     "Optimization Implementation": "Brief summary with metrics"
-   ```
+7. **Journal** (when completing significant optimizations): Document what optimization applied, performance measurements achieved (specific metrics), why this approach chosen, challenges encountered, no functional regressions
 8. Check off completed sub-tasks in task file
 9. Continue until performance targets are met
-10. **When phase complete, invoke journaling subagent**:
-    ```
-    task_id: Current task number
-    phase: "Phase 4: Performance Implementation"
-    activity: "Phase 4 Complete: All Optimizations Applied"
-    is_phase_transition: true
-    content: |
-      [Summary including:
-       - All optimizations completed
-       - Performance targets achieved (specific metrics vs baseline)
-       - No functional regressions
-       - Overall performance improvement]
-    next_action: "Request user permission to proceed to Phase 5 (Performance Validation)"
-    ```
+10. **Journal**: Phase 4 completion - summarize all optimizations completed, performance targets achieved (specific metrics vs baseline), no functional regressions, overall performance improvement
 11. **Consider mid-phase review**: For complex optimizations, ask user if they want to review progress
 
 ### Exit Criteria
@@ -226,21 +155,7 @@ Initialize journal with:
 4. Test for performance regressions in non-optimized areas
 5. Validate memory usage and resource consumption
 6. Run stress tests to ensure stability under load
-7. **Invoke journaling subagent** to document validation:
-   ```
-   task_id: Current task number
-   phase: "Phase 5: Performance Validation"
-   activity: "Phase 5 Complete: Performance Validation Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared validation documentation including:
-      - Final metrics vs baseline vs targets (specific numbers)
-      - Performance verified across scenarios (loads, data sizes, edge cases)
-      - No regressions in non-optimized areas
-      - Memory and resource usage validated
-      - Stability confirmed under stress tests]
-   next_action: "Request user permission to proceed to Phase 6 (Verification)"
-   ```
+7. **Journal**: Phase 5 completion - document final metrics vs baseline vs targets (specific numbers), performance verified across scenarios, no regressions in non-optimized areas, memory/resource usage validated, stability confirmed
 8. **Commit validation work**: `git add . && git commit -m "test(task-XXX): validate performance improvements and stability" && git push`
 
 ### Exit Criteria
@@ -269,21 +184,7 @@ Initialize journal with:
 ### Phase 7: Performance Reflection
 
 1. Review entire optimization journey
-2. **Invoke journaling subagent** for final reflection:
-   ```
-   task_id: Current task number
-   phase: "Phase 7: Reflection"
-   activity: "Phase 7 Complete: Reflection Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared reflection including:
-      - Performance insights discovered during optimization
-      - Additional optimization opportunities found
-      - Lessons learned about system bottlenecks
-      - Future performance considerations
-      - Key learnings and patterns to reuse]
-   next_action: "Request user permission to complete task (Phase 8)"
-   ```
+2. **Journal**: Phase 7 completion - reflect on performance insights discovered, additional optimization opportunities, lessons about system bottlenecks, future performance considerations, key learnings and patterns
 
 **Request permission to complete task**
 
@@ -339,19 +240,7 @@ When encountering issues:
 
 Apply the test modification protocol to benchmark changes. After Phase 3, if benchmarks need modification:
 
-1. **Invoke journaling subagent** to document benchmark change request:
-   ```
-   task_id: Current task number
-   phase: Current phase
-   activity: "Benchmark Modification Request"
-   content: |
-     [Prepared justification including:
-      - Which benchmark needs changing
-      - Why current benchmark is inadequate
-      - How the change affects baseline measurements
-      - Performance reasoning for the change]
-   next_action: "Request user permission for benchmark modification"
-   ```
+1. **Journal**: Benchmark modification request - document which benchmark needs changing, why current benchmark inadequate, how change affects baseline, performance reasoning
 2. Explain to user with performance reasoning
 3. Wait for explicit permission
 4. Update baselines appropriately when approved

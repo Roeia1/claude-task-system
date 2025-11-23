@@ -64,21 +64,7 @@ For comprehensive analysis with automated standards validation:
    - Identifies risks, ambiguities, and architectural decisions
    - Recommends technical approach aligned with standards
 4. **Present analysis** to user for review
-5. **Invoke journaling subagent** to document Phase 1 completion:
-   ```
-   task_id: Current task number
-   phase: "Phase 1: Task Analysis"
-   activity: "Phase 1 Complete: Task Analysis Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared summary of task analysis including:
-      - Key findings from task.md, feature.md, and plan.md
-      - Understanding of requirements and acceptance criteria
-      - Dependencies verified as COMPLETED
-      - Concerns or ambiguities identified
-      - Initial technical approach understanding]
-   next_action: "Request user permission to proceed to Phase 2 (Solution Design)"
-   ```
+5. **Journal**: Phase 1 completion - document task understanding, verified dependencies, concerns, initial approach
 6. **Commit initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 **Benefits of Task Analyzer**:
@@ -97,20 +83,7 @@ If subagent is unavailable or user prefers manual approach:
 3. Analyze requirements, objectives, and acceptance criteria
 4. Review existing sub-tasks in task file
 5. Identify ambiguities or concerns
-6. **Invoke journaling subagent** to document analysis:
-   ```
-   task_id: Current task number
-   phase: "Phase 1: Task Analysis"
-   activity: "Phase 1 Complete: Task Analysis Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared summary including:
-      - Task understanding and objectives
-      - Requirements analysis
-      - Dependencies verified
-      - Concerns or ambiguities identified]
-   next_action: "Request user permission to proceed to Phase 2 (Solution Design)"
-   ```
+6. **Journal**: Phase 1 completion - document task understanding, verified dependencies, concerns
 7. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 ### Exit Criteria
@@ -136,23 +109,7 @@ If subagent is unavailable or user prefers manual approach:
 4. Consider how to approach sub-tasks from task file
 5. Consider risks identified in task file
 6. Plan how solution will be tested
-7. **Invoke journaling subagent** to document design:
-   ```
-   task_id: Current task number
-   phase: "Phase 2: Solution Design"
-   activity: "Phase 2 Complete: Solution Design Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared design documentation including:
-      - Technical approach and architecture
-      - Design decisions made with reasoning
-      - Alternatives considered and why rejected
-      - Tradeoffs accepted
-      - How sub-tasks will be approached
-      - Testing strategy plan]
-   next_action: "Request user permission to proceed to Phase 3 (Test Creation)"
-   adr_references: ["ADR-XXX"] (if ADRs were created)
-   ```
+7. **Journal**: Phase 2 completion - document technical approach, design decisions with reasoning, alternatives considered, tradeoffs, testing strategy (include ADR references if created)
 8. **Commit and push design work**: `git add . && git commit -m "docs(task-XXX): complete solution design and architecture" && git push`
 9. **Consider review request**: For major architectural decisions, ask user if they want to review the design
 
@@ -173,21 +130,7 @@ If subagent is unavailable or user prefers manual approach:
    - Clear test descriptions documenting expected behavior
 3. DO NOT write any implementation code during this phase
 4. Run all created tests to confirm they are failing
-5. **Invoke journaling subagent** to document test creation:
-   ```
-   task_id: Current task number
-   phase: "Phase 3: Test Creation"
-   activity: "Phase 3 Complete: Test Suite Created"
-   is_phase_transition: true
-   content: |
-     [Prepared test strategy documentation including:
-      - Testing approach and rationale
-      - Scenarios covered (happy path, edge cases, error conditions)
-      - Why this testing approach fits requirements
-      - Coverage strategy
-      - All tests confirmed failing as expected (TDD)]
-   next_action: "Request user permission to proceed to Phase 4 (Implementation)"
-   ```
+5. **Journal**: Phase 3 completion - document testing approach and rationale, scenarios covered, coverage strategy, all tests failing as expected
 6. **Commit and push test creation**: `git add . && git commit -m "test(task-XXX): add comprehensive test suite for [feature]" && git push`
 7. **Consider review request**: For complex test strategies, ask user if they want to review the test approach
 
@@ -208,40 +151,12 @@ If subagent is unavailable or user prefers manual approach:
    - See: [Test Modification Protocol](../shared/test-modification-protocol.md)
    - Follow the protocol exactly as specified
 4. Work through sub-tasks from task file methodically
-5. **Invoke journaling subagent** when encountering significant challenges or decisions:
-   ```
-   task_id: Current task number
-   phase: "Phase 4: Implementation"
-   activity: "[Specific Activity, e.g., 'Database Schema Implementation']"
-   content: |
-     [Prepared documentation of:
-      - What was implemented
-      - Implementation decisions made and reasoning
-      - Challenges encountered and how solved
-      - Code patterns or techniques used
-      - Any deviations from design with justification]
-   next_action: "[Specific next implementation step]"
-   update_sections:
-     "Implementation Notes": "Brief summary of key decision or challenge"
-   ```
+5. **Journal** (when encountering significant challenges or decisions): Document what was implemented, decisions with reasoning, challenges and solutions, patterns used, deviations from design
 6. Check off completed sub-tasks in task file
 7. Run tests frequently to track progress
 8. Continue until all tests pass
 9. **Handle design issues**: If significant design flaws emerge, address within this phase using Phase 2-style analysis
-10. **When phase complete, invoke journaling subagent** for phase transition:
-    ```
-    task_id: Current task number
-    phase: "Phase 4: Implementation"
-    activity: "Phase 4 Complete: Implementation Finalized"
-    is_phase_transition: true
-    content: |
-      [Summary of implementation phase:
-       - What was implemented
-       - Key decisions and approaches
-       - Challenges overcome
-       - All tests now passing]
-    next_action: "Request user permission to proceed to Phase 5 (Refactor)"
-    ```
+10. **Journal**: Phase 4 completion - summarize what was implemented, key decisions and approaches, challenges overcome, all tests passing
 11. **Consider mid-phase review**: For complex implementations, ask user if they want to review progress
 
 ### Exit Criteria
@@ -264,20 +179,7 @@ If subagent is unavailable or user prefers manual approach:
 3. Implement refactoring changes
 4. Ensure all tests still pass after each change
 5. **Commit and push refactoring work**: `git add . && git commit -m "refactor(task-XXX): improve [specific improvement]" && git push`
-6. **Invoke journaling subagent** to document refactoring:
-   ```
-   task_id: Current task number
-   phase: "Phase 5: Refactor"
-   activity: "Phase 5 Complete: Refactoring Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared refactoring documentation including:
-      - What was improved and why
-      - How code is better now
-      - Impact on maintainability/performance/clarity
-      - All tests still passing after changes]
-   next_action: "Request user permission to proceed to Phase 6 (Verification)"
-   ```
+6. **Journal**: Phase 5 completion - document what was improved and why, how code is better, impact on maintainability/performance/clarity, tests still passing
 7. Repeat until satisfied with code quality
 
 ### Exit Criteria
@@ -305,21 +207,7 @@ If subagent is unavailable or user prefers manual approach:
 
 1. Review entire task journey
 2. Update task file with learnings
-3. **Invoke journaling subagent** for final reflection:
-   ```
-   task_id: Current task number
-   phase: "Phase 7: Reflection"
-   activity: "Phase 7 Complete: Reflection Finalized"
-   is_phase_transition: true
-   content: |
-     [Prepared reflection including:
-      - Key learnings from this task
-      - What worked well
-      - What could be improved for next time
-      - Insights gained
-      - Patterns or practices to reuse]
-   next_action: "Request user permission to complete task (Phase 8)"
-   ```
+3. **Journal**: Phase 7 completion - reflect on key learnings, what worked well, what could improve next time, insights gained, patterns to reuse
 
 **Request permission to complete task**
 
@@ -357,19 +245,7 @@ When encountering issues:
 - Discuss with user whether to revisit Phase 2
 
 ### 3. Technical Blockers
-- **Invoke journaling subagent** to document the blocker:
-  ```
-  task_id: Current task number
-  phase: Current phase
-  activity: "Technical Blocker Encountered"
-  content: |
-    [Description of:
-     - What blocker was encountered
-     - Why it's blocking progress
-     - What has been tried
-     - Potential alternative solutions]
-  next_action: "Discuss alternatives with user"
-  ```
+- **Journal**: Technical blocker - describe blocker encountered, why it blocks progress, what has been tried, potential alternatives
 - Present alternative solutions to user
 - Discuss tradeoffs and get guidance
 

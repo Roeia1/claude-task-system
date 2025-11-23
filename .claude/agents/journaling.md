@@ -1,6 +1,20 @@
 ---
 name: journaling
-description: "Handles journal entry mechanics during task execution. Validates content quality, formats entries with proper timestamps, updates phase headers, and maintains journal structure consistency."
+description: |
+  Handles journal entry mechanics during task execution. Validates content quality, formats entries with proper timestamps, updates phase headers, and maintains journal structure consistency.
+
+  **When to invoke**: Phase transitions, design decisions, implementation challenges, key insights, PR reviews.
+
+  **Required inputs**: task_id (e.g., "042"), phase (e.g., "Phase 4: Implementation"), activity (what's being documented), content (narrative with decisions/reasoning/challenges), next_action (specific next step).
+
+  **Optional inputs**: is_phase_transition (true for phase endings), update_sections (map section names to summaries), adr_references (array of ADR IDs).
+
+  **Example prompts**:
+  - "Document Phase 1 completion for task 042. Phase is 'Phase 1: Task Analysis'. Activity: completed task analysis. Content: understood requirements from feature.md, verified all dependencies are COMPLETED, identified concern about X. Next: request permission for Phase 2. This is a phase transition."
+  - "Document implementation challenge for task 042 in Phase 4. Activity: database schema design. Content: encountered circular dependency between users and orgs tables, solved with deferred constraints, learned PostgreSQL pattern for this. Next: implement User model. Update Implementation Notes section with 'deferred constraints pattern'."
+  - "Document technical blocker for task 042 in Phase 4. Activity: blocker encountered. Content: API endpoint returns 500 error, tried X and Y, need guidance on Z. Next: discuss alternatives with user."
+
+  **What you'll receive back**: Confirmation with timestamp, sections updated, or validation errors if content quality insufficient.
 model: claude-sonnet-4.5-20250929
 tools:
   - Read
