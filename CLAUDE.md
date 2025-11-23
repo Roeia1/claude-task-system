@@ -353,26 +353,11 @@ Each task in `execution/tasks/###/task.md` contains:
 
 All journaling is handled through the **journaling subagent** (`.claude/agents/journaling.md`), which validates content quality, formats entries consistently, and maintains journal structure.
 
-**When to journal** (invoke journaling subagent):
-- Phase transitions (after completing each phase)
-- Design and architectural decisions
-- Implementation challenges and solutions
-- Test strategy decisions
-- PR review responses
-- Key insights and learnings
-
-**How to invoke**:
-```
-Use Task tool with subagent_type="journaling" and provide:
-- task_id: Current task number
-- phase: Current phase (e.g., "Phase 4: Implementation")
-- activity: What's being documented
-- content: Prepared narrative (decisions, reasoning, challenges, solutions)
-- next_action: Specific next step
-- Optional: is_phase_transition, update_sections, adr_references
-```
-
-**See**: [Journal Entry Guidelines](execution/shared/journal-guidelines.md) for detailed guidance on when and what to journal.
+**Complete journaling guidance**: See [Journal Entry Guidelines](execution/shared/journal-guidelines.md) for:
+- When to invoke the journaling subagent
+- What content to prepare
+- How to invoke with proper parameters
+- Quality standards and examples
 
 ## PR Review Protocol
 

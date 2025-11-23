@@ -1,26 +1,6 @@
 # Feature Task Execution Workflow
 
-## Journal Structure
-
-Initialize journal with:
-
-```markdown
-# Task #[NUMBER]: [TITLE]
-
-## Current Phase: Phase 1 - Task Analysis
-
-## Git References
-
-- **Branch**: feature/task-XXX-description
-- **PR**: #XXX - [PR Title]
-- **Base Branch**: main
-
-## Progress Log
-
-[Chronological log of all work, decisions, challenges, and insights - updated throughout task execution]
-```
-
-> **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md) for detailed guidance on when and how to update the journal.
+> **Journal Guidelines**: The start-task command initializes the journal structure. See [Journal Entry Guidelines](../shared/journal-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent.
 
 ## Phase 1: Task Analysis
 
@@ -40,7 +20,7 @@ For comprehensive analysis with automated standards validation:
    - Identifies risks, ambiguities, and architectural decisions
    - Recommends technical approach aligned with standards
 4. **Present analysis** to user for review
-5. **Journal**: Phase 1 completion - document task understanding, verified dependencies, concerns, initial approach
+5. **Journal**: Phase 1 completion (see [guidelines](../shared/journal-guidelines.md))
 6. **Commit initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 **Benefits of Task Analyzer**:
@@ -59,7 +39,7 @@ If subagent is unavailable or user prefers manual approach:
 3. Analyze requirements, objectives, and acceptance criteria
 4. Review existing sub-tasks in task file
 5. Identify ambiguities or concerns
-6. **Journal**: Phase 1 completion - document task understanding, verified dependencies, concerns
+6. **Journal**: Phase 1 completion (see [guidelines](../shared/journal-guidelines.md))
 7. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 ### Exit Criteria
@@ -85,7 +65,7 @@ If subagent is unavailable or user prefers manual approach:
 4. Consider how to approach sub-tasks from task file
 5. Consider risks identified in task file
 6. Plan how solution will be tested
-7. **Journal**: Phase 2 completion - document technical approach, design decisions with reasoning, alternatives considered, tradeoffs, testing strategy (include ADR references if created)
+7. **Journal**: Phase 2 completion (see [guidelines](../shared/journal-guidelines.md) - include ADR references if created)
 8. **Commit and push design work**: `git add . && git commit -m "docs(task-XXX): complete solution design and architecture" && git push`
 9. **Consider review request**: For major architectural decisions, ask user if they want to review the design
 
@@ -106,7 +86,7 @@ If subagent is unavailable or user prefers manual approach:
    - Clear test descriptions documenting expected behavior
 3. DO NOT write any implementation code during this phase
 4. Run all created tests to confirm they are failing
-5. **Journal**: Phase 3 completion - document testing approach and rationale, scenarios covered, coverage strategy, all tests failing as expected
+5. **Journal**: Phase 3 completion (see [guidelines](../shared/journal-guidelines.md))
 6. **Commit and push test creation**: `git add . && git commit -m "test(task-XXX): add comprehensive test suite for [feature]" && git push`
 7. **Consider review request**: For complex test strategies, ask user if they want to review the test approach
 
@@ -127,12 +107,12 @@ If subagent is unavailable or user prefers manual approach:
    - See: [Test Modification Protocol](../shared/test-modification-protocol.md)
    - Follow the protocol exactly as specified
 4. Work through sub-tasks from task file methodically
-5. **Journal** (when encountering significant challenges or decisions): Document what was implemented, decisions with reasoning, challenges and solutions, patterns used, deviations from design
+5. **Journal** (for significant challenges or decisions - see [guidelines](../shared/journal-guidelines.md))
 6. Check off completed sub-tasks in task file
 7. Run tests frequently to track progress
 8. Continue until all tests pass
 9. **Handle design issues**: If significant design flaws emerge, address within this phase using Phase 2-style analysis
-10. **Journal**: Phase 4 completion - summarize what was implemented, key decisions and approaches, challenges overcome, all tests passing
+10. **Journal**: Phase 4 completion (see [guidelines](../shared/journal-guidelines.md))
 11. **Consider mid-phase review**: For complex implementations, ask user if they want to review progress
 
 ### Exit Criteria
@@ -155,7 +135,7 @@ If subagent is unavailable or user prefers manual approach:
 3. Implement refactoring changes
 4. Ensure all tests still pass after each change
 5. **Commit and push refactoring work**: `git add . && git commit -m "refactor(task-XXX): improve [specific improvement]" && git push`
-6. **Journal**: Phase 5 completion - document what was improved and why, how code is better, impact on maintainability/performance/clarity, tests still passing
+6. **Journal**: Phase 5 completion (see [guidelines](../shared/journal-guidelines.md))
 7. Repeat until satisfied with code quality
 
 ### Exit Criteria
@@ -183,7 +163,7 @@ If subagent is unavailable or user prefers manual approach:
 
 1. Review entire task journey
 2. Update task file with learnings
-3. **Journal**: Phase 7 completion - reflect on key learnings, what worked well, what could improve next time, insights gained, patterns to reuse
+3. **Journal**: Phase 7 completion (see [guidelines](../shared/journal-guidelines.md))
 
 **Request permission to complete task**
 
@@ -221,7 +201,7 @@ When encountering issues:
 - Discuss with user whether to revisit Phase 2
 
 ### 3. Technical Blockers
-- **Journal**: Technical blocker - describe blocker encountered, why it blocks progress, what has been tried, potential alternatives
+- **Journal**: Technical blocker (see [guidelines](../shared/journal-guidelines.md))
 - Present alternative solutions to user
 - Discuss tradeoffs and get guidance
 

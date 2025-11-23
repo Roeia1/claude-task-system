@@ -1,26 +1,6 @@
 # Performance Task Execution Workflow
 
-## Journal Structure
-
-Initialize journal with:
-
-```markdown
-# Task #[NUMBER]: [TITLE]
-
-## Current Phase: Phase 1 - Task Analysis
-
-## Git References
-
-- **Branch**: performance/task-XXX-description
-- **PR**: #XXX - [PR Title]
-- **Base Branch**: main
-
-## Progress Log
-
-[Chronological log of performance analysis, benchmarking, optimization decisions, and validation with metrics - updated throughout task execution]
-```
-
-> **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md). For performance tasks, include specific metrics (X% faster, Y MB saved) in entries.
+> **Journal Guidelines**: The start-task command initializes the journal structure. See [Journal Entry Guidelines](../shared/journal-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For performance tasks, include specific metrics (X% faster, Y MB saved) in entries.
 
 ## Phase 1: Task Analysis
 
@@ -33,7 +13,7 @@ Initialize journal with:
 3. Analyze performance requirements and target metrics
 4. Review existing sub-tasks in task file
 5. Identify ambiguities or concerns about performance goals
-6. **Journal**: Phase 1 completion - document performance requirements and target metrics, baseline understanding, verified dependencies, concerns about performance goals
+6. **Journal**: Phase 1 completion (see [guidelines](../shared/journal-guidelines.md))
 7. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 ### Exit Criteria
@@ -55,7 +35,7 @@ Initialize journal with:
 5. Set specific, measurable performance targets
 6. Evaluate optimization opportunities and their potential impact
 7. Consider risks and tradeoffs of different optimization approaches
-8. **Journal**: Phase 2 completion - document baseline metrics (specific numbers), bottlenecks identified, resource usage analysis, profiling results, performance targets set, optimization opportunities and expected impact, risks and tradeoffs
+8. **Journal**: Phase 2 completion (see [guidelines](../shared/journal-guidelines.md) - include specific metrics)
 9. **Commit and push analysis work**: `git add . && git commit -m "docs(task-XXX): complete performance analysis and optimization planning" && git push`
 10. **Consider review request**: For major performance optimizations, ask user if they want to review the analysis
 
@@ -79,7 +59,7 @@ Initialize journal with:
    - Resource usage monitoring
    - Load testing scenarios
 5. Verify benchmarks accurately reflect real-world usage
-6. **Journal**: Phase 3 completion - document benchmark suite created, baseline metrics (specific numbers), success criteria thresholds, testing coverage (throughput, latency, resources, load), benchmarks reflect real-world usage
+6. **Journal**: Phase 3 completion (see [guidelines](../shared/journal-guidelines.md) - include baseline metrics)
 7. **Commit and push benchmark suite**: `git add . && git commit -m "test(task-XXX): add performance benchmark suite with baseline metrics" && git push`
 8. **Consider review request**: For complex performance testing strategies
 
@@ -105,10 +85,10 @@ Initialize journal with:
    - Try alternative approaches
 5. Monitor for functional regressions with each change
 6. Work through sub-tasks from task file methodically
-7. **Journal** (when completing significant optimizations): Document what optimization applied, performance measurements achieved (specific metrics), why this approach chosen, challenges encountered, no functional regressions
+7. **Journal** (for significant optimizations - see [guidelines](../shared/journal-guidelines.md), include metrics)
 8. Check off completed sub-tasks in task file
 9. Continue until performance targets are met
-10. **Journal**: Phase 4 completion - summarize all optimizations completed, performance targets achieved (specific metrics vs baseline), no functional regressions, overall performance improvement
+10. **Journal**: Phase 4 completion (see [guidelines](../shared/journal-guidelines.md) - include specific metrics vs baseline)
 11. **Consider mid-phase review**: For complex optimizations, ask user if they want to review progress
 
 ### Exit Criteria
@@ -131,7 +111,7 @@ Initialize journal with:
 4. Test for performance regressions in non-optimized areas
 5. Validate memory usage and resource consumption
 6. Run stress tests to ensure stability under load
-7. **Journal**: Phase 5 completion - document final metrics vs baseline vs targets (specific numbers), performance verified across scenarios, no regressions in non-optimized areas, memory/resource usage validated, stability confirmed
+7. **Journal**: Phase 5 completion (see [guidelines](../shared/journal-guidelines.md) - include final metrics vs baseline vs targets)
 8. **Commit validation work**: `git add . && git commit -m "test(task-XXX): validate performance improvements and stability" && git push`
 
 ### Exit Criteria
@@ -160,7 +140,7 @@ Initialize journal with:
 ### Phase 7: Performance Reflection
 
 1. Review entire optimization journey
-2. **Journal**: Phase 7 completion - reflect on performance insights discovered, additional optimization opportunities, lessons about system bottlenecks, future performance considerations, key learnings and patterns
+2. **Journal**: Phase 7 completion (see [guidelines](../shared/journal-guidelines.md))
 
 **Request permission to complete task**
 
@@ -216,7 +196,7 @@ When encountering issues:
 
 Apply the test modification protocol to benchmark changes. After Phase 3, if benchmarks need modification:
 
-1. **Journal**: Benchmark modification request - document which benchmark needs changing, why current benchmark inadequate, how change affects baseline, performance reasoning
+1. **Journal**: Benchmark modification request (see [guidelines](../shared/journal-guidelines.md) - include performance reasoning)
 2. Explain to user with performance reasoning
 3. Wait for explicit permission
 4. Update baselines appropriately when approved

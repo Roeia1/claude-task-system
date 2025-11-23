@@ -17,26 +17,9 @@ This workflow guides the deployment of application components to AWS infrastruct
 - All tests passing locally
 - Infrastructure changes reviewed if applicable
 
-## Journal Structure
+## Journal Guidelines
 
-Initialize journal for deployment tasks with:
-
-```markdown
-# Task #[NUMBER]: [TITLE]
-
-## Current Phase: Phase 1 - Pre-Deployment Analysis
-
-## Git References
-
-- **Branch**: deploy/[environment]-[date]-[component]
-- **Deployment Target**: [environment]
-
-## Progress Log
-
-[Chronological log of deployment planning, infrastructure changes, application deployment, validation, and rollback procedures - updated throughout task execution]
-```
-
-> **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md). For deployments, document all infrastructure changes, validation results, and rollback procedures.
+> **Journal Guidelines**: The start-task command initializes the journal structure. See [Journal Entry Guidelines](../shared/journal-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For deployments, document all infrastructure changes, validation results, and rollback procedures.
 
 ## Phase 1: Pre-Deployment Analysis
 
@@ -65,7 +48,7 @@ Initialize journal for deployment tasks with:
    # Additional service-specific validation commands
    ```
 
-5. **Journal**: Phase 1 completion - document components being deployed, infrastructure changes needed, current state verified, deployment order and strategy, rollback strategy, expected downtime, credentials validated
+5. **Journal**: Phase 1 completion (see [guidelines](../shared/journal-guidelines.md))
 
 ### Exit Criteria
 - Deployment scope clearly defined
@@ -101,7 +84,7 @@ Initialize journal for deployment tasks with:
    - Backup service configurations
    - Document current service versions
 
-5. **Journal**: Phase 2 completion - document deployment branch created, all tests passing, environment-specific configurations prepared, backups created, ready for infrastructure deployment
+5. **Journal**: Phase 2 completion (see [guidelines](../shared/journal-guidelines.md))
 
 ### Exit Criteria
 - All tests passing
@@ -135,7 +118,7 @@ Initialize journal for deployment tasks with:
    - Check IAM roles and permissions
    - Verify network and security settings
 
-4. **Journal**: Phase 3 completion - document infrastructure changes applied via Console, all resources verified via CLI (list ARNs/IDs), configurations validated, IAM roles verified, network/security settings confirmed, no discrepancies
+4. **Journal**: Phase 3 completion (see [guidelines](../shared/journal-guidelines.md) - list ARNs/IDs)
 
 ### Exit Criteria
 - User confirms all infrastructure changes applied
@@ -171,7 +154,7 @@ Initialize journal for deployment tasks with:
    - Monitor error rates
    - Verify data flow
 
-6. **Journal**: Phase 4 completion - document components deployed (data pipeline, AI/ML, API/services), smoke tests passing, CloudWatch logs normal, no critical errors, data flow verified, initial monitoring results
+6. **Journal**: Phase 4 completion (see [guidelines](../shared/journal-guidelines.md))
 
 ### Exit Criteria
 - All components deployed
@@ -202,7 +185,7 @@ Initialize journal for deployment tasks with:
    - Verify auto-scaling settings
    - Check for unnecessary resources
 
-5. **Journal**: Phase 5 completion - document integration tests passing, performance validation results (database, API, data transfer), security verification (IAM, encryption, network), cost validation, all validations passing
+5. **Journal**: Phase 5 completion (see [guidelines](../shared/journal-guidelines.md))
 
 ### Exit Criteria
 - All validations passing
@@ -233,7 +216,7 @@ Initialize journal for deployment tasks with:
    - Verify dashboard accuracy
    - Check log accessibility
 
-5. **Journal**: Phase 6 completion - document CloudWatch dashboards configured, alerts set up (error rates, performance, cost anomalies), runbooks created, monitoring tested, log accessibility confirmed
+5. **Journal**: Phase 6 completion (see [guidelines](../shared/journal-guidelines.md))
 
 ### Exit Criteria
 - Monitoring fully configured
@@ -259,7 +242,7 @@ Initialize journal for deployment tasks with:
    - Create rollback pipelines
    - Test automation thoroughly
 
-4. **Journal**: Phase 7 completion - document rollback procedures step-by-step, rollback tested in test environment, data recovery procedures confirmed, rollback automation created, team notified
+4. **Journal**: Phase 7 completion (see [guidelines](../shared/journal-guidelines.md))
 
 ### Exit Criteria
 - Rollback procedures documented
@@ -296,7 +279,7 @@ Initialize journal for deployment tasks with:
    - Archive deployment scripts
    - Store configuration snapshots
 
-6. **Journal**: Phase 8 completion - document what was deployed, issues encountered and resolved, performance metrics, cost analysis, documentation updates, stakeholders notified, 24-hour monitoring results, key learnings, recommendations for future
+6. **Journal**: Phase 8 completion (see [guidelines](../shared/journal-guidelines.md))
 
 ### Exit Criteria
 - Documentation updated

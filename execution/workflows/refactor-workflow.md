@@ -1,26 +1,6 @@
 # Refactor Task Execution Workflow
 
-## Journal Structure
-
-Initialize journal with:
-
-```markdown
-# Task #[NUMBER]: [TITLE]
-
-## Current Phase: Phase 1 - Task Analysis
-
-## Git References
-
-- **Branch**: refactor/task-XXX-description
-- **PR**: #XXX - [PR Title]
-- **Base Branch**: main
-
-## Progress Log
-
-[Chronological log of code analysis, refactoring decisions, quality improvements, and behavior preservation - updated throughout task execution]
-```
-
-> **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md). For refactoring, emphasize quality improvements and behavior preservation.
+> **Journal Guidelines**: The start-task command initializes the journal structure. See [Journal Entry Guidelines](../shared/journal-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For refactoring, emphasize quality improvements and behavior preservation.
 
 ## Phase 1: Task Analysis
 
@@ -33,7 +13,7 @@ Initialize journal with:
 3. Analyze refactoring objectives and quality goals
 4. Review existing sub-tasks in task file
 5. Identify ambiguities or concerns
-6. **Journal**: Phase 1 completion - document refactoring objectives, quality goals, current code quality issues, verified dependencies, concerns
+6. **Journal**: Phase 1 completion (see [guidelines](../shared/journal-guidelines.md))
 7. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 ### Exit Criteria
@@ -55,7 +35,7 @@ Initialize journal with:
 5. Plan incremental refactoring strategy
 6. Consider risks identified in task file
 7. Define quality improvement metrics
-8. **Journal**: Phase 2 completion - document technical debt identified, test coverage assessment, dependencies and impact, behavior patterns to preserve, incremental refactoring strategy, quality metrics
+8. **Journal**: Phase 2 completion (see [guidelines](../shared/journal-guidelines.md))
 9. **Commit and push analysis work**: `git add . && git commit -m "docs(task-XXX): complete code analysis and refactoring plan" && git push`
 10. **Consider review request**: For major architectural refactoring, ask user if they want to review the plan
 
@@ -75,7 +55,7 @@ Initialize journal with:
 4. Focus on behavior preservation, not new functionality
 5. Document current behavior patterns in tests
 6. Ensure all new tests pass with current implementation
-7. **Journal**: Phase 3 completion - document baseline test results, areas where coverage added, behavior patterns now covered, safety net strategy, all tests passing
+7. **Journal**: Phase 3 completion (see [guidelines](../shared/journal-guidelines.md))
 8. **Commit and push safety net**: `git add . && git commit -m "test(task-XXX): add safety net tests for refactoring areas" && git push`
 9. **Consider review request**: For complex refactoring with significant test additions
 
@@ -102,10 +82,10 @@ Initialize journal with:
    - NEVER modify tests to match refactored behavior
    - **If test modification needed**: See [Test Modification Protocol](../shared/test-modification-protocol.md)
 5. Work through sub-tasks from task file methodically
-6. **Journal** (when completing significant refactoring milestones): Document what refactoring performed, why it improves quality, challenges encountered, how behavior preserved, quality improvements achieved
+6. **Journal** (for significant milestones - see [guidelines](../shared/journal-guidelines.md))
 7. Check off completed sub-tasks in task file
 8. Monitor for performance regressions
-9. **Journal**: Phase 4 completion - summarize all refactoring increments completed, quality improvements achieved overall, all tests passing, performance maintained
+9. **Journal**: Phase 4 completion (see [guidelines](../shared/journal-guidelines.md))
 10. **Consider mid-phase review**: For complex refactoring, ask user if they want to review progress
 
 ### Exit Criteria
@@ -127,7 +107,7 @@ Initialize journal with:
 3. Verify performance has not degraded
 4. Review code against project conventions
 5. Ensure error handling is preserved or improved
-6. **Journal**: Phase 5 completion - document all tests passing, quality metrics improvements (complexity, duplication, maintainability), performance validation, convention compliance, error handling preserved/improved
+6. **Journal**: Phase 5 completion (see [guidelines](../shared/journal-guidelines.md))
 7. **Commit and push validation results**: `git add . && git commit -m "docs(task-XXX): validate refactoring quality improvements" && git push`
 
 ### Exit Criteria
@@ -156,7 +136,7 @@ Initialize journal with:
 ### Phase 7: Refactoring Reflection
 
 1. Review entire refactoring journey
-2. **Journal**: Phase 7 completion - reflect on code quality insights gained, additional refactoring opportunities discovered, future considerations, key learnings, patterns to reuse
+2. **Journal**: Phase 7 completion (see [guidelines](../shared/journal-guidelines.md))
 
 **Request permission to complete task**
 

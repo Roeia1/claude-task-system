@@ -5,22 +5,21 @@ description: "Utility skill for the journaling subagent. Provides detailed instr
 
 # Journal Entry Skill
 
-A utility skill that handles the mechanics of creating and inserting properly formatted journal entries. This skill is called by execution agents with prepared content and handles formatting, validation, and file operations.
+**⚠️ SINGLE SOURCE OF TRUTH**: This skill is the authoritative source for journal entry format standards and quality validation criteria. All journaling must conform to the specifications in this file.
+
+A utility skill that handles the mechanics of creating and inserting properly formatted journal entries. This skill is called by the journaling subagent (`.claude/agents/journaling.md`) with prepared content from main execution agents.
 
 ## Purpose
 
-This skill focuses on **HOW to journal** (mechanics), not **WHAT to journal** (content). The calling agent is responsible for:
-- Deciding when to create journal entries
-- Preparing the entry content
-- Determining the appropriate phase and activity
+This skill focuses on **HOW to journal** (format, quality, mechanics). It is used by the journaling subagent, NOT directly by main execution agents.
+
+**For WHEN to journal and WHAT to include**, see: `execution/shared/journal-guidelines.md`
 
 This skill is responsible for:
-- Validating entry quality and format
-- Generating proper timestamps
-- Formatting entries according to standards
-- Finding correct insertion points
-- Updating phase headers on transitions
-- Performing file I/O operations
+- Defining entry format standards (single source of truth)
+- Defining quality validation criteria (single source of truth)
+- Providing mechanics instructions to journaling subagent
+- Specifying file structure requirements
 
 ## File Locations
 
@@ -63,17 +62,27 @@ next_action: "Implement password hashing middleware before moving to session man
 adr_references: ["ADR-003"]
 ```
 
+## Journal Creation
+
+If the journal file doesn't exist at `execution/tasks/{task_id}/journal.md`, it must be created before adding the first entry.
+
+**For complete creation instructions**, see: `journal-creation.md` in this skill folder.
+
 ## Process
 
 ### Step 1: Load Context
 
-1. **Read journal** from `execution/tasks/{task_id}/journal.md`:
+1. **Check if journal exists** at `execution/tasks/{task_id}/journal.md`:
+   - If NO: Follow Journal Creation process above
+   - If YES: Continue to read and validate
+
+2. **Read journal** (if it exists):
    - Identify current phase from "Current Phase" header
    - Locate "Progress Log" section for insertion point
 
-2. **Validate journal structure**:
+3. **Validate journal structure**:
    - Ensure required sections exist
-   - Verify journal follows task type template
+   - Verify journal follows proper structure
 
 ### Step 2: Validate Input Quality
 
@@ -179,130 +188,6 @@ Entries must meet these criteria:
 ❌ **No context**: "Fixed it." (what was the problem?)
 ❌ **Generic next action**: "Do more work" (not specific)
 ❌ **Missing details**: Insufficient information to understand decision
-
-## Integration Notes
-
-### Architecture Pattern: Main Agent → Journaling Subagent → This Skill
-
-This skill is designed to be used **BY the journaling subagent** (`.claude/agents/journaling.md`), NOT by main execution agents directly.
-
-**Correct Usage Pattern**:
-
-1. **Main execution agent** decides journaling is needed:
-   - After completing a phase
-   - When making significant decisions
-   - After solving implementation challenges
-   - When gaining key insights
-
-2. **Main agent prepares content**:
-   - What happened and why
-   - Decisions made and reasoning
-   - Challenges encountered and solutions
-   - Insights gained
-
-3. **Main agent calls journaling subagent** with prepared content:
-   ```
-   Use Task tool to invoke journaling subagent with:
-   - task_id, phase, activity
-   - content, next_action
-   - Optional: is_phase_transition, adr_references
-   ```
-
-4. **Journaling subagent uses this skill** for guidance:
-   - Loads HOW-TO instructions from this skill
-   - Validates content quality per skill standards
-   - Formats entries per skill format
-   - Updates journal file per skill structure rules
-   - Returns confirmation to main agent
-
-5. **Main agent continues** with task execution
-
-### Why This Architecture?
-
-**Separation of Concerns**:
-- **Main agent**: Task execution logic, decides WHEN and WHAT to journal
-- **Journaling subagent**: Journaling orchestration, handles mechanics
-- **This skill**: Detailed HOW-TO instructions for mechanics
-
-**Benefits**:
-- Main agent stays focused on task execution
-- Journaling expertise centralized in subagent
-- Consistent quality enforcement across all journaling
-- Easier to evolve journaling capabilities
-
-### For Main Execution Agents
-
-❌ **Don't**: Use this skill directly
-✅ **Do**: Call the journaling subagent with prepared content
-
-### For Journaling Subagent
-
-✅ **Do**: Use this skill as your instruction manual for:
-- Entry format standards
-- Quality validation criteria
-- File structure requirements
-- Error handling procedures
-
-## Reference: Content Guidelines for Agents
-
-When preparing content to provide to this skill, consider:
-
-### Phase 1 (Task Analysis)
-Include: Task understanding, ambiguities identified, concerns raised, dependencies verified
-
-### Phase 2 (Solution Design)
-Include: Design decisions made, alternatives considered and rejected, tradeoffs accepted, architectural choices
-
-### Phase 3 (Test Creation)
-Include: Testing approach chosen and rationale, scenarios covered, edge cases identified, coverage strategy
-
-### Phase 4 (Implementation)
-Include: Challenges encountered, solutions applied, code patterns used, deviations from design
-
-### Phase 5 (Refactor)
-Include: What was improved, why it needed improvement, how it's better, quality metrics
-
-### Phase 6 (Verification)
-Include: What was verified, acceptance criteria status, quality checks performed, issues found
-
-### Phase 7 (Reflection)
-Include: Key learnings, what worked well, improvements for next time, follow-up tasks
-
-## Examples for Agent Reference
-
-These examples show the **content** that agents should prepare when calling this skill.
-
-### Example 1: Design Decision Content
-```
-Decided to use JWT-based authentication instead of session-based auth after reviewing the tech-stack.md recommendations and considering our microservices architecture.
-
-**Considered alternatives:**
-1. Session-based (cookies) - Rejected due to cross-domain complexity
-2. OAuth2 only - Rejected as over-engineered for our current needs
-3. JWT with refresh tokens - **Selected** for stateless scalability
-
-**Decision:** Implementing JWT with 15-minute access tokens and 7-day refresh tokens. Created ADR-005 to document this choice and the security considerations around token storage.
-```
-
-### Example 2: Implementation Challenge Content
-```
-**Challenge**: Encountered circular dependency between users and organizations tables during schema migration.
-
-**Solution**: Added deferred constraints using DEFERRABLE INITIALLY DEFERRED on foreign keys and adjusted migration order to create tables first, then add constraints in a second pass.
-
-**Learning**: PostgreSQL deferred constraints allow us to insert related records in the same transaction without constraint violations. This pattern should be documented for future multi-table migrations.
-```
-
-### Example 3: Phase Transition Content
-```
-Created comprehensive test suite covering:
-- User registration (happy path + validation errors)
-- Login flow (success, invalid credentials, rate limiting)
-- Token refresh (valid, expired, revoked tokens)
-- Password reset flow (request, verify, complete)
-
-All tests currently failing as expected (TDD). Test coverage focuses on behavior, not implementation details. Edge cases include concurrent registration attempts and token expiration boundary conditions.
-```
 
 ## Error Handling
 

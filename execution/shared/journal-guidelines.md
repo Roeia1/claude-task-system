@@ -1,5 +1,9 @@
 # Journal Entry Guidelines
 
+**⚠️ SINGLE SOURCE OF TRUTH**: This file is the authoritative source for **WHEN** to journal, **WHAT** to include, and **HOW** to invoke the journaling subagent.
+
+**For format standards and quality validation**, the journaling subagent handles all mechanics automatically.
+
 ## Purpose & Philosophy
 
 Journaling is a core discipline of the 8-phase execution workflow. It creates an audit trail of decisions, documents the reasoning behind architectural choices, and captures insights that help future developers understand WHY decisions were made, not just WHAT was done.
@@ -165,60 +169,21 @@ The subagent will reject poor quality content, but avoid preparing:
 - **Vague statements**: "Did some stuff" or "worked on feature"
 - **Status updates**: "Still working on X" without context or learning
 
-## Quality Standards
+## Format Standards and Quality Validation
 
-The journaling subagent enforces strict quality validation:
+**You don't need to worry about formatting mechanics** - the journaling subagent handles this automatically.
 
-### Content Quality Requirements
-- ✅ **Meaningful**: Provides actual insight, not just status
-- ✅ **Reasoning-focused**: Documents WHY decisions were made
-- ✅ **Contextual**: Explains what was happening and why it matters
-- ✅ **Complete**: Includes all relevant information
-- ✅ **Specific**: Uses concrete details, not vague language
+The journaling subagent (`.claude/agents/journaling.md`) is responsible for:
+- Validating content quality
+- Applying entry format standards
+- Maintaining file structure
+- Updating phase headers
+- All file operations
 
-### Entry Format
-The subagent automatically formats entries with:
-- Proper timestamp (`YYYY-MM-DD HH:MM`)
-- Structured header with activity description
-- Your prepared content body
-- ADR references (if provided)
-- Concrete next action
+## Summary: Your Responsibilities
 
-**Note**: You don't need to worry about formatting mechanics - the subagent handles this. Focus on preparing meaningful content.
+1. **Decide WHEN** to create journal entries (use the triggers listed above)
+2. **Prepare WHAT** to include (meaningful content with reasoning and context)
+3. **Invoke the journaling subagent** with proper parameters (task_id, phase, activity, content, next_action)
 
-### Quality Validation Examples
-
-**✅ Good Content (will be accepted)**:
-```markdown
-Implemented user authentication schema with PostgreSQL. Initially considered using UUIDs for user IDs but decided on BIGSERIAL after reviewing tech-stack.md recommendation for consistency with existing tables.
-
-**Challenge**: Foreign key constraints created circular dependency between users and organizations tables.
-
-**Solution**: Added deferred constraints and adjusted migration order. Created ADR-003 to document this pattern.
-```
-
-**❌ Poor Content (will be rejected)**:
-```markdown
-Did some stuff. Made progress on the database.
-```
-
-The subagent will reject vague content and request specific information about what was done, why decisions were made, and what was learned.
-
-## Mechanics and Detailed Format
-
-For detailed information about:
-- Entry format standards
-- File structure requirements
-- Validation criteria
-- Error handling
-
-See:
-- **Journaling subagent**: `.claude/agents/journaling.md` (orchestration mechanics)
-- **Journal-entry skill**: `.claude/skills/journal-entry/SKILL.md` (detailed HOW-TO)
-
-These handle all mechanical aspects of journaling. Your responsibility is to:
-1. **Decide WHEN** to create journal entries (based on triggers above)
-2. **Prepare WHAT** to include (meaningful content with reasoning)
-3. **Invoke the subagent** with proper parameters
-
-The subagent handles the HOW (formatting, validation, file operations).
+The subagent will handle all formatting, validation, and file operations automatically.
