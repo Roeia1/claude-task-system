@@ -15,33 +15,9 @@ Initialize journal with:
 - **PR**: #XXX - [PR Title]
 - **Base Branch**: main
 
-## Task Understanding
-
-[Filled after analysis]
-
-## Performance Analysis
-
-[Filled in Phase 2]
-
-## Benchmark Strategy
-
-[Filled in Phase 3]
-
-## Optimization Implementation
-
-[Filled in Phase 4]
-
-## Performance Validation
-
-[Filled in Phase 5]
-
 ## Progress Log
 
-[Updated throughout with timestamped entries]
-
-## Key Learnings
-
-[Updated throughout]
+[Chronological log of performance analysis, benchmarking, optimization decisions, and validation with metrics - updated throughout task execution]
 ```
 
 > **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md). For performance tasks, include specific metrics (X% faster, Y MB saved) in entries.

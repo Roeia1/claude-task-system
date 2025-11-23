@@ -15,33 +15,9 @@ Initialize journal with:
 - **PR**: #XXX - [PR Title]
 - **Base Branch**: main
 
-## Task Understanding
-
-[Filled after analysis]
-
-## Solution Design
-
-[Filled in Phase 2]
-
-## Test Strategy
-
-[Filled in Phase 3]
-
-## Implementation Notes
-
-[Filled in Phase 4]
-
-## Refactoring Decisions
-
-[Filled in Phase 5]
-
 ## Progress Log
 
-[Updated throughout with timestamped entries]
-
-## Key Learnings
-
-[Updated throughout]
+[Chronological log of all work, decisions, challenges, and insights - updated throughout task execution]
 ```
 
 > **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md) for detailed guidance on when and how to update the journal.

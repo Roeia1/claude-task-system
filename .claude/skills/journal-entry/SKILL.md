@@ -20,7 +20,6 @@ This skill is responsible for:
 - Formatting entries according to standards
 - Finding correct insertion points
 - Updating phase headers on transitions
-- Updating relevant journal sections
 - Performing file I/O operations
 
 ## File Locations
@@ -44,8 +43,6 @@ When calling this skill, the agent must provide:
 ### Optional Parameters
 
 - **is_phase_transition**: Boolean (default: false) - whether this entry marks entering a new phase
-- **update_sections**: Object mapping section names to additional content
-  - Example: `{"Implementation Notes": "Additional context about implementation approach..."}`
 - **adr_references**: Array of ADR references to include (e.g., ["ADR-005", "ADR-012"])
 
 ### Input Format Example
@@ -73,7 +70,6 @@ adr_references: ["ADR-003"]
 1. **Read journal** from `execution/tasks/{task_id}/journal.md`:
    - Identify current phase from "Current Phase" header
    - Locate "Progress Log" section for insertion point
-   - Identify relevant sections for updates (based on phase)
 
 2. **Validate journal structure**:
    - Ensure required sections exist
@@ -130,29 +126,18 @@ If validation fails, return specific feedback about what's missing or needs impr
    - Replace `## Current Phase: ...` with new phase
    - Example: `## Current Phase: Phase 4 - Implementation`
 
-2. **Update relevant sections** (if update_sections provided):
-   - Map phase to section:
-     - Phase 1 → "Task Understanding"
-     - Phase 2 → "Solution Design"
-     - Phase 3 → "Test Strategy"
-     - Phase 4 → "Implementation Notes"
-     - Phase 5 → "Refactoring Decisions"
-     - Phase 7 → "Key Learnings"
-   - Append content to appropriate section
-
-3. **Insert entry in Progress Log**:
+2. **Insert entry in Progress Log**:
    - Locate "## Progress Log" section
    - Add new entry at the end (most recent last)
    - Maintain proper spacing (blank line before each entry)
 
-4. **Write updated journal** back to file
+3. **Write updated journal** back to file
 
 ### Step 5: Return Confirmation
 
 Return summary of actions taken:
 - Entry added with timestamp
 - Phase header updated (if applicable)
-- Sections updated (if applicable)
 - File written successfully
 
 ## Entry Format Standard
@@ -195,21 +180,6 @@ Entries must meet these criteria:
 ❌ **Generic next action**: "Do more work" (not specific)
 ❌ **Missing details**: Insufficient information to understand decision
 
-## Phase-Section Mapping
-
-When updating journal sections based on phase:
-
-| Phase | Section to Update | Type of Content |
-|-------|------------------|-----------------|
-| Phase 1 | Task Understanding | Task analysis, concerns, dependencies |
-| Phase 2 | Solution Design | Architecture, design decisions, tradeoffs |
-| Phase 3 | Test Strategy | Testing approach, coverage, edge cases |
-| Phase 4 | Implementation Notes | Challenges, solutions, patterns used |
-| Phase 5 | Refactoring Decisions | Quality improvements, refactoring rationale |
-| Phase 6 | *(Progress Log only)* | Verification results |
-| Phase 7 | Key Learnings | Insights, what worked, future improvements |
-| Phase 8 | *(Progress Log only)* | Completion summary |
-
 ## Integration Notes
 
 ### Architecture Pattern: Main Agent → Journaling Subagent → This Skill
@@ -235,7 +205,7 @@ This skill is designed to be used **BY the journaling subagent** (`.claude/agent
    Use Task tool to invoke journaling subagent with:
    - task_id, phase, activity
    - content, next_action
-   - Optional: is_phase_transition, update_sections, adr_references
+   - Optional: is_phase_transition, adr_references
    ```
 
 4. **Journaling subagent uses this skill** for guidance:
@@ -270,7 +240,6 @@ This skill is designed to be used **BY the journaling subagent** (`.claude/agent
 ✅ **Do**: Use this skill as your instruction manual for:
 - Entry format standards
 - Quality validation criteria
-- Phase-section mapping
 - File structure requirements
 - Error handling procedures
 

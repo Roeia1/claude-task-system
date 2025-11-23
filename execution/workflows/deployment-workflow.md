@@ -31,29 +31,9 @@ Initialize journal for deployment tasks with:
 - **Branch**: deploy/[environment]-[date]-[component]
 - **Deployment Target**: [environment]
 
-## Deployment Plan
-
-[Filled in Phase 1]
-
-## Infrastructure Changes
-
-[Filled in Phase 3]
-
-## Application Deployment
-
-[Filled in Phase 4]
-
-## Validation Results
-
-[Filled in Phase 5]
-
 ## Progress Log
 
-[Updated throughout with timestamped entries]
-
-## Key Learnings
-
-[Updated throughout]
+[Chronological log of deployment planning, infrastructure changes, application deployment, validation, and rollback procedures - updated throughout task execution]
 ```
 
 > **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md). For deployments, document all infrastructure changes, validation results, and rollback procedures.

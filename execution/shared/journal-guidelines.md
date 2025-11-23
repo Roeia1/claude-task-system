@@ -54,7 +54,6 @@ Use Task tool with subagent_type="journaling" and provide prepared content
 ### Optional Parameters
 
 - **is_phase_transition**: `true` when entering a new phase
-- **update_sections**: Object with section names and content to append
 - **adr_references**: Array of ADR IDs (e.g., `["ADR-005"]`)
 
 ### Example Invocation: Phase Transition
@@ -94,8 +93,6 @@ content: |
 
   **Learning**: PostgreSQL deferred constraints allow inserting related records in same transaction without constraint violations. This pattern should be documented for future multi-table migrations.
 next_action: "Implement User model with password hashing before organization relationships"
-update_sections:
-  "Implementation Notes": "Used PostgreSQL deferred constraints pattern for circular foreign key dependencies."
 ```
 
 ### Example Invocation: PR Review Response
@@ -211,7 +208,6 @@ The subagent will reject vague content and request specific information about wh
 
 For detailed information about:
 - Entry format standards
-- Phase-section mapping
 - File structure requirements
 - Validation criteria
 - Error handling

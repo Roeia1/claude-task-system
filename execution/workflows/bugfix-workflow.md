@@ -15,33 +15,9 @@ Initialize journal with:
 - **PR**: #XXX - [PR Title]
 - **Base Branch**: main
 
-## Task Understanding
-
-[Filled after analysis]
-
-## Bug Investigation
-
-[Filled in Phase 2]
-
-## Test Strategy
-
-[Filled in Phase 3]
-
-## Fix Implementation
-
-[Filled in Phase 4]
-
-## Validation Results
-
-[Filled in Phase 5]
-
 ## Progress Log
 
-[Updated throughout with timestamped entries]
-
-## Key Learnings
-
-[Updated throughout]
+[Chronological log of bug investigation, root cause analysis, fix implementation, and validation - updated throughout task execution]
 ```
 
 > **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md) for detailed guidance. For bugfixes, emphasize root cause analysis and validation results.
