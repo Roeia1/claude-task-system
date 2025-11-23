@@ -25,7 +25,7 @@ This is the **Claude Task System** - a structured development workflow that comb
    - Task Analysis → Solution Design → Test Creation (TDD) → Implementation → Refactor → Verification → Reflection → Completion
    - Each phase requires explicit permission to proceed
    - Tests written before implementation (non-negotiable)
-   - Continuous journaling documents decisions and learnings
+   - Journaling subagent documents decisions and learnings throughout
 
 ### Directory Structure
 
@@ -169,7 +169,7 @@ Each task follows this sequence (defined in type-specific workflows in `executio
 1. **Phase 1: Task Analysis**
    - Read task file and linked feature documentation
    - Verify dependencies are COMPLETED
-   - Document understanding in journal
+   - Invoke journaling subagent to document analysis
    - Commit initial analysis
 
 2. **Phase 2: Solution Design**
@@ -190,7 +190,7 @@ Each task follows this sequence (defined in type-specific workflows in `executio
    - NEVER modify tests without user permission
    - Create ADRs for implementation decisions
    - Commit logical milestones frequently
-   - Update journal with decisions
+   - Invoke journaling subagent to document decisions and challenges
 
 5. **Phase 5: Refactor**
    - Improve code quality
@@ -217,7 +217,7 @@ Each task follows this sequence (defined in type-specific workflows in `executio
 - **Test-Driven Development**: Tests must be written in Phase 3, before implementation
 - **Phase Progression**: Each phase requires explicit user permission to proceed
 - **No Test Modification**: After Phase 3, tests can only be changed with explicit user approval
-- **Continuous Journaling**: Update `journal.md` throughout with decisions and insights
+- **Continuous Journaling**: Invoke journaling subagent throughout to document decisions and insights
 - **Commit Discipline**: Commit and push at the end of each phase and at logical milestones
 - **Sequential Execution**: Complete phases in order, no skipping
 - **ADR Documentation**: Create ADRs for all significant architectural decisions
@@ -349,24 +349,30 @@ Each task in `execution/tasks/###/task.md` contains:
 - **Resources & Links**: Relevant documentation
 - **Acceptance Criteria**: Testable success conditions
 
-## Journal Guidelines
+## Journaling with Subagent
 
-Update `execution/tasks/###/journal.md` with:
+All journaling is handled through the **journaling subagent** (`.claude/agents/journaling.md`), which validates content quality, formats entries consistently, and maintains journal structure.
 
-- Phase transitions and status updates
-- Design decisions and rationale (link to ADRs)
+**When to journal** (invoke journaling subagent):
+- Phase transitions (after completing each phase)
+- Design and architectural decisions
 - Implementation challenges and solutions
-- Test strategy and coverage
-- Refactoring improvements
+- Test strategy decisions
+- PR review responses
 - Key insights and learnings
 
-Entry format:
-```markdown
-### [Timestamp] - [Phase/Activity]
-
-[Content describing decisions, insights]
-**Next:** [What you plan to do next]
+**How to invoke**:
 ```
+Use Task tool with subagent_type="journaling" and provide:
+- task_id: Current task number
+- phase: Current phase (e.g., "Phase 4: Implementation")
+- activity: What's being documented
+- content: Prepared narrative (decisions, reasoning, challenges, solutions)
+- next_action: Specific next step
+- Optional: is_phase_transition, update_sections, adr_references
+```
+
+**See**: [Journal Entry Guidelines](execution/shared/journal-guidelines.md) for detailed guidance on when and what to journal.
 
 ## PR Review Protocol
 
@@ -377,7 +383,7 @@ When user signals review ("I made a review", "Check PR comments"):
 3. For each comment:
    - Clear instruction → Apply changes, commit with reference, resolve
    - Ambiguous → Reply with questions, leave unresolved
-4. Document changes in journal
+4. Invoke journaling subagent to document PR response
 5. Use format: `fix(task-XXX): address PR feedback - [description] (resolves comment #N)`
 
 ## Documentation Files

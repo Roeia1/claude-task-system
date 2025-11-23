@@ -17,6 +17,47 @@ This workflow guides the deployment of application components to AWS infrastruct
 - All tests passing locally
 - Infrastructure changes reviewed if applicable
 
+## Journal Structure
+
+Initialize journal for deployment tasks with:
+
+```markdown
+# Task #[NUMBER]: [TITLE]
+
+## Current Phase: Phase 1 - Pre-Deployment Analysis
+
+## Git References
+
+- **Branch**: deploy/[environment]-[date]-[component]
+- **Deployment Target**: [environment]
+
+## Deployment Plan
+
+[Filled in Phase 1]
+
+## Infrastructure Changes
+
+[Filled in Phase 3]
+
+## Application Deployment
+
+[Filled in Phase 4]
+
+## Validation Results
+
+[Filled in Phase 5]
+
+## Progress Log
+
+[Updated throughout with timestamped entries]
+
+## Key Learnings
+
+[Updated throughout]
+```
+
+> **Journal Guidelines**: See [Journal Entry Guidelines](../shared/journal-guidelines.md). For deployments, document all infrastructure changes, validation results, and rollback procedures.
+
 ## Phase 1: Pre-Deployment Analysis
 
 ### Deployment Planning
@@ -42,6 +83,24 @@ This workflow guides the deployment of application components to AWS infrastruct
    ```bash
    aws sts get-caller-identity
    # Additional service-specific validation commands
+   ```
+
+5. **Invoke journaling subagent** to document pre-deployment analysis:
+   ```
+   task_id: Current task number
+   phase: "Phase 1: Pre-Deployment Analysis"
+   activity: "Phase 1 Complete: Deployment Plan Finalized"
+   is_phase_transition: true
+   content: |
+     [Prepared deployment plan including:
+      - Components being deployed
+      - Infrastructure changes needed
+      - Current infrastructure state verified
+      - Deployment order and strategy
+      - Rollback strategy
+      - Expected downtime (if any)
+      - Credentials validated]
+   next_action: "Request user permission to proceed to Phase 2 (Environment Preparation)"
    ```
 
 ### Exit Criteria
@@ -78,6 +137,22 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Backup service configurations
    - Document current service versions
 
+5. **Invoke journaling subagent** to document environment preparation:
+   ```
+   task_id: Current task number
+   phase: "Phase 2: Environment Preparation"
+   activity: "Phase 2 Complete: Environment Prepared"
+   is_phase_transition: true
+   content: |
+     [Prepared documentation including:
+      - Deployment branch created
+      - All tests passing (quality checks, tests, build)
+      - Environment-specific configurations prepared
+      - Backups created (if applicable)
+      - Ready for infrastructure deployment]
+   next_action: "Request user permission to proceed to Phase 3 (Infrastructure Deployment)"
+   ```
+
 ### Exit Criteria
 - All tests passing
 - Environment configs prepared
@@ -109,6 +184,26 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Validate configurations match requirements
    - Check IAM roles and permissions
    - Verify network and security settings
+
+4. **Invoke journaling subagent** to document infrastructure deployment:
+   ```
+   task_id: Current task number
+   phase: "Phase 3: Infrastructure Deployment"
+   activity: "Phase 3 Complete: Infrastructure Deployed"
+   is_phase_transition: true
+   content: |
+     [Prepared documentation including:
+      - Infrastructure changes applied via AWS Console
+      - All resources verified via AWS CLI
+      - Resources created/updated (list with ARNs/IDs)
+      - Configurations validated
+      - IAM roles and permissions verified
+      - Network and security settings confirmed
+      - No discrepancies between console and CLI]
+   next_action: "Request user permission to proceed to Phase 4 (Application Deployment)"
+   update_sections:
+     "Infrastructure Changes": "Summary of resources deployed"
+   ```
 
 ### Exit Criteria
 - User confirms all infrastructure changes applied
@@ -144,6 +239,25 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Monitor error rates
    - Verify data flow
 
+6. **Invoke journaling subagent** to document application deployment:
+   ```
+   task_id: Current task number
+   phase: "Phase 4: Application Deployment"
+   activity: "Phase 4 Complete: Application Deployed"
+   is_phase_transition: true
+   content: |
+     [Prepared documentation including:
+      - Components deployed (data pipeline, AI/ML, API/services)
+      - Smoke tests passing for all components
+      - CloudWatch logs showing normal operation
+      - No critical errors detected
+      - Data flow verified
+      - Initial monitoring results]
+   next_action: "Request user permission to proceed to Phase 5 (Validation & Testing)"
+   update_sections:
+     "Application Deployment": "Summary of deployed components"
+   ```
+
 ### Exit Criteria
 - All components deployed
 - Smoke tests passing
@@ -172,6 +286,24 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Review AWS Cost Explorer
    - Verify auto-scaling settings
    - Check for unnecessary resources
+
+5. **Invoke journaling subagent** to document validation results:
+   ```
+   task_id: Current task number
+   phase: "Phase 5: Validation & Testing"
+   activity: "Phase 5 Complete: Validation Passed"
+   is_phase_transition: true
+   content: |
+     [Prepared validation documentation including:
+      - Integration tests passing (end-to-end data flow verified)
+      - Performance validation results (database, API, data transfer)
+      - Security verification complete (IAM, encryption, network)
+      - Cost validation results (Cost Explorer review, auto-scaling)
+      - All validations passing]
+   next_action: "Request user permission to proceed to Phase 6 (Monitoring Setup)"
+   update_sections:
+     "Validation Results": "Summary of all validation checks"
+   ```
 
 ### Exit Criteria
 - All validations passing
@@ -202,6 +334,22 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Verify dashboard accuracy
    - Check log accessibility
 
+5. **Invoke journaling subagent** to document monitoring setup:
+   ```
+   task_id: Current task number
+   phase: "Phase 6: Monitoring Setup"
+   activity: "Phase 6 Complete: Monitoring Configured"
+   is_phase_transition: true
+   content: |
+     [Prepared monitoring documentation including:
+      - CloudWatch dashboards configured
+      - Alerts set up (error rates, performance, cost anomalies)
+      - Runbooks created (common issues, troubleshooting)
+      - Monitoring tested (test alerts triggered, verified)
+      - Log accessibility confirmed]
+   next_action: "Request user permission to proceed to Phase 7 (Rollback Preparation)"
+   ```
+
 ### Exit Criteria
 - Monitoring fully configured
 - Alerts tested and working
@@ -225,6 +373,22 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Script common rollback tasks
    - Create rollback pipelines
    - Test automation thoroughly
+
+4. **Invoke journaling subagent** to document rollback preparation:
+   ```
+   task_id: Current task number
+   phase: "Phase 7: Rollback Preparation"
+   activity: "Phase 7 Complete: Rollback Ready"
+   is_phase_transition: true
+   content: |
+     [Prepared rollback documentation including:
+      - Rollback procedures documented step-by-step
+      - Rollback tested in test environment
+      - Data recovery procedures confirmed
+      - Rollback automation created (if applicable)
+      - Team notified of procedures]
+   next_action: "Request user permission to proceed to Phase 8 (Post-Deployment)"
+   ```
 
 ### Exit Criteria
 - Rollback procedures documented
@@ -260,6 +424,26 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Tag deployment commit
    - Archive deployment scripts
    - Store configuration snapshots
+
+6. **Invoke journaling subagent** for final deployment summary:
+   ```
+   task_id: Current task number
+   phase: "Phase 8: Post-Deployment"
+   activity: "Phase 8 Complete: Deployment Finalized"
+   is_phase_transition: true
+   content: |
+     [Prepared post-deployment report including:
+      - What was deployed (components, infrastructure)
+      - Issues encountered and how resolved
+      - Performance metrics and results
+      - Cost analysis
+      - Documentation updates completed
+      - Stakeholders notified
+      - 24-hour monitoring results
+      - Key learnings from deployment
+      - Recommendations for future deployments]
+   next_action: "Deployment complete - monitor for stability"
+   ```
 
 ### Exit Criteria
 - Documentation updated

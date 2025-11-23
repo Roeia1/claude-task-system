@@ -16,8 +16,7 @@ For each comment:
 2. **Assess clarity**:
    - **Clear instruction/feedback** → Apply changes, commit with reference to comment, resolve comment
    - **Ambiguous or needs discussion** → Reply to comment with questions/discussion, leave unresolved
-3. **Document in journal**: What was changed and why
-4. **Use commit format**: `fix(task-XXX): address PR feedback - [description] (resolves comment #N) && git push`
+3. **Use commit format**: `fix(task-XXX): address PR feedback - [description] (resolves comment #N) && git push`
 
 ## Comment Resolution Rules
 
@@ -37,13 +36,18 @@ Ask user "Should I request a review to [specific purpose]?" when:
 
 ## Review Documentation
 
-After each review session, add to journal:
+After each review session, **invoke journaling subagent** to document PR response:
 
-```markdown
-### [Timestamp] - PR Review Response
-
-**Comments addressed**: [number]
-**Changes made**: [summary of changes]
-**Discussions started**: [topics requiring clarification]
-**Next**: [what to do next]
+```
+task_id: Current task number
+phase: Current phase
+activity: "PR Review Response"
+content: |
+  [Prepared documentation including:
+   - Number of comments addressed
+   - Summary of changes made for each comment
+   - Commits made with references (e.g., "resolves comment #N")
+   - Discussions started (topics requiring clarification)
+   - Comments resolved vs unresolved]
+next_action: "Continue with [current phase work] or await further feedback"
 ```

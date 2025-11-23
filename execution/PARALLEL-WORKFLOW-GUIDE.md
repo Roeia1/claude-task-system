@@ -80,7 +80,7 @@ This will remove the worktree and clean up references.
 
 ### Workflow Management
 - **Phase Discipline**: Follow the phase-based workflow in each worktree
-- **Journal Updates**: Keep task journals updated in each worktree
+- **Journaling**: Use journaling subagent in each worktree to document decisions
 - **Regular Syncing**: Pull main branch updates regularly
 
 ## Common Scenarios
@@ -180,7 +180,7 @@ cd /home/roei/projects/Titinski
 
 ### State Management
 - **TASK-LIST.md tracking**: Prevents duplicate work on same task
-- **Independent journals**: Each worktree maintains its own task progress
+- **Independent journals**: Each worktree has its own journal (journaling subagent operates on worktree's journal.md)
 - **Branch isolation**: No branch switching conflicts between terminals
 - **Clean completion**: Each task completes and cleans up independently
 
@@ -244,7 +244,7 @@ Removes references to deleted worktrees.
 ## Important Notes
 
 - Worktrees share git history but have independent working directories
-- Each worktree has its own journal in `project-tasks/tasks/XXX/journal.md`
+- Each worktree has its own journal in `execution/tasks/XXX/journal.md` (journaling subagent operates on the worktree's journal)
 - TASK-LIST.md shows which tasks are in worktrees with `[worktree: path]`
 - **NEW**: Task completion is now split into two commands:
   - `/project:parallel-finalize-task` - Run from within the worktree to merge PR
