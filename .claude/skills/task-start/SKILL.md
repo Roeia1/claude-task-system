@@ -5,87 +5,167 @@ description: "ONLY activate on DIRECT user request to start a task. User must ex
 
 # Task Start Skill
 
-When activated, help the user start or resume work on a task following the 8-phase execution discipline.
+Prepares environment for task execution: validates task, sets up git branch, creates GitHub PR, and initializes journal. After setup, hands off to the task-type workflow.
 
 ## File Locations
 
 - **Task List**: `execution/TASK-LIST.md`
-- **Task File**: `execution/tasks/NNN/task.md`
-- **Journal**: `execution/tasks/NNN/journal.md`
-- **Task Type Workflows**: `execution/workflows/{type}-workflow.md`
-  - `feature-workflow.md` - New functionality
-  - `bugfix-workflow.md` - Error corrections
-  - `refactor-workflow.md` - Code improvements
-  - `performance-workflow.md` - Optimization
-  - `deployment-workflow.md` - Infrastructure
-- **Shared Protocols**: `execution/shared/`
-- **Full Workflow**: `.claude/commands/start-task.md`
+- **Task Files**: `execution/tasks/NNN/task.md`
+- **Journals**: `execution/tasks/NNN/journal.md`
+- **Workflows**: `execution/workflows/{type}-workflow.md`
+  - `feature-workflow.md`, `bugfix-workflow.md`, `refactor-workflow.md`, `performance-workflow.md`, `deployment-workflow.md`
 
 ## Process
 
-### Task Selection
+### Step 1: Task Selection
 
-1. **Read task list** from `execution/TASK-LIST.md`
-2. **Show available tasks** (PENDING and IN_PROGRESS)
-3. **Interactive selection** or use direct task ID from user input
-4. **Validate task**:
-   - Ensure task exists
-   - Check dependencies are COMPLETED
-   - Verify not already in worktree (check for `[worktree: path]` marker)
+1. **Read** `execution/TASK-LIST.md`
+2. **Filter** PENDING and IN_PROGRESS tasks (exclude COMPLETED)
+3. **Display menu**:
+   ```
+   Select a task:
+   1. [001] Add user authentication (PENDING)
+   2. [002] Fix login bug (PENDING - blocked by 001)
+   3. [005] Refactor API layer (IN_PROGRESS)
 
-### Setup Phase
+   Enter task number or ID:
+   ```
+4. **Accept** menu selection OR direct task ID from user input
 
-**For New Tasks (PENDING)**:
-1. **Git setup**:
-   - Ensure working directory is clean
-   - Checkout and update main branch
-   - Create feature branch: `git checkout -b feature/task-XXX-description`
-   - Create draft PR immediately
-2. **Read task file** from `execution/tasks/NNN/task.md`
-3. **Read task type workflow** from `execution/workflows/{type}-workflow.md`
-4. **Create journal** at `execution/tasks/NNN/journal.md`:
-   - Initialize with task type-specific template
-   - Include git references (branch, PR number)
-5. **Update task status** to IN_PROGRESS in `execution/TASK-LIST.md`
+### Step 2: Validation
 
-**For Ongoing Tasks (IN_PROGRESS)**:
-1. **Checkout task branch**
-2. **Read journal** to identify current phase
-3. **Read task type workflow** to ensure correct workflow
-4. **Summarize current state** for user
+1. **Verify task exists** in TASK-LIST.md
+   - Not found → Error: "Task XXX not found"
 
-### Begin Execution
+2. **Check status**:
+   - COMPLETED → Error: "Task XXX already completed"
+   - PENDING or IN_PROGRESS → Continue
 
-1. **Follow task type workflow** from `execution/workflows/{type}-workflow.md`
-2. **Request permission** to proceed:
-   - New tasks: Ask to begin Phase 1 (Task Analysis)
-   - Ongoing tasks: Ask to continue from current phase
-3. **Follow the 8-phase workflow**:
-   - Phase 1: Task Analysis
-   - Phase 2: Solution Design
-   - Phase 3: Test Creation (TDD)
-   - Phase 4: Implementation
-   - Phase 5: Refactor
-   - Phase 6: Verification & Polish
-   - Phase 7: Reflection
-   - Phase 8: Completion
+3. **Check dependencies** (parse task.md "Dependencies:" section):
+   - Verify each dependency is COMPLETED in TASK-LIST.md
+   - Any not completed → Error: "Blocked by: XXX (PENDING), YYY (IN_PROGRESS)"
 
-## Critical Rules
+4. **Check working directory**: `git status --porcelain`
+   - Not clean → Error: "Uncommitted changes - commit or stash first"
 
-- **Test-Driven Development**: Tests MUST be written in Phase 3, before implementation
-- **Phase Progression**: Each phase requires explicit user permission
-- **No Test Modification**: After Phase 3, tests only change with explicit approval
-- **Continuous Journaling**: Update journal throughout with decisions and insights
-- **Commit Discipline**: Commit and push at end of each phase
-- **Sequential Execution**: Complete phases in order, no skipping
+### Step 3: State Detection
 
-## Next Steps
+Determine task state based on TASK-LIST status and journal existence:
 
-After completing all phases, suggest using the **task-completion** skill to finalize and merge.
+| TASK-LIST Status | Journal Exists? | State |
+|------------------|-----------------|-------|
+| PENDING | No | NEW |
+| PENDING | Yes | CONTINUING (interrupted) |
+| IN_PROGRESS | Yes | CONTINUING |
+| IN_PROGRESS | No | CONTINUING (warn: no journal) |
 
-## References
+### Step 4: Git Setup
 
-- Complete workflow details: `.claude/commands/start-task.md`
-- Task type workflows: `execution/workflows/`
-- Shared protocols: `execution/shared/`
-- Project guidelines: `CLAUDE.md`
+**Detect default branch**:
+```bash
+git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'
+```
+Fallback: try "main", then "master"
+
+**For NEW tasks**:
+1. Checkout default branch: `git checkout {default} && git pull`
+2. Create feature branch: `git checkout -b feature/task-XXX-description`
+
+**For CONTINUING tasks**:
+1. Check local branch: `git branch --list feature/task-XXX-*`
+2. If exists → checkout
+3. If not → check remote: `git branch -r --list origin/feature/task-XXX-*`
+   - Remote exists → `git checkout -b feature/task-XXX-... origin/feature/task-XXX-...`
+   - Neither exists → Error: "Branch not found - task state corrupted"
+4. Pull latest: `git pull`
+
+### Step 5: PR Setup
+
+**Check for existing PR**:
+```bash
+gh pr list --head {branch-name} --state open --json number,url
+```
+
+**If PR exists**: Record PR number and URL, continue (reuse existing)
+
+**If no open PR**:
+1. Check for closed/merged: `gh pr list --head {branch-name} --state all`
+2. Create new draft PR:
+   ```bash
+   gh pr create --draft --title "Task XXX: {title}" --body "Work in progress for task XXX"
+   ```
+3. Record PR number and URL
+
+### Step 6: Journal Setup
+
+**For NEW tasks**:
+1. Read task.md to get task type
+2. Invoke journaling subagent to create journal:
+   ```
+   Create journal for task {XXX}.
+   Phase: "Phase 1"
+   Activity: "task started"
+   Content: "Task {title} initialized. Task type: {type}.
+             Dependencies verified as COMPLETED.
+             Branch created: {branch}. PR created: #{pr_number}."
+   Next action: "Begin Phase 1: Task Analysis following {type}-workflow.md"
+   ```
+3. Update TASK-LIST.md: Move task from PENDING to IN_PROGRESS
+
+**For CONTINUING tasks**:
+1. Check journal exists at `execution/tasks/XXX/journal.md`
+2. Read existing journal
+3. Parse current phase from "## Current Phase" section
+4. If journal missing (edge case):
+   - Invoke journaling subagent:
+     ```
+     Create journal for task {XXX}.
+     Phase: "{phase_from_context}"
+     Activity: "journal recovery"
+     Content: "Journal was missing for IN_PROGRESS task.
+               Recovered context. Branch: {branch}. PR: #{pr}."
+     Next action: "Continue from {phase} per workflow"
+     ```
+
+### Step 7: Handoff
+
+**For NEW tasks**:
+```
+Task XXX ready for execution.
+
+Branch: feature/task-XXX-description
+PR: #123 (draft)
+Type: {type}
+
+Read the workflow at: execution/workflows/{type}-workflow.md
+Ready to begin Phase 1: Task Analysis.
+```
+
+**For CONTINUING tasks**:
+1. Read last 3-5 journal entries for context
+2. Display:
+   ```
+   Resuming Task XXX.
+
+   Branch: feature/task-XXX-description
+   PR: #123
+   Type: {type}
+   Current Phase: {phase}
+
+   Last activity:
+   - {timestamp}: {summary of last entry}
+
+   Read the workflow at: execution/workflows/{type}-workflow.md
+   Ready to continue from {phase}.
+   ```
+
+## Error Handling
+
+| Error | Message |
+|-------|---------|
+| Task not found | "Task XXX not found in TASK-LIST" |
+| Task completed | "Task XXX already completed" |
+| Dependencies not met | "Blocked by: XXX (PENDING), YYY (IN_PROGRESS)" |
+| Dirty working directory | "Uncommitted changes - commit or stash first" |
+| Branch missing for IN_PROGRESS | "Branch not found - task state corrupted" |
+| Workflow file missing | "No workflow found for type: XXX" |
