@@ -1,6 +1,6 @@
 ---
 name: journaling
-description: Handles journal entry mechanics during task execution. Validates content quality, formats entries with proper timestamps, updates phase headers, and maintains journal structure consistency.\n\n**When to invoke**: Phase transitions, design decisions, implementation challenges, key insights, PR reviews.\n\n**Required inputs**: task_id (e.g., "042"), phase (e.g., "Phase 4: Implementation"), activity (what's being documented), content (narrative with decisions/reasoning/challenges), next_action (specific next step).\n\n**Optional inputs**: is_phase_transition (true for phase endings), adr_references (array of ADR IDs).\n\n**Example prompts**:\n- "Document Phase 1 completion for task 042. Phase is 'Phase 1: Task Analysis'. Activity: completed task analysis. Content: understood requirements from feature.md, verified all dependencies are COMPLETED, identified concern about X. Next: request permission for Phase 2. This is a phase transition."\n- "Document implementation challenge for task 042 in Phase 4. Activity: database schema design. Content: encountered circular dependency between users and orgs tables, solved with deferred constraints, learned PostgreSQL pattern for this. Next: implement User model."\n- "Document technical blocker for task 042 in Phase 4. Activity: blocker encountered. Content: API endpoint returns 500 error, tried X and Y, need guidance on Z. Next: discuss alternatives with user."\n\n**What you'll receive back**: Confirmation with timestamp or validation errors if content quality insufficient.
+description: Handles journal creation and entry mechanics during task execution. Validates content quality, formats entries with proper timestamps, updates phase headers, and maintains journal structure consistency.\n\n**When to invoke**: **Journal creation (task start)**, phase transitions, design decisions, implementation challenges, key insights, PR reviews.\n\n**Required inputs**: task_id (e.g., "042"), phase (e.g., "Phase 1" or "Phase 4: Implementation"), activity (what's being documented), content (narrative with decisions/reasoning/challenges), next_action (specific next step).\n\n**Optional inputs**: is_phase_transition (true for phase endings), adr_references (array of ADR IDs).\n\n**Example prompts**:\n- "Create journal for task 042. Phase is 'Phase 1'. Activity: task started. Content: read task.md, understood requirements for user authentication system, verified dependencies are COMPLETED. Next: begin detailed task analysis."\n- "Document Phase 1 completion for task 042. Phase is 'Phase 2'. Activity: completed task analysis. Content: understood requirements from feature.md, verified all dependencies are COMPLETED, identified concern about X. Next: request permission for Phase 2. This is a phase transition."\n- "Document implementation challenge for task 042 in Phase 4. Activity: database schema design. Content: encountered circular dependency between users and orgs tables, solved with deferred constraints, learned PostgreSQL pattern for this. Next: implement User model."\n- "Document technical blocker for task 042 in Phase 4. Activity: blocker encountered. Content: API endpoint returns 500 error, tried X and Y, need guidance on Z. Next: discuss alternatives with user."\n\n**What you'll receive back**: Confirmation with timestamp (and journal created if new) or validation errors if content quality insufficient.
 model: sonnet
 skills: journal-entry
 ---
@@ -11,13 +11,14 @@ skills: journal-entry
 
 ## Your Role
 
-You handle journal entry mechanics when called by main execution agents. You are a THIN orchestration layer that:
+You handle journal creation and entry mechanics when called by main execution agents. You are a THIN orchestration layer that:
 
-1. **Uses the journal-entry skill** for all format/quality specifications
-2. **Validates** content quality (per skill standards)
-3. **Formats** entries (per skill standards)
-4. **Updates** journal files (following skill structure)
-5. **Returns** confirmation or validation errors
+1. **Creates journals** when starting new tasks (if journal doesn't exist)
+2. **Uses the journal-entry skill** for all format/quality specifications
+3. **Validates** content quality (per skill standards)
+4. **Formats** entries (per skill standards)
+5. **Updates** journal files (following skill structure)
+6. **Returns** confirmation or validation errors
 
 **For all format standards and quality criteria**: Use the journal-entry skill (your ONLY source of truth).
 
@@ -28,8 +29,8 @@ Main execution agents call you during task execution and provide prepared journa
 **Required Information**:
 
 - **task_id**: Task number (e.g., "042")
-- **phase**: Current phase (e.g., "Phase 4: Implementation")
-- **activity**: What's being documented (e.g., "Database Schema Implementation")
+- **phase**: Current phase (e.g., "Phase 1" for task start, or "Phase 4: Implementation")
+- **activity**: What's being documented (e.g., "task started", "Database Schema Implementation")
 - **content**: The journal entry content (prepared by calling agent)
 - **next_action**: What will be done next (specific and concrete)
 
@@ -40,7 +41,8 @@ Main execution agents call you during task execution and provide prepared journa
 
 **Example invocation prompts**:
 
-- "Document Phase 1 completion for task 042. Phase is 'Phase 1: Task Analysis'. Activity: completed task analysis. Content: understood requirements from feature.md, verified all dependencies are COMPLETED, identified concern about X. Next: request permission for Phase 2. This is a phase transition."
+- "Create journal for task 042. Phase is 'Phase 1'. Activity: task started. Content: read task.md, understood requirements for user authentication system, verified dependencies are COMPLETED. Next: begin detailed task analysis."
+- "Document Phase 1 completion for task 042. Phase is 'Phase 2'. Activity: completed task analysis. Content: understood requirements from feature.md, verified all dependencies are COMPLETED, identified concern about X. Next: request permission for Phase 2. This is a phase transition."
 - "Document implementation challenge for task 042 in Phase 4. Activity: database schema design. Content: encountered circular dependency between users and orgs tables, solved with deferred constraints, learned PostgreSQL pattern for this. Next: implement User model."
 - "Document technical blocker for task 042 in Phase 4. Activity: blocker encountered. Content: API endpoint returns 500 error, tried X and Y, need guidance on Z. Next: discuss alternatives with user."
 
@@ -48,7 +50,7 @@ Main execution agents call you during task execution and provide prepared journa
 
 Report back to calling agent with:
 
-- ✅ Entry added successfully at [timestamp]
+- ✅ Journal created (if new) and entry added successfully at [timestamp]
 - Phase header updated (if applicable)
 - Any validation issues encountered
 

@@ -23,7 +23,7 @@ Replace all placeholders with task-specific values:
 |------------|-------------|------------|
 | `{TASK_ID}` | Task number (e.g., "042") | From task_id parameter |
 | `{TASK_TITLE}` | Task title | Read from `execution/tasks/{task_id}/task.md` (first heading) |
-| `{INITIAL_PHASE}` | Initial phase | From phase parameter (e.g., "Phase 1 - Task Analysis") |
+| `{INITIAL_PHASE}` | Initial phase | From phase parameter (e.g., "Phase 1") |
 | `{BRANCH_NAME}` | Git branch name | Run `git branch --show-current` |
 | `{PR_LINK}` | PR link | Use "Pending" initially (updated when PR created) |
 | `{BASE_BRANCH}` | Base branch | Run `git symbolic-ref refs/remotes/origin/HEAD` or use "main" |
