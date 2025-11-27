@@ -1,10 +1,10 @@
 # Performance Task Execution Workflow
 
-> **Journal Guidelines**: The start-task command initializes the journal structure. See [Journal Entry Guidelines](../skills/journal-entry/journal-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For performance tasks, include specific metrics (X% faster, Y MB saved) in entries.
+> **Journal Guidelines**: The task-start skill initializes the journal structure. See [Journal Entry Guidelines](../skills/journal-entry/journal-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For performance tasks, include specific metrics (X% faster, Y MB saved) in entries.
 
 ## Phase 1: Task Analysis
 
-**Prerequisites**: Git setup and journal initialization completed by start-task command
+**Prerequisites**: Git setup and journal initialization completed by task-start skill
 
 ### Task Analysis
 

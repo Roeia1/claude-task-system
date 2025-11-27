@@ -78,7 +78,7 @@ All workflows reference common protocols in this directory:
 
 ### Starting a Task
 
-When you run `/task-system:start-task [ID]`, the system:
+When you start a task (via the `task-start` skill), the system:
 
 1. Reads the task type from the task file
 2. References the appropriate workflow file

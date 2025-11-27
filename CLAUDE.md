@@ -85,7 +85,6 @@ execution/                      # ⚡ EXECUTION PHASE
 ├── plan-feature.md            # Technical planning
 ├── generate-tasks.md          # Task breakdown
 ├── adr.md                     # Architecture decision records
-├── start-task.md              # Begin task execution
 ├── complete-task.md           # Finalize and merge task
 ├── parallel-start-task.md     # Start concurrent task
 ├── parallel-finalize-task.md  # Complete parallel task
@@ -147,7 +146,7 @@ execution/                      # ⚡ EXECUTION PHASE
 
 ```bash
 # Regular execution (main repository)
-/project:start-task [ID]        # Begin task with ID or choose from menu
+# To start a task, use the task-start skill by saying "start task" or "work on task [ID]"
 /project:complete-task          # Merge PR and finalize
 
 # Parallel execution (git worktrees)

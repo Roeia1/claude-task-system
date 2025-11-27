@@ -19,7 +19,7 @@ This workflow guides the deployment of application components to AWS infrastruct
 
 ## Journal Guidelines
 
-> **Journal Guidelines**: The start-task command initializes the journal structure. See [Journal Entry Guidelines](../skills/journal-entry/journal-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For deployments, document all infrastructure changes, validation results, and rollback procedures.
+> **Journal Guidelines**: The task-start skill initializes the journal structure. See [Journal Entry Guidelines](../skills/journal-entry/journal-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For deployments, document all infrastructure changes, validation results, and rollback procedures.
 
 ## Phase 1: Pre-Deployment Analysis
 
