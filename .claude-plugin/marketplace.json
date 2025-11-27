@@ -10,7 +10,7 @@
     {
       "name": "claude-task-system",
       "description": "Structured development workflow with feature planning and 8-phase task execution",
-      "source": "."
+      "source": "./plugin"
     }
   ]
 }
