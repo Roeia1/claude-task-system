@@ -2,7 +2,6 @@
   "name": "claude-task-system",
   "description": "Structured development workflow with feature planning and 8-phase task execution",
   "version": "1.0.0",
-  "commands": "./commands",
   "agents": "./agents",
   "skills": "./skills"
 }

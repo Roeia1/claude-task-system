@@ -1,0 +1,16 @@
+{
+  "name": "claude-task-system",
+  "version": "1.0.0",
+  "description": "Structured development workflow with feature planning and 8-phase task execution",
+  "owner": {
+    "name": "Roei Avrahami",
+    "email": "roei.avrahami2@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "claude-task-system",
+      "description": "Structured development workflow with feature planning and 8-phase task execution",
+      "source": "."
+    }
+  ]
+}
