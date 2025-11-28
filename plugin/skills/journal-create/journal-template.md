@@ -1,7 +1,5 @@
 # Task #{TASK_ID}: {TASK_TITLE}
 
-## Current Phase: {INITIAL_PHASE}
-
 ## Git References
 
 - **Branch**: {BRANCH_NAME}

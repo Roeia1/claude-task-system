@@ -37,7 +37,6 @@ When calling this skill, provide:
 ### Required Parameters
 
 - **task_id**: Task number (e.g., "042")
-- **phase**: Initial phase (e.g., "Phase 1")
 
 ### Optional Parameters
 
@@ -57,7 +56,6 @@ Collect all placeholder values:
 | ----------------- | ------------------------------------------------------------- |
 | `{TASK_ID}`       | From task_id parameter                                        |
 | `{TASK_TITLE}`    | Read first heading from `task-system/tasks/{task_id}/task.md` |
-| `{INITIAL_PHASE}` | From phase parameter (e.g., "Phase 1")                        |
 | `{BRANCH_NAME}`   | Run `git branch --show-current`                               |
 | `{PR_LINK}`       | From pr_link parameter or "Pending"                           |
 | `{BASE_BRANCH}`   | Run `git symbolic-ref refs/remotes/origin/HEAD` or use "main" |
