@@ -9,5 +9,3 @@
 - **Base Branch**: {BASE_BRANCH}
 
 ## Progress Log
-
-{FIRST_ENTRY}

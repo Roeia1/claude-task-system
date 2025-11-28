@@ -1,6 +1,6 @@
-# Journal Entry Guidelines
+# Journaling Guidelines
 
-**SINGLE SOURCE OF TRUTH**: This file is the authoritative source for **WHEN** to journal, **WHAT** to include, and **HOW** to invoke the journaling subagent.
+**SINGLE SOURCE OF TRUTH**: This file is the authoritative source for **WHEN** to journal and **WHAT** to include during task execution.
 
 **For format standards and quality validation**, the journaling subagent handles all mechanics automatically.
 
@@ -59,6 +59,21 @@ Use Task tool with subagent_type="journaling" and provide prepared content
 
 - **is_phase_transition**: `true` when entering a new phase
 - **adr_references**: Array of ADR IDs (e.g., `["ADR-005"]`)
+
+### Example Invocation: Task Start (First Entry)
+
+```markdown
+Invoke journaling subagent with:
+
+task_id: "042"
+phase: "Phase 1"
+activity: "Task Started"
+content: |
+  Task initialized: Implement user authentication system.
+  Task type: feature. Dependencies verified as COMPLETED.
+  Branch created: feature/task-042-user-auth. PR created: #156 (draft).
+next_action: "Begin Phase 1: Task Analysis following feature-workflow.md"
+```
 
 ### Example Invocation: Phase Transition
 
@@ -168,17 +183,6 @@ The subagent will reject poor quality content, but avoid preparing:
 - **Trivial updates**: "Made progress" without meaningful insight
 - **Vague statements**: "Did some stuff" or "worked on feature"
 - **Status updates**: "Still working on X" without context or learning
-
-## Format Standards and Quality Validation
-
-**You don't need to worry about formatting mechanics** - the journaling subagent handles this automatically.
-
-The journaling subagent (plugin's `agents/journaling.md`) is responsible for:
-- Validating content quality
-- Applying entry format standards
-- Maintaining file structure
-- Updating phase headers
-- All file operations
 
 ## Summary: Your Responsibilities
 

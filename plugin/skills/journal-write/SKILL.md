@@ -1,21 +1,20 @@
 ---
-name: journal-entry
-description: "Utility skill for the journaling subagent. Provides detailed instructions for journal entry mechanics including formatting, validation, and file operations. Called proactively by the journaling subagent (plugin's agents/journaling.md) during task execution. NOT user-facing."
+name: journal-write
+description: Utility skill for writing journal entries. Provides format standards, quality validation, and entry mechanics. ONLY called by the journaling subagent during task execution. NOT user-facing.
 ---
 
-# Journal Entry Skill
+# Journal Write Skill
 
-**SINGLE SOURCE OF TRUTH**: This skill is the authoritative source for journal entry format standards and quality validation criteria. All journaling must conform to the specifications in this file.
+**SINGLE SOURCE OF TRUTH**: This skill is the authoritative source for journal entry format standards and quality validation criteria.
 
-A utility skill that handles the mechanics of creating and inserting properly formatted journal entries. This skill is called by the journaling subagent (plugin's `agents/journaling.md`) with prepared content from main execution agents.
+A utility skill that handles the mechanics of formatting and inserting journal entries. This skill is called by the journaling subagent (plugin's `agents/journaling.md`) with prepared content from main execution agents.
 
 ## Purpose
 
-This skill focuses on **HOW to journal** (format, quality, mechanics). It is used by the journaling subagent, NOT directly by main execution agents.
-
-**For WHEN to journal and WHAT to include**, see: `journal-guidelines.md` in this skill folder.
+This skill focuses on **HOW to write journal entries** (format, quality, mechanics). It is used by the journaling subagent, NOT directly by main execution agents.
 
 This skill is responsible for:
+
 - Defining entry format standards (single source of truth)
 - Defining quality validation criteria (single source of truth)
 - Providing mechanics instructions to journaling subagent
@@ -24,7 +23,6 @@ This skill is responsible for:
 ## File Locations
 
 - **Journal**: `task-system/tasks/NNN/journal.md`
-- **Journal Guidelines**: This skill folder's `journal-guidelines.md`
 - **Task Type Workflows**: Plugin's `workflows/{type}-workflow.md`
 
 ## Input Requirements
@@ -62,21 +60,17 @@ next_action: "Implement password hashing middleware before moving to session man
 adr_references: ["ADR-003"]
 ```
 
-## Journal Creation
-
-If the journal file doesn't exist at `task-system/tasks/{task_id}/journal.md`, it must be created before adding the first entry.
-
-**For complete creation instructions**, see: `journal-creation.md` in this skill folder.
-
 ## Process
 
 ### Step 1: Load Context
 
-1. **Check if journal exists** at `task-system/tasks/{task_id}/journal.md`:
-   - If NO: Follow Journal Creation process above
+1. **Verify journal exists** at `task-system/tasks/{task_id}/journal.md`:
+
+   - If NO: Error - journal must be created first (use journal-create skill)
    - If YES: Continue to read and validate
 
 2. **Read journal** (if it exists):
+
    - Identify current phase from "Current Phase" header
    - Locate "Progress Log" section for insertion point
 
@@ -101,12 +95,15 @@ If validation fails, return specific feedback about what's missing or needs impr
 1. **Generate timestamp**: Current date and time in format `YYYY-MM-DD HH:MM`
 
 2. **Create entry header**:
+
    ```markdown
    ### [Timestamp] - [Activity]
    ```
+
    Example: `### 2025-01-23 14:30 - Phase 4: Database Schema Implementation`
 
 3. **Format entry body**:
+
    - Use the provided content as-is (already prepared by calling agent)
    - Add ADR references if provided:
      ```markdown
@@ -114,11 +111,13 @@ If validation fails, return specific feedback about what's missing or needs impr
      ```
 
 4. **Add next action**:
+
    ```markdown
    **Next:** [next_action]
    ```
 
 5. **Assemble complete entry**:
+
    ```markdown
    ### [Timestamp] - [Activity]
 
@@ -132,10 +131,12 @@ If validation fails, return specific feedback about what's missing or needs impr
 ### Step 4: Update Journal File
 
 1. **Update phase header** (if is_phase_transition is true):
+
    - Replace `## Current Phase: ...` with new phase
    - Example: `## Current Phase: Phase 4 - Implementation`
 
 2. **Insert entry in Progress Log**:
+
    - Locate "## Progress Log" section
    - Add new entry at the end (most recent last)
    - Maintain proper spacing (blank line before each entry)
@@ -145,6 +146,7 @@ If validation fails, return specific feedback about what's missing or needs impr
 ### Step 5: Return Confirmation
 
 Return summary of actions taken:
+
 - Entry added with timestamp
 - Phase header updated (if applicable)
 - File written successfully
@@ -168,6 +170,7 @@ All entries must follow this structure:
 Entries must meet these criteria:
 
 ### Content Quality
+
 - **Meaningful**: Provides actual insight, not status updates
 - **Contextual**: Explains what was happening and why
 - **Reasoning-focused**: Documents WHY decisions were made
@@ -175,6 +178,7 @@ Entries must meet these criteria:
 - **Specific**: Uses concrete details, not vague language
 
 ### Format Quality
+
 - **Proper timestamp**: YYYY-MM-DD HH:MM format
 - **Clear activity**: Specific description of what occurred
 - **Structured content**: Organized with clear flow
@@ -192,22 +196,23 @@ Entries must meet these criteria:
 ## Error Handling
 
 ### Invalid Input
+
 If provided content fails quality validation, return:
+
 - Specific issues identified
 - Examples of what's missing
 - Guidance for improvement
 
 ### Missing Journal File
+
 If journal file doesn't exist:
+
 - Error: Journal not initialized for this task
-- Suggest: Task should be started via task-start skill first
+- Suggest: Use journal-create skill first
 
 ### Malformed Journal
+
 If journal structure is incorrect:
+
 - Attempt to fix common issues (missing sections)
 - Report structural problems if unfixable
-
-## References
-
-- Journal guidelines: `journal-guidelines.md` (in this skill folder)
-- Task type workflows: Plugin's `workflows/`
