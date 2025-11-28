@@ -1,7 +1,5 @@
 {
   "name": "claude-task-system",
-  "version": "1.0.0",
-  "description": "Structured development workflow with feature planning and 8-phase task execution",
   "owner": {
     "name": "Roei Avrahami",
     "email": "roei.avrahami2@gmail.com"
@@ -9,8 +7,24 @@
   "plugins": [
     {
       "name": "claude-task-system",
-      "description": "Structured development workflow with feature planning and 8-phase task execution",
-      "source": "./plugin"
+      "description": "Structured task workflow with feature planning, journaling, and architecture decision records",
+      "version": "1.0.0",
+      "source": {
+        "source": "github",
+        "repo": "Roeia1/claude-task-system"
+      },
+      "author": "Roei Avrahami",
+      "license": "MIT",
+      "keywords": [
+        "task-management",
+        "tdd",
+        "feature-planning",
+        "workflow",
+        "architecture-decisions",
+        "journaling"
+      ],
+      "homepage": "https://github.com/Roeia1/claude-task-system",
+      "repository": "https://github.com/Roeia1/claude-task-system"
     }
   ]
 }
