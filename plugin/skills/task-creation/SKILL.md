@@ -10,7 +10,7 @@ When activated, create a comprehensive task definition from user description thr
 ## File Locations
 
 - **Task Template**: Read from plugin's `templates/execution/task-template.md`
-- **Task Type Workflows**: Read from plugin's `workflows/{type}-workflow.md`
+- **Task Type Workflows**: Read from plugin's `skills/task-start/workflows/{type}-workflow.md`
   - `feature-workflow.md` - New functionality
   - `bugfix-workflow.md` - Error corrections
   - `refactor-workflow.md` - Code improvements
@@ -32,7 +32,7 @@ When activated, create a comprehensive task definition from user description thr
 
 1. **Analyze description** to determine task type
 2. **Select appropriate workflow** template
-3. **Read task type workflow** from plugin's `workflows/{type}-workflow.md`
+3. **Read task type workflow** from plugin's `skills/task-start/workflows/{type}-workflow.md`
 4. **Consider type-specific** requirements and constraints
 
 ### 3. Task Decomposition
@@ -126,4 +126,4 @@ After task creation, suggest using the **task-start** skill to begin execution.
 
 - Complete workflow details: Plugin's `commands/new-task.md`
 - Task template: Plugin's `templates/execution/task-template.md`
-- Task type workflows: Plugin's `workflows/`
+- Task type workflows: Plugin's `skills/task-start/workflows/`

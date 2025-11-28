@@ -163,7 +163,7 @@ execution/                      # ⚡ EXECUTION PHASE
 
 ### 8-Phase Workflow Discipline
 
-Each task follows this sequence (defined in type-specific workflows in `execution/workflows/`):
+Each task follows this sequence (defined in type-specific workflows in `plugin/skills/task-start/workflows/`):
 
 1. **Phase 1: Task Analysis**
    - Read task file and linked feature documentation
@@ -238,7 +238,7 @@ git add . && git commit -m "..." && git push
 
 ### Task Types and Workflows
 
-Each task type follows a specialized workflow (in `execution/workflows/`):
+Each task type follows a specialized workflow (in `plugin/skills/task-start/workflows/`):
 
 - **feature**: New functionality or capabilities
 - **bugfix**: Error corrections and fixes

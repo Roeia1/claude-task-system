@@ -1,6 +1,6 @@
 # Feature Task Execution Workflow
 
-> **Journal Guidelines**: The task-start skill initializes the journal structure. See [Journal Entry Guidelines](../skills/journal-entry/journal-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent.
+> **Journal Guidelines**: The task-start skill initializes the journal structure. See [Journal Entry Guidelines](../journaling-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent.
 
 ## Phase 1: Task Analysis
 
@@ -20,7 +20,7 @@ For comprehensive analysis with automated standards validation:
    - Identifies risks, ambiguities, and architectural decisions
    - Recommends technical approach aligned with standards
 4. **Present analysis** to user for review
-5. **Journal**: Phase 1 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+5. **Journal**: Phase 1 completion (see [guidelines](../journaling-guidelines.md))
 6. **Commit initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 **Benefits of Task Analyzer**:
@@ -39,7 +39,7 @@ If subagent is unavailable or user prefers manual approach:
 3. Analyze requirements, objectives, and acceptance criteria
 4. Review existing sub-tasks in task file
 5. Identify ambiguities or concerns
-6. **Journal**: Phase 1 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+6. **Journal**: Phase 1 completion (see [guidelines](../journaling-guidelines.md))
 7. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 ### Exit Criteria
@@ -65,7 +65,7 @@ If subagent is unavailable or user prefers manual approach:
 4. Consider how to approach sub-tasks from task file
 5. Consider risks identified in task file
 6. Plan how solution will be tested
-7. **Journal**: Phase 2 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md) - include ADR references if created)
+7. **Journal**: Phase 2 completion (see [guidelines](../journaling-guidelines.md) - include ADR references if created)
 8. **Commit and push design work**: `git add . && git commit -m "docs(task-XXX): complete solution design and architecture" && git push`
 9. **Consider review request**: For major architectural decisions, ask user if they want to review the design
 
@@ -86,7 +86,7 @@ If subagent is unavailable or user prefers manual approach:
    - Clear test descriptions documenting expected behavior
 3. DO NOT write any implementation code during this phase
 4. Run all created tests to confirm they are failing
-5. **Journal**: Phase 3 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+5. **Journal**: Phase 3 completion (see [guidelines](../journaling-guidelines.md))
 6. **Commit and push test creation**: `git add . && git commit -m "test(task-XXX): add comprehensive test suite for [feature]" && git push`
 7. **Consider review request**: For complex test strategies, ask user if they want to review the test approach
 
@@ -107,12 +107,12 @@ If subagent is unavailable or user prefers manual approach:
    - See: [Test Modification Protocol](./test-modification-protocol.md)
    - Follow the protocol exactly as specified
 4. Work through sub-tasks from task file methodically
-5. **Journal** (for significant challenges or decisions - see [guidelines](../skills/journal-entry/journal-guidelines.md))
+5. **Journal** (for significant challenges or decisions - see [guidelines](../journaling-guidelines.md))
 6. Check off completed sub-tasks in task file
 7. Run tests frequently to track progress
 8. Continue until all tests pass
 9. **Handle design issues**: If significant design flaws emerge, address within this phase using Phase 2-style analysis
-10. **Journal**: Phase 4 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+10. **Journal**: Phase 4 completion (see [guidelines](../journaling-guidelines.md))
 11. **Consider mid-phase review**: For complex implementations, ask user if they want to review progress
 
 ### Exit Criteria
@@ -135,7 +135,7 @@ If subagent is unavailable or user prefers manual approach:
 3. Implement refactoring changes
 4. Ensure all tests still pass after each change
 5. **Commit and push refactoring work**: `git add . && git commit -m "refactor(task-XXX): improve [specific improvement]" && git push`
-6. **Journal**: Phase 5 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+6. **Journal**: Phase 5 completion (see [guidelines](../journaling-guidelines.md))
 7. Repeat until satisfied with code quality
 
 ### Exit Criteria
@@ -163,7 +163,7 @@ If subagent is unavailable or user prefers manual approach:
 
 1. Review entire task journey
 2. Update task file with learnings
-3. **Journal**: Phase 7 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+3. **Journal**: Phase 7 completion (see [guidelines](../journaling-guidelines.md))
 
 **Request permission to complete task**
 
@@ -182,7 +182,7 @@ After completing Phase 7, run:
 - **Test Modification**: NEVER modify tests after Phase 3 without explicit permission - see [Test Modification Protocol](./test-modification-protocol.md)
 - **Phase Progression**: NEVER proceed to next phase without permission - see [Phase Transition Rules](./phase-transition-rules.md)
 - **Sequential Execution**: Complete phases in order
-- **Documentation**: Document WHY, not just WHAT - see [Journal Guidelines](../skills/journal-entry/journal-guidelines.md)
+- **Documentation**: Document WHY, not just WHAT - see [Journal Guidelines](../journaling-guidelines.md)
 - **Commit Discipline**: Commit logical milestones throughout development
 - **PR Reviews**: Address PR reviews immediately when user signals - see [PR Review Protocol](./pr-review-protocol.md)
 
@@ -201,7 +201,7 @@ When encountering issues:
 - Discuss with user whether to revisit Phase 2
 
 ### 3. Technical Blockers
-- **Journal**: Technical blocker (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+- **Journal**: Technical blocker (see [guidelines](../journaling-guidelines.md))
 - Present alternative solutions to user
 - Discuss tradeoffs and get guidance
 

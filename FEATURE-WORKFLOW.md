@@ -639,7 +639,7 @@ Ready to start? Here's your first workflow:
 For reference:
 - **Commands**: See `.claude/commands/`
 - **Templates**: See `planning/templates/`
-- **Task execution**: See `execution/workflows/` (task-type specific workflows)
+- **Task execution**: See `plugin/skills/task-start/workflows/` (task-type specific workflows)
 - **Shared protocols**: See `execution/shared/` (PR reviews, test modifications, etc.)
 - **Parallel work**: See `execution/PARALLEL-WORKFLOW-GUIDE.md`
 - **ADR process**: See `docs/adr/000-adr-process.md`

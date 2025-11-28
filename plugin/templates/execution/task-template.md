@@ -15,7 +15,7 @@
 Brief description of what needs to be accomplished and why it matters to the project.
 
 ## Task Type
-[feature|refactor|bugfix|performance] - Determines which workflow to follow during execution (see plugin workflows/)
+[feature|refactor|bugfix|performance] - Determines which workflow to follow during execution (see plugin skills/task-start/workflows/)
 
 ## Priority
 P[1-3] - [Priority justification]

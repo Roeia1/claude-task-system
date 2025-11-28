@@ -12,7 +12,7 @@ When activated, create a git worktree and start a task in parallel mode for conc
 - **Task List**: `task-system/tasks/TASK-LIST.md`
 - **Task File**: `task-system/tasks/NNN/task.md`
 - **Journal**: `task-system/tasks/NNN/journal.md` (created in worktree)
-- **Task Type Workflows**: Read from plugin's `workflows/{type}-workflow.md`
+- **Task Type Workflows**: Read from plugin's `skills/task-start/workflows/{type}-workflow.md`
 - **Full Workflow**: Plugin's `commands/parallel-start-task.md`
 
 ## What is Parallel Execution?
@@ -65,7 +65,7 @@ The skill detects whether it's running from:
    - Task context (ID, type, branch, PR)
    - Working directory location
    - Allowed/forbidden operations
-2. **Read task type workflow** from plugin's `workflows/{type}-workflow.md`
+2. **Read task type workflow** from plugin's `skills/task-start/workflows/{type}-workflow.md`
 3. **Create journal** at `task-system/worktrees/task-XXX-{type}/task-system/tasks/NNN/journal.md`:
    - Initialize with task type-specific template
    - Include git references
@@ -106,7 +106,7 @@ Display success message with:
 3. **Read journal** to determine current phase
 4. **Get PR info**: `gh pr view`
 5. **Display task context** and progress
-6. **Read workflow** from plugin's `workflows/{type}-workflow.md`
+6. **Read workflow** from plugin's `skills/task-start/workflows/{type}-workflow.md`
 7. **Provide guidance** for current phase
 8. **Remind about isolation** rules
 9. **Confirm ready** to proceed with work
@@ -149,4 +149,4 @@ When ready to complete:
 ## References
 
 - Complete workflow details: Plugin's `commands/parallel-start-task.md`
-- Task type workflows: Plugin's `workflows/`
+- Task type workflows: Plugin's `skills/task-start/workflows/`

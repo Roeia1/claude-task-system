@@ -16,8 +16,8 @@ instructions: |
   ## Workflow to Follow
 
   **Read and execute the process defined in:**
-  1. Plugin's `workflows/{task-type}-workflow.md` - Type-specific Phase 1 and Phase 2 guidance
-  2. Plugin's `workflows/` - Common protocols and guidelines
+  1. Plugin's `skills/task-start/workflows/{task-type}-workflow.md` - Type-specific Phase 1 and Phase 2 guidance
+  2. Plugin's `skills/task-start/workflows/` - Common protocols and guidelines
 
   **Your responsibility**: Follow those workflows precisely and produce a comprehensive structured report.
 

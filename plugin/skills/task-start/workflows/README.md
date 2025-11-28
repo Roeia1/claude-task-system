@@ -33,7 +33,7 @@ All workflows reference common protocols in this directory:
 
 - **[PR Review Protocol](./pr-review-protocol.md)** - Handling PR feedback
 - **[Test Modification Protocol](./test-modification-protocol.md)** - Rules for changing tests
-- **[Journal Guidelines](../skills/journal-entry/journal-guidelines.md)** - Writing effective journal entries
+- **[Journal Guidelines](../journaling-guidelines.md)** - Writing effective journal entries
 - **[Completion Protocol](./completion-protocol.md)** - Phase 8 completion steps
 - **[Verification Checklist](./verification-checklist.md)** - Phase 6-7 checks
 - **[Phase Transition Rules](./phase-transition-rules.md)** - Permission gates
@@ -120,6 +120,6 @@ These workflows embody disciplined software development:
 
 ## Related Documentation
 
-- [TASK-LIST.md](../../task-system/tasks/TASK-LIST.md) - All tasks and their status
+- [TASK-LIST.md](../../../../task-system/tasks/TASK-LIST.md) - All tasks and their status
 - [Parallel Workflow Guide](./parallel-workflow-guide.md) - Concurrent execution
-- [Task Template](../templates/execution/task-template.md) - Task file structure
+- [Task Template](../../../templates/execution/task-template.md) - Task file structure

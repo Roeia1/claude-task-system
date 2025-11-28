@@ -1,6 +1,6 @@
 # Refactor Task Execution Workflow
 
-> **Journal Guidelines**: The task-start skill initializes the journal structure. See [Journal Entry Guidelines](../skills/journal-entry/journal-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For refactoring, emphasize quality improvements and behavior preservation.
+> **Journal Guidelines**: The task-start skill initializes the journal structure. See [Journal Entry Guidelines](../journaling-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For refactoring, emphasize quality improvements and behavior preservation.
 
 ## Phase 1: Task Analysis
 
@@ -13,7 +13,7 @@
 3. Analyze refactoring objectives and quality goals
 4. Review existing sub-tasks in task file
 5. Identify ambiguities or concerns
-6. **Journal**: Phase 1 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+6. **Journal**: Phase 1 completion (see [guidelines](../journaling-guidelines.md))
 7. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
 
 ### Exit Criteria
@@ -35,7 +35,7 @@
 5. Plan incremental refactoring strategy
 6. Consider risks identified in task file
 7. Define quality improvement metrics
-8. **Journal**: Phase 2 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+8. **Journal**: Phase 2 completion (see [guidelines](../journaling-guidelines.md))
 9. **Commit and push analysis work**: `git add . && git commit -m "docs(task-XXX): complete code analysis and refactoring plan" && git push`
 10. **Consider review request**: For major architectural refactoring, ask user if they want to review the plan
 
@@ -55,7 +55,7 @@
 4. Focus on behavior preservation, not new functionality
 5. Document current behavior patterns in tests
 6. Ensure all new tests pass with current implementation
-7. **Journal**: Phase 3 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+7. **Journal**: Phase 3 completion (see [guidelines](../journaling-guidelines.md))
 8. **Commit and push safety net**: `git add . && git commit -m "test(task-XXX): add safety net tests for refactoring areas" && git push`
 9. **Consider review request**: For complex refactoring with significant test additions
 
@@ -82,10 +82,10 @@
    - NEVER modify tests to match refactored behavior
    - **If test modification needed**: See [Test Modification Protocol](./test-modification-protocol.md)
 5. Work through sub-tasks from task file methodically
-6. **Journal** (for significant milestones - see [guidelines](../skills/journal-entry/journal-guidelines.md))
+6. **Journal** (for significant milestones - see [guidelines](../journaling-guidelines.md))
 7. Check off completed sub-tasks in task file
 8. Monitor for performance regressions
-9. **Journal**: Phase 4 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+9. **Journal**: Phase 4 completion (see [guidelines](../journaling-guidelines.md))
 10. **Consider mid-phase review**: For complex refactoring, ask user if they want to review progress
 
 ### Exit Criteria
@@ -107,7 +107,7 @@
 3. Verify performance has not degraded
 4. Review code against project conventions
 5. Ensure error handling is preserved or improved
-6. **Journal**: Phase 5 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+6. **Journal**: Phase 5 completion (see [guidelines](../journaling-guidelines.md))
 7. **Commit and push validation results**: `git add . && git commit -m "docs(task-XXX): validate refactoring quality improvements" && git push`
 
 ### Exit Criteria
@@ -136,7 +136,7 @@
 ### Phase 7: Refactoring Reflection
 
 1. Review entire refactoring journey
-2. **Journal**: Phase 7 completion (see [guidelines](../skills/journal-entry/journal-guidelines.md))
+2. **Journal**: Phase 7 completion (see [guidelines](../journaling-guidelines.md))
 
 **Request permission to complete task**
 

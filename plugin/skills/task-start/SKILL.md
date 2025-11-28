@@ -12,7 +12,7 @@ Prepares environment for task execution: validates task, sets up git branch, cre
 - **Task List**: `task-system/tasks/TASK-LIST.md`
 - **Task Files**: `task-system/tasks/NNN/task.md`
 - **Journals**: `task-system/tasks/NNN/journal.md`
-- **Workflows**: Read from plugin's `workflows/{type}-workflow.md`
+- **Workflows**: Read from plugin's `skills/task-start/workflows/{type}-workflow.md`
   - `feature-workflow.md`, `bugfix-workflow.md`, `refactor-workflow.md`, `performance-workflow.md`, `deployment-workflow.md`
 
 ## Process
@@ -134,7 +134,7 @@ Branch: feature/task-XXX-description
 PR: #123 (draft)
 Type: {type}
 
-Read the workflow at: plugin's workflows/{type}-workflow.md
+Read the workflow at: plugin's skills/task-start/workflows/{type}-workflow.md
 Ready to begin Phase 1: Task Analysis.
 ```
 
