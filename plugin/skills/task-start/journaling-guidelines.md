@@ -1,8 +1,8 @@
 # Journaling Guidelines
 
-**SINGLE SOURCE OF TRUTH**: This file is the authoritative source for **WHEN** to journal and **WHAT** to include during task execution.
+**CRITICAL - SINGLE SOURCE OF TRUTH**: This file is the ONLY authoritative source for **WHEN** to journal and **WHAT** to include during task execution. You MUST follow these guidelines exactly.
 
-**For format standards and quality validation**, the journaling subagent handles all mechanics automatically.
+**IMPORTANT**: The journaling subagent handles all format standards and quality validation automatically. You MUST NOT attempt to format entries manually.
 
 ## Purpose & Philosophy
 
@@ -18,15 +18,18 @@ Journaling is a core discipline of the 8-phase execution workflow. It creates an
 
 ## When to Update
 
-Journal entries should be created at key points during task execution:
+You MUST create journal entries at the following key points during task execution:
 
-### Required Journaling Moments
-- **Phase Transitions**: At the completion of each phase (1-8)
-- **Design Decisions**: When choosing between technical approaches
-- **Architectural Choices**: When making decisions that impact system design
-- **Implementation Challenges**: When encountering and solving significant problems
-- **Key Insights**: When gaining important learnings or realizations
-- **PR Review Responses**: When addressing reviewer feedback
+### Required Journaling Moments (NON-NEGOTIABLE)
+
+You MUST ALWAYS journal at these moments - skipping is NOT allowed:
+
+- **Phase Transitions**: ALWAYS at the completion of each phase (1-8)
+- **Design Decisions**: ALWAYS when choosing between technical approaches
+- **Architectural Choices**: ALWAYS when making decisions that impact system design
+- **Implementation Challenges**: ALWAYS when encountering and solving significant problems
+- **Key Insights**: ALWAYS when gaining important learnings or realizations
+- **PR Review Responses**: ALWAYS when addressing reviewer feedback
 
 ### Optional but Encouraged
 - Test strategy decisions and coverage considerations
@@ -37,23 +40,25 @@ Journal entries should be created at key points during task execution:
 
 ## Using the Journaling Subagent
 
-All journaling is handled through the **journaling subagent** (plugin's `agents/journaling.md`), which validates content quality, formats entries consistently, and maintains journal structure.
+**VERY IMPORTANT**: ALL journaling MUST be handled through the **journaling subagent** (plugin's `agents/journaling.md`). NEVER write directly to journal files. The subagent validates content quality, formats entries consistently, and maintains journal structure.
 
 ### How to Invoke
 
-Use the Task tool with the journaling subagent:
+You MUST use the Task tool with the journaling subagent:
 
 ```markdown
 Use Task tool with subagent_type="journaling" and provide prepared content
 ```
 
-### Required Parameters
+### Required Parameters (ALL MANDATORY)
 
-- **task_id**: Task number (e.g., "042")
-- **phase**: Current phase (e.g., "Phase 4: Implementation")
-- **activity**: What's being documented (e.g., "Database Schema Implementation")
-- **content**: The journal entry narrative (what happened, decisions, reasoning)
-- **next_action**: Specific next step (concrete and actionable)
+You MUST provide ALL of these parameters - the subagent will FAIL without them:
+
+- **task_id**: Task number (e.g., "042") - REQUIRED
+- **phase**: Current phase (e.g., "Phase 4: Implementation") - REQUIRED
+- **activity**: What's being documented (e.g., "Database Schema Implementation") - REQUIRED
+- **content**: The journal entry narrative (what happened, decisions, reasoning) - REQUIRED
+- **next_action**: Specific next step (MUST be concrete and actionable) - REQUIRED
 
 ### Optional Parameters
 
@@ -135,39 +140,45 @@ next_action: "Wait for final approval and re-run CI checks"
 
 ## What to Include (High-Level)
 
-The subagent validates content quality, but you should prepare meaningful content that includes:
+**IMPORTANT**: The subagent validates content quality. You MUST prepare meaningful content that includes the elements below. Vague or empty content will be REJECTED:
 
-### Phase Transitions
+### Phase Transitions (REQUIRED for every phase)
+You MUST include:
 - What was accomplished in the phase
 - Exit criteria that were satisfied
 - Key decisions or insights from the phase
 - Permission request for next phase
 
-### Design Decisions
+### Design Decisions (REQUIRED when making choices)
+You MUST include:
 - What decision was made
 - What alternatives were considered (and why rejected)
 - Why the chosen option was selected
 - Tradeoffs accepted and their implications
 
-### Implementation Notes
+### Implementation Notes (REQUIRED for significant work)
+You MUST include:
 - Challenges encountered during implementation
 - Solutions applied to overcome challenges
 - Code patterns or techniques used
 - Deviations from the original design (with reasoning)
 
-### Test Strategy
+### Test Strategy (REQUIRED in Phase 3)
+You MUST include:
 - Testing approach chosen and rationale
 - Scenarios and edge cases covered
 - Coverage strategy and goals
 - Why this testing approach fits the requirements
 
-### Refactoring Rationale
+### Refactoring Rationale (REQUIRED in Phase 5)
+You MUST include:
 - What was improved and why it needed improvement
 - How the code is better after refactoring
 - Impact on maintainability, performance, or clarity
 - Whether tests still pass after changes
 
-### Key Learnings
+### Key Learnings (ALWAYS document insights)
+You MUST include:
 - Insights gained during execution
 - What worked well and what didn't
 - Improvements for future similar tasks
@@ -175,19 +186,21 @@ The subagent validates content quality, but you should prepare meaningful conten
 
 ## What NOT to Include
 
-The subagent will reject poor quality content, but avoid preparing:
+**CRITICAL**: The subagent will REJECT poor quality content. NEVER include the following:
 
-- **Verbose code snippets**: Link to commits instead
-- **Duplicate information**: Already captured in task.md or feature docs
-- **Implementation details**: Better suited for code comments
-- **Trivial updates**: "Made progress" without meaningful insight
-- **Vague statements**: "Did some stuff" or "worked on feature"
-- **Status updates**: "Still working on X" without context or learning
+- **Verbose code snippets**: NEVER include large code blocks - link to commits instead
+- **Duplicate information**: NEVER repeat what's already in task.md or feature docs
+- **Implementation details**: These belong in code comments, NOT in journals
+- **Trivial updates**: NEVER write "Made progress" without meaningful insight
+- **Vague statements**: NEVER write "Did some stuff" or "worked on feature" - be SPECIFIC
+- **Status updates**: NEVER write "Still working on X" without context or learning
 
 ## Summary: Your Responsibilities
 
-1. **Decide WHEN** to create journal entries (use the triggers listed above)
-2. **Prepare WHAT** to include (meaningful content with reasoning and context)
-3. **Invoke the journaling subagent** with proper parameters (task_id, phase, activity, content, next_action)
+You MUST follow these three steps for EVERY journal entry:
 
-The subagent will handle all formatting, validation, and file operations automatically.
+1. **Decide WHEN** - You MUST journal at all required moments listed above. NEVER skip required journaling.
+2. **Prepare WHAT** - You MUST prepare meaningful content with reasoning and context. Vague content is NOT acceptable.
+3. **Invoke the subagent** - You MUST use the journaling subagent with ALL required parameters (task_id, phase, activity, content, next_action). NEVER write to journal files directly.
+
+**IMPORTANT**: The subagent will handle all formatting, validation, and file operations automatically. You MUST NOT bypass the subagent.
