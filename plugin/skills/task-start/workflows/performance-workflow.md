@@ -1,10 +1,8 @@
 # Performance Task Execution Workflow
 
-> **Journal Guidelines**: The task-start skill initializes the journal structure. See [Journal Entry Guidelines](../journaling-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For performance tasks, include specific metrics (X% faster, Y MB saved) in entries.
-
 ## Phase 1: Task Analysis
 
-**Prerequisites**: Git setup and journal initialization completed by task-start skill
+**Prerequisites**: Git setup completed by task-start skill
 
 ### Task Analysis
 
@@ -13,8 +11,7 @@
 3. Analyze performance requirements and target metrics
 4. Review existing sub-tasks in task file
 5. Identify ambiguities or concerns about performance goals
-6. **Journal**: Phase 1 completion (see [guidelines](../journaling-guidelines.md))
-7. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
+6. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis" && git push`
 
 ### Exit Criteria
 
@@ -35,9 +32,8 @@
 5. Set specific, measurable performance targets
 6. Evaluate optimization opportunities and their potential impact
 7. Consider risks and tradeoffs of different optimization approaches
-8. **Journal**: Phase 2 completion (see [guidelines](../journaling-guidelines.md) - include specific metrics)
-9. **Commit and push analysis work**: `git add . && git commit -m "docs(task-XXX): complete performance analysis and optimization planning" && git push`
-10. **Consider review request**: For major performance optimizations, ask user if they want to review the analysis
+8. **Commit and push analysis work**: `git add . && git commit -m "docs(task-XXX): complete performance analysis and optimization planning" && git push`
+9. **Consider review request**: For major performance optimizations, ask user if they want to review the analysis
 
 ### Exit Criteria
 
@@ -59,9 +55,8 @@
    - Resource usage monitoring
    - Load testing scenarios
 5. Verify benchmarks accurately reflect real-world usage
-6. **Journal**: Phase 3 completion (see [guidelines](../journaling-guidelines.md) - include baseline metrics)
-7. **Commit and push benchmark suite**: `git add . && git commit -m "test(task-XXX): add performance benchmark suite with baseline metrics" && git push`
-8. **Consider review request**: For complex performance testing strategies
+6. **Commit and push benchmark suite**: `git add . && git commit -m "test(task-XXX): add performance benchmark suite with baseline metrics" && git push`
+7. **Consider review request**: For complex performance testing strategies
 
 ### Exit Criteria
 
@@ -85,11 +80,9 @@
    - Try alternative approaches
 5. Monitor for functional regressions with each change
 6. Work through sub-tasks from task file methodically
-7. **Journal** (for significant optimizations - see [guidelines](../journaling-guidelines.md), include metrics)
-8. Check off completed sub-tasks in task file
-9. Continue until performance targets are met
-10. **Journal**: Phase 4 completion (see [guidelines](../journaling-guidelines.md) - include specific metrics vs baseline)
-11. **Consider mid-phase review**: For complex optimizations, ask user if they want to review progress
+7. Check off completed sub-tasks in task file
+8. Continue until performance targets are met
+9. **Consider mid-phase review**: For complex optimizations, ask user if they want to review progress
 
 ### Exit Criteria
 
@@ -111,8 +104,7 @@
 4. Test for performance regressions in non-optimized areas
 5. Validate memory usage and resource consumption
 6. Run stress tests to ensure stability under load
-7. **Journal**: Phase 5 completion (see [guidelines](../journaling-guidelines.md) - include final metrics vs baseline vs targets)
-8. **Commit validation work**: `git add . && git commit -m "test(task-XXX): validate performance improvements and stability" && git push`
+7. **Commit validation work**: `git add . && git commit -m "test(task-XXX): validate performance improvements and stability" && git push`
 
 ### Exit Criteria
 
@@ -140,7 +132,6 @@
 ### Phase 7: Performance Reflection
 
 1. Review entire optimization journey
-2. **Journal**: Phase 7 completion (see [guidelines](../journaling-guidelines.md))
 
 **Request permission to complete task**
 
@@ -196,10 +187,9 @@ When encountering issues:
 
 Apply the test modification protocol to benchmark changes. After Phase 3, if benchmarks need modification:
 
-1. **Journal**: Benchmark modification request (see [guidelines](../journaling-guidelines.md) - include performance reasoning)
-2. Explain to user with performance reasoning
-3. Wait for explicit permission
-4. Update baselines appropriately when approved
+1. Explain to user with performance reasoning
+2. Wait for explicit permission
+3. Update baselines appropriately when approved
 
 ## PR Review Workflow
 

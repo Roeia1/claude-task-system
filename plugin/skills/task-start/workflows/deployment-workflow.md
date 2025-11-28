@@ -17,10 +17,6 @@ This workflow guides the deployment of application components to AWS infrastruct
 - All tests passing locally
 - Infrastructure changes reviewed if applicable
 
-## Journal Guidelines
-
-> **Journal Guidelines**: The task-start skill initializes the journal structure. See [Journal Entry Guidelines](../journaling-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For deployments, document all infrastructure changes, validation results, and rollback procedures.
-
 ## Phase 1: Pre-Deployment Analysis
 
 ### Deployment Planning
@@ -47,8 +43,6 @@ This workflow guides the deployment of application components to AWS infrastruct
    aws sts get-caller-identity
    # Additional service-specific validation commands
    ```
-
-5. **Journal**: Phase 1 completion (see [guidelines](../journaling-guidelines.md))
 
 ### Exit Criteria
 - Deployment scope clearly defined
@@ -84,8 +78,6 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Backup service configurations
    - Document current service versions
 
-5. **Journal**: Phase 2 completion (see [guidelines](../journaling-guidelines.md))
-
 ### Exit Criteria
 - All tests passing
 - Environment configs prepared
@@ -117,8 +109,6 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Validate configurations match requirements
    - Check IAM roles and permissions
    - Verify network and security settings
-
-4. **Journal**: Phase 3 completion (see [guidelines](../journaling-guidelines.md) - list ARNs/IDs)
 
 ### Exit Criteria
 - User confirms all infrastructure changes applied
@@ -154,8 +144,6 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Monitor error rates
    - Verify data flow
 
-6. **Journal**: Phase 4 completion (see [guidelines](../journaling-guidelines.md))
-
 ### Exit Criteria
 - All components deployed
 - Smoke tests passing
@@ -184,8 +172,6 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Review AWS Cost Explorer
    - Verify auto-scaling settings
    - Check for unnecessary resources
-
-5. **Journal**: Phase 5 completion (see [guidelines](../journaling-guidelines.md))
 
 ### Exit Criteria
 - All validations passing
@@ -216,8 +202,6 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Verify dashboard accuracy
    - Check log accessibility
 
-5. **Journal**: Phase 6 completion (see [guidelines](../journaling-guidelines.md))
-
 ### Exit Criteria
 - Monitoring fully configured
 - Alerts tested and working
@@ -241,8 +225,6 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Script common rollback tasks
    - Create rollback pipelines
    - Test automation thoroughly
-
-4. **Journal**: Phase 7 completion (see [guidelines](../journaling-guidelines.md))
 
 ### Exit Criteria
 - Rollback procedures documented
@@ -278,8 +260,6 @@ This workflow guides the deployment of application components to AWS infrastruct
    - Tag deployment commit
    - Archive deployment scripts
    - Store configuration snapshots
-
-6. **Journal**: Phase 8 completion (see [guidelines](../journaling-guidelines.md))
 
 ### Exit Criteria
 - Documentation updated
@@ -361,14 +341,11 @@ For every deployment:
 
 ## Emergency Contacts
 
-Document in deployment journal:
+Document:
 - AWS support case process
 - Team escalation path
 - Critical issue procedures
 
 ## Related Shared Protocols
 
-While deployment workflows differ from standard task execution, these shared protocols may still be useful:
-
-- **[Journal Guidelines](../journaling-guidelines.md)** - Document deployment decisions and learnings
 - **[Phase Transition Rules](./phase-transition-rules.md)** - Permission gates between deployment phases

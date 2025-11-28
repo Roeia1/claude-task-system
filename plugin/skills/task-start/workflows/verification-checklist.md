@@ -75,44 +75,8 @@ Document discoveries in the task file:
    - Patterns that worked well
    - Approaches to avoid
 
-### Final Journal Entry
-
-**Invoke journaling subagent** for comprehensive Phase 7 reflection:
-
-```
-task_id: Current task number
-phase: "Phase 7: Reflection"
-activity: "Phase 7 Complete: Reflection Finalized"
-is_phase_transition: true
-content: |
-  [Prepared comprehensive reflection including:
-
-   **What was accomplished:**
-   - Summary of delivered functionality
-   - Key features implemented
-   - All objectives met
-
-   **Key decisions and why:**
-   - Major technical decisions made during execution
-   - Rationale for each choice
-   - ADRs created (if any)
-
-   **Challenges overcome:**
-   - Significant obstacles encountered
-   - How they were resolved
-   - Learnings from challenges
-
-   **Future considerations:**
-   - Technical debt identified
-   - Potential improvements
-   - Related work needed
-   - Follow-up tasks to consider]
-next_action: "Request user permission to complete task (Phase 8)"
-```
-
 ### Phase 7 Exit Criteria
 
-- Complete reflection documented in journal
 - Task file updated with learnings
 - Ready for task completion
 

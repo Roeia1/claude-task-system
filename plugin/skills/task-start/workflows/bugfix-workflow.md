@@ -1,10 +1,8 @@
 # Bugfix Task Execution Workflow
 
-> **Journal Guidelines**: The task-start skill initializes the journal structure. See [Journal Entry Guidelines](../journaling-guidelines.md) for when to journal, what to include, and how to invoke the journaling subagent. For bugfixes, emphasize root cause analysis and validation results.
-
 ## Phase 1: Task Analysis
 
-**Prerequisites**: Git setup and journal initialization completed by task-start skill
+**Prerequisites**: Git setup completed by task-start skill
 
 ### Task Analysis
 
@@ -13,8 +11,7 @@
 3. Analyze bug description, symptoms, and impact
 4. Review existing sub-tasks in task file
 5. Identify ambiguities or concerns about the bug
-6. **Journal**: Phase 1 completion (see [guidelines](../journaling-guidelines.md))
-7. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis and journal setup" && git push`
+6. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis" && git push`
 
 ### Exit Criteria
 
@@ -34,9 +31,8 @@
 4. Assess urgency and potential for regression
 5. Identify the minimal fix approach
 6. Consider any risks from the proposed fix
-7. **Journal**: Phase 2 completion (see [guidelines](../journaling-guidelines.md))
-8. **Commit and push investigation work**: `git add . && git commit -m "docs(task-XXX): complete bug investigation and root cause analysis" && git push`
-9. **Consider review request**: For complex bugs or unclear root causes, ask user if they want to review findings
+7. **Commit and push investigation work**: `git add . && git commit -m "docs(task-XXX): complete bug investigation and root cause analysis" && git push`
+8. **Consider review request**: For complex bugs or unclear root causes, ask user if they want to review findings
 
 ### Exit Criteria
 
@@ -57,9 +53,8 @@
    - Edge cases that might trigger similar issues
    - Integration scenarios if bug affects multiple components
 5. DO NOT write any fix code during this phase
-6. **Journal**: Phase 3 completion (see [guidelines](../journaling-guidelines.md))
-7. **Commit and push test creation**: `git add . && git commit -m "test(task-XXX): add tests reproducing bug and preventing regression" && git push`
-8. **Consider review request**: For complex test strategies or unclear bug reproduction
+6. **Commit and push test creation**: `git add . && git commit -m "test(task-XXX): add tests reproducing bug and preventing regression" && git push`
+7. **Consider review request**: For complex test strategies or unclear bug reproduction
 
 ### Exit Criteria
 
@@ -79,12 +74,11 @@
    - Follow the protocol exactly as specified
 5. Run full test suite to ensure no new regressions
 6. Work through sub-tasks from task file methodically
-7. **Journal**: Phase 4 completion (see [guidelines](../journaling-guidelines.md))
-8. Check off completed sub-tasks in task file
-9. If significant design issues are discovered during fix:
+7. Check off completed sub-tasks in task file
+8. If significant design issues are discovered during fix:
    - Document the design problem
    - Discuss with user whether to address in this task or create separate refactoring task
-10. **Verify fix works**: Test the original bug scenario manually
+9. **Verify fix works**: Test the original bug scenario manually
 
 ### Exit Criteria
 
@@ -102,8 +96,7 @@
 3. Verify fix works across different scenarios/environments
 4. Run performance tests if bug was performance-related
 5. Ensure error handling is appropriate for the fix
-6. **Journal**: Phase 5 completion (see [guidelines](../journaling-guidelines.md))
-7. **Commit validation work**: `git add . && git commit -m "test(task-XXX): validate bugfix across edge cases and integration scenarios" && git push`
+6. **Commit validation work**: `git add . && git commit -m "test(task-XXX): validate bugfix across edge cases and integration scenarios" && git push`
 
 ### Exit Criteria
 
@@ -132,7 +125,6 @@
 ### Phase 7: Bugfix Reflection
 
 1. Review entire bugfix journey
-2. **Journal**: Phase 7 completion (see [guidelines](../journaling-guidelines.md))
 
 **Request permission to complete task**
 

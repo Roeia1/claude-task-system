@@ -5,13 +5,12 @@
 After Phase 3, if a test needs modification:
 
 1. **STOP all work immediately**
-2. **Document in journal**:
+2. **Explain to user** with clear reasoning:
    - Which test needs changing
    - Why it needs changing
    - What the change would be
-3. **Explain to user** with clear reasoning
-4. **Wait for explicit permission**
-5. **Only proceed with test changes after approval**
+3. **Wait for explicit permission**
+4. **Only proceed with test changes after approval**
 
 ## Rationale
 

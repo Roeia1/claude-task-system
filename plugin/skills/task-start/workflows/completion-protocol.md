@@ -28,9 +28,8 @@ The completion command automatically handles:
 2. **Verifies PR is ready** (all checks passing, no conflicts)
 3. **Merges the PR** automatically
 4. **Updates task status** to COMPLETED in TASK-LIST.md
-5. **Finalizes journal** with completion entry
-6. **Cleans up** (removes worktree for parallel tasks)
-7. **Returns to main branch** (for parallel tasks)
+5. **Cleans up** (removes worktree for parallel tasks)
+6. **Returns to main branch** (for parallel tasks)
 
 ## Before Running Completion
 
@@ -42,7 +41,6 @@ Ensure you have:
 - ✅ PR checks are green
 - ✅ No merge conflicts
 - ✅ Phase 7 reflection documented
-- ✅ Journal is up to date
 - ✅ Ready for PR to be merged to main
 
 ## What to Review
@@ -61,7 +59,6 @@ Before running the completion command, review:
 
 3. **Is everything committed and pushed?**
    - All code changes committed
-   - Journal up to date
    - No uncommitted work
 
 ## After Completion

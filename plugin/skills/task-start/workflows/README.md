@@ -33,7 +33,6 @@ All workflows reference common protocols in this directory:
 
 - **[PR Review Protocol](./pr-review-protocol.md)** - Handling PR feedback
 - **[Test Modification Protocol](./test-modification-protocol.md)** - Rules for changing tests
-- **[Journal Guidelines](../journaling-guidelines.md)** - Writing effective journal entries
 - **[Completion Protocol](./completion-protocol.md)** - Phase 8 completion steps
 - **[Verification Checklist](./verification-checklist.md)** - Phase 6-7 checks
 - **[Phase Transition Rules](./phase-transition-rules.md)** - Permission gates
@@ -106,7 +105,6 @@ These workflows embody disciplined software development:
 
 - **Test-Driven Development**: Tests before implementation (non-negotiable)
 - **Permission Gates**: User approval required between phases
-- **Continuous Documentation**: Journaling subagent documents decisions throughout
 - **Quality Focus**: Verification and reflection built into process
 - **Type-Specific Guidance**: Workflows adapted to task context
 
@@ -114,7 +112,7 @@ These workflows embody disciplined software development:
 
 - **"Can I skip phases?"** No. Sequential execution prevents costly mistakes.
 - **"Can I modify tests?"** Only with explicit user permission after Phase 3.
-- **"What if I'm blocked?"** Invoke journaling subagent to document blocker, present options to user.
+- **"What if I'm blocked?"** Document blocker, present options to user.
 - **"How do I handle PR feedback?"** Follow the PR Review Protocol.
 - **"Can phases be combined?"** Yes, for Task Analyzer (Phases 1-2 combined).
 
