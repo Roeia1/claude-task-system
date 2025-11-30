@@ -46,9 +46,9 @@ Maintains git worktrees by cleaning up stale references, listing active worktree
    ```
    Active Worktrees:
    1. task-013-feature (task-system/worktrees/task-013-feature)
-      - Branch: feature/task-013-parallel-worktrees
+      - Branch: feature/task-013-worktree-workflow
       - Status: Clean, 2 commits ahead
-      - Task: 013 | P2 | Enable Parallel Task Execution
+      - Task: 013 | P2 | Enable Worktree Workflow
 
    2. task-009-feature (task-system/worktrees/task-009-feature)
       - Branch: feature/task-009-postgresql-schema
@@ -150,7 +150,7 @@ Git Worktree Maintenance Report
 
 Active Worktrees (2):
 task-013-feature: task-system/worktrees/task-013-feature
-   - Branch: feature/task-013-parallel-worktrees (clean)
+   - Branch: feature/task-013-worktree-workflow (clean)
    - Last commit: 2 hours ago
 
 task-009-feature: task-system/worktrees/task-009-feature
@@ -170,4 +170,4 @@ Recommendations:
 - Manually remove: task-system/worktrees/old-experiment
 ```
 
-This command helps maintain a clean and healthy worktree environment for optimal parallel development.
+This command helps maintain a clean and healthy worktree environment for optimal task development.

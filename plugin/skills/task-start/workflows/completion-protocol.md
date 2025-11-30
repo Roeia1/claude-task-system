@@ -1,35 +1,38 @@
 # Phase 8: Task Completion Protocol
 
-## Completion Commands
+## Completion Command
 
-After completing Phase 7 reflection and documentation, run the appropriate completion command:
-
-### For Regular Workflow (Main Repository)
+After completing Phase 7 reflection and documentation, run the completion command **from within the worktree**:
 
 ```bash
 /task-system:complete-task
-```
-
-### For Parallel Workflow (Two Steps)
-
-```bash
-# Step 1: From worktree
-/task-system:parallel-finalize-task
-
-# Step 2: From main repository
-/task-system:parallel-cleanup-worktree
 ```
 
 ## What the Command Does
 
 The completion command automatically handles:
 
-1. **Commits any final changes** in your working directory
-2. **Verifies PR is ready** (all checks passing, no conflicts)
-3. **Merges the PR** automatically
+1. **Cleans CLAUDE.md** - removes worktree-specific isolation instructions
+2. **Commits any final changes** in your working directory
+3. **Verifies PR is ready** (all checks passing, no conflicts)
 4. **Updates task status** to COMPLETED in TASK-LIST.md
-5. **Cleans up** (removes worktree for parallel tasks)
-6. **Returns to main branch** (for parallel tasks)
+5. **Merges the PR** automatically
+6. **Instructs cleanup** - tells you to run worktree-cleanup from main repo
+
+## After Completion: Cleanup
+
+After the PR is merged, you need to cleanup the worktree from the **main repository**:
+
+```bash
+# Open new terminal in main repository
+cd /path/to/project
+claude
+
+# Say:
+cleanup worktree for task XXX
+```
+
+This removes the worktree directory and cleans up git references.
 
 ## Before Running Completion
 
@@ -61,14 +64,14 @@ Before running the completion command, review:
    - All code changes committed
    - No uncommitted work
 
-## After Completion
+## After Cleanup
 
-The command handles cleanup automatically. You will:
+Once both completion and cleanup are done:
 
-- Return to main branch (for parallel tasks)
-- Have worktree removed (for parallel tasks)
-- See task marked COMPLETED in TASK-LIST.md
-- Be ready to start next task
+- Task is marked COMPLETED in TASK-LIST.md
+- Worktree directory is removed
+- PR is merged to main
+- Ready to start next task
 
 ## Troubleshooting
 
@@ -77,4 +80,10 @@ If completion fails:
 - **PR checks failing**: Fix issues, push, wait for green checks
 - **Merge conflicts**: Rebase on latest main, resolve conflicts
 - **Missing permissions**: Verify GitHub authentication
-- **Worktree issues**: Run `/task-system:worktree-maintenance` to diagnose
+- **CLAUDE.md issues**: Manually remove isolation instructions if needed
+
+If cleanup fails:
+
+- **Worktree still exists**: Run `git worktree remove <path> --force`
+- **Stale references**: Run `git worktree prune`
+- **Other issues**: Run `/task-system:worktree-maintenance` to diagnose

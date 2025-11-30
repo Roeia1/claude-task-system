@@ -47,7 +47,7 @@ task-system/                    # Created in user's project root
 │       └── journal.md         # Execution log and decisions
 ├── adrs/                       # Global architecture decisions
 │   └── NNN-decision-title.md
-└── worktrees/                  # Git worktrees for parallel tasks (gitignored)
+└── worktrees/                  # Git worktrees for task isolation (gitignored)
     └── task-NNN-type/
 ```
 
@@ -132,16 +132,20 @@ plugin/                         # Plugin source code
 
 ### Task Execution Workflow
 
-```bash
-# Regular execution (main repository)
-# To start a task, use the task-start skill by saying "start task" or "work on task [ID]"
-/task-system:complete-task          # Merge PR and finalize
+All tasks use git worktrees for isolation. The workflow involves two sessions:
 
-# Parallel execution (git worktrees)
-/task-system:parallel-start-task [ID]
-# Work in: task-system/worktrees/task-###-type/
-/task-system:parallel-finalize-task [ID]        # From worktree: merge PR
-/task-system:parallel-cleanup-worktree [ID]     # From main repo: cleanup
+```bash
+# From MAIN REPO: Start a task (creates worktree, instructs to open new session)
+# Say "start task" or "work on task [ID]"
+# -> Creates worktree at task-system/worktrees/task-###-type/
+# -> Open new Claude session in worktree to continue
+
+# From WORKTREE: Continue work and complete task
+# Say "start task" to continue workflow after opening worktree session
+/task-system:complete-task          # Merge PR and finalize (from worktree)
+
+# From MAIN REPO: Cleanup worktree after completion
+# Say "cleanup worktree" or "cleanup worktree for task [ID]"
 
 # Worktree maintenance
 /task-system:worktree-maintenance   # Clean up stale worktrees
@@ -196,8 +200,9 @@ Each task follows this sequence (defined in type-specific workflows in `plugin/s
    - Summarize accomplishments
 
 8. **Phase 8: Completion**
-   - Run `/project:complete-task` or parallel completion commands
-   - Automated PR merge and cleanup
+   - Run `/task-system:complete-task` from worktree
+   - Automated PR merge
+   - Cleanup worktree from main repo afterward
 
 ### Non-Negotiable Rules
 

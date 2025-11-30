@@ -102,7 +102,7 @@ Git Worktree Maintenance Report
 
 Active Worktrees (2):
 task-013-feature: task-system/worktrees/task-013-feature
-   - Branch: feature/task-013-parallel-worktrees (clean)
+   - Branch: feature/task-013-worktrees (clean)
    - Last commit: 2 hours ago
 
 task-009-feature: task-system/worktrees/task-009-feature
@@ -173,7 +173,7 @@ Warning: TASK-LIST.md and actual worktrees don't match
 ## Integration with Other Skills
 
 - Run before **worktree-cleanup** to identify issues
-- Run after problems with **parallel-task-start** or **parallel-task-finalization**
+- Run after problems with **task-start** or **task-completion**
 - Use to diagnose issues preventing successful worktree operations
 
 ## References
