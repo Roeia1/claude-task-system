@@ -24,7 +24,41 @@ Execute this flow when `detect-context.sh` returns "main". This flow creates/loc
 
 4. **Accept** menu selection
 
-## Step 2: Validation
+## Step 2: Worktree Check
+
+**Check for existing worktree**:
+
+```bash
+git worktree list | grep "task-$TASK_ID"
+```
+
+**If worktree exists**: Display instructions and STOP:
+
+```
+===============================================================
+WORKTREE EXISTS - OPEN SESSION THERE
+===============================================================
+
+Task XXX already has an active worktree.
+
+Location: task-system/worktrees/task-XXX-{type}/
+
+---------------------------------------------------------------
+NEXT STEP: Open a new Claude session in the worktree
+---------------------------------------------------------------
+
+1. Open a new terminal
+2. cd task-system/worktrees/task-XXX-{type}
+3. Start Claude Code (e.g., `claude`)
+4. Say "start task" to continue
+
+This session will now STOP.
+===============================================================
+```
+
+**If worktree does not exist**: Continue to Step 3
+
+## Step 3: Validation
 
 1. **Verify task exists** in TASK-LIST.md
 
@@ -43,34 +77,7 @@ Execute this flow when `detect-context.sh` returns "main". This flow creates/loc
 4. **Check working directory**: `git status --porcelain`
    - Not clean -> Error: "Uncommitted changes - commit or stash first"
 
-## Step 3: State Detection
-
-Determine task state based on TASK-LIST status, journal existence, and worktree existence:
-
-| TASK-LIST Status | Journal Exists? | Worktree Exists? | State                        |
-| ---------------- | --------------- | ---------------- | ---------------------------- |
-| PENDING          | No              | No               | NEW                          |
-| PENDING          | Yes             | Yes              | CONTINUING (worktree exists) |
-| IN_PROGRESS      | Yes             | Yes              | CONTINUING (worktree exists) |
-| IN_PROGRESS      | No              | No               | ERROR (corrupted state)      |
-
-**Check for existing worktree**:
-
-```bash
-git worktree list | grep "task-$TASK_ID"
-```
-
-**Check TASK-LIST.md for worktree marker**:
-
-```bash
-grep "task-$TASK_ID" TASK-LIST.md | grep -oE '\[worktree: [^]]+\]'
-```
-
-**For CONTINUING tasks with worktree**:
-
-- Worktree already exists -> Skip to Step 5.5 (instruct user to open worktree)
-
-## Step 4: Git Setup (NEW tasks only)
+## Step 4: Git Setup
 
 **Detect default branch**:
 
@@ -192,14 +199,13 @@ gh pr list --head feature/task-XXX-* --state open --json number,url
 
 ## Error Handling
 
-| Error                        | Message                                               |
-| ---------------------------- | ----------------------------------------------------- |
-| Task not found               | "Task XXX not found in TASK-LIST"                     |
-| Task completed               | "Task XXX already completed"                          |
-| Dependencies not met         | "Blocked by: XXX (PENDING), YYY (IN_PROGRESS)"        |
-| Dirty working directory      | "Uncommitted changes - commit or stash first"         |
-| Worktree exists (continuing) | Instructions to open worktree session -> STOP         |
-| Corrupted state              | "Task state corrupted - check TASK-LIST and worktree" |
+| Error                   | Message                                        |
+| ----------------------- | ---------------------------------------------- |
+| Worktree exists         | Instructions to open worktree session -> STOP  |
+| Task not found          | "Task XXX not found in TASK-LIST"              |
+| Task completed          | "Task XXX already completed"                   |
+| Dependencies not met    | "Blocked by: XXX (PENDING), YYY (IN_PROGRESS)" |
+| Dirty working directory | "Uncommitted changes - commit or stash first"  |
 
 ## Worktree Directory Structure
 
