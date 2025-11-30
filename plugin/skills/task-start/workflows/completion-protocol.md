@@ -86,4 +86,3 @@ If cleanup fails:
 
 - **Worktree still exists**: Run `git worktree remove <path> --force`
 - **Stale references**: Run `git worktree prune`
-- **Other issues**: Run `/task-system:worktree-maintenance` to diagnose

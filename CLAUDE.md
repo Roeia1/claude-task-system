@@ -146,9 +146,6 @@ All tasks use git worktrees for isolation. The workflow involves two sessions:
 
 # From MAIN REPO: Cleanup worktree after completion
 # Say "cleanup worktree" or "cleanup worktree for task [ID]"
-
-# Worktree maintenance
-/task-system:worktree-maintenance   # Clean up stale worktrees
 ```
 
 ## Critical Execution Rules
