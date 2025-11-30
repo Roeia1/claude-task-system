@@ -25,4 +25,12 @@ Creates the `task-system/` directory structure for tracking features, tasks, and
    ## COMPLETED
    ```
 
-3. Confirm to user: "Task system initialized. You can now use /task-system:define-feature to start."
+3. Add gitignore pattern for worktrees:
+   - Check if `.gitignore` exists at project root
+   - If the pattern `task-system/worktrees/` is not already present, append:
+     ```
+     # Claude Task System - Worktrees (ephemeral, not tracked)
+     task-system/worktrees/
+     ```
+
+4. Confirm to user: "Task system initialized. You can now use /task-system:define-feature to start."

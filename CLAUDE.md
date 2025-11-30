@@ -29,67 +29,55 @@ This is the **Claude Task System** - a structured development workflow that comb
 
 ### Directory Structure
 
+When users install this plugin and run `/task-system:init`, the following structure is created:
+
 ```
-docs/                           # Project-wide documentation
-├── coding-standards.md        # Coding conventions and style
-├── architecture-principles.md # System design rules
-├── quality-gates.md           # Testing and review requirements
-├── tech-stack.md              # Approved technologies
-└── adr/                       # Global architecture decisions
-    ├── 000-adr-process.md     # ADR guidelines
-    └── NNN-decision-title.md  # Individual ADRs
+task-system/                    # Created in user's project root
+├── features/                   # 📋 Feature definitions and plans
+│   └── NNN-feature-name/
+│       ├── feature.md         # What to build (requirements)
+│       ├── plan.md            # How to build (technical design)
+│       ├── tasks.md           # AI-generated task breakdown
+│       └── adr/               # Feature-specific ADRs
+│           └── NNN-decision.md
+├── tasks/                      # ⚡ Task execution
+│   ├── TASK-LIST.md           # Single source of truth for all tasks
+│   └── NNN/                   # Individual task directories
+│       ├── task.md            # Task definition and requirements
+│       └── journal.md         # Execution log and decisions
+├── adrs/                       # Global architecture decisions
+│   └── NNN-decision-title.md
+└── worktrees/                  # Git worktrees for parallel tasks (gitignored)
+    └── task-NNN-type/
+```
 
-planning/                       # 📋 PLANNING PHASE
-├── templates/                  # Planning artifact templates
-│   ├── feature-template.md
-│   ├── plan-template.md
-│   ├── task-breakdown-template.md
-│   └── adr-template.md
-└── features/                   # Feature directories
-    ├── 001-feature-name/
-    │   ├── feature.md         # What to build (requirements)
-    │   ├── plan.md            # How to build (technical design)
-    │   ├── tasks.md           # AI-generated task breakdown
-    │   └── adr/               # Feature-specific ADRs
-    │       └── NNN-decision.md
-    └── 002-another-feature/
+The plugin itself lives in:
+
+```
+plugin/                         # Plugin source code
+├── .claude-plugin/
+│   └── plugin.json            # Plugin manifest
+├── agents/                     # Subagent definitions
+│   ├── journaling.md
+│   └── task-analyzer.md
+├── commands/                   # Slash commands
+│   ├── init.md                # Initialize task-system structure
+│   ├── define-feature.md      # Create feature definition
+│   ├── plan-feature.md        # Technical planning
+│   ├── generate-tasks.md      # Task breakdown
+│   ├── adr.md                 # Architecture decision records
+│   └── ...
+├── skills/                     # Skills for task execution
+│   ├── task-start/
+│   │   ├── SKILL.md
+│   │   └── workflows/         # Type-specific execution workflows
+│   └── ...
+└── templates/                  # Artifact templates
+    ├── execution/
+    │   └── task-template.md
+    └── planning/
+        ├── feature-template.md
         └── ...
-
-execution/                      # ⚡ EXECUTION PHASE
-├── workflows/                  # Type-specific execution workflows
-│   ├── README.md              # Workflow selection guide
-│   ├── feature-workflow.md    # Feature development workflow
-│   ├── bugfix-workflow.md     # Bug fixing workflow
-│   ├── refactor-workflow.md   # Code refactoring workflow
-│   ├── performance-workflow.md # Performance optimization workflow
-│   └── deployment-workflow.md # AWS deployment workflow
-├── shared/                     # Common protocols and guidelines
-│   ├── README.md              # Shared protocol overview
-│   ├── pr-review-protocol.md  # PR feedback handling
-│   ├── test-modification-protocol.md # Test change rules
-│   ├── journal-guidelines.md  # Journal entry format
-│   ├── completion-protocol.md # Phase 8 completion steps
-│   ├── verification-checklist.md # Phase 6-7 checks
-│   └── phase-transition-rules.md # Permission gates
-├── templates/                  # Execution artifact templates
-│   └── TASK-TEMPLATE.md
-├── TASK-LIST.md               # Single source of truth for all tasks
-├── PARALLEL-WORKFLOW-GUIDE.md # Concurrent task execution guide
-└── tasks/###/                 # Individual task directories
-    ├── task.md                # Task definition and requirements
-    └── journal.md             # Execution log and decisions
-
-.claude/commands/               # Slash commands
-├── init-docs.md               # Initialize documentation structure
-├── define-feature.md          # Create feature definition
-├── plan-feature.md            # Technical planning
-├── generate-tasks.md          # Task breakdown
-├── adr.md                     # Architecture decision records
-├── complete-task.md           # Finalize and merge task
-├── parallel-start-task.md     # Start concurrent task
-├── parallel-finalize-task.md  # Complete parallel task
-├── parallel-cleanup-worktree.md # Cleanup parallel task
-└── worktree-maintenance.md    # Worktree management
 ```
 
 ## Development Commands
@@ -97,48 +85,48 @@ execution/                      # ⚡ EXECUTION PHASE
 ### Initial Setup (Run Once)
 
 ```bash
-/project:init-docs
-# Creates docs/ structure with template files:
-# - coding-standards.md, architecture-principles.md, quality-gates.md, tech-stack.md
-# - adr/000-adr-process.md
-# Interactive questionnaire populates initial content
+/task-system:init
+# Creates task-system/ structure:
+# - features/, tasks/, adrs/, worktrees/
+# - tasks/TASK-LIST.md
+# - Adds gitignore pattern for worktrees
 ```
 
 ### Feature Planning Workflow
 
 ```bash
 # 1. Define the feature (what to build)
-/project:define-feature "user authentication system"
-# Creates: planning/features/001-user-authentication/feature.md
+/task-system:define-feature "user authentication system"
+# Creates: task-system/features/001-user-authentication/feature.md
 # Output: User stories, requirements, acceptance criteria
 # AI assists with clarifications for ambiguities
 
 # 2. Create technical plan (how to build)
-/project:plan-feature
-# Reads: planning/features/001-user-authentication/feature.md
-# Creates: planning/features/001-user-authentication/plan.md
+/task-system:plan-feature
+# Reads: task-system/features/001-user-authentication/feature.md
+# Creates: task-system/features/001-user-authentication/plan.md
 # Output: Architecture, tech choices, data models, API contracts, testing strategy
 # Requires human review and approval
 
 # 3. Generate tasks from plan
-/project:generate-tasks
+/task-system:generate-tasks
 # Reads: feature.md and plan.md
 # AI proposes task breakdown
 # Shows tasks for review/modification
 # After approval:
-#   - Creates: planning/features/001-user-authentication/tasks.md (reference)
-#   - Creates: execution/tasks/015/ through execution/tasks/022/
-#   - Updates: execution/TASK-LIST.md (PENDING section)
+#   - Creates: task-system/features/001-user-authentication/tasks.md (reference)
+#   - Creates: task-system/tasks/015/ through task-system/tasks/022/
+#   - Updates: task-system/tasks/TASK-LIST.md (PENDING section)
 ```
 
 ### Architecture Decision Records
 
 ```bash
 # Create ADR (context-aware)
-/project:adr "choice of JWT vs session-based auth"
+/task-system:adr "choice of JWT vs session-based auth"
 
-# If in feature directory → creates planning/features/001-auth/adr/001-jwt-choice.md
-# If in repo root → creates docs/adr/NNN-decision.md
+# If in feature directory → creates task-system/features/001-auth/adr/001-jwt-choice.md
+# If in repo root → creates task-system/adrs/NNN-decision.md
 # Uses standard ADR template with problem/options/decision/consequences
 ```
 
@@ -147,16 +135,16 @@ execution/                      # ⚡ EXECUTION PHASE
 ```bash
 # Regular execution (main repository)
 # To start a task, use the task-start skill by saying "start task" or "work on task [ID]"
-/project:complete-task          # Merge PR and finalize
+/task-system:complete-task          # Merge PR and finalize
 
 # Parallel execution (git worktrees)
-/project:parallel-start-task [ID]
-# Work in: worktrees/task-###-type/
-/project:parallel-finalize-task [ID]        # From worktree: merge PR
-/project:parallel-cleanup-worktree [ID]     # From main repo: cleanup
+/task-system:parallel-start-task [ID]
+# Work in: task-system/worktrees/task-###-type/
+/task-system:parallel-finalize-task [ID]        # From worktree: merge PR
+/task-system:parallel-cleanup-worktree [ID]     # From main repo: cleanup
 
 # Worktree maintenance
-/project:worktree-maintenance   # Clean up stale worktrees
+/task-system:worktree-maintenance   # Clean up stale worktrees
 ```
 
 ## Critical Execution Rules
@@ -253,12 +241,12 @@ Each task type follows a specialized workflow (in `plugin/skills/task-start/work
 Tasks link back to features for full context:
 
 ```markdown
-# In execution/tasks/015/task.md
+# In task-system/tasks/015/task.md
 
 ## Feature Context
-**Feature**: [001-user-authentication](../../../planning/features/001-user-authentication/feature.md)
-**Technical Plan**: [plan.md](../../../planning/features/001-user-authentication/plan.md)
-**ADRs**: [adr/](../../../planning/features/001-user-authentication/adr/)
+**Feature**: [001-user-authentication](../../features/001-user-authentication/feature.md)
+**Technical Plan**: [plan.md](../../features/001-user-authentication/plan.md)
+**ADRs**: [adr/](../../features/001-user-authentication/adr/)
 
 ## Overview
 [Task-specific implementation details...]
@@ -266,7 +254,7 @@ Tasks link back to features for full context:
 
 ### Task List Format
 
-`execution/TASK-LIST.md` structure:
+`task-system/tasks/TASK-LIST.md` structure:
 
 ```markdown
 ## IN_PROGRESS
@@ -305,8 +293,8 @@ Create an ADR whenever you need to:
 
 ### ADR Locations
 
-- **Global ADRs** (`docs/adr/`): Project-wide architectural decisions
-- **Feature ADRs** (`planning/features/NNN-name/adr/`): Feature-specific technical choices
+- **Global ADRs** (`task-system/adrs/`): Project-wide architectural decisions
+- **Feature ADRs** (`task-system/features/NNN-name/adr/`): Feature-specific technical choices
 
 ### ADR Template Structure
 
@@ -334,7 +322,7 @@ Negative: [tradeoffs]
 
 ## Task File Structure
 
-Each task in `execution/tasks/###/task.md` contains:
+Each task in `task-system/tasks/###/task.md` contains:
 
 - **Feature Context**: Links to feature definition and plan
 - **Overview**: What needs to be accomplished and why
@@ -350,9 +338,9 @@ Each task in `execution/tasks/###/task.md` contains:
 
 ## Journaling with Subagent
 
-All journaling is handled through the **journaling subagent** (`.claude/agents/journaling.md`), which validates content quality, formats entries consistently, and maintains journal structure.
+All journaling is handled through the **journaling subagent** (`plugin/agents/journaling.md`), which validates content quality, formats entries consistently, and maintains journal structure.
 
-**Complete journaling guidance**: See [Journal Entry Guidelines](execution/shared/journal-guidelines.md) for:
+**Complete journaling guidance**: See [Journaling Guidelines](plugin/skills/task-start/journaling-guidelines.md) for:
 - When to invoke the journaling subagent
 - What content to prepare
 - How to invoke with proper parameters
@@ -369,20 +357,6 @@ When user signals review ("I made a review", "Check PR comments"):
    - Ambiguous → Reply with questions, leave unresolved
 4. Invoke journaling subagent to document PR response
 5. Use format: `fix(task-XXX): address PR feedback - [description] (resolves comment #N)`
-
-## Documentation Files
-
-### docs/coding-standards.md
-Project-wide coding conventions, naming patterns, file organization, and code style rules.
-
-### docs/architecture-principles.md
-System design rules like API-first, microservices patterns, event-driven architecture, etc.
-
-### docs/quality-gates.md
-Testing requirements, coverage thresholds, review processes, and quality standards.
-
-### docs/tech-stack.md
-Approved technologies, framework versions, library choices, and technology constraints.
 
 ## Important Notes
 
