@@ -14,49 +14,15 @@ Validates the worktree session is correct and prepares task context for handoff 
 
 ## Process
 
-### Step 1: Extract Task ID from Path
+### Step 1: Get Current Path
 
-```bash
-CURRENT_DIR=$(pwd)
-TASK_ID=$(echo "$CURRENT_DIR" | grep -oE "task-([0-9]{3})" | head -1 | cut -d'-' -f2)
-```
+Run: `pwd`
 
-- If cannot extract task ID from path -> Error: "Invalid worktree path - cannot determine task ID"
+Extract the task ID from the worktree path (e.g., `task-system/worktrees/task-042-feature` → task 042).
 
-### Step 2: Validate Session Location
+If the path doesn't appear to be a task worktree → Error: "Invalid worktree path - cannot determine task ID"
 
-1. **Read TASK-LIST.md** from `task-system/tasks/TASK-LIST.md`
-
-2. **Find expected worktree path** from task entry:
-   ```bash
-   EXPECTED_PATH=$(grep "task-$TASK_ID" task-system/tasks/TASK-LIST.md | grep -oE '\[worktree: [^]]+\]' | sed 's/\[worktree: //' | sed 's/\]//')
-   ```
-
-3. **Compare paths**:
-   - If current path doesn't match expected -> Return error with instructions:
-     ```
-     ===============================================================
-     SESSION LOCATION MISMATCH
-     ===============================================================
-
-     You're running in the wrong worktree for this task.
-
-     Current location: [current-path]
-     Expected location: [expected-path]
-
-     ---------------------------------------------------------------
-     NEXT STEP: Open correct Claude session
-     ---------------------------------------------------------------
-
-     1. Close this Claude session
-     2. cd [expected-path]
-     3. Start Claude Code
-     4. Say "start task XXX" to continue
-     ===============================================================
-     ```
-     **Return error status**
-
-### Step 3: Task Confirmation
+### Step 2: Task Confirmation
 
 - **If user_task_id provided**:
   - Verify it matches the extracted task ID from worktree path
@@ -144,8 +110,7 @@ If error:
 
 | Error | Message | Action |
 |-------|---------|--------|
-| Invalid worktree path | "Cannot extract task ID from path" | Check worktree location |
-| Session location mismatch | "Wrong worktree for this task" | Navigate to correct worktree |
+| Invalid worktree path | "Cannot determine task ID from path" | Check worktree location |
 | Task ID mismatch | "Worktree is for task XXX, not YYY" | Navigate to correct worktree |
 | Task not found | "Task XXX not found in TASK-LIST" | Verify task exists |
 | Task completed | "Task XXX already completed" | Choose different task |

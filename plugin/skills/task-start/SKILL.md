@@ -9,7 +9,7 @@ Prepares environment for task execution using git worktrees. Routes to the appro
 
 ## Step 1: Detect Context
 
-Run the context detection script: `scripts/detect-context.sh`
+Run the context detection script: `bash scripts/detect-context.sh`
 
 ## Step 2: Execute Flow
 
