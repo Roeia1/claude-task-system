@@ -5,175 +5,240 @@ description: "ONLY activate on DIRECT user request to cleanup worktrees. User mu
 
 # Worktree Cleanup Skill
 
-When activated, remove worktrees after parallel task completion (Step 2 of 2 for parallel task completion).
+Cleans up a git worktree after a task has been completed and merged. Must be run from the MAIN repository, not from within a worktree.
 
 ## File Locations
 
 - **Task List**: `task-system/tasks/TASK-LIST.md`
-- **Cleanup Queue**: `.claude/.worktree-cleanup-queue` (if exists)
-- **Full Workflow**: Plugin's `commands/parallel-cleanup-worktree.md`
+- **Worktrees**: `task-system/worktrees/task-NNN-{type}/`
 
 ## Prerequisites
 
-- Task must be finalized first using **parallel-task-finalization** skill
-- PR must be merged to main branch
+- Task should be completed (PR merged) for safe cleanup
 - **Must be run from the MAIN repository**, not from within a worktree
 
-## Important
+---
 
-This is Step 2 of 2. First run **parallel-task-finalization** from the worktree, then run this skill from the main repository.
-
-## Process
-
-### Step 1: Verify Main Repository
+## Step 1: Verify Main Repository
 
 1. **Check current directory** is main repository (not a worktree):
-   - `.git` is a directory (not a file)
-   - Path doesn't contain `/task-system/worktrees/`
-2. **If in worktree**, error with instructions to run from main repo
+   ```bash
+   # .git is a directory in main repo, a file in worktree
+   if [ -f ".git" ]; then
+       ERROR="In worktree"
+   fi
+   ```
 
-### Step 2: Update Main Branch
+2. **If in worktree**, display error:
+   ```
+   ===============================================================
+   ERROR: Must run from main repository
+   ===============================================================
 
-1. **Checkout main**: `git checkout master`
+   You are currently in a worktree.
+   Current location: [current-path]
+
+   ---------------------------------------------------------------
+   NEXT STEP: Run cleanup from main repository
+   ---------------------------------------------------------------
+
+   1. Open a new terminal
+   2. cd [main-repo-path]
+   3. Say "cleanup worktree" or "cleanup worktree for task XXX"
+   ===============================================================
+   ```
+   **STOP**
+
+## Step 2: Update Main Branch
+
+1. **Checkout main**: `git checkout master` (or `main`)
 2. **Pull latest changes**: `git pull`
-3. **Ensure latest TASK-LIST.md** with completed tasks
+3. **Ensure latest TASK-LIST.md** with task statuses
 
-### Step 3: Task Selection
+## Step 3: Task/Worktree Selection
 
-**With --all Flag**:
-- Read `.claude/.worktree-cleanup-queue` if exists
-- Process all entries in queue
-- Continue with cleanup for each
+**With Task ID** (e.g., "cleanup worktree for task 013"):
+1. Find worktree for that task: `git worktree list | grep task-XXX`
+2. Verify worktree exists
+3. Read task status from TASK-LIST.md
 
-**With Task ID Argument**:
-- Use provided task ID
-- Read `task-system/tasks/TASK-LIST.md` to find task in COMPLETED
-- Look for worktree path in cleanup queue or git worktree list
-
-**Without Arguments (Interactive Mode)**:
+**Without Task ID (Interactive Mode)**:
 1. **List all worktrees**: `git worktree list`
-2. **Read cleanup queue**: `.claude/.worktree-cleanup-queue`
-3. **Cross-reference** with COMPLETED tasks in TASK-LIST.md
-4. **Display menu** of worktrees that can be cleaned up
-5. **Get user selection** or 'a' for all
+2. **Filter for task worktrees** (pattern: `task-system/worktrees/task-*`)
+3. **Cross-reference** with TASK-LIST.md to get status
+4. **Display menu**:
+   ```
+   Worktrees available for cleanup:
 
-### Step 4: Worktree Removal
+   1. task-001-feature (COMPLETED) - task-system/worktrees/task-001-feature/
+   2. task-003-refactor (IN_PROGRESS) - task-system/worktrees/task-003-refactor/
+   3. task-005-bugfix (COMPLETED) - task-system/worktrees/task-005-bugfix/
+
+   Select worktree to cleanup (number or task ID), or 'all' for completed only:
+   ```
+5. **Get user selection**
+
+## Step 4: Confirmation
+
+**For COMPLETED tasks**: Proceed with cleanup immediately
+
+**For IN_PROGRESS tasks**: Warn and confirm:
+```
+WARNING: Task XXX is still IN_PROGRESS
+
+This task has not been completed. Removing the worktree will:
+- Lose any uncommitted changes
+- Require recreating the worktree to continue work
+
+Are you sure you want to remove this worktree? (yes/no)
+```
+- If no: Cancel and STOP
+- If yes: Proceed with cleanup
+
+## Step 5: Worktree Removal
 
 For each worktree to remove:
 
 1. **Verify worktree exists**:
    ```bash
-   git worktree list | grep -q "task-system/worktrees/task-XXX-{type}"
+   if git worktree list | grep -q "task-system/worktrees/task-XXX-{type}"; then
+       echo "Found worktree"
+   else
+       echo "Worktree not found (may already be removed)"
+   fi
    ```
-2. **Remove worktree safely**:
+
+2. **Remove worktree**:
    ```bash
    git worktree remove "task-system/worktrees/task-XXX-{type}" --force
    ```
+
 3. **Handle removal errors**:
    - Dirty directory: Use --force flag
    - Locked worktree: Check for lock file
    - Provide manual cleanup instructions if needed
+
 4. **Prune stale references**:
    ```bash
    git worktree prune
    ```
 
-### Step 5: Update Cleanup Queue
+## Step 6: Update TASK-LIST.md
 
-1. **Remove processed entries** from `.claude/.worktree-cleanup-queue`
-2. **Delete queue file** if empty
-3. **Log cleaned worktrees**
+1. **Read TASK-LIST.md**
+2. **Find task entry** with worktree marker: `[worktree: path]`
+3. **Remove worktree marker** from the task line
+4. **Commit update** (if changes made):
+   ```bash
+   git add task-system/tasks/TASK-LIST.md
+   git commit -m "chore(task-XXX): cleanup worktree"
+   git push
+   ```
 
-### Step 6: Verify Cleanup
+## Step 7: Display Success
 
-1. **Run git worktree list** to show remaining worktrees
-2. **Confirm removed worktrees** no longer appear
-3. **Check filesystem** to ensure directories removed
-
-## Usage Modes
-
-### Single Worktree
 ```
-worktree-cleanup [activate with task ID]
+===============================================================
+Worktree Cleanup Complete
+===============================================================
+
+Task: XXX
+Worktree removed: task-system/worktrees/task-XXX-{type}/
+Stale references pruned
+TASK-LIST.md updated
+
+---------------------------------------------------------------
+Remaining worktrees:
+---------------------------------------------------------------
+[List remaining worktrees from `git worktree list`]
+
+===============================================================
 ```
 
-### Cleanup All
-```
-worktree-cleanup --all
-```
-or mention "cleanup all worktrees"
+---
 
-### Interactive
-```
-worktree-cleanup [activate without arguments]
-```
+## Batch Cleanup
+
+**If user says "cleanup all worktrees"** or selects "all":
+
+1. Filter for COMPLETED tasks only
+2. For each completed task with worktree:
+   - Remove worktree
+   - Update TASK-LIST.md
+3. Display summary:
+   ```
+   Batch Cleanup Complete
+
+   Removed:
+   - task-001-feature (COMPLETED)
+   - task-005-bugfix (COMPLETED)
+
+   Skipped (still IN_PROGRESS):
+   - task-003-refactor
+
+   Total: 2 worktrees removed, 1 skipped
+   ```
+
+---
 
 ## Error Handling
 
-- **Not in main repository**: Error with path correction
-- **Task not found**: Verify task ID is correct
-- **Task not completed**: Must finalize first
-- **Worktree not found**: May already be removed
-- **Removal failed**: Provide manual cleanup options
+| Error                        | Message                                              |
+| ---------------------------- | ---------------------------------------------------- |
+| In worktree                  | "Must run from main repository, not worktree"        |
+| Worktree not found           | "No worktree found for task XXX (may already be removed)" |
+| Task not found               | "Task XXX not found in TASK-LIST"                    |
+| Removal failed               | "Failed to remove worktree - see manual cleanup steps" |
+| No worktrees to cleanup      | "No task worktrees found"                            |
 
-## Success Output
+### Manual Cleanup (if automatic removal fails)
 
-### Single Cleanup
 ```
-Cleaning up worktree for Task XXX...
+If automatic removal fails, try manual cleanup:
 
-Verified running from main repository
-Updated to latest main branch
-Found worktree: task-system/worktrees/task-XXX-{type}
-Worktree removed successfully
-Stale references pruned
-Cleanup queue updated
+1. Check for uncommitted changes:
+   cd task-system/worktrees/task-XXX-{type}
+   git status
 
-Task XXX cleanup complete!
+2. Force remove (loses uncommitted changes):
+   git worktree remove task-system/worktrees/task-XXX-{type} --force
 
-Remaining worktrees:
-- main (master)
+3. If still fails, manually delete and prune:
+   rm -rf task-system/worktrees/task-XXX-{type}
+   git worktree prune
+
+4. Update TASK-LIST.md to remove [worktree: ...] marker
 ```
 
-### Multiple Cleanup
-```
-Cleaning up all pending worktrees...
+---
 
-Processing cleanup queue (3 items):
+## Usage Examples
 
-[1/3] Task 013 - task-system/worktrees/task-013-feature
-Worktree removed successfully
+### Single Worktree
+- "cleanup worktree for task 013"
+- "remove worktree 013"
+- "delete worktree for task 13"
 
-[2/3] Task 015 - task-system/worktrees/task-015-feature
-Worktree removed successfully
+### Cleanup All Completed
+- "cleanup all worktrees"
+- "remove all completed worktrees"
 
-[3/3] Task 016 - task-system/worktrees/task-016-bugfix
-Worktree not found (already removed)
+### Interactive
+- "cleanup worktree" (shows menu)
 
-Cleanup complete!
-- 2 worktrees removed
-- 1 already cleaned up
-- Cleanup queue cleared
-
-No worktrees remaining.
-```
+---
 
 ## Important Notes
 
 - **Must run from main repository**, not from worktree
-- Task must be completed and merged before cleanup
-- Accepts task ID, --all flag, or interactive selection
-- Safe removal with force option for dirty worktrees
-- Maintains cleanup queue for tracking pending cleanups
-- Complementary to **parallel-task-finalization** skill
+- **COMPLETED tasks** are safe to cleanup immediately
+- **IN_PROGRESS tasks** require confirmation before cleanup
+- **Worktree marker** in TASK-LIST.md is removed after cleanup
+- **Stale references** are automatically pruned
 
-## Next Steps
+## After Cleanup
 
-After cleanup:
-- Worktree directory removed from filesystem
-- Git references pruned
-- Can start new tasks with **task-start** or **parallel-task-start**
-
-## References
-
-- Complete workflow details: Plugin's `commands/parallel-cleanup-worktree.md`
+- Worktree directory is removed from filesystem
+- Git references are pruned
+- TASK-LIST.md no longer shows worktree marker
+- Can start new tasks with **task-start** skill

@@ -1,22 +1,24 @@
 # complete-task
 
-Completes the entire task lifecycle by finalizing documentation, merging the PR, and updating all tracking.
+Completes the task lifecycle by finalizing documentation, merging the PR, and updating all tracking. Must be run from within the task's worktree.
 
 ## What it does
 
-1. **Finalizes documentation**: Commits any remaining changes
-2. **Updates task status**: Moves task to COMPLETED in TASK-LIST.md
-3. **Finalizes journal**: Adds Phase 8 completion entry
-4. **Commits completion**: Records final status in feature branch
-5. **Verifies PR readiness**: Checks CI status and review requirements
-6. **Merges the PR**: Automatically merges to main branch
-7. **Updates repository**: Switches to main branch and pulls changes
+1. **Verifies location**: Ensures running from a task worktree (not main repo)
+2. **Cleans CLAUDE.md**: Removes worktree-specific isolation instructions
+3. **Finalizes documentation**: Commits any remaining changes
+4. **Updates task status**: Moves task to COMPLETED in TASK-LIST.md
+5. **Finalizes journal**: Adds Phase 8 completion entry
+6. **Commits completion**: Records final status in feature branch
+7. **Verifies PR readiness**: Checks CI status and review requirements
+8. **Merges the PR**: Automatically merges to main branch
+9. **Instructs cleanup**: Tells user to run worktree-cleanup from main repo
 
 ## Usage
 
 ### Interactive Mode (no arguments)
 
-Shows menu of IN_PROGRESS tasks to complete:
+Auto-detects task from current worktree:
 
 ```
 /task-system:complete-task
@@ -24,59 +26,107 @@ Shows menu of IN_PROGRESS tasks to complete:
 
 ### Direct Task Selection (with task ID)
 
-Complete specific task directly:
+Complete specific task (verifies it matches current worktree):
 
 ```
 /task-system:complete-task 013
 ```
 
-This command is for regular (non-worktree) tasks only. For parallel tasks, use `/task-system:parallel-finalize-task` from the worktree, then `/task-system:parallel-cleanup-worktree` from main repo.
+## Prerequisites
+
+- Must be run from within a task worktree
+- Task must be IN_PROGRESS
+- All work should be committed
+
+---
 
 ## Command Logic
 
-### Step 1: Task Selection
+### Step 1: Verify Worktree Location
 
-**With Task ID Argument**:
-- Use provided task ID (e.g., `/task-system:complete-task 013`)
-- Verify task exists and is IN_PROGRESS in TASK-LIST.md
-- Check task does NOT have `[worktree: path]` marker
-- If worktree task, error: "Task XXX is in a worktree. Use /task-system:parallel-finalize-task from within the worktree."
-
-**Without Arguments (Interactive Mode)**:
-1. Read TASK-LIST.md to find all IN_PROGRESS tasks
-2. Filter out tasks with `[worktree: path]` markers
-3. Display numbered menu of regular tasks only:
+1. **Check current directory** is a worktree (not main repo):
+   ```bash
+   # .git is a file in worktree, directory in main repo
+   if [ -d ".git" ]; then
+       # We're in main repo - error
+       ERROR="Must run from worktree"
+   fi
    ```
-   Select task to complete:
-   1. [009] Design PostgreSQL Schema (IN_PROGRESS - Phase 7)
-   2. [011] Create User API (IN_PROGRESS - Phase 6)
 
-   Select task (1-2):
+2. **Extract task ID** from worktree path:
+   ```bash
+   CURRENT_DIR=$(pwd)
+   TASK_ID=$(echo "$CURRENT_DIR" | grep -oE "task-([0-9]{3})" | head -1 | cut -d'-' -f2)
    ```
-4. Get user selection
 
-### Step 2: Pre-Completion Checks
+3. **If user provided task ID**, verify it matches current worktree
 
-1. Check current directory is the main repository (not a worktree)
-2. Checkout task branch: `git checkout feature/task-XXX-*`
-3. Check for uncommitted changes: `git status --porcelain`
-4. If changes exist, commit them: `git add . && git commit -m "docs(task-XXX): final updates before completion"`
-5. Push any commits: `git push`
+4. **If in main repo**, display error:
+   ```
+   Error: This command must be run from a task worktree
 
-### Step 3: Update TASK-LIST.md
+   You are in the main repository.
 
-1. Read current task-system/tasks/TASK-LIST.md
-2. Find task in IN_PROGRESS section
-3. Extract task details and format for COMPLETED section
-4. Move task from IN_PROGRESS to top of COMPLETED section
-5. Format: `- [Task Title] ([Summary of achievements]) [task-type]`
+   To complete a task:
+   1. cd task-system/worktrees/task-XXX-{type}
+   2. /task-system:complete-task
 
-### Step 4: Add Journal Completion Entry
+   Or use worktree-cleanup skill if task is already merged.
+   ```
 
-1. Read task journal at `task-system/tasks/XXX/journal.md`
-2. Update "Current Phase" header to "COMPLETED"
-3. Add Phase 8 completion entry with timestamp
-4. Include summary of achievements and quality impact
+### Step 2: Verify Task Status
+
+1. **Read TASK-LIST.md** from worktree
+2. **Find task** by ID
+3. **Verify status** is IN_PROGRESS
+   - If COMPLETED: Error "Task XXX already completed"
+   - If PENDING: Error "Task XXX not started yet"
+
+### Step 3: Clean CLAUDE.md
+
+**Important**: The task-start skill adds worktree-specific isolation instructions to CLAUDE.md. These must be removed before merging to avoid polluting the main repository.
+
+1. **Check for worktree-specific content**:
+   ```bash
+   if grep -q "# Task .* Worktree - ISOLATED ENVIRONMENT" CLAUDE.md; then
+       HAS_ISOLATION=true
+   fi
+   ```
+
+2. **Remove isolation instructions** (keep original content):
+   ```bash
+   # Find the marker and keep everything after it
+   # The isolation instructions end with "---" before original content
+   sed -i '1,/^---$/d' CLAUDE.md
+   ```
+
+   Or more robustly, look for the original content marker and keep from there.
+
+3. **Verify CLAUDE.md is clean** (no isolation instructions remain)
+
+### Step 4: Pre-Completion Checks
+
+1. **Check for uncommitted changes**: `git status --porcelain`
+2. **If changes exist** (including CLAUDE.md cleanup):
+   ```bash
+   git add .
+   git commit -m "docs(task-XXX): final updates before completion"
+   ```
+3. **Push any commits**: `git push`
+
+### Step 5: Update TASK-LIST.md
+
+1. **Read** `task-system/tasks/TASK-LIST.md`
+2. **Find task** in IN_PROGRESS section with worktree marker
+3. **Remove worktree marker**: `[worktree: path]`
+4. **Move task** from IN_PROGRESS to top of COMPLETED section
+5. **Format**: `- [Task Title] ([Summary of achievements]) [task-type]`
+
+### Step 6: Add Journal Completion Entry
+
+1. **Read journal** at `task-system/tasks/XXX/journal.md`
+2. **Update "Current Phase"** header to "COMPLETED"
+3. **Add Phase 8 completion entry** with timestamp
 
 **Journal Entry Template**:
 ```markdown
@@ -94,61 +144,91 @@ This command is for regular (non-worktree) tasks only. For parallel tasks, use `
 **Status:** TASK COMPLETE - [Brief description of completion]
 ```
 
-### Step 5: Commit Completion Updates
+### Step 7: Commit Completion Updates
 
-1. Stage changes: `git add task-system/`
-2. Commit with message: `git commit -m "docs(task-XXX): complete Phase 8 documentation"`
-3. Push to remote: `git push`
+1. **Stage changes**: `git add task-system/`
+2. **Commit**: `git commit -m "docs(task-XXX): complete Phase 8 documentation"`
+3. **Push**: `git push`
 
-### Step 6: Verify PR Readiness
+### Step 8: Verify PR Readiness
 
-1. Use `gh pr view --json state,mergeable,reviews,statusCheckRollup` to get PR status
-2. Check PR is open (not already merged)
-3. Verify all status checks are passing
-4. Ensure PR is mergeable (no conflicts)
-5. Check if reviews are required and approved
+1. **Get PR status**: `gh pr view --json state,mergeable,reviews,statusCheckRollup`
+2. **Check PR is open** (not already merged)
+3. **Verify status checks** are passing
+4. **Ensure PR is mergeable** (no conflicts)
+5. **Check reviews** if required
 
-If any issues found:
+If issues found:
 - **Failed checks**: Show which checks failed, ask to fix first
 - **Merge conflicts**: Ask user to resolve conflicts first
 - **Review required**: Show review status, ask to get reviews
-- **Already merged**: Skip to Step 8 (update repository)
+- **Already merged**: Skip to Step 10 (instructions)
 
-### Step 7: Merge the PR
+### Step 9: Merge the PR
 
-1. Display PR information for final confirmation
-2. Merge using: `gh pr merge --squash --delete-branch`
-3. If merge fails, show error and exit
-4. Confirm merge successful
+1. **Display PR information** for final confirmation
+2. **Merge**: `gh pr merge --squash --delete-branch`
+3. **If merge fails**, show error and exit
+4. **Confirm merge** successful
 
-### Step 8: Update Repository
+### Step 10: Display Success and Cleanup Instructions
 
-1. Switch to main branch: `git checkout master`
-2. Pull latest changes: `git pull origin master`
-3. Ensure working directory is clean
+```
+===============================================================
+Task XXX Completed Successfully!
+===============================================================
+
+CLAUDE.md cleaned (isolation instructions removed)
+Task moved to COMPLETED in TASK-LIST.md
+Journal updated with Phase 8 completion
+PR #YY merged to main branch
+
+---------------------------------------------------------------
+NEXT STEP: Cleanup the worktree
+---------------------------------------------------------------
+
+To remove the worktree (from main repository):
+
+1. Open a new terminal
+2. cd [main-repo-path]
+3. Say "cleanup worktree for task XXX"
+
+Or: git worktree remove task-system/worktrees/task-XXX-{type}
+
+===============================================================
+```
+
+---
 
 ## Error Handling
 
-### Task Selection Issues
+### Not in Worktree
 ```
-Error: Task XXX is in a worktree
-Location: task-system/worktrees/task-XXX-feature
+Error: This command must be run from a task worktree
 
-Use /task-system:parallel-finalize-task from within the worktree.
+You are in the main repository.
+
+To complete a task:
+1. cd task-system/worktrees/task-XXX-{type}
+2. Run this command again
 ```
 
+### Task ID Mismatch
+```
+Error: Task ID XXX doesn't match this worktree (task YYY)
+
+You are in worktree for task YYY.
+Either:
+1. Run without task ID to complete task YYY
+2. Or navigate to the correct worktree for task XXX
+```
+
+### Task Not IN_PROGRESS
 ```
 Error: Task XXX is not IN_PROGRESS
-Current status: COMPLETED
+Current status: [status]
 
-This task has already been completed.
-```
-
-```
-Error: No regular IN_PROGRESS tasks found
-All IN_PROGRESS tasks are in worktrees.
-
-Use /task-system:parallel-finalize-task from within each worktree.
+This task cannot be completed.
 ```
 
 ### PR Not Ready
@@ -158,7 +238,7 @@ Error: PR cannot be merged yet
 - Reviews: 0 of 1 approved
 - Conflicts: None
 
-Please fix the failing checks and get required reviews before running complete-task.
+Please fix the failing checks and get required reviews before completing.
 ```
 
 ### Merge Conflicts
@@ -169,42 +249,42 @@ Please resolve conflicts in the GitHub UI or locally, then run complete-task aga
 
 ### Already Merged
 ```
-Error: PR #XX is already merged.
-Task completion requires all documentation to be committed before merging.
+Warning: PR #XX is already merged.
 
-To recover:
-1. Create a new PR with any missing documentation updates
-2. Or manually update TASK-LIST.md and journal on master
+The task documentation has been updated.
+Please run worktree-cleanup from the main repository to remove the worktree.
 ```
 
-### Uncommitted Changes
-```
-Found uncommitted changes. Committing as "final updates before completion"...
-```
+---
 
 ## Success Output
 
 ```
 Completing Task XXX...
 
+Verified running from worktree: task-system/worktrees/task-XXX-{type}
+Cleaned CLAUDE.md (removed isolation instructions)
 Pre-completion checks passed
 Task moved to COMPLETED in TASK-LIST.md
 Journal updated with completion entry
 All changes committed to feature branch
 PR #YY ready to merge (all checks passing)
-PR successfully merged to master
-Repository updated to latest master
+PR successfully merged to main
 
-Task XXX is now officially complete!
+===============================================================
+Task XXX is now complete!
+===============================================================
+
+NEXT STEP: Cleanup the worktree from main repository
+Run: "cleanup worktree for task XXX"
 ```
+
+---
 
 ## Important Notes
 
-- This command is for regular (non-worktree) tasks only
-- Accepts task ID as argument or shows interactive menu
-- Filters out worktree tasks from selection
-- Handles the ENTIRE Phase 8 process
-- Automatically commits any final changes before merging
-- Verifies PR is ready (checks, reviews, conflicts)
-- Must be run from the main repository
-- For parallel tasks, use `/task-system:parallel-finalize-task` then `/task-system:parallel-cleanup-worktree`
+- **Must run from worktree** - this command operates on tasks in worktrees
+- **CLAUDE.md cleanup is automatic** - isolation instructions are removed before merge
+- **Journal gets final entry** - Phase 8 completion is documented
+- **PR is squash-merged** - feature branch is deleted after merge
+- **Worktree cleanup is separate** - run worktree-cleanup from main repo after completion

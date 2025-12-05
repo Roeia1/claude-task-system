@@ -5,7 +5,7 @@ description: "ONLY activate on DIRECT user request to complete a task. User must
 
 # Task Completion Skill
 
-When activated, finalize and complete a task (for non-worktree tasks only).
+When activated, finalize and complete a task. Must be run from within the task's worktree.
 
 ## File Locations
 
@@ -15,32 +15,50 @@ When activated, finalize and complete a task (for non-worktree tasks only).
 
 ## Important
 
-This skill is for **regular (non-worktree) tasks only**. For parallel tasks in worktrees, use the **parallel-task-finalization** skill instead.
+This skill must be run **from within the task's worktree**, not from the main repository.
 
 ## Process
 
-### Step 1: Task Selection
+### Step 1: Verify Worktree Location
+
+1. **Check current directory** is a worktree (`.git` is a file, not directory)
+2. **Extract task ID** from worktree path
+3. **If in main repo**: Error with instructions to run from worktree
+
+### Step 2: Task Verification
 
 1. **Read task list** from `task-system/tasks/TASK-LIST.md`
-2. **Filter for IN_PROGRESS tasks** (exclude tasks with `[worktree: path]` markers)
-3. **Interactive selection** or use direct task ID from user input
-4. **Validate**: Task must be IN_PROGRESS and NOT in a worktree
+2. **Find task** by ID extracted from worktree path
+3. **Validate**: Task must be IN_PROGRESS
+4. **If user provided task ID**: Verify it matches current worktree's task
 
-### Step 2: Pre-Completion Checks
+### Step 3: Clean CLAUDE.md
 
-1. **Verify in main repository** (not a worktree)
-2. **Checkout task branch**
-3. **Check for uncommitted changes** (`git status --porcelain`)
-4. **Commit any final changes** if found
-5. **Push to remote**
+1. **Check for worktree-specific content**:
+   - Look for "# Task XXX Worktree - ISOLATED ENVIRONMENT" marker
+2. **Remove isolation instructions**:
+   - Strip content from start to the "---" separator before original content
+3. **Verify cleanup**: Ensure no isolation instructions remain
 
-### Step 3: Update Task Status
+### Step 4: Pre-Completion Checks
+
+1. **Check for uncommitted changes** (`git status --porcelain`)
+2. **Commit any changes** (including CLAUDE.md cleanup):
+   ```bash
+   git add .
+   git commit -m "docs(task-XXX): final updates before completion"
+   ```
+3. **Push to remote**: `git push`
+
+### Step 5: Update Task Status
 
 1. **Read TASK-LIST.md**
-2. **Move task** from IN_PROGRESS to COMPLETED section
-3. **Format**: `- [Task Title] ([Summary of achievements]) [task-type]`
+2. **Find task** in IN_PROGRESS section with worktree marker
+3. **Remove worktree marker**: `[worktree: path]`
+4. **Move task** to COMPLETED section
+5. **Format**: `- [Task Title] ([Summary of achievements]) [task-type]`
 
-### Step 4: Finalize Journal
+### Step 6: Finalize Journal
 
 1. **Read journal** from `task-system/tasks/NNN/journal.md`
 2. **Update "Current Phase"** header to "COMPLETED"
@@ -50,13 +68,13 @@ This skill is for **regular (non-worktree) tasks only**. For parallel tasks in w
    - Quality impact
    - Completion status
 
-### Step 5: Commit Completion Documentation
+### Step 7: Commit Completion Documentation
 
 1. **Stage changes**: `git add task-system/`
 2. **Commit**: `git commit -m "docs(task-XXX): complete Phase 8 documentation"`
 3. **Push**: `git push`
 
-### Step 6: Verify PR Readiness
+### Step 8: Verify PR Readiness
 
 1. **Check PR status** using `gh pr view`
 2. **Verify**:
@@ -65,35 +83,47 @@ This skill is for **regular (non-worktree) tasks only**. For parallel tasks in w
    - Required reviews approved
 3. **Handle issues** if found (failed checks, conflicts, missing reviews)
 
-### Step 7: Merge the PR
+### Step 9: Merge the PR
 
 1. **Display PR information** for final confirmation
 2. **Merge**: `gh pr merge --squash --delete-branch`
 3. **Confirm merge successful**
 
-### Step 8: Update Repository
+### Step 10: Instruct Cleanup
 
-1. **Switch to main branch**: `git checkout master`
-2. **Pull latest changes**: `git pull origin master`
-3. **Verify working directory is clean**
+Display instructions for worktree cleanup:
+
+```
+===============================================================
+Task XXX Completed Successfully!
+===============================================================
+
+NEXT STEP: Cleanup the worktree from main repository
+
+1. Open a new terminal
+2. cd [main-repo-path]
+3. Say "cleanup worktree for task XXX"
+===============================================================
+```
 
 ## Error Handling
 
-- **Task in worktree**: Error with instructions to use parallel-finalize-task
+- **Not in worktree**: Error with instructions to run from worktree
+- **Task ID mismatch**: Error showing which task this worktree is for
 - **Task not IN_PROGRESS**: Error with current status
 - **PR not ready**: Show which checks/reviews are blocking
 - **Merge conflicts**: Instructions to resolve conflicts
-- **Already merged**: Recovery instructions
+- **Already merged**: Instructions to run cleanup
 
 ## Next Steps
 
 After completion:
 - Task is moved to COMPLETED in task list
 - PR is merged and branch deleted
-- Repository is updated to latest main
-- Ready to start next task with **task-start** skill
+- **Run cleanup from main repository** to remove worktree
 
 ## References
 
 - Complete workflow details: Plugin's `commands/complete-task.md`
 - Task list format: `task-system/tasks/TASK-LIST.md`
+- Cleanup skill: Plugin's `skills/worktree-cleanup/SKILL.md`

@@ -119,5 +119,5 @@ These workflows embody disciplined software development:
 ## Related Documentation
 
 - [TASK-LIST.md](../../../../task-system/tasks/TASK-LIST.md) - All tasks and their status
-- [Parallel Workflow Guide](./parallel-workflow-guide.md) - Concurrent execution
+- [Worktree Workflow Guide](./worktree-workflow-guide.md) - Worktree-based task isolation
 - [Task Template](../../../templates/execution/task-template.md) - Task file structure
