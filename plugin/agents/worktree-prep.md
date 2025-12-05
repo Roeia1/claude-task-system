@@ -32,7 +32,7 @@ If the path doesn't appear to be a task worktree → Error: "Invalid worktree pa
   - Set `requires_confirmation: true` in output
   - Include task title for the main agent to confirm with user
 
-### Step 4: Validate Task State
+### Step 3: Validate Task State
 
 1. **Verify task exists** in TASK-LIST.md
    - Not found -> Error: "Task XXX not found in TASK-LIST"
@@ -46,7 +46,7 @@ If the path doesn't appear to be a task worktree → Error: "Invalid worktree pa
    - For each dependency, verify it is COMPLETED in TASK-LIST.md
    - Any not completed -> Error: "Blocked by: XXX (PENDING), YYY (IN_PROGRESS)"
 
-### Step 5: Gather Task Context
+### Step 4: Gather Task Context
 
 1. **Parse task information** from TASK-LIST.md:
    - Task ID
