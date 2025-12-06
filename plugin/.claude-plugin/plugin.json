@@ -21,5 +21,18 @@
   "agents": [
     "agents/journaling.md",
     "agents/task-analyzer.md"
-  ]
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-init.sh"
+          }
+        ]
+      }
+    ]
+  }
 }

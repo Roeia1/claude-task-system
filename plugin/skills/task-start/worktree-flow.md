@@ -1,19 +1,32 @@
 # Worktree Flow
 
-Execute this flow when `detect-context.sh` returns "worktree". This flow validates the session, prepares task context, and hands off to the workflow.
+Execute this flow when `detect-context.sh` returns `context: "worktree"`. Context validation is already complete - this flow handles task validation and workflow handoff.
+
+**Input from SKILL.md**: `$TASK_ID`, `$BRANCH`, `$WORKTREE_PATH` from detect-context.sh JSON
 
 ---
 
-## Step 1: Invoke Worktree Prep Subagent
+## Step 1: Validate Task State
 
-Invoke `plugin/agents/worktree-prep.md` with:
-- **user_task_id**: Task ID if user specified one (e.g., from "start task 042")
+1. **Read** `task-system/tasks/TASK-LIST.md`
 
-**Handle subagent response:**
-- If `status: "error"` → Display error and stop
-- If `status: "pending_confirmation"` → Ask user: "This worktree is for task XXX: [title]. Continue? (yes/no)"
-  - If no → Instruct user to navigate to correct worktree and stop
-- If `status: "ready"` → Continue to Step 2
+2. **Verify task exists**:
+   - Search for task `$TASK_ID` in the file
+   - Not found → Error: "Task $TASK_ID not found in TASK-LIST"
+
+3. **Check status**:
+   - If in COMPLETED section → Error: "Task $TASK_ID already completed"
+   - If in PENDING or IN_PROGRESS → Continue
+
+4. **Check dependencies** (read `task-system/tasks/$TASK_ID/task.md`):
+   - Parse "Dependencies:" section
+   - For each dependency, verify it is in COMPLETED section of TASK-LIST.md
+   - Any not completed → Error: "Blocked by: XXX (PENDING), YYY (IN_PROGRESS)"
+
+5. **Get task metadata** from TASK-LIST.md:
+   - Task title
+   - Task type (feature/bugfix/refactor/performance/deployment)
+   - Priority (P1/P2/P3)
 
 ---
 
@@ -29,12 +42,12 @@ Display task context and hand off to type-specific workflow:
 
 ```
 ===============================================================
-Task XXX Ready for Execution
+Task $TASK_ID Ready for Execution
 ===============================================================
 
-Branch: feature/task-XXX-description
-PR: #YY (draft)
+Branch: $BRANCH
 Type: {type}
+Priority: {priority}
 
 ---------------------------------------------------------------
 Ready to begin workflow execution
