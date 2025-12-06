@@ -8,6 +8,7 @@
 # 1. Git worktree detection (main vs worktree)
 # 2. Spawn directory verification ($CLAUDE_SPAWN_DIR)
 # 3. Branch alignment with task (worktree only)
+# 4. Existing worktree check (main repo only)
 
 TASK_ID="$1"
 
@@ -98,6 +99,13 @@ if [ "$CONTEXT" = "worktree" ]; then
     # All validations passed for worktree
     output_json "$CONTEXT" "ok" "null" "Worktree validated for task $TASK_ID" "$CURRENT_BRANCH" "$GIT_ROOT"
 else
-    # Main repo - no additional validations needed
+    # Main repo - check if worktree already exists for this task
+    NORMALIZED_INPUT=$(echo "$TASK_ID" | sed 's/^0*//')
+    EXISTING_WORKTREE=$(git worktree list | grep -E "task-0*${NORMALIZED_INPUT}[^0-9]" | awk '{print $1}')
+
+    if [ -n "$EXISTING_WORKTREE" ]; then
+        output_json "$CONTEXT" "error" '"worktree_exists"' "Task $TASK_ID already has a worktree. Open a new Claude session there: $EXISTING_WORKTREE" "$CURRENT_BRANCH" "$EXISTING_WORKTREE"
+    fi
+
     output_json "$CONTEXT" "ok" "null" "Main repository context" "$CURRENT_BRANCH" ""
 fi

@@ -34,6 +34,7 @@ bash scripts/detect-context.sh $TASK_ID
     - `spawn_mismatch`: "Please start a new Claude session from the correct directory"
     - `wrong_worktree`: "Navigate to the correct worktree or use this worktree's task"
     - `branch_mismatch`: "The git branch doesn't match the task. Check your git state"
+    - `worktree_exists`: "Open a new Claude session in the existing worktree directory shown above"
     - `missing_task_id`: "Task ID is required"
   - **STOP** - do not continue
 

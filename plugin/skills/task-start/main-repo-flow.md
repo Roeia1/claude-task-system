@@ -12,41 +12,7 @@ Creates/locates the worktree and instructs the user to open a new session there.
 
 ---
 
-## Step 1: Worktree Check
-
-**Check for existing worktree**:
-
-```bash
-git worktree list | grep "task-$TASK_ID"
-```
-
-**If worktree exists**: Display instructions and STOP:
-
-```
-===============================================================
-WORKTREE EXISTS - OPEN SESSION THERE
-===============================================================
-
-Task $TASK_ID already has an active worktree.
-
-Location: task-system/worktrees/task-$TASK_ID-{type}/
-
----------------------------------------------------------------
-NEXT STEP: Open a new Claude session in the worktree
----------------------------------------------------------------
-
-1. Open a new terminal
-2. cd task-system/worktrees/task-$TASK_ID-{type}
-3. Start Claude Code (e.g., `claude`)
-4. Say "start task $TASK_ID" to continue
-
-This session will now STOP.
-===============================================================
-```
-
-**If worktree does not exist**: Continue to Step 2
-
-## Step 2: Validation
+## Step 1: Validation
 
 1. **Verify task exists** in TASK-LIST.md
 
@@ -65,7 +31,7 @@ This session will now STOP.
 4. **Check working directory**: `git status --porcelain`
    - Not clean -> Error: "Uncommitted changes - commit or stash first"
 
-## Step 3: Git Setup
+## Step 2: Git Setup
 
 **Detect default branch**:
 
@@ -86,7 +52,7 @@ Fallback: try "main", then "master"
    git worktree add "task-system/worktrees/task-$TASK_ID-{type}" -b feature/task-$TASK_ID-description
    ```
 
-## Step 4: PR Setup
+## Step 3: PR Setup
 
 **Check for existing PR**:
 
@@ -110,7 +76,7 @@ gh pr list --head feature/task-$TASK_ID-* --state open --json number,url
    ```
 3. Record PR number and URL
 
-## Step 5: Worktree Finalization
+## Step 4: Worktree Finalization
 
 1. **Prepend isolation instructions** to CLAUDE.md in worktree:
 
@@ -189,7 +155,6 @@ gh pr list --head feature/task-$TASK_ID-* --state open --json number,url
 
 | Error                   | Message                                        |
 | ----------------------- | ---------------------------------------------- |
-| Worktree exists         | Instructions to open worktree session -> STOP  |
 | Task not found          | "Task $TASK_ID not found in TASK-LIST"         |
 | Task completed          | "Task $TASK_ID already completed"              |
 | Dependencies not met    | "Blocked by: XXX (PENDING), YYY (IN_PROGRESS)" |
