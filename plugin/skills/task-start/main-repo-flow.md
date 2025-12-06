@@ -1,8 +1,8 @@
 # Main Repository Flow
 
-Execute this flow when `detect-context.sh` returns `context: "main"`. This flow creates/locates the worktree and instructs the user to open a new session there.
+Creates/locates the worktree and instructs the user to open a new session there.
 
-**Input from SKILL.md**: `$TASK_ID` from detect-context.sh JSON
+**Input**: `$TASK_ID` from detect-context.sh JSON
 
 ## File Locations
 

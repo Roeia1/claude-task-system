@@ -1,8 +1,8 @@
 # Worktree Flow
 
-Execute this flow when `detect-context.sh` returns `context: "worktree"`. Context validation is already complete - this flow handles task validation and workflow handoff.
+Validates task state and hands off to the type-specific workflow.
 
-**Input from SKILL.md**: `$TASK_ID`, `$BRANCH`, `$WORKTREE_PATH` from detect-context.sh JSON
+**Input**: `$TASK_ID`, `$BRANCH`, `$WORKTREE_PATH` from detect-context.sh JSON
 
 ---
 
