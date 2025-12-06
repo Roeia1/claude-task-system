@@ -5,152 +5,45 @@ description: ONLY activate on DIRECT user request to start a task. User must exp
 
 # Task Start Skill
 
-Prepares environment for task execution: validates task, sets up git branch, creates GitHub PR, and initializes journal. After setup, hands off to the task-type workflow.
+Prepares environment for task execution using git worktrees. Routes to the appropriate flow based on context.
 
-## File Locations
+## Step 0: Get Task ID
 
-- **Task List**: `task-system/tasks/TASK-LIST.md`
-- **Task Files**: `task-system/tasks/NNN/task.md`
-- **Journals**: `task-system/tasks/NNN/journal.md`
-- **Workflows**: Read from plugin's `skills/task-start/workflows/{type}-workflow.md`
-  - `feature-workflow.md`, `bugfix-workflow.md`, `refactor-workflow.md`, `performance-workflow.md`, `deployment-workflow.md`
+**If user specified a task ID** (e.g., "start task 042", "work on task 15"):
+- Extract the task ID from their prompt
+- Store as `$TASK_ID`
 
-## Process
+**If no task ID specified**:
+- Ask user: "Which task ID are you working on?"
+- Wait for response
+- Store as `$TASK_ID`
 
-### Step 1: Task Selection
+## Step 1: Detect Context and Validate
 
-1. **Read** `task-system/tasks/TASK-LIST.md`
-2. **Filter** PENDING and IN_PROGRESS tasks (exclude COMPLETED)
-3. **Display menu**:
-
-   ```
-   Select a task:
-   1. [001] Add user authentication (PENDING)
-   2. [002] Fix login bug (PENDING - blocked by 001)
-   3. [005] Refactor API layer (IN_PROGRESS)
-
-   Enter task number or ID:
-   ```
-
-4. **Accept** menu selection OR direct task ID from user input
-
-### Step 2: Validation
-
-1. **Verify task exists** in TASK-LIST.md
-
-   - Not found -> Error: "Task XXX not found"
-
-2. **Check status**:
-
-   - COMPLETED -> Error: "Task XXX already completed"
-   - PENDING or IN_PROGRESS -> Continue
-
-3. **Check dependencies** (parse task.md "Dependencies:" section):
-
-   - Verify each dependency is COMPLETED in TASK-LIST.md
-   - Any not completed -> Error: "Blocked by: XXX (PENDING), YYY (IN_PROGRESS)"
-
-4. **Check working directory**: `git status --porcelain`
-   - Not clean -> Error: "Uncommitted changes - commit or stash first"
-
-### Step 3: State Detection
-
-Determine task state based on TASK-LIST status and journal existence:
-
-| TASK-LIST Status | Journal Exists? | State                         |
-| ---------------- | --------------- | ----------------------------- |
-| PENDING          | No              | NEW                           |
-| PENDING          | Yes             | CONTINUING (interrupted)      |
-| IN_PROGRESS      | Yes             | CONTINUING                    |
-| IN_PROGRESS      | No              | CONTINUING (warn: no journal) |
-
-### Step 4: Git Setup
-
-**Detect default branch**:
+Run the context detection script with the task ID:
 
 ```bash
-git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'
+bash scripts/detect-context.sh $TASK_ID
 ```
 
-Fallback: try "main", then "master"
+**Parse JSON output** and check `status`:
 
-**For NEW tasks**:
+- If `status: "error"`:
+  - Display the `message` to user
+  - Provide guidance based on `error_type`:
+    - `spawn_mismatch`: "Please start a new Claude session from the correct directory"
+    - `wrong_worktree`: "Navigate to the correct worktree or use this worktree's task"
+    - `branch_mismatch`: "The git branch doesn't match the task. Check your git state"
+    - `worktree_exists`: "Open a new Claude session in the existing worktree directory shown above"
+    - `missing_task_id`: "Task ID is required"
+  - **STOP** - do not continue
 
-1. Checkout default branch: `git checkout {default} && git pull`
-2. Create feature branch: `git checkout -b feature/task-XXX-description`
+- If `status: "ok"`:
+  - Continue to Step 2
 
-**For CONTINUING tasks**:
+## Step 2: Execute Flow
 
-1. Check local branch: `git branch --list feature/task-XXX-*`
-2. If exists -> checkout
-3. If not -> check remote: `git branch -r --list origin/feature/task-XXX-*`
-   - Remote exists -> `git checkout -b feature/task-XXX-... origin/feature/task-XXX-...`
-   - Neither exists -> Error: "Branch not found - task state corrupted"
-4. Pull latest: `git pull`
+**Route based on `context` from JSON output:**
 
-### Step 5: PR Setup
-
-**Check for existing PR**:
-
-```bash
-gh pr list --head {branch-name} --state open --json number,url
-```
-
-**If PR exists**: Record PR number and URL, continue (reuse existing)
-
-**If no open PR**:
-
-1. Check for closed/merged: `gh pr list --head {branch-name} --state all`
-2. Create new draft PR:
-   ```bash
-   gh pr create --draft --title "Task XXX: {title}" --body "Work in progress for task XXX"
-   ```
-3. Record PR number and URL
-
-### Step 6: Load Journaling Guidelines
-
-Read `journaling-guidelines.md` in this skill folder.
-
-### Step 7: Journal Setup
-
-**For NEW tasks**:
-
-1. Invoke journaling subagent to create journal (see journaling guidelines for example)
-2. Update TASK-LIST.md: Move task from PENDING to IN_PROGRESS
-
-**For CONTINUING tasks**:
-
-1. Read existing journal at `task-system/tasks/XXX/journal.md`
-2. Parse current phase from "## Current Phase" section
-
-### Step 8: Handoff
-
-**For NEW tasks**:
-
-```
-Task XXX ready for execution.
-
-Branch: feature/task-XXX-description
-PR: #123 (draft)
-Type: {type}
-
-Read the workflow at: plugin's skills/task-start/workflows/{type}-workflow.md
-Ready to begin Phase 1: Task Analysis.
-```
-
-**For CONTINUING tasks**:
-
-1. Read last 3-5 journal entries for context
-2. Display current phase and last activity
-3. Ready to continue from current phase
-
-## Error Handling
-
-| Error                          | Message                                        |
-| ------------------------------ | ---------------------------------------------- |
-| Task not found                 | "Task XXX not found in TASK-LIST"              |
-| Task completed                 | "Task XXX already completed"                   |
-| Dependencies not met           | "Blocked by: XXX (PENDING), YYY (IN_PROGRESS)" |
-| Dirty working directory        | "Uncommitted changes - commit or stash first"  |
-| Branch missing for IN_PROGRESS | "Branch not found - task state corrupted"      |
-| Workflow file missing          | "No workflow found for type: XXX"              |
+- If `context: "main"` → Read and execute `main-repo-flow.md`
+- If `context: "worktree"` → Read and execute `worktree-flow.md`
