@@ -5,7 +5,7 @@ description: "ONLY activate on DIRECT user request to generate tasks. User must 
 
 # Task Generation Skill
 
-When activated, generate executable tasks from feature planning artifacts.
+When activated, generate executable tasks from feature planning artifacts. Each task is created with its own worktree, branch, and PR.
 
 ## File Locations
 
@@ -13,16 +13,19 @@ When activated, generate executable tasks from feature planning artifacts.
 - **Task Template**: Read from plugin's `templates/execution/task-template.md`
 - **Input**: `task-system/features/NNN-slug/feature.md` and `plan.md`
 - **Output (Reference)**: `task-system/features/NNN-slug/tasks.md`
-- **Output (Actual Tasks)**: `task-system/tasks/NNN/task.md`
-- **Task List**: `task-system/tasks/TASK-LIST.md`
+- **Output (Task Worktrees)**: `task-system/tasks/NNN/` (git worktrees)
 - **Full Workflow**: Plugin's `commands/generate-tasks.md`
 
 ## Prerequisites
 
 1. Feature directory must exist with both `feature.md` and `plan.md`
 2. Tasks not already generated (or user confirms regeneration)
+3. Must be run from main repository (not a worktree)
+4. Working directory must be clean (no uncommitted changes)
 
 ## Process
+
+### Phase 1: Analysis and Planning
 
 1. **Detect and validate feature** (current directory or prompt for selection)
 2. **Read planning artifacts**:
@@ -43,12 +46,126 @@ When activated, generate executable tasks from feature planning artifacts.
    - Files affected
    - Parallelizable markers
 6. **Interactive editing** (merge/split/reorder as needed)
-7. **After approval**:
-   - Determine next task IDs from `task-system/tasks/TASK-LIST.md`
-   - Create task directories: `task-system/tasks/NNN/`
-   - Generate `task.md` files with full context (links to feature, plan, ADRs)
-   - Add tasks to `task-system/tasks/TASK-LIST.md` (PENDING section)
-   - Create reference `tasks.md` in feature directory
+
+### Phase 2: Task Creation (After Approval)
+
+For each approved task, **sequentially**:
+
+#### Step 1: Determine Next Task ID
+
+```bash
+# Find highest existing task ID by scanning:
+# 1. Local worktrees
+# 2. Remote branches with task- pattern
+HIGHEST_LOCAL=$(ls -d task-system/tasks/*/ 2>/dev/null | grep -oP '\d+' | sort -n | tail -1)
+HIGHEST_REMOTE=$(git branch -r | grep -oP 'task-\K\d+' | sort -n | tail -1)
+NEXT_ID=$(( $(echo -e "$HIGHEST_LOCAL\n$HIGHEST_REMOTE" | sort -n | tail -1) + 1 ))
+# Pad to 3 digits
+TASK_ID=$(printf "%03d" $NEXT_ID)
+```
+
+#### Step 2: Create Branch
+
+```bash
+# Create branch from current HEAD (should be on main/master)
+git branch "task-$TASK_ID-$TYPE"
+```
+
+#### Step 3: Create Worktree
+
+```bash
+mkdir -p task-system/tasks
+git worktree add "task-system/tasks/$TASK_ID" "task-$TASK_ID-$TYPE"
+```
+
+#### Step 4: Write Task Definition
+
+```bash
+# Create task directory structure in worktree
+mkdir -p "task-system/tasks/$TASK_ID/task-system/tasks/$TASK_ID"
+
+# Write task.md with full context
+# (Use task template, populate with feature links, objectives, etc.)
+```
+
+#### Step 5: Commit Task Definition
+
+```bash
+cd "task-system/tasks/$TASK_ID"
+git add .
+git commit -m "docs(task-$TASK_ID): create task definition
+
+Task: $TITLE
+Type: $TYPE
+Priority: $PRIORITY
+Feature: $FEATURE_ID"
+```
+
+#### Step 6: Push Branch
+
+```bash
+git push -u origin "task-$TASK_ID-$TYPE"
+```
+
+#### Step 7: Create PR
+
+```bash
+gh pr create \
+  --title "Task $TASK_ID: $TITLE" \
+  --body "## Task Definition
+
+See: task-system/tasks/$TASK_ID/task.md
+
+## Feature Context
+
+Feature: $FEATURE_ID - $FEATURE_NAME
+Plan: task-system/features/$FEATURE_SLUG/plan.md
+
+---
+Status: Not started (pending execution)" \
+  --head "task-$TASK_ID-$TYPE" \
+  --draft
+```
+
+#### Step 8: Return to Main Repo
+
+```bash
+cd - # Return to main repo root
+```
+
+### Phase 3: Reference Documentation
+
+After all tasks are created:
+
+1. **Create reference `tasks.md`** in feature directory:
+   ```markdown
+   # Tasks for Feature $FEATURE_ID: $FEATURE_NAME
+
+   Generated from: plan.md
+
+   ## Task List
+
+   | ID | Title | Type | Priority | PR |
+   |----|-------|------|----------|-----|
+   | 015 | [Title](../../tasks/015/task.md) | feature | P1 | #XX |
+   | 016 | [Title](../../tasks/016/task.md) | feature | P1 | #YY |
+
+   ## Dependencies
+
+   ```mermaid
+   graph TD
+       015 --> 016
+       015 --> 017
+       016 --> 018
+   ```
+   ```
+
+2. **Commit reference** in main repo:
+   ```bash
+   git add task-system/features/$FEATURE_SLUG/tasks.md
+   git commit -m "docs($FEATURE_ID): add task breakdown reference"
+   git push
+   ```
 
 ## Task Generation Principles
 
@@ -57,6 +174,7 @@ When activated, generate executable tasks from feature planning artifacts.
 - **Parallelization analysis** (mark tasks that can run concurrently)
 - **Full traceability** (every task links back to feature/plan/ADRs)
 - **Specific acceptance criteria** for each task
+- **Immediate PR creation** (enables visibility and collaboration)
 
 ## Task Structure
 
@@ -74,11 +192,13 @@ Each generated task includes:
 
 ## Next Steps
 
-After task generation, suggest using the **task-start** skill to begin execution.
+After task generation:
+- Use `list tasks` to see all generated tasks
+- Use `start task NNN` to begin execution on a specific task
+- Tasks are ready to be worked on in parallel (different machines/sessions)
 
 ## References
 
 - Complete workflow details: Plugin's `commands/generate-tasks.md`
 - Task template: Plugin's `templates/execution/task-template.md`
 - Task breakdown template: Plugin's `templates/planning/task-breakdown-template.md`
-- Task list format: `task-system/tasks/TASK-LIST.md`

@@ -12,30 +12,33 @@ The worktree workflow provides each task with its own isolated workspace while s
 
 ## How It Works
 
+### Task Creation
+
+When tasks are created (via `task-generation` or `task-creation` skills), each task gets:
+- A worktree in `task-system/tasks/NNN/`
+- A branch named `task-NNN-{type}`
+- A draft PR on GitHub
+
 ### Starting a Task
 
 From the **main repository**, say "start task" or "start task [ID]":
 
 ```
-start task
+start task 015
 ```
 
 This will:
-1. Show available PENDING and IN_PROGRESS tasks
-2. Check task dependencies
-3. Create a new worktree in `task-system/worktrees/task-XXX-type/`
-4. Set up the task with branch and PR
-5. Update TASK-LIST.md with worktree marker
-6. **Instruct you to open a new Claude session in the worktree**
-7. **STOP** (you must open a new session to continue)
+1. Check if worktree exists for the task
+2. Provide instructions to navigate to the worktree
+3. **You open a new Claude session in the worktree**
 
 ### Working in the Worktree
 
-After the worktree is created:
+After navigating to the worktree:
 1. Open a new terminal window/tab
-2. Navigate to the worktree: `cd task-system/worktrees/task-XXX-type/`
+2. Navigate to the worktree: `cd task-system/tasks/NNN/`
 3. Start Claude Code in that directory
-4. Say "start task" to continue with the workflow
+4. Say "start task NNN" to begin the workflow
 5. Work on the task following the phase-based workflow
 
 ### Completing a Task
@@ -48,7 +51,6 @@ From within the **worktree**, use complete-task:
 
 This will:
 - Clean CLAUDE.md (remove isolation instructions)
-- Update TASK-LIST.md (move to COMPLETED)
 - Finalize journal with Phase 8 entry
 - Merge the PR
 - **Instruct you to cleanup the worktree from main repo**
@@ -58,13 +60,12 @@ This will:
 From the **main repository**, say "cleanup worktree":
 
 ```
-cleanup worktree for task XXX
+cleanup worktree for task 015
 ```
 
 This will:
 - Remove the worktree directory
 - Prune git references
-- Update TASK-LIST.md (remove worktree marker)
 
 ## Multi-Task Concurrent Usage
 
@@ -80,19 +81,19 @@ Each worktree operates as an independent workspace with its own:
 
 ```bash
 # Terminal 1: Feature development
-cd task-system/worktrees/task-013-feature
+cd task-system/tasks/013
 claude
 # Work on feature implementation...
 
 # Terminal 2: Bug fix (simultaneously)
-cd task-system/worktrees/task-015-bugfix
+cd task-system/tasks/015
 claude
 # Fix urgent bug without affecting feature work...
 
 # Terminal 3: Main repository
 cd /path/to/project
 claude
-# Start new tasks, cleanup completed worktrees...
+# Check task status, cleanup completed worktrees...
 ```
 
 ### Safe Concurrent Operations
@@ -120,62 +121,50 @@ claude
 ### Scenario 1: Feature + Bug Fix
 
 ```bash
-# Terminal 1: Start feature from main repo
-cd /path/to/project
+# Terminal 1: Start feature - navigate to existing worktree
+cd task-system/tasks/009
 claude
 > start task 009
 
-# Open worktree session
-cd task-system/worktrees/task-009-feature
-claude
-> start task
-
 # Terminal 2: Urgent bug fix comes in
-cd /path/to/project
+cd task-system/tasks/010
 claude
 > start task 010
-
-# Open worktree session
-cd task-system/worktrees/task-010-bugfix
-claude
-> start task
 ```
 
 ### Scenario 2: Blocked on Review
 
 ```bash
 # Complete Phase 6 in task 009, PR ready for review
-# While waiting, start another task from main repo
-cd /path/to/project
+# While waiting, start another task in different worktree
+cd task-system/tasks/011
 claude
 > start task 011
 ```
 
-### Scenario 3: Multiple Small Tasks
+### Scenario 3: Resume from Another Machine
 
 ```bash
-# Start several tasks from main repo
+# From main repo on new machine
 cd /path/to/project
 claude
+> resume task 012
+# Creates local worktree from remote branch
+
+cd task-system/tasks/012
+claude
 > start task 012
-# Open worktree, work on it...
-
-> start task 013
-# Open worktree, work on it...
-
-> start task 014
-# Open worktree, work on it...
 ```
 
 ## Best Practices
 
 ### Organization
 - **One Terminal Per Task**: Keep terminals dedicated to specific tasks
-- **Clear Naming**: Worktrees use descriptive names `task-XXX-type`
+- **Clear Naming**: Worktrees use descriptive names `task-system/tasks/NNN`
 - **Regular Commits**: Commit frequently to avoid conflicts
 
 ### Task Selection
-- **Check Dependencies**: Ensure task dependencies are COMPLETED
+- **Check Dependencies**: Dependencies are advisory (warn if not merged)
 - **Independent Tasks**: Choose tasks that don't conflict with each other
 - **Resource Consideration**: Limit concurrent worktrees based on system resources
 
@@ -191,19 +180,17 @@ When working in a worktree, remember:
 - **No absolute paths** to main repo
 - **All operations relative** to worktree root
 
-The CLAUDE.md in each worktree contains isolation instructions that are automatically removed during task completion.
+The CLAUDE.md in each worktree may contain isolation instructions that are automatically removed during task completion.
 
 ## Troubleshooting
 
-### "Task already active in worktree"
-- Task is being worked on in an existing worktree
-- Check `task-system/worktrees/` for the worktree
-- Resume work in that worktree's directory
+### "Task has no worktree"
+- Task may exist remotely but not locally
+- Use "resume task NNN" to create local worktree from remote
 
 ### "Worktree already exists"
-- Previous worktree wasn't cleaned up
-- Remove manually: `git worktree remove task-system/worktrees/task-XXX-type`
-- Or use: `cleanup worktree for task XXX` from main repo
+- Navigate to existing worktree to continue work
+- Or cleanup and recreate if needed
 
 ### Finding Active Worktrees
 ```bash
@@ -221,16 +208,16 @@ Removes references to deleted worktrees.
 ```bash
 # Usually means a process is still using the directory
 # Check for running processes:
-lsof +D task-system/worktrees/task-XXX-type
+lsof +D task-system/tasks/NNN
 
 # Or force cleanup:
-git worktree remove task-system/worktrees/task-XXX-type --force
+git worktree remove task-system/tasks/NNN --force
 ```
 
 ### Memory Usage Concerns
 ```bash
 # Check worktree status and size:
-du -sh task-system/worktrees/*
+du -sh task-system/tasks/*
 
 # List all active worktrees:
 git worktree list
@@ -240,15 +227,16 @@ git worktree list
 
 | Step | Location | Command/Action |
 |------|----------|----------------|
-| Start task | Main repo | "start task" or "start task [ID]" |
-| Continue in worktree | Worktree | "start task" (after opening new session) |
+| Create task | Main repo | "create task" or "generate tasks" |
+| Start working | Worktree | cd task-system/tasks/NNN && claude |
+| Begin workflow | Worktree | "start task NNN" |
 | Complete task | Worktree | `/task-system:complete-task` |
-| Cleanup | Main repo | "cleanup worktree for task XXX" |
+| Cleanup | Main repo | "cleanup worktree for task NNN" |
 
 ## Important Notes
 
-- **All tasks use worktrees** - there is no "regular" vs "parallel" workflow
+- **Tasks created with worktrees** - each task has worktree, branch, and PR from creation
 - **Worktrees share git history** but have independent working directories
-- **TASK-LIST.md tracking** shows which tasks are in worktrees with `[worktree: path]`
-- **Two-session workflow**: Main repo creates worktree, new session works in worktree
-- **Cleanup is separate**: After completion, cleanup worktree from main repo
+- **Task status derived dynamically** - use "list tasks" to see current status
+- **Resume remote tasks** - use "resume task NNN" to create local worktree
+- **Cleanup is separate** - after completion, cleanup worktree from main repo

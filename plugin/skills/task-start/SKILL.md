@@ -5,7 +5,13 @@ description: ONLY activate on DIRECT user request to start a task. User must exp
 
 # Task Start Skill
 
-Prepares environment for task execution using git worktrees. Routes to the appropriate flow based on context.
+Begins the 8-phase execution workflow for a task. Must be run from within the task's worktree.
+
+## Prerequisites
+
+- Task must already exist with worktree created (via `task-creation` or `task-generation` skills)
+- Must be run from within the task's worktree directory
+- If not in worktree, provides instructions to navigate there
 
 ## Step 0: Get Task ID
 
@@ -31,19 +37,77 @@ bash scripts/detect-context.sh $TASK_ID
 - If `status: "error"`:
   - Display the `message` to user
   - Provide guidance based on `error_type`:
-    - `spawn_mismatch`: "Please start a new Claude session from the correct directory"
-    - `wrong_worktree`: "Navigate to the correct worktree or use this worktree's task"
+    - `not_in_worktree`: "You must run this from the task's worktree. Navigate to task-system/tasks/$TASK_ID/ first"
+    - `wrong_worktree`: "This worktree is for a different task. Navigate to the correct worktree"
     - `branch_mismatch`: "The git branch doesn't match the task. Check your git state"
-    - `worktree_exists`: "Open a new Claude session in the existing worktree directory shown above"
     - `missing_task_id`: "Task ID is required"
+    - `no_worktree_exists`: "No worktree exists for task $TASK_ID. Use 'resume task $TASK_ID' if it exists remotely, or create a new task"
   - **STOP** - do not continue
 
 - If `status: "ok"`:
   - Continue to Step 2
 
-## Step 2: Execute Flow
+## Step 2: Execute Worktree Flow
 
-**Route based on `context` from JSON output:**
+Read and execute `worktree-flow.md` which:
+1. Validates task state and reads task metadata
+2. Loads journaling guidelines
+3. Hands off to type-specific workflow for Phase 1 execution
 
-- If `context: "main"` → Read and execute `main-repo-flow.md`
-- If `context: "worktree"` → Read and execute `worktree-flow.md`
+---
+
+## From Main Repo Instructions
+
+If the user runs `start task NNN` from the main repository (not a worktree):
+
+**Check if worktree exists**:
+```bash
+if [ -d "task-system/tasks/$TASK_ID" ]; then
+    # Worktree exists - provide navigation instructions
+fi
+```
+
+**If worktree exists**, display:
+```
+===============================================================
+Task $TASK_ID Worktree Found
+===============================================================
+
+To continue working on this task:
+
+1. Open a new terminal (or new Claude session)
+2. cd task-system/tasks/$TASK_ID
+3. Start Claude Code
+4. Say "start task $TASK_ID"
+
+This task already has a worktree ready for execution.
+===============================================================
+```
+
+**If no worktree exists**:
+```
+===============================================================
+No Worktree for Task $TASK_ID
+===============================================================
+
+This task doesn't have a local worktree yet.
+
+Options:
+- If task exists remotely: "resume task $TASK_ID"
+- If task doesn't exist: "create task [description]"
+
+Use "list tasks" to see available tasks.
+===============================================================
+```
+
+---
+
+## Error Handling
+
+| Error | Message |
+|-------|---------|
+| Not in worktree | "Must run from task worktree. cd task-system/tasks/$TASK_ID first" |
+| Wrong worktree | "This worktree is for task XXX, not task $TASK_ID" |
+| Branch mismatch | "Expected branch task-$TASK_ID-*, got $CURRENT_BRANCH" |
+| Missing task ID | "Task ID is required" |
+| No worktree exists | "No worktree for task $TASK_ID. Use 'resume task' or create new task" |

@@ -89,11 +89,12 @@ Based on your input, I'll update:
 
 ### Only when complete:
 
-1. **ID Assignment**: Next sequential task number
-2. **Directory Creation**: `task-system/tasks/XXX/task.md`
-3. **Full Task File**: Complete task template with all sections populated, including determined task type
-4. **Task List Update**: Add to PENDING in TASK-LIST.md with format: `XXX | P[1-3] | [task-type] | [Title] | [Brief Description]`
-5. **Validation**: Verify task is ready for `start-task` command with appropriate workflow
+1. **ID Assignment**: Next sequential task number (scan existing worktrees and remote branches)
+2. **Create worktree + branch**: `git worktree add task-system/tasks/XXX task-XXX-{type}`
+3. **Write task.md**: Complete task template with all sections populated
+4. **Push branch**: `git push -u origin task-XXX-{type}`
+5. **Create PR**: Draft PR for the task
+6. **Validation**: Verify task is ready for `start-task` command with appropriate workflow
 
 ## Output Example
 

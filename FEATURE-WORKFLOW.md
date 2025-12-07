@@ -257,25 +257,23 @@ cd features/001-user-authentication
 
 5. **After approval**:
    - Creates `tasks.md` in feature directory (reference)
-   - Creates actual task files in `execution/tasks/NNN/`
-   - Updates `execution/TASK-LIST.md` (PENDING section)
+   - Creates worktree + branch + PR for each task
+   - Tasks appear in `task-system/tasks/NNN/` as worktrees
 
 ### Output
 
 ```
-planning/features/001-user-authentication/
+task-system/features/001-user-authentication/
 ├── feature.md
 ├── plan.md
-├── tasks.md                    # Created (reference)
+├── tasks.md                    # Created (reference with PR links)
 └── adr/
 
-execution/
-├── TASK-LIST.md                # Updated (tasks 015-026 added)
-└── tasks/
-    ├── 015/task.md             # User model
-    ├── 016/task.md             # Session model
-    ├── 017/task.md             # AuthService
-    └── ...
+task-system/tasks/                # Each is a git worktree
+├── 015/                         # User model (branch: task-015-feature)
+├── 016/                         # Session model (branch: task-016-feature)
+├── 017/                         # AuthService (branch: task-017-feature)
+└── ...
 ```
 
 ### Example tasks.md
@@ -499,16 +497,14 @@ planning/features/001-user-authentication/
     ├── 001-jwt.md       # Decision: JWT authentication
     └── 002-bcrypt.md    # Decision: password hashing
 
-execution/
-├── TASK-LIST.md         # Updated with tasks 015-026
-└── tasks/
-    ├── 015/
-    │   ├── task.md      # Task details
-    │   └── journal.md   # Execution log
-    ├── 016/
-    │   ├── task.md
-    │   └── journal.md
-    └── ...
+task-system/tasks/           # Each is a git worktree
+├── 015/                     # Branch: task-015-feature, PR: #XX
+│   ├── task.md              # Task details
+│   └── journal.md           # Execution log (created on start)
+├── 016/                     # Branch: task-016-feature, PR: #YY
+│   ├── task.md
+│   └── journal.md
+└── ...
 
 docs/adr/                # Project-wide ADRs (if any)
 ```
@@ -605,8 +601,8 @@ docs/adr/                # Project-wide ADRs (if any)
 ### "Task is blocked"
 
 - Check dependencies in task.md
-- Ensure prerequisite tasks are COMPLETED
-- Update TASK-LIST.md status
+- Ensure prerequisite task PRs are merged (use "list tasks")
+- Dependencies are advisory - git handles conflicts naturally
 
 ---
 

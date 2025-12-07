@@ -33,23 +33,22 @@ When users install this plugin and run `/task-system:init`, the following struct
 
 ```
 task-system/                    # Created in user's project root
-├── features/                   # 📋 Feature definitions and plans
+├── features/                   # Feature definitions and plans
 │   └── NNN-feature-name/
 │       ├── feature.md         # What to build (requirements)
 │       ├── plan.md            # How to build (technical design)
-│       ├── tasks.md           # AI-generated task breakdown
+│       ├── tasks.md           # Reference to generated tasks
 │       └── adr/               # Feature-specific ADRs
 │           └── NNN-decision.md
-├── tasks/                      # ⚡ Task execution
-│   ├── TASK-LIST.md           # Single source of truth for all tasks
-│   └── NNN/                   # Individual task directories
+├── tasks/                      # Task worktrees (each is a git worktree)
+│   └── NNN/                   # Task worktree with branch task-NNN-type
 │       ├── task.md            # Task definition and requirements
-│       └── journal.md         # Execution log and decisions
-├── adrs/                       # Global architecture decisions
-│   └── NNN-decision-title.md
-└── worktrees/                  # Git worktrees for task isolation (gitignored)
-    └── task-NNN-type/
+│       └── journal.md         # Execution log (created when task starts)
+└── adrs/                       # Global architecture decisions
+    └── NNN-decision-title.md
 ```
+
+**Note**: Each `task-system/tasks/NNN/` directory is a git worktree, not a regular directory. Task status is derived dynamically from filesystem and git state.
 
 The plugin itself lives in:
 
@@ -71,6 +70,8 @@ plugin/                         # Plugin source code
 │   ├── task-start/
 │   │   ├── SKILL.md
 │   │   └── workflows/         # Type-specific execution workflows
+│   ├── task-list/             # Dynamic task list generation
+│   ├── task-resume/           # Resume remote tasks locally
 │   └── ...
 └── templates/                  # Artifact templates
     ├── execution/
@@ -80,6 +81,19 @@ plugin/                         # Plugin source code
         └── ...
 ```
 
+### Dynamic Task Status
+
+Task status is derived from filesystem and git state (no persistent TASK-LIST.md):
+
+| Status | Signal |
+|--------|--------|
+| PENDING | Worktree exists in `task-system/tasks/NNN/`, no `journal.md` |
+| IN_PROGRESS | Worktree exists, `journal.md` present |
+| REMOTE | Open PR with task branch, no local worktree |
+| COMPLETED | PR merged (branch deleted) |
+
+Use `list tasks` to see current task status.
+
 ## Development Commands
 
 ### Initial Setup (Run Once)
@@ -87,9 +101,8 @@ plugin/                         # Plugin source code
 ```bash
 /task-system:init
 # Creates task-system/ structure:
-# - features/, tasks/, adrs/, worktrees/
-# - tasks/TASK-LIST.md
-# - Adds gitignore pattern for worktrees
+# - features/, tasks/, adrs/
+# - Adds gitignore pattern for task worktrees
 ```
 
 ### Feature Planning Workflow
@@ -114,9 +127,8 @@ plugin/                         # Plugin source code
 # AI proposes task breakdown
 # Shows tasks for review/modification
 # After approval:
+#   - Creates worktree + branch + PR for each task
 #   - Creates: task-system/features/001-user-authentication/tasks.md (reference)
-#   - Creates: task-system/tasks/015/ through task-system/tasks/022/
-#   - Updates: task-system/tasks/TASK-LIST.md (PENDING section)
 ```
 
 ### Architecture Decision Records
@@ -130,22 +142,37 @@ plugin/                         # Plugin source code
 # Uses standard ADR template with problem/options/decision/consequences
 ```
 
-### Task Execution Workflow
-
-All tasks use git worktrees for isolation. The workflow involves two sessions:
+### Task Management
 
 ```bash
-# From MAIN REPO: Start a task (creates worktree, instructs to open new session)
-# Say "start task" or "work on task [ID]"
-# -> Creates worktree at task-system/worktrees/task-###-type/
-# -> Open new Claude session in worktree to continue
+# List all tasks (local and remote)
+# Say "list tasks" or "show tasks"
+# Shows: LOCAL - IN_PROGRESS, LOCAL - PENDING, REMOTE (no local worktree)
 
-# From WORKTREE: Continue work and complete task
-# Say "start task" to continue workflow after opening worktree session
-/task-system:complete-task          # Merge PR and finalize (from worktree)
+# Resume a remote task locally
+# Say "resume task 017"
+# Creates local worktree from existing remote branch
+```
+
+### Task Execution Workflow
+
+Tasks are created with worktree + branch + PR upfront. The workflow:
+
+```bash
+# From MAIN REPO: Navigate to task worktree
+# Say "start task 015"
+# -> Shows instructions to cd into task-system/tasks/015/
+
+# From WORKTREE: Execute 8-phase workflow
+# cd task-system/tasks/015
+# Start Claude session
+# Say "start task 015" to begin workflow
+
+# From WORKTREE: Complete and merge
+/task-system:complete-task          # Merge PR and finalize
 
 # From MAIN REPO: Cleanup worktree after completion
-# Say "cleanup worktree" or "cleanup worktree for task [ID]"
+# Say "cleanup worktree for task 015"
 ```
 
 ## Critical Execution Rules
@@ -156,7 +183,7 @@ Each task follows this sequence (defined in type-specific workflows in `plugin/s
 
 1. **Phase 1: Task Analysis**
    - Read task file and linked feature documentation
-   - Verify dependencies are COMPLETED
+   - Check dependencies (advisory - warn if not merged)
    - Invoke journaling subagent to document analysis
    - Commit initial analysis
 
@@ -254,34 +281,20 @@ Tasks link back to features for full context:
 [Task-specific implementation details...]
 ```
 
-### Task List Format
-
-`task-system/tasks/TASK-LIST.md` structure:
-
-```markdown
-## IN_PROGRESS
-021 | P1 | deployment | Task Title | Description [worktree: path]
-
-## PENDING
-001 | P1 | feature | Task Title | Description
-
-## COMPLETED
-- ✅ Task description [type]
-```
-
 ### Task Dependencies
 
 - Tasks list dependencies by ID in their `task.md` file
-- Dependencies must be in COMPLETED status before starting
-- The system validates dependencies at task start
+- Dependencies are advisory (documented but not strictly enforced)
+- Git naturally handles conflicts if work proceeds out of order
+- Check dependency status via PR state (merged = complete)
 
 ### Parallel Execution
 
 - Use git worktrees for concurrent task development
-- Each worktree has independent working directory
-- TASK-LIST.md tracks worktree locations with `[worktree: path]` marker
+- Each task has its own worktree in `task-system/tasks/NNN/`
 - Safe operations: commit, push, test in different worktrees concurrently
 - Requires coordination: merging PRs (one at a time)
+- Tasks can be worked on from different machines (use `resume task`)
 
 ## Architecture Decision Records (ADRs)
 
@@ -330,7 +343,7 @@ Each task in `task-system/tasks/###/task.md` contains:
 - **Overview**: What needs to be accomplished and why
 - **Task Type**: feature|refactor|bugfix|performance|deployment
 - **Priority**: P1 (critical) → P3 (low)
-- **Dependencies**: Links to prerequisite tasks
+- **Dependencies**: Links to prerequisite tasks (advisory)
 - **Objectives**: Measurable checkboxes
 - **Sub-tasks**: Specific actionable items
 - **Technical Approach**: Implementation strategy
@@ -369,3 +382,4 @@ When user signals review ("I made a review", "Check PR comments"):
 - **Maintain Traceability**: Tasks link to features, features link to ADRs
 - **Keep Complexity Minimal**: Only add what's directly needed
 - **Trust the Discipline**: The 8-phase workflow prevents costly mistakes
+- **Dynamic Status**: No TASK-LIST.md - status derived from filesystem and git state

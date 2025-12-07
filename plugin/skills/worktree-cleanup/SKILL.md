@@ -9,8 +9,7 @@ Cleans up a git worktree after a task has been completed and merged. Must be run
 
 ## File Locations
 
-- **Task List**: `task-system/tasks/TASK-LIST.md`
-- **Worktrees**: `task-system/worktrees/task-NNN-{type}/`
+- **Task Worktrees**: `task-system/tasks/NNN/` (git worktrees)
 
 ## Prerequisites
 
@@ -53,26 +52,25 @@ Cleans up a git worktree after a task has been completed and merged. Must be run
 
 1. **Checkout main**: `git checkout master` (or `main`)
 2. **Pull latest changes**: `git pull`
-3. **Ensure latest TASK-LIST.md** with task statuses
 
 ## Step 3: Task/Worktree Selection
 
 **With Task ID** (e.g., "cleanup worktree for task 013"):
-1. Find worktree for that task: `git worktree list | grep task-XXX`
+1. Find worktree for that task: `git worktree list | grep task-system/tasks/$TASK_ID`
 2. Verify worktree exists
-3. Read task status from TASK-LIST.md
+3. Check if PR is merged: `gh pr list --state merged --head "task-$TASK_ID-*"`
 
 **Without Task ID (Interactive Mode)**:
 1. **List all worktrees**: `git worktree list`
-2. **Filter for task worktrees** (pattern: `task-system/worktrees/task-*`)
-3. **Cross-reference** with TASK-LIST.md to get status
+2. **Filter for task worktrees** (pattern: `task-system/tasks/NNN`)
+3. **Check PR status** for each task
 4. **Display menu**:
    ```
    Worktrees available for cleanup:
 
-   1. task-001-feature (COMPLETED) - task-system/worktrees/task-001-feature/
-   2. task-003-refactor (IN_PROGRESS) - task-system/worktrees/task-003-refactor/
-   3. task-005-bugfix (COMPLETED) - task-system/worktrees/task-005-bugfix/
+   1. task-system/tasks/001 (COMPLETED - PR merged)
+   2. task-system/tasks/003 (IN_PROGRESS - PR open)
+   3. task-system/tasks/005 (COMPLETED - PR merged)
 
    Select worktree to cleanup (number or task ID), or 'all' for completed only:
    ```
@@ -80,13 +78,13 @@ Cleans up a git worktree after a task has been completed and merged. Must be run
 
 ## Step 4: Confirmation
 
-**For COMPLETED tasks**: Proceed with cleanup immediately
+**For COMPLETED tasks** (PR merged): Proceed with cleanup immediately
 
-**For IN_PROGRESS tasks**: Warn and confirm:
+**For IN_PROGRESS tasks** (PR not merged): Warn and confirm:
 ```
-WARNING: Task XXX is still IN_PROGRESS
+WARNING: Task XXX PR has not been merged yet
 
-This task has not been completed. Removing the worktree will:
+This task is still in progress. Removing the worktree will:
 - Lose any uncommitted changes
 - Require recreating the worktree to continue work
 
@@ -101,7 +99,7 @@ For each worktree to remove:
 
 1. **Verify worktree exists**:
    ```bash
-   if git worktree list | grep -q "task-system/worktrees/task-XXX-{type}"; then
+   if git worktree list | grep -q "task-system/tasks/$TASK_ID"; then
        echo "Found worktree"
    else
        echo "Worktree not found (may already be removed)"
@@ -110,7 +108,7 @@ For each worktree to remove:
 
 2. **Remove worktree**:
    ```bash
-   git worktree remove "task-system/worktrees/task-XXX-{type}" --force
+   git worktree remove "task-system/tasks/$TASK_ID" --force
    ```
 
 3. **Handle removal errors**:
@@ -123,19 +121,7 @@ For each worktree to remove:
    git worktree prune
    ```
 
-## Step 6: Update TASK-LIST.md
-
-1. **Read TASK-LIST.md**
-2. **Find task entry** with worktree marker: `[worktree: path]`
-3. **Remove worktree marker** from the task line
-4. **Commit update** (if changes made):
-   ```bash
-   git add task-system/tasks/TASK-LIST.md
-   git commit -m "chore(task-XXX): cleanup worktree"
-   git push
-   ```
-
-## Step 7: Display Success
+## Step 6: Display Success
 
 ```
 ===============================================================
@@ -143,15 +129,15 @@ Worktree Cleanup Complete
 ===============================================================
 
 Task: XXX
-Worktree removed: task-system/worktrees/task-XXX-{type}/
+Worktree removed: task-system/tasks/XXX/
 Stale references pruned
-TASK-LIST.md updated
 
 ---------------------------------------------------------------
 Remaining worktrees:
 ---------------------------------------------------------------
 [List remaining worktrees from `git worktree list`]
 
+Use "list tasks" to see current task status.
 ===============================================================
 ```
 
@@ -161,20 +147,19 @@ Remaining worktrees:
 
 **If user says "cleanup all worktrees"** or selects "all":
 
-1. Filter for COMPLETED tasks only
+1. Filter for COMPLETED tasks only (PRs merged)
 2. For each completed task with worktree:
    - Remove worktree
-   - Update TASK-LIST.md
 3. Display summary:
    ```
    Batch Cleanup Complete
 
    Removed:
-   - task-001-feature (COMPLETED)
-   - task-005-bugfix (COMPLETED)
+   - task-system/tasks/001 (COMPLETED)
+   - task-system/tasks/005 (COMPLETED)
 
-   Skipped (still IN_PROGRESS):
-   - task-003-refactor
+   Skipped (PR not merged):
+   - task-system/tasks/003
 
    Total: 2 worktrees removed, 1 skipped
    ```
@@ -187,7 +172,7 @@ Remaining worktrees:
 | ---------------------------- | ---------------------------------------------------- |
 | In worktree                  | "Must run from main repository, not worktree"        |
 | Worktree not found           | "No worktree found for task XXX (may already be removed)" |
-| Task not found               | "Task XXX not found in TASK-LIST"                    |
+| Task not found               | "Task XXX not found"                                 |
 | Removal failed               | "Failed to remove worktree - see manual cleanup steps" |
 | No worktrees to cleanup      | "No task worktrees found"                            |
 
@@ -197,17 +182,16 @@ Remaining worktrees:
 If automatic removal fails, try manual cleanup:
 
 1. Check for uncommitted changes:
-   cd task-system/worktrees/task-XXX-{type}
+   cd task-system/tasks/XXX
    git status
 
 2. Force remove (loses uncommitted changes):
-   git worktree remove task-system/worktrees/task-XXX-{type} --force
+   git worktree remove task-system/tasks/XXX --force
 
 3. If still fails, manually delete and prune:
-   rm -rf task-system/worktrees/task-XXX-{type}
+   rm -rf task-system/tasks/XXX
    git worktree prune
 
-4. Update TASK-LIST.md to remove [worktree: ...] marker
 ```
 
 ---
@@ -231,14 +215,14 @@ If automatic removal fails, try manual cleanup:
 ## Important Notes
 
 - **Must run from main repository**, not from worktree
-- **COMPLETED tasks** are safe to cleanup immediately
-- **IN_PROGRESS tasks** require confirmation before cleanup
-- **Worktree marker** in TASK-LIST.md is removed after cleanup
+- **COMPLETED tasks** (PR merged) are safe to cleanup immediately
+- **IN_PROGRESS tasks** (PR open) require confirmation before cleanup
 - **Stale references** are automatically pruned
+- **Task status** determined by PR state (merged = COMPLETED)
 
 ## After Cleanup
 
 - Worktree directory is removed from filesystem
 - Git references are pruned
-- TASK-LIST.md no longer shows worktree marker
-- Can start new tasks with **task-start** skill
+- Use `list tasks` to see remaining tasks
+- Can start new tasks or resume remote tasks
