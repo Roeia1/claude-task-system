@@ -370,7 +370,7 @@ task-system/tasks/                # Each is a git worktree
 - Summarize accomplishments
 
 #### Phase 8: Completion
-- Run `/project:complete-task`
+- Say "complete task" to activate task-completion skill
 - Automated PR merge and cleanup
 
 ### Task File Structure
@@ -479,7 +479,7 @@ cd features/001-user-authentication
 cd /home/roei/projects/claude-task-system
 /project:start-task 015
 # ... 8-phase workflow
-/project:complete-task
+# Say "complete task" when ready to finalize
 
 # 7. Repeat for each task
 /project:start-task 016

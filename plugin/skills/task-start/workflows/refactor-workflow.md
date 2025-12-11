@@ -135,12 +135,12 @@
 
 > **Completion Process**: See [Completion Protocol](./completion-protocol.md)
 
-After completing Phase 7, run:
-```bash
-/task-system:complete-task
-```
+After completing Phase 7, say **"complete task"** to activate the task-completion skill, which will:
+- Clean CLAUDE.md of worktree-specific content
+- Finalize the journal with Phase 8 entry
+- Verify PR readiness and merge
 
-Before running, review if any new refactoring tasks should be created based on discoveries.
+Before completing, review if any new refactoring tasks should be created based on discoveries.
 
 ## Important Rules
 

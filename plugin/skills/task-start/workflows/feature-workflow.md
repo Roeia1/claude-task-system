@@ -159,12 +159,12 @@ If subagent is unavailable or user prefers manual approach:
 
 ## Phase 8: Task Completion
 
-> **Completion Process**: See [Completion Protocol](./completion-protocol.md) for detailed instructions on running the completion command and what it does.
+> **Completion Process**: See [Completion Protocol](./completion-protocol.md) for detailed instructions.
 
-After completing Phase 7, run:
-```bash
-/task-system:complete-task
-```
+After completing Phase 7, say **"complete task"** to activate the task-completion skill, which will:
+- Clean CLAUDE.md of worktree-specific content
+- Finalize the journal with Phase 8 entry
+- Verify PR readiness and merge
 
 ## Important Rules
 

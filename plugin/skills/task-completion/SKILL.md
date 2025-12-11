@@ -11,7 +11,6 @@ When activated, finalize and complete a task. Must be run from within the task's
 
 - **Task Definition**: `task-system/tasks/NNN/task.md`
 - **Journal**: `task-system/tasks/NNN/journal.md`
-- **Full Workflow**: Plugin's `commands/complete-task.md`
 
 ## Important
 
@@ -127,5 +126,4 @@ After completion:
 
 ## References
 
-- Complete workflow details: Plugin's `commands/complete-task.md`
 - Cleanup skill: Plugin's `skills/worktree-cleanup/SKILL.md`

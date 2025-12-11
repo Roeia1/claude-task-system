@@ -173,7 +173,7 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 # Say "start task 015" to begin workflow
 
 # From WORKTREE: Complete and merge
-/task-system:complete-task          # Merge PR and finalize
+# Say "complete task" to merge PR and finalize
 
 # From MAIN REPO: Cleanup worktree after completion
 # Say "cleanup worktree for task 015"
@@ -228,7 +228,7 @@ Each task follows this sequence (defined in type-specific workflows in `plugin/s
    - Summarize accomplishments
 
 8. **Phase 8: Completion**
-   - Run `/task-system:complete-task` from worktree
+   - Say "complete task" from worktree to activate task-completion skill
    - Automated PR merge
    - Cleanup worktree from main repo afterward
 

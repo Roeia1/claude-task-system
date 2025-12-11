@@ -1,16 +1,12 @@
 # Phase 8: Task Completion Protocol
 
-## Completion Command
+## Completing Your Task
 
-After completing Phase 7 reflection and documentation, run the completion command **from within the worktree**:
+After completing Phase 7 reflection and documentation, say **"complete task"** from within the worktree to activate the task-completion skill.
 
-```bash
-/task-system:complete-task
-```
+## What the Skill Does
 
-## What the Command Does
-
-The completion command automatically handles:
+The task-completion skill automatically handles:
 
 1. **Cleans CLAUDE.md** - removes worktree-specific isolation instructions
 2. **Commits any final changes** in your working directory
@@ -33,7 +29,7 @@ cleanup worktree for task XXX
 
 This removes the worktree directory and cleans up git references.
 
-## Before Running Completion
+## Before Completing
 
 Ensure you have:
 
@@ -47,7 +43,7 @@ Ensure you have:
 
 ## What to Review
 
-Before running the completion command, review:
+Before completing, review:
 
 1. **Should new tasks be created?**
    - Did you discover follow-up work?

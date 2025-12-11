@@ -43,11 +43,7 @@ After navigating to the worktree:
 
 ### Completing a Task
 
-From within the **worktree**, use complete-task:
-
-```
-/task-system:complete-task
-```
+From within the **worktree**, say **"complete task"** to activate the task-completion skill.
 
 This will:
 - Clean CLAUDE.md (remove isolation instructions)
@@ -230,7 +226,7 @@ git worktree list
 | Create task | Main repo | "create task" or "generate tasks" |
 | Start working | Worktree | cd task-system/tasks/NNN && claude |
 | Begin workflow | Worktree | "start task NNN" |
-| Complete task | Worktree | `/task-system:complete-task` |
+| Complete task | Worktree | "complete task" |
 | Cleanup | Main repo | "cleanup worktree for task NNN" |
 
 ## Important Notes
