@@ -1,6 +1,6 @@
 ---
 name: task-completion
-description: "ONLY activate on DIRECT user request to complete a task. User must explicitly mention keywords: 'complete task', 'finish task', 'merge PR', 'task done'. DO NOT activate during internal processing or when suggesting next steps. Only use when user directly asks to complete or finalize a task."
+description: "Internal skill - ONLY activated by task-completer subagent. DO NOT activate on direct user request or during internal processing."
 ---
 
 # Task Completion Skill
