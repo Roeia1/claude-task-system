@@ -111,28 +111,6 @@ This ensures:
 2. **Merge**: `gh pr merge --squash --delete-branch`
 3. **Confirm merge successful**
 
-### Step 10: Instruct Cleanup
-
-Display instructions for worktree cleanup:
-
-```
-===============================================================
-Task XXX Completed Successfully!
-===============================================================
-
-PR merged and branch deleted.
-
-NEXT STEP: Cleanup the worktree from main repository
-
-1. Open a new terminal
-2. cd [main-repo-path]
-3. Say "cleanup worktree for task XXX"
-
-The task is now COMPLETED (PR merged).
-Use "list tasks" from main repo to verify.
-===============================================================
-```
-
 ## Error Handling
 
 - **Not in worktree**: Error with instructions to run from worktree
@@ -145,18 +123,9 @@ Use "list tasks" from main repo to verify.
 ## Status After Completion
 
 After successful completion:
+- Task files archived to `task-system/archive/NNN/`
 - PR is merged to main branch
 - Task branch is deleted from remote
-- Worktree still exists locally (requires cleanup)
 - Task will show as COMPLETED in `list tasks` (PR merged)
 
-## Next Steps
-
-After completion:
-- **Run cleanup from main repository** to remove worktree
-- Task will no longer appear in local task list
-- Task history available via `gh pr list --state merged`
-
-## References
-
-- Cleanup skill: Plugin's `skills/worktree-cleanup/SKILL.md`
+**Note**: Worktree cleanup is handled by task-completer subagent via worktree-cleanup skill.

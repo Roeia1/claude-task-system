@@ -20,8 +20,8 @@ Before proceeding, verify:
 
 ## Process
 
-1. **Execute task-completion skill** - merges PR and deletes remote branch
-2. **Execute worktree-cleanup skill** - archives task files and removes worktree
+1. **Execute task-completion skill** - archives task files, merges PR, deletes remote branch
+2. **Execute worktree-cleanup skill** - removes worktree
 
 ## Error Handling
 
