@@ -52,12 +52,18 @@ instructions: |
   Dependencies are documented in task.md but NOT strictly enforced. To check dependency status:
 
   ```bash
-  # Check if dependency task's PR is merged
-  gh pr list --state merged --head "task-$DEP_ID-*" --json number
+  # Check if dependency task is archived (local, fast check)
+  if [ -d "task-system/archive/$DEP_ID" ]; then
+      # Dependency satisfied - task completed and archived
+  else
+      # Fall back to PR merge check
+      gh pr list --state merged --head "task-$DEP_ID-*" --json number
+  fi
   ```
 
+  - If archive folder exists (`task-system/archive/$DEP_ID/`): Dependency is satisfied
   - If dependency PR is merged: Dependency is satisfied
-  - If dependency PR is open or doesn't exist: Warn but don't block
+  - If neither: Warn but don't block
 
   **Note**: Dependencies are advisory documentation, not hard blockers. Git will naturally handle conflicts if work proceeds out of order.
 

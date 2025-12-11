@@ -19,11 +19,17 @@ Validates task state and hands off to the type-specific workflow.
    - If no `journal.md`: Task is PENDING (starting fresh)
 
 3. **Check dependencies** (from task.md "Dependencies:" section):
-   - For each dependency, check if PR is merged:
+   - For each dependency, check if archived or PR is merged:
      ```bash
-     gh pr list --state merged --head "task-$DEP_ID-*" --json number
+     # Check archive first (fast local check), then PR status
+     if [ -d "task-system/archive/$DEP_ID" ]; then
+         # Dependency satisfied - archived
+     else
+         gh pr list --state merged --head "task-$DEP_ID-*" --json number
+     fi
      ```
-   - Any not merged → Warning: "Dependency task $DEP_ID not yet completed"
+   - Archived or merged → Dependency satisfied
+   - Neither → Warning: "Dependency task $DEP_ID not yet completed"
    - Note: Dependencies are advisory (documented but not enforced)
 
 4. **Get task metadata** from task.md:

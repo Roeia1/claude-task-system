@@ -93,7 +93,26 @@ Are you sure you want to remove this worktree? (yes/no)
 - If no: Cancel and STOP
 - If yes: Proceed with cleanup
 
-## Step 5: Worktree Removal
+## Step 5: Archive Task Files
+
+Before removing the worktree, archive task artifacts for future reference:
+
+1. **Create archive directory**:
+   ```bash
+   mkdir -p task-system/archive/$TASK_ID
+   ```
+
+2. **Copy task files to archive**:
+   ```bash
+   cp task-system/tasks/$TASK_ID/task.md task-system/archive/$TASK_ID/
+   cp task-system/tasks/$TASK_ID/journal.md task-system/archive/$TASK_ID/
+   ```
+
+3. **Handle missing files gracefully**:
+   - If `task.md` doesn't exist, warn but continue
+   - If `journal.md` doesn't exist (task never started), skip it
+
+## Step 6: Worktree Removal
 
 For each worktree to remove:
 
@@ -121,7 +140,7 @@ For each worktree to remove:
    git worktree prune
    ```
 
-## Step 6: Display Success
+## Step 7: Display Success
 
 ```
 ===============================================================
@@ -129,6 +148,7 @@ Worktree Cleanup Complete
 ===============================================================
 
 Task: XXX
+Archived to: task-system/archive/XXX/
 Worktree removed: task-system/tasks/XXX/
 Stale references pruned
 
@@ -138,6 +158,7 @@ Remaining worktrees:
 [List remaining worktrees from `git worktree list`]
 
 Use "list tasks" to see current task status.
+View archived tasks: ls task-system/archive/
 ===============================================================
 ```
 
@@ -149,19 +170,20 @@ Use "list tasks" to see current task status.
 
 1. Filter for COMPLETED tasks only (PRs merged)
 2. For each completed task with worktree:
+   - Archive task files to `task-system/archive/$TASK_ID/`
    - Remove worktree
 3. Display summary:
    ```
    Batch Cleanup Complete
 
-   Removed:
-   - task-system/tasks/001 (COMPLETED)
-   - task-system/tasks/005 (COMPLETED)
+   Archived & Removed:
+   - task-system/tasks/001 → task-system/archive/001/
+   - task-system/tasks/005 → task-system/archive/005/
 
    Skipped (PR not merged):
    - task-system/tasks/003
 
-   Total: 2 worktrees removed, 1 skipped
+   Total: 2 tasks archived, 2 worktrees removed, 1 skipped
    ```
 
 ---
@@ -219,10 +241,13 @@ If automatic removal fails, try manual cleanup:
 - **IN_PROGRESS tasks** (PR open) require confirmation before cleanup
 - **Stale references** are automatically pruned
 - **Task status** determined by PR state (merged = COMPLETED)
+- **Automatic archiving**: Task files are archived before worktree removal
 
 ## After Cleanup
 
+- Task files archived to `task-system/archive/$TASK_ID/`
 - Worktree directory is removed from filesystem
 - Git references are pruned
 - Use `list tasks` to see remaining tasks
+- Use `ls task-system/archive/` to browse archived tasks
 - Can start new tasks or resume remote tasks

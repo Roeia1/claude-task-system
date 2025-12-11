@@ -74,8 +74,9 @@ ID  | Pri | Type     | Title                  | Action
 017 | P2  | refactor | Extract auth utils     | Use "resume task 017"
 019 | P3  | docs     | API documentation      | Use "resume task 019"
 
-## COMPLETED
-(Run `gh pr list --state merged --limit 10` to see recently completed tasks)
+## COMPLETED (archived)
+Browse archived tasks: ls task-system/archive/
+(Run `gh pr list --state merged --limit 10` to see recently merged PRs)
 ```
 
 ---
@@ -151,4 +152,5 @@ gh pr list --state open --json headRefName,title,number | jq -r '.[] | select(.h
 - **No TASK-LIST.md required**: Status is derived dynamically
 - **Local vs Remote**: Local tasks are in worktrees on this machine; remote tasks exist only as PRs
 - **Resume remote tasks**: Use `resume task NNN` to create local worktree from remote branch
-- **Completed tasks**: Query GitHub for merged PRs to see history
+- **Completed tasks**: Archived to `task-system/archive/NNN/` after worktree cleanup
+- **Archive contents**: Each archived task contains `task.md` and `journal.md`

@@ -44,6 +44,10 @@ task-system/                    # Created in user's project root
 │   └── NNN/                   # Task worktree with branch task-NNN-type
 │       ├── task.md            # Task definition and requirements
 │       └── journal.md         # Execution log (created when task starts)
+├── archive/                    # Completed task archives
+│   └── NNN/                   # Archived task files
+│       ├── task.md            # Original task definition
+│       └── journal.md         # Execution log
 └── adrs/                       # Global architecture decisions
     └── NNN-decision-title.md
 ```
@@ -90,7 +94,7 @@ Task status is derived from filesystem and git state (no persistent TASK-LIST.md
 | PENDING | Worktree exists in `task-system/tasks/NNN/`, no `journal.md` |
 | IN_PROGRESS | Worktree exists, `journal.md` present |
 | REMOTE | Open PR with task branch, no local worktree |
-| COMPLETED | PR merged (branch deleted) |
+| COMPLETED | PR merged, files archived to `task-system/archive/NNN/` |
 
 Use `list tasks` to see current task status.
 
@@ -101,7 +105,7 @@ Use `list tasks` to see current task status.
 ```bash
 /task-system:init
 # Creates task-system/ structure:
-# - features/, tasks/, adrs/
+# - features/, tasks/, adrs/, archive/
 # - Adds gitignore pattern for task worktrees
 ```
 
@@ -383,3 +387,4 @@ When user signals review ("I made a review", "Check PR comments"):
 - **Keep Complexity Minimal**: Only add what's directly needed
 - **Trust the Discipline**: The 8-phase workflow prevents costly mistakes
 - **Dynamic Status**: No TASK-LIST.md - status derived from filesystem and git state
+- **Task Archiving**: Completed tasks are automatically archived to `task-system/archive/` during worktree cleanup

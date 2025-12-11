@@ -12,6 +12,7 @@ Creates the `task-system/` directory structure for tracking features, tasks, and
    - `task-system/features/`
    - `task-system/tasks/`
    - `task-system/adrs/`
+   - `task-system/archive/`
 
 2. Add gitignore pattern for task worktrees:
    - Check if `.gitignore` exists at project root
