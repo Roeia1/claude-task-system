@@ -26,6 +26,5 @@ Creates the `task-system/` directory structure for tracking features, tasks, and
 
 ## Notes
 
-- **No TASK-LIST.md**: Task status is derived dynamically from filesystem and git state
 - **Task worktrees**: Each task gets its own worktree in `task-system/tasks/NNN/`
 - **Use `list tasks`**: To see all tasks and their status

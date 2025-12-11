@@ -75,13 +75,8 @@ fi
 # Worktree-specific validations
 if [ "$CONTEXT" = "worktree" ]; then
     # Extract task ID from worktree path
-    # New pattern: task-system/tasks/NNN
+    # Pattern: task-system/tasks/NNN
     WORKTREE_TASK_ID=$(echo "$GIT_ROOT" | grep -oP 'task-system/tasks/\K\d+' | head -1)
-
-    # Fallback: try old pattern task-system/worktrees/task-NNN-{type}
-    if [ -z "$WORKTREE_TASK_ID" ]; then
-        WORKTREE_TASK_ID=$(echo "$GIT_ROOT" | grep -oP 'task-\K\d+' | head -1)
-    fi
 
     if [ -z "$WORKTREE_TASK_ID" ]; then
         output_json "$CONTEXT" "error" '"invalid_worktree"' "Cannot determine task ID from worktree path: $GIT_ROOT" "$CURRENT_BRANCH" "$GIT_ROOT"
@@ -107,13 +102,8 @@ else
     # Main repo - check if worktree already exists for this task
     NORMALIZED_INPUT=$(echo "$TASK_ID" | sed 's/^0*//')
 
-    # Check new path pattern: task-system/tasks/NNN
+    # Check path pattern: task-system/tasks/NNN
     EXISTING_WORKTREE=$(git worktree list | grep -E "task-system/tasks/0*${NORMALIZED_INPUT}\s" | awk '{print $1}')
-
-    # Fallback: check old path pattern: task-system/worktrees/task-NNN-
-    if [ -z "$EXISTING_WORKTREE" ]; then
-        EXISTING_WORKTREE=$(git worktree list | grep -E "task-0*${NORMALIZED_INPUT}[^0-9]" | awk '{print $1}')
-    fi
 
     if [ -n "$EXISTING_WORKTREE" ]; then
         output_json "$CONTEXT" "error" '"worktree_exists"' "Task $TASK_ID already has a worktree. Open a new Claude session there: $EXISTING_WORKTREE" "$CURRENT_BRANCH" "$EXISTING_WORKTREE"
