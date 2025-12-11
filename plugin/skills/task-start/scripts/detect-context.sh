@@ -4,9 +4,13 @@
 # Input: Task ID as first argument (optional in worktree, required in main repo)
 # Output: JSON with context, status, and validation results
 #
+# Uses env vars from session-init.sh when available:
+# - $TASK_CONTEXT: "worktree" or "main"
+# - $CURRENT_TASK_ID: task number (in worktree)
+#
 # Checks performed:
-# 1. Git worktree detection (main vs worktree)
-# 2. Task ID auto-detection from task-system/task-NNN folder (worktree)
+# 1. Context detection (uses $TASK_CONTEXT or detects)
+# 2. Task ID detection (uses $CURRENT_TASK_ID or detects from folder)
 # 3. Spawn directory verification ($CLAUDE_SPAWN_DIR)
 # 4. Branch alignment with task (worktree only)
 # 5. Existing worktree check (main repo only)
@@ -56,14 +60,18 @@ fi
 
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
 
-# Detect context: main repo or worktree
-GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
-GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
-
-if [ "$GIT_DIR" != "$GIT_COMMON_DIR" ]; then
-    CONTEXT="worktree"
+# Use $TASK_CONTEXT from session-init.sh if available, otherwise detect
+if [ -n "$TASK_CONTEXT" ]; then
+    CONTEXT="$TASK_CONTEXT"
 else
-    CONTEXT="main"
+    # Fallback: detect context from git
+    GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+    GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
+    if [ "$GIT_DIR" != "$GIT_COMMON_DIR" ]; then
+        CONTEXT="worktree"
+    else
+        CONTEXT="main"
+    fi
 fi
 
 # Check spawn directory if available
@@ -79,8 +87,13 @@ fi
 
 # Worktree-specific validations
 if [ "$CONTEXT" = "worktree" ]; then
-    # Auto-detect task ID from task-system/task-NNN folder (source of truth)
-    DETECTED_TASK_ID=$(detect_task_from_folder)
+    # Use $CURRENT_TASK_ID from session-init.sh if available, otherwise detect from folder
+    if [ -n "$CURRENT_TASK_ID" ]; then
+        DETECTED_TASK_ID="$CURRENT_TASK_ID"
+    else
+        # Fallback: detect from folder
+        DETECTED_TASK_ID=$(detect_task_from_folder)
+    fi
 
     if [ -z "$DETECTED_TASK_ID" ]; then
         output_json "$CONTEXT" "error" '"no_task_folder"' "No task-system/task-NNN folder found in worktree. Cannot determine which task this is." "$CURRENT_BRANCH" "$GIT_ROOT"
