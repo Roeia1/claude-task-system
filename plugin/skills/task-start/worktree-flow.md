@@ -4,6 +4,8 @@ Validates task state and hands off to the type-specific workflow.
 
 **Input**: `$TASK_ID`, `$BRANCH`, `$WORKTREE_PATH` from detect-context.sh JSON
 
+**Note**: `$TASK_ID` is auto-detected from the `task-system/task-NNN` folder (source of truth).
+
 ---
 
 ## Step 1: Validate Task State
