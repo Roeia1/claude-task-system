@@ -51,7 +51,7 @@ This skill must be run **from within the task's worktree**, not from the main re
 ### Step 5: Finalize Journal
 
 1. **Read journal** from `task-system/tasks/$TASK_ID/journal.md`
-2. **Add Phase 8 completion entry**:
+2. **Add completion entry**:
    - Timestamp
    - Summary of achievements
    - Quality impact

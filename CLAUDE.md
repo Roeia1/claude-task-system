@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is the **Claude Task System** - a structured development workflow that combines human-guided feature planning with disciplined task execution. The system provides a complete lifecycle from feature ideation through planning, task breakdown, and rigorous 8-phase execution.
+This is the **Claude Task System** - a structured development workflow that combines human-guided feature planning with disciplined task execution. The system provides a complete lifecycle from feature ideation through planning, task breakdown, and rigorous phased execution.
 
 ## Core Architecture
 
@@ -21,7 +21,7 @@ This is the **Claude Task System** - a structured development workflow that comb
    - Document architectural decisions (ADRs)
    - Generate task breakdown for approval
 
-3. **Task Execution Phase (8-Phase Discipline)**
+3. **Task Execution Phase**
    - Task Analysis → Solution Design → Test Creation (TDD) → Implementation → Refactor → Verification → Reflection → Completion
    - Each phase requires explicit permission to proceed
    - Tests written before implementation (non-negotiable)
@@ -167,13 +167,13 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 # Say "start task 015"
 # -> Shows instructions to cd into task-system/tasks/015/
 
-# From WORKTREE: Execute 8-phase workflow
+# From WORKTREE: Execute workflow
 # cd task-system/tasks/015
 # Start Claude session
 # Say "start task 015" to begin workflow
 
 # From WORKTREE: Complete and merge
-# Say "complete task" to merge PR and finalize
+# Grant permission after Phase 7 for automatic completion
 
 # From MAIN REPO: Cleanup worktree after completion
 # Say "cleanup worktree for task 015"
@@ -181,7 +181,7 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 
 ## Critical Execution Rules
 
-### 8-Phase Workflow Discipline
+### Workflow Discipline
 
 Each task follows this sequence (defined in type-specific workflows in `plugin/skills/task-start/workflows/`):
 
@@ -227,9 +227,8 @@ Each task follows this sequence (defined in type-specific workflows in `plugin/s
    - Document key decisions
    - Summarize accomplishments
 
-8. **Phase 8: Completion**
-   - Say "complete task" from worktree to activate task-completion skill
-   - Automated PR merge
+8. **Completion** (automatic after Phase 7 approval)
+   - Task-completer subagent handles PR merge
    - Cleanup worktree from main repo afterward
 
 ### Non-Negotiable Rules
@@ -385,6 +384,6 @@ When user signals review ("I made a review", "Check PR comments"):
 - **Document Decisions**: Use ADRs to capture architectural reasoning
 - **Maintain Traceability**: Tasks link to features, features link to ADRs
 - **Keep Complexity Minimal**: Only add what's directly needed
-- **Trust the Discipline**: The 8-phase workflow prevents costly mistakes
+- **Trust the Discipline**: The phased workflow prevents costly mistakes
 - **Dynamic Status**: No TASK-LIST.md - status derived from filesystem and git state
 - **Task Archiving**: Completed tasks are automatically archived to `task-system/archive/` during worktree cleanup

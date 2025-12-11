@@ -78,3 +78,13 @@ Point to type-specific workflow for Phase 1 execution:
 - `workflows/refactor-workflow.md`
 - `workflows/performance-workflow.md`
 - `workflows/deployment-workflow.md`
+
+---
+
+## Step 4: Task Completion
+
+After the type-specific workflow completes and user grants completion permission:
+
+1. **Invoke task-completer subagent** with task_id
+2. **On error**: Control returns to user with specific issue
+3. **On success**: Display completion message and cleanup instructions

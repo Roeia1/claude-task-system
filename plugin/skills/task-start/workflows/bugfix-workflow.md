@@ -128,17 +128,6 @@
 
 **Request permission to complete task**
 
-## Phase 8: Task Completion
-
-> **Completion Process**: See [Completion Protocol](./completion-protocol.md)
-
-After completing Phase 7, say **"complete task"** to activate the task-completion skill, which will:
-- Clean CLAUDE.md of worktree-specific content
-- Finalize the journal with Phase 8 entry
-- Verify PR readiness and merge
-
-Before completing, review if any preventive tasks should be created (refactoring, additional testing).
-
 ## Important Rules
 
 - **NEVER expand scope** beyond the specific bug
