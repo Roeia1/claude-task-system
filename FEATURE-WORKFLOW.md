@@ -8,7 +8,7 @@ The workflow consists of three main phases:
 
 1. **Feature Definition** → Define WHAT to build
 2. **Technical Planning** → Design HOW to build it
-3. **Task Execution** → Actually build it with 8-phase discipline
+3. **Task Execution** → Actually build it with phased discipline
 
 Each phase requires human review and approval before proceeding.
 
@@ -319,7 +319,7 @@ task-system/tasks/                # Each is a git worktree
 
 ## Phase 4: Task Execution
 
-**Goal**: Execute tasks using the 8-phase workflow with TDD discipline.
+**Goal**: Execute tasks using the phased workflow with TDD discipline.
 
 ### Command: `/project:start-task`
 
@@ -328,7 +328,7 @@ task-system/tasks/                # Each is a git worktree
 # Or interactive: /project:start-task
 ```
 
-### The 8-Phase Workflow
+### The Workflow Phases
 
 #### Phase 1: Task Analysis
 - Read task.md and linked feature documentation
@@ -369,9 +369,9 @@ task-system/tasks/                # Each is a git worktree
 - Document key decisions
 - Summarize accomplishments
 
-#### Phase 8: Completion
-- Run `/project:complete-task`
-- Automated PR merge and cleanup
+#### Completion (automatic)
+- Grant permission after Phase 7 for automatic completion
+- Task-completer subagent handles PR merge
 
 ### Task File Structure
 
@@ -479,7 +479,7 @@ cd features/001-user-authentication
 cd /home/roei/projects/claude-task-system
 /project:start-task 015
 # ... 8-phase workflow
-/project:complete-task
+# Say "complete task" when ready to finalize
 
 # 7. Repeat for each task
 /project:start-task 016

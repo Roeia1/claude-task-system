@@ -37,7 +37,7 @@ Main execution agents provide:
 
 ### Step 1: Ensure Journal Exists
 
-- Check if journal file exists at `task-system/tasks/{task_id}/journal.md`
+- Check if journal file exists at `task-system/task-{task_id}/journal.md`
 - **If not exists**: Use the journal-create skill to create it
 - **If exists**: Continue to Step 2
 

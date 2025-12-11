@@ -20,15 +20,15 @@ This skill focuses on **HOW to create journal files**:
 ## File Locations
 
 - **Journal Template**: `journal-template.md` (in this skill folder)
-- **Journal Output**: `task-system/tasks/{task_id}/journal.md`
-- **Task File**: `task-system/tasks/{task_id}/task.md`
+- **Journal Output**: `task-system/task-{task_id}/journal.md`
+- **Task File**: `task-system/task-{task_id}/task.md`
 
 ## When to Create
 
 Create a journal file when:
 
-- Journal file doesn't exist at `task-system/tasks/{task_id}/journal.md`
-- Task directory exists at `task-system/tasks/{task_id}/`
+- Journal file doesn't exist at `task-system/task-{task_id}/journal.md`
+- Task directory exists at `task-system/task-{task_id}/`
 
 ## Input Requirements
 
@@ -55,7 +55,7 @@ Collect all placeholder values:
 | Placeholder       | Value Source                                                  |
 | ----------------- | ------------------------------------------------------------- |
 | `{TASK_ID}`       | From task_id parameter                                        |
-| `{TASK_TITLE}`    | Read first heading from `task-system/tasks/{task_id}/task.md` |
+| `{TASK_TITLE}`    | Read first heading from `task-system/task-{task_id}/task.md` |
 | `{BRANCH_NAME}`   | Run `git branch --show-current`                               |
 | `{PR_LINK}`       | From pr_link parameter or "Pending"                           |
 | `{BASE_BRANCH}`   | Run `git symbolic-ref refs/remotes/origin/HEAD` or use "main" |
@@ -70,7 +70,7 @@ Replace all placeholders in the template with gathered values:
 
 ### Step 4: Write Journal File
 
-1. Write the populated template to `task-system/tasks/{task_id}/journal.md`
+1. Write the populated template to `task-system/task-{task_id}/journal.md`
 2. Ensure proper formatting is preserved
 3. Verify file was created successfully
 
@@ -78,14 +78,14 @@ Replace all placeholders in the template with gathered values:
 
 Report back:
 
-- Journal created at `task-system/tasks/{task_id}/journal.md`
+- Journal created at `task-system/task-{task_id}/journal.md`
 - Ready for first entry via journal-write skill
 
 ## Error Handling
 
 ### Task Directory Missing
 
-If `task-system/tasks/{task_id}/` doesn't exist:
+If `task-system/task-{task_id}/` doesn't exist:
 
 - **Error**: Task not initialized
 - **Action**: Report to calling agent that task directory must be created first

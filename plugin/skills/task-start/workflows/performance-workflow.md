@@ -135,17 +135,6 @@
 
 **Request permission to complete task**
 
-## Phase 8: Task Completion
-
-> **Completion Process**: See [Completion Protocol](./completion-protocol.md)
-
-After completing Phase 7, run:
-```bash
-/task-system:complete-task
-```
-
-Before running, review if any additional performance tasks should be created.
-
 ## Important Rules
 
 - **NEVER sacrifice functionality** for performance

@@ -20,7 +20,8 @@
   },
   "agents": [
     "agents/journaling.md",
-    "agents/task-analyzer.md"
+    "agents/task-analyzer.md",
+    "agents/task-completer.md"
   ],
   "hooks": {
     "SessionStart": [

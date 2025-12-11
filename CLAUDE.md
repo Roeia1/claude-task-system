@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is the **Claude Task System** - a structured development workflow that combines human-guided feature planning with disciplined task execution. The system provides a complete lifecycle from feature ideation through planning, task breakdown, and rigorous 8-phase execution.
+This is the **Claude Task System** - a structured development workflow that combines human-guided feature planning with disciplined task execution. The system provides a complete lifecycle from feature ideation through planning, task breakdown, and rigorous phased execution.
 
 ## Core Architecture
 
@@ -21,7 +21,7 @@ This is the **Claude Task System** - a structured development workflow that comb
    - Document architectural decisions (ADRs)
    - Generate task breakdown for approval
 
-3. **Task Execution Phase (8-Phase Discipline)**
+3. **Task Execution Phase**
    - Task Analysis → Solution Design → Test Creation (TDD) → Implementation → Refactor → Verification → Reflection → Completion
    - Each phase requires explicit permission to proceed
    - Tests written before implementation (non-negotiable)
@@ -40,11 +40,10 @@ task-system/                    # Created in user's project root
 │       ├── tasks.md           # Reference to generated tasks
 │       └── adr/               # Feature-specific ADRs
 │           └── NNN-decision.md
-├── tasks/                      # Task worktrees (each is a git worktree)
+├── tasks/                      # Task worktrees (gitignored, each is a git worktree)
 │   └── NNN/                   # Task worktree with branch task-NNN-type
-│       ├── task.md            # Task definition and requirements
-│       └── journal.md         # Execution log (created when task starts)
-├── archive/                    # Completed task archives
+│       └── [full project]     # Complete project checkout
+├── archive/                    # Completed task archives (tracked in git)
 │   └── NNN/                   # Archived task files
 │       ├── task.md            # Original task definition
 │       └── journal.md         # Execution log
@@ -52,7 +51,17 @@ task-system/                    # Created in user's project root
     └── NNN-decision-title.md
 ```
 
-**Note**: Each `task-system/tasks/NNN/` directory is a git worktree, not a regular directory. Task status is derived dynamically from filesystem and git state.
+**Inside each task worktree** (`task-system/tasks/NNN/`):
+```
+task-system/
+├── task-NNN/              # Task-specific folder
+│   ├── task.md           # Task definition and requirements
+│   └── journal.md        # Execution log (created when task starts)
+├── archive/              # Tracked archive folder
+└── features/             # Other tracked folders
+```
+
+**Note**: Each `task-system/tasks/NNN/` directory is a git worktree containing a full project checkout. The `task-system/tasks/` folder is gitignored to prevent endless nesting. Task files live in `task-system/task-NNN/` within each worktree.
 
 The plugin itself lives in:
 
@@ -91,8 +100,8 @@ Task status is derived from filesystem and git state (no persistent TASK-LIST.md
 
 | Status | Signal |
 |--------|--------|
-| PENDING | Worktree exists in `task-system/tasks/NNN/`, no `journal.md` |
-| IN_PROGRESS | Worktree exists, `journal.md` present |
+| PENDING | Worktree exists in `task-system/tasks/NNN/`, no `journal.md` in `task-system/task-NNN/` |
+| IN_PROGRESS | Worktree exists, `journal.md` present in `task-system/task-NNN/` |
 | REMOTE | Open PR with task branch, no local worktree |
 | COMPLETED | PR merged, files archived to `task-system/archive/NNN/` |
 
@@ -167,13 +176,13 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 # Say "start task 015"
 # -> Shows instructions to cd into task-system/tasks/015/
 
-# From WORKTREE: Execute 8-phase workflow
+# From WORKTREE: Execute workflow
 # cd task-system/tasks/015
 # Start Claude session
 # Say "start task 015" to begin workflow
 
 # From WORKTREE: Complete and merge
-/task-system:complete-task          # Merge PR and finalize
+# Grant permission after Phase 7 for automatic completion
 
 # From MAIN REPO: Cleanup worktree after completion
 # Say "cleanup worktree for task 015"
@@ -181,7 +190,7 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 
 ## Critical Execution Rules
 
-### 8-Phase Workflow Discipline
+### Workflow Discipline
 
 Each task follows this sequence (defined in type-specific workflows in `plugin/skills/task-start/workflows/`):
 
@@ -227,9 +236,8 @@ Each task follows this sequence (defined in type-specific workflows in `plugin/s
    - Document key decisions
    - Summarize accomplishments
 
-8. **Phase 8: Completion**
-   - Run `/task-system:complete-task` from worktree
-   - Automated PR merge
+8. **Completion** (automatic after Phase 7 approval)
+   - Task-completer subagent handles PR merge
    - Cleanup worktree from main repo afterward
 
 ### Non-Negotiable Rules
@@ -274,12 +282,12 @@ Each task type follows a specialized workflow (in `plugin/skills/task-start/work
 Tasks link back to features for full context:
 
 ```markdown
-# In task-system/tasks/015/task.md
+# In task-system/task-015/task.md (inside worktree)
 
 ## Feature Context
-**Feature**: [001-user-authentication](../../features/001-user-authentication/feature.md)
-**Technical Plan**: [plan.md](../../features/001-user-authentication/plan.md)
-**ADRs**: [adr/](../../features/001-user-authentication/adr/)
+**Feature**: [001-user-authentication](../features/001-user-authentication/feature.md)
+**Technical Plan**: [plan.md](../features/001-user-authentication/plan.md)
+**ADRs**: [adr/](../features/001-user-authentication/adr/)
 
 ## Overview
 [Task-specific implementation details...]
@@ -341,7 +349,7 @@ Negative: [tradeoffs]
 
 ## Task File Structure
 
-Each task in `task-system/tasks/###/task.md` contains:
+Each task in `task-system/task-###/task.md` (inside worktree) contains:
 
 - **Feature Context**: Links to feature definition and plan
 - **Overview**: What needs to be accomplished and why
@@ -385,6 +393,6 @@ When user signals review ("I made a review", "Check PR comments"):
 - **Document Decisions**: Use ADRs to capture architectural reasoning
 - **Maintain Traceability**: Tasks link to features, features link to ADRs
 - **Keep Complexity Minimal**: Only add what's directly needed
-- **Trust the Discipline**: The 8-phase workflow prevents costly mistakes
+- **Trust the Discipline**: The phased workflow prevents costly mistakes
 - **Dynamic Status**: No TASK-LIST.md - status derived from filesystem and git state
-- **Task Archiving**: Completed tasks are automatically archived to `task-system/archive/` during worktree cleanup
+- **Task Archiving**: Completed tasks are archived to `task-system/archive/` before PR merge (as part of task-completion)

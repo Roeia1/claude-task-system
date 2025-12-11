@@ -8,14 +8,14 @@ Validates task state and hands off to the type-specific workflow.
 
 ## Step 1: Validate Task State
 
-1. **Read task definition** from `task-system/tasks/$TASK_ID/task.md`:
+1. **Read task definition** from `task-system/task-$TASK_ID/task.md`:
    - Extract task type (feature/bugfix/refactor/performance/deployment)
    - Extract priority (P1/P2/P3)
    - Extract title and description
    - Extract dependencies (if any)
 
 2. **Determine task status**:
-   - If `journal.md` exists: Task is IN_PROGRESS (resuming work)
+   - If `task-system/task-$TASK_ID/journal.md` exists: Task is IN_PROGRESS (resuming work)
    - If no `journal.md`: Task is PENDING (starting fresh)
 
 3. **Check dependencies** (from task.md "Dependencies:" section):
@@ -78,3 +78,13 @@ Point to type-specific workflow for Phase 1 execution:
 - `workflows/refactor-workflow.md`
 - `workflows/performance-workflow.md`
 - `workflows/deployment-workflow.md`
+
+---
+
+## Step 4: Task Completion
+
+After the type-specific workflow completes and user grants completion permission:
+
+1. **Invoke task-completer subagent** with task_id
+2. **On error**: Control returns to user with specific issue
+3. **On success**: Display completion message and cleanup instructions

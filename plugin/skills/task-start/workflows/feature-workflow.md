@@ -157,15 +157,6 @@ If subagent is unavailable or user prefers manual approach:
 
 **Request permission to complete task**
 
-## Phase 8: Task Completion
-
-> **Completion Process**: See [Completion Protocol](./completion-protocol.md) for detailed instructions on running the completion command and what it does.
-
-After completing Phase 7, run:
-```bash
-/task-system:complete-task
-```
-
 ## Important Rules
 
 - **Test-Driven Development**: NEVER write implementation code before tests (Phase 3)

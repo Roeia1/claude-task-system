@@ -43,17 +43,12 @@ After navigating to the worktree:
 
 ### Completing a Task
 
-From within the **worktree**, use complete-task:
-
-```
-/task-system:complete-task
-```
-
-This will:
-- Clean CLAUDE.md (remove isolation instructions)
-- Finalize journal with Phase 8 entry
-- Merge the PR
-- **Instruct you to cleanup the worktree from main repo**
+From within the **worktree**, after completing all workflow phases and receiving permission, the task-completer subagent is automatically invoked. This handles:
+- Cleaning CLAUDE.md (remove isolation instructions)
+- Adding completion journal entry
+- Verifying PR readiness
+- Merging the PR
+- Displaying cleanup instructions
 
 ### Cleaning Up
 
@@ -230,7 +225,7 @@ git worktree list
 | Create task | Main repo | "create task" or "generate tasks" |
 | Start working | Worktree | cd task-system/tasks/NNN && claude |
 | Begin workflow | Worktree | "start task NNN" |
-| Complete task | Worktree | `/task-system:complete-task` |
+| Complete task | Worktree | Grant permission after Phase 7 (automatic completion) |
 | Cleanup | Main repo | "cleanup worktree for task NNN" |
 
 ## Important Notes

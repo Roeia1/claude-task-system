@@ -114,10 +114,10 @@ git worktree add "task-system/tasks/$TASK_ID" "task-$TASK_ID-$TYPE"
 
 ```bash
 # Create task directory structure in worktree
-mkdir -p "task-system/tasks/$TASK_ID/task-system/tasks/$TASK_ID"
+mkdir -p "task-system/tasks/$TASK_ID/task-system/task-$TASK_ID"
 
 # Write task.md to worktree
-# Location: task-system/tasks/$TASK_ID/task-system/tasks/$TASK_ID/task.md
+# Location: task-system/tasks/$TASK_ID/task-system/task-$TASK_ID/task.md
 ```
 
 #### Step 5: Commit Task Definition
@@ -145,7 +145,7 @@ gh pr create \
   --title "Task $TASK_ID: $TITLE" \
   --body "## Task Definition
 
-See: task-system/tasks/$TASK_ID/task.md
+See: task-system/task-$TASK_ID/task.md
 
 ## Overview
 

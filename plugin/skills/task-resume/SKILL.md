@@ -69,12 +69,9 @@ git worktree add "task-system/tasks/$TASK_ID" "$LOCAL_BRANCH"
 Check that expected files exist in the worktree:
 
 ```bash
-# Verify task.md exists
-if [ ! -f "task-system/tasks/$TASK_ID/task-system/tasks/$TASK_ID/task.md" ]; then
-    # Try alternate location (worktree root)
-    if [ ! -f "task-system/tasks/$TASK_ID/task.md" ]; then
-        WARN="task.md not found in expected location"
-    fi
+# Verify task.md exists in task-specific folder
+if [ ! -f "task-system/tasks/$TASK_ID/task-system/task-$TASK_ID/task.md" ]; then
+    WARN="task.md not found in expected location (task-system/task-$TASK_ID/task.md)"
 fi
 ```
 

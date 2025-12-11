@@ -131,17 +131,6 @@
 
 **Request permission to complete task**
 
-## Phase 8: Task Completion
-
-> **Completion Process**: See [Completion Protocol](./completion-protocol.md)
-
-After completing Phase 7, run:
-```bash
-/task-system:complete-task
-```
-
-Before running, review if any new refactoring tasks should be created based on discoveries.
-
 ## Important Rules
 
 - **NEVER change behavior**, only code structure and quality

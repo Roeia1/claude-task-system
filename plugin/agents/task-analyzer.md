@@ -26,7 +26,7 @@ instructions: |
   ### Required Files (Must Read)
 
   1. **Task Context**:
-     - `task-system/tasks/###/task.md` - Task definition, objectives, acceptance criteria
+     - `task-system/task-###/task.md` - Task definition, objectives, acceptance criteria
 
   2. **Feature Context** (if task links to a feature):
      - `task-system/features/NNN-name/feature.md` - User requirements and business value
