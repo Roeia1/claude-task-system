@@ -21,7 +21,8 @@
   "agents": [
     "agents/journaling.md",
     "agents/task-analyzer.md",
-    "agents/task-completer.md"
+    "agents/task-completer.md",
+    "agents/task-generator.md"
   ],
   "hooks": {
     "SessionStart": [

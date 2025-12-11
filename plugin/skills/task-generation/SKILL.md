@@ -83,90 +83,78 @@ When activated, generate executable tasks from feature planning artifacts. Each 
 
 ### Phase 2: Task Creation (After Approval)
 
-For each approved task, **sequentially**:
+Task creation runs in **parallel** using the `task-generator` subagent.
 
-#### Step 1: Determine Next Task ID
+#### Step 2a: Pre-allocate Task IDs
 
-```bash
-# Find highest existing task ID by scanning:
-# 1. Local worktrees
-# 2. Remote branches with task- pattern
-HIGHEST_LOCAL=$(ls -d task-system/tasks/*/ 2>/dev/null | grep -oP '\d+' | sort -n | tail -1)
-HIGHEST_REMOTE=$(git branch -r | grep -oP 'task-\K\d+' | sort -n | tail -1)
-NEXT_ID=$(( $(echo -e "$HIGHEST_LOCAL\n$HIGHEST_REMOTE" | sort -n | tail -1) + 1 ))
-# Pad to 3 digits
-TASK_ID=$(printf "%03d" $NEXT_ID)
-```
-
-#### Step 2: Create Branch
+Allocate all task IDs upfront to prevent race conditions:
 
 ```bash
-# Create branch from current HEAD (should be on main/master)
-git branch "task-$TASK_ID-$TYPE"
+# Count approved tasks
+TASK_COUNT=<number of approved tasks>
+
+# Allocate consecutive IDs atomically
+bash scripts/allocate-task-ids.sh $TASK_COUNT
 ```
 
-#### Step 3: Create Worktree
-
-```bash
-mkdir -p task-system/tasks
-git worktree add "task-system/tasks/$TASK_ID" "task-$TASK_ID-$TYPE"
+**Expected output**:
+```json
+{"status": "ok", "task_ids": ["015","016","017"], "start_id": "015", "end_id": "017"}
 ```
 
-#### Step 4: Write Task Definition
+Store the allocated `task_ids` array for use in Step 2c.
 
-```bash
-# Create task directory structure in worktree
-mkdir -p "task-system/tasks/$TASK_ID/task-system/task-$TASK_ID"
+#### Step 2b: Prepare Task Content
 
-# Write task.md with full context
-# Location: task-system/tasks/$TASK_ID/task-system/task-$TASK_ID/task.md
-# (Use task template, populate with feature links, objectives, etc.)
-```
+For each approved task, prepare the full `task.md` content:
 
-#### Step 5: Commit Task Definition
+1. Read `templates/execution/task-template.md`
+2. Populate template with:
+   - Pre-allocated task ID from Step 2a
+   - Feature context links (feature.md, plan.md, ADRs)
+   - Task overview and motivation
+   - Objectives and acceptance criteria
+   - Sub-tasks and technical approach
+   - Dependencies (mapped to pre-allocated IDs)
 
-```bash
-cd "task-system/tasks/$TASK_ID"
-git add .
-git commit -m "docs(task-$TASK_ID): create task definition
+**Dependency mapping**: If task T001 depends on T002 within the same batch:
+- T001 gets ID 015, T002 gets ID 016
+- T001's dependencies section references "016" (not T002)
 
-Task: $TITLE
-Type: $TYPE
-Priority: $PRIORITY
-Feature: $FEATURE_ID"
-```
+#### Step 2c: Spawn Task-Generator Subagents in Parallel
 
-#### Step 6: Push Branch
+For each approved task, invoke the `task-generator` subagent with:
 
-```bash
-git push -u origin "task-$TASK_ID-$TYPE"
-```
+| Parameter | Value |
+|-----------|-------|
+| `task_id` | Pre-allocated ID (e.g., "015") |
+| `task_type` | feature/bugfix/refactor/performance/deployment |
+| `task_title` | Task title |
+| `task_content` | Full task.md content from Step 2b |
+| `feature_id` | Feature ID (e.g., "001-user-authentication") |
+| `feature_name` | Feature name for PR body |
+| `priority` | P1/P2/P3 |
 
-#### Step 7: Create PR
+**Parallel execution**: All subagents run concurrently. Each operates on its own pre-allocated task ID, branch, and worktree.
 
-```bash
-gh pr create \
-  --title "Task $TASK_ID: $TITLE" \
-  --body "## Task Definition
+#### Step 2d: Collect Results
 
-See: task-system/task-$TASK_ID/task.md
+Wait for all subagents to complete and collect results:
 
-## Feature Context
+| Task ID | Status | PR # | Notes |
+|---------|--------|------|-------|
+| 015 | Success | #42 | |
+| 016 | Success | #43 | |
+| 017 | Failed | - | Branch creation failed |
 
-Feature: $FEATURE_ID - $FEATURE_NAME
-Plan: task-system/features/$FEATURE_SLUG/plan.md
+**On partial failure**:
+- Report which tasks succeeded and which failed
+- Successful tasks are ready for execution
+- Failed tasks can be retried using the `task-creation` skill individually
 
----
-Status: Not started (pending execution)" \
-  --head "task-$TASK_ID-$TYPE" \
-  --draft
-```
-
-#### Step 8: Return to Main Repo
-
-```bash
-cd - # Return to main repo root
-```
+**On complete success**:
+- All tasks have worktrees, branches, and draft PRs
+- Proceed to Phase 3 (Reference Documentation)
 
 ### Phase 3: Reference Documentation
 
