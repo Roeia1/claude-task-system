@@ -158,7 +158,7 @@ cd task-system/features/001-user-authentication
     Next steps:
     - Review plan.md and ADRs
     - Refine if needed
-    - Run /task-system:generate-tasks to break down into tasks
+    - Say "generate tasks" to break down into tasks
     ```
 
 ## Template Structure
@@ -305,4 +305,4 @@ We'll have some services that handle users and authentication.
 
 ---
 
-**Next Command**: After planning, use `/task-system:generate-tasks` to break down into executable tasks.
+**Next Step**: After planning, say "generate tasks" to break down into executable tasks.

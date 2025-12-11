@@ -75,7 +75,6 @@ plugin/                         # Plugin source code
 ├── commands/                   # Slash commands
 │   ├── init.md                # Initialize task-system structure
 │   ├── plan-feature.md        # Technical planning
-│   ├── generate-tasks.md      # Task breakdown
 │   ├── adr.md                 # Architecture decision records
 │   └── ...
 ├── skills/                     # Skills for task execution
@@ -134,7 +133,7 @@ Use `list tasks` to see current task status.
 # Requires human review and approval
 
 # 3. Generate tasks from plan
-/task-system:generate-tasks
+# Say: "generate tasks" or "break down feature"
 # Reads: feature.md and plan.md
 # AI proposes task breakdown
 # Shows tasks for review/modification
