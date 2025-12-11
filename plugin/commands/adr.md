@@ -263,7 +263,7 @@ cd task-system/features/001-user-auth
 
 ADRs integrate at multiple points:
 
-1. **During feature planning** (`/task-system:plan-feature`):
+1. **During feature planning** (feature-planning skill):
    - Create ADRs for significant technical choices
    - Reference in plan.md
 

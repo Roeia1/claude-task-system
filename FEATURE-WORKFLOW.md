@@ -82,11 +82,11 @@ planning/features/001-user-authentication/
 
 **Goal**: Design the technical approach, architecture, and make key technology decisions.
 
-### Command: `/project:plan-feature`
+### Skill: Feature Planning
 
 ```bash
 cd features/001-user-authentication
-/project:plan-feature
+# Say: "plan feature" or "create technical plan"
 ```
 
 ### What Happens
@@ -466,7 +466,7 @@ See `execution/PARALLEL-WORKFLOW-GUIDE.md` for details.
 
 # 3. Create technical plan
 cd features/001-user-authentication
-/project:plan-feature
+# Say: "plan feature"
 # Output: plan.md + adr/001-jwt.md, adr/002-bcrypt.md
 
 # 4. Review plan.md and ADRs (manual)
@@ -548,7 +548,7 @@ docs/adr/                # Project-wide ADRs (if any)
 
 **Workflow**:
 1. Say "define feature export data to CSV"
-2. `/project:plan-feature` (simple plan, maybe no ADRs)
+2. Say "plan feature" (simple plan, maybe no ADRs)
 3. Say "generate tasks" (maybe 3-4 tasks)
 4. Execute tasks with 8-phase workflow
 
@@ -560,7 +560,7 @@ docs/adr/                # Project-wide ADRs (if any)
 
 **Workflow**:
 1. Say "define feature multi-tenant user management" (with extensive clarification)
-2. `/project:plan-feature` with multiple ADRs
+2. Say "plan feature" (creates multiple ADRs)
 3. Say "generate tasks" (15-20 tasks)
 4. Execute tasks, some in parallel
 5. Create additional ADRs during execution

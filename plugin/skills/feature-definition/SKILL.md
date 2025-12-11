@@ -17,7 +17,7 @@ When activated, help the user create a feature definition document that describe
 ```
 task-system/features/NNN-slug/
 ├── feature.md    (created now)
-├── plan.md       (created later by plan-feature)
+├── plan.md       (created later by feature-planning skill)
 ├── tasks.md      (created later by generate-tasks)
 └── adr/          (created now, empty - populated later)
 ```
@@ -150,7 +150,7 @@ Users need to be able to authenticate securely to access personalized features.
 We'll use JWT tokens with bcrypt password hashing and refresh token rotation.
 ```
 
-Implementation details belong in plan.md (created with plan-feature skill).
+Implementation details belong in plan.md (created with feature-planning skill).
 
 ### User Story Structure
 

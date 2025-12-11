@@ -74,7 +74,6 @@ plugin/                         # Plugin source code
 │   └── task-analyzer.md
 ├── commands/                   # Slash commands
 │   ├── init.md                # Initialize task-system structure
-│   ├── plan-feature.md        # Technical planning
 │   ├── adr.md                 # Architecture decision records
 │   └── ...
 ├── skills/                     # Skills for task execution
@@ -126,7 +125,7 @@ Use `list tasks` to see current task status.
 # AI assists with clarifications for ambiguities
 
 # 2. Create technical plan (how to build)
-/task-system:plan-feature
+# Say: "plan feature" or "create technical plan"
 # Reads: task-system/features/001-user-authentication/feature.md
 # Creates: task-system/features/001-user-authentication/plan.md
 # Output: Architecture, tech choices, data models, API contracts, testing strategy
