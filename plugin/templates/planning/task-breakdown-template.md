@@ -159,4 +159,4 @@ Before creating task worktrees:
 
 ---
 
-**Next Step**: Review this breakdown, modify as needed, then use `/task-system:generate-tasks` to create actual task files.
+**Next Step**: Review this breakdown, modify as needed, then say "generate tasks" to create actual task files.

@@ -224,11 +224,11 @@ docs/adr/001-use-postgresql.md
 
 **Goal**: Break down the technical plan into executable, dependency-ordered tasks.
 
-### Command: `/project:generate-tasks`
+### Invocation: "generate tasks"
 
 ```bash
 cd features/001-user-authentication
-/project:generate-tasks
+# Say: "generate tasks" or "break down feature"
 ```
 
 ### What Happens
@@ -472,7 +472,7 @@ cd features/001-user-authentication
 # 4. Review plan.md and ADRs (manual)
 
 # 5. Generate tasks
-/project:generate-tasks
+# Say: "generate tasks"
 # Output: tasks.md + execution/tasks/015-026/
 
 # 6. Execute tasks
@@ -549,7 +549,7 @@ docs/adr/                # Project-wide ADRs (if any)
 **Workflow**:
 1. Say "define feature export data to CSV"
 2. `/project:plan-feature` (simple plan, maybe no ADRs)
-3. `/project:generate-tasks` (maybe 3-4 tasks)
+3. Say "generate tasks" (maybe 3-4 tasks)
 4. Execute tasks with 8-phase workflow
 
 **Time**: 3-5 days total
@@ -561,7 +561,7 @@ docs/adr/                # Project-wide ADRs (if any)
 **Workflow**:
 1. Say "define feature multi-tenant user management" (with extensive clarification)
 2. `/project:plan-feature` with multiple ADRs
-3. `/project:generate-tasks` (15-20 tasks)
+3. Say "generate tasks" (15-20 tasks)
 4. Execute tasks, some in parallel
 5. Create additional ADRs during execution
 
@@ -584,13 +584,13 @@ docs/adr/                # Project-wide ADRs (if any)
 ### "I need to update a feature after planning"
 
 - Edit `feature.md` or `plan.md` directly
-- If major changes: regenerate tasks with `/project:generate-tasks`
+- If major changes: say "generate tasks" to regenerate
 - Update ADRs by superseding them
 
 ### "Tasks were generated wrong"
 
 - Edit individual task files in `execution/tasks/NNN/`
-- Or regenerate: `/project:generate-tasks` (creates new IDs)
+- Or say "generate tasks" to regenerate (creates new IDs)
 
 ### "I want to skip a phase during execution"
 

@@ -14,7 +14,6 @@ When activated, generate executable tasks from feature planning artifacts. Each 
 - **Input**: `task-system/features/NNN-slug/feature.md` and `plan.md`
 - **Output (Reference)**: `task-system/features/NNN-slug/tasks.md`
 - **Output (Task Worktrees)**: `task-system/tasks/NNN/` (git worktrees)
-- **Full Workflow**: Plugin's `commands/generate-tasks.md`
 
 ## Prerequisites
 
@@ -40,12 +39,47 @@ When activated, generate executable tasks from feature planning artifacts. Each 
    - Assess which tasks can be parallelized
    - Map tasks to file changes
    - Organize into phases (Setup -> Core -> Integration -> Polish)
-5. **Show proposed tasks** with:
-   - Task ID, title, type, priority
-   - Dependencies
-   - Files affected
-   - Parallelizable markers
-6. **Interactive editing** (merge/split/reorder as needed)
+5. **Show proposed tasks** for user review:
+
+   ```markdown
+   ## Proposed Task Breakdown
+
+   Total: 12 tasks
+   Parallelizable: 6 tasks
+
+   Phase 1: Setup (2 tasks)
+   - T001: Setup project structure and dependencies
+   - T002: Create database schema and migrations
+
+   Phase 2: Core (5 tasks, 3 parallelizable)
+   - T003: Implement User model and repository [P]
+   - T004: Implement Session model and repository [P]
+   - T005: Implement AuthService (depends on T003, T004)
+   - T006: Implement password hashing utilities [P]
+   - T007: Implement JWT token generation
+
+   Phase 3: Integration (3 tasks)
+   - T008: Create login API endpoint
+   - T009: Create logout API endpoint
+   - T010: Create password reset flow
+
+   Phase 4: Polish (2 tasks, parallelizable)
+   - T011: Add comprehensive error handling [P]
+   - T012: Write integration tests [P]
+
+   Review this breakdown:
+   [y] Looks good, create tasks
+   [e] Edit tasks (merge/split/reorder)
+   [n] Regenerate with different approach
+
+   Your choice: [y/e/n]
+   ```
+
+6. **Interactive editing** (if user chooses 'e')
+   - Merge tasks that are too small
+   - Split tasks that are too large
+   - Reorder for better dependency flow
+   - Modify titles and descriptions
 
 ### Phase 2: Task Creation (After Approval)
 
@@ -191,6 +225,90 @@ Each generated task includes:
 - Risks & Concerns
 - Acceptance Criteria
 
+### Feature Context Example
+
+Each generated task.md includes traceability to the feature:
+
+```markdown
+# Task 015: Implement User Model
+
+## Feature Context
+
+**Feature**: [001-user-authentication](../features/001-user-authentication/feature.md)
+**Technical Plan**: [plan.md](../features/001-user-authentication/plan.md)
+**Feature Tasks**: [tasks.md](../features/001-user-authentication/tasks.md)
+**ADRs**:
+- [001-use-postgresql.md](../features/001-user-authentication/adr/001-use-postgresql.md)
+- [002-password-hashing.md](../features/001-user-authentication/adr/002-password-hashing.md)
+
+## Overview
+[Task-specific content...]
+```
+
+## Completion Report
+
+After all tasks are created, display completion summary:
+
+```
+Tasks generated successfully!
+
+Summary:
+- Tasks created: 015-026 (12 tasks)
+- Task breakdown: task-system/features/001-user-authentication/tasks.md
+
+Tasks with worktrees and PRs:
+- task-system/tasks/015/ (PR #XX)
+- task-system/tasks/016/ (PR #YY)
+- ...
+
+Next steps:
+1. Use "list tasks" to see all tasks
+2. cd task-system/tasks/015 && claude
+3. Say "start task 015" to begin workflow
+
+Recommended execution order:
+1. Tasks 015-016 (Setup, sequential)
+2. Tasks 017-019 + 021 (Core, can be parallel)
+3. Task 020 (depends on 017-019)
+4. Tasks 022-024 (Integration, sequential)
+5. Tasks 025-026 (Polish, can be parallel)
+```
+
+## Error Handling
+
+### Missing Prerequisites
+
+```
+Error: plan.md not found in task-system/features/001-example/
+
+Please use "plan feature" first to create the technical plan.
+```
+
+### Tasks Already Generated
+
+```
+Warning: tasks.md already exists in this feature.
+
+Existing task worktrees found:
+- task-system/tasks/015/ (PR #XX - open)
+- task-system/tasks/016/ (PR #YY - open)
+
+Do you want to:
+1. Regenerate tasks (will create new task IDs and PRs)
+2. Cancel
+
+Your choice: [1/2]
+```
+
+## Notes
+
+- Review generated tasks before starting execution
+- Each task has its own worktree, branch, and PR
+- Tasks can be worked on in parallel from different machines
+- Use "list tasks" to see status of all tasks
+- Use "resume task NNN" to continue work on a task from another machine
+- Large features may generate 15-20+ tasks - that's fine
+
 ## Next Steps
 
 After task generation:
@@ -200,6 +318,5 @@ After task generation:
 
 ## References
 
-- Complete workflow details: Plugin's `commands/generate-tasks.md`
 - Task template: Plugin's `templates/execution/task-template.md`
 - Task breakdown template: Plugin's `templates/planning/task-breakdown-template.md`
