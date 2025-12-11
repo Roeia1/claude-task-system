@@ -9,7 +9,7 @@ Begins the 8-phase execution workflow for a task. Must be run from within the ta
 
 ## Prerequisites
 
-- Task must already exist with worktree created (via `task-creation` or `task-generation` skills)
+- Task must already exist with worktree created (via `task-generation` skill)
 - Must be run from within the task's worktree directory
 - If not in worktree, provides instructions to navigate there
 

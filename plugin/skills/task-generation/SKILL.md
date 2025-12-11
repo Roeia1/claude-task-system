@@ -150,7 +150,7 @@ Wait for all subagents to complete and collect results:
 **On partial failure**:
 - Report which tasks succeeded and which failed
 - Successful tasks are ready for execution
-- Failed tasks can be retried using the `task-creation` skill individually
+- Failed tasks can be retried by running `task-generation` again for just that task
 
 **On complete success**:
 - All tasks have worktrees, branches, and draft PRs

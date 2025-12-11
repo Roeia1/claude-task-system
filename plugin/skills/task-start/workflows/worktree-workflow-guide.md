@@ -14,7 +14,7 @@ The worktree workflow provides each task with its own isolated workspace while s
 
 ### Task Creation
 
-When tasks are created (via `task-generation` or `task-creation` skills), each task gets:
+When tasks are created (via `task-generation` skill), each task gets:
 - A worktree in `task-system/tasks/NNN/`
 - A branch named `task-NNN-{type}`
 - A draft PR on GitHub

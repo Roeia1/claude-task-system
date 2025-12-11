@@ -572,10 +572,10 @@ docs/adr/                # Project-wide ADRs (if any)
 **Need**: Quick refactor not part of a feature
 
 **Workflow**:
-1. Skip feature definition
-2. Create task directly (manually or with `/project:new-task` if available)
-3. Execute with 8-phase workflow
-4. No feature context in task.md
+1. Create a lightweight feature definition (can be minimal for small changes)
+2. Create a simple plan
+3. Generate task(s) using `task-generation` skill
+4. Execute with 8-phase workflow
 
 ---
 
