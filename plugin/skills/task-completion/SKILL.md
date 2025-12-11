@@ -20,17 +20,20 @@ This skill must be run **from within the task's worktree**, not from the main re
 
 ## Process
 
-### Step 1: Verify Worktree Location
+### Step 1: Verify Worktree Location and Detect Task
 
 1. **Check current directory** is a worktree (`.git` is a file, not directory)
-2. **Extract task ID** from worktree path (pattern: `task-system/tasks/NNN`)
-3. **If in main repo**: Error with instructions to run from worktree
+2. **Auto-detect task ID** from `task-system/task-NNN` folder (source of truth):
+   ```bash
+   TASK_ID=$(ls -d task-system/task-[0-9]* 2>/dev/null | head -1 | grep -oP 'task-system/task-\K\d+')
+   ```
+3. **If no task folder found**: Error "No task-system/task-NNN folder found"
+4. **If in main repo**: Error with instructions to run from worktree
 
 ### Step 2: Task Verification
 
 1. **Read task definition** from `task-system/task-$TASK_ID/task.md`
 2. **Verify journal.md exists** at `task-system/task-$TASK_ID/journal.md` (indicates work was started)
-3. **If user provided task ID**: Verify it matches current worktree's task
 
 ### Step 3: Clean CLAUDE.md
 
@@ -148,7 +151,7 @@ Determine paths and remove the worktree:
 ## Error Handling
 
 - **Not in worktree**: Error with instructions to run from worktree
-- **Task ID mismatch**: Error showing which task this worktree is for
+- **No task folder**: Error "No task-system/task-NNN folder found in worktree"
 - **No journal.md**: Warning that task may not have been properly started
 - **PR not ready**: Show which checks/reviews are blocking
 - **Merge conflicts**: Instructions to resolve conflicts

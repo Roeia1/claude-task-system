@@ -1,16 +1,22 @@
 #!/bin/bash
 # Comprehensive context detection and validation for task-start
 #
-# Input: Task ID as first argument (required)
+# Input: Task ID as first argument (optional in worktree, required in main repo)
 # Output: JSON with context, status, and validation results
 #
+# Uses env vars from session-init.sh when available:
+# - $TASK_CONTEXT: "worktree" or "main"
+# - $CURRENT_TASK_ID: task number (in worktree)
+#
 # Checks performed:
-# 1. Git worktree detection (main vs worktree)
-# 2. Spawn directory verification ($CLAUDE_SPAWN_DIR)
-# 3. Branch alignment with task (worktree only)
-# 4. Existing worktree check (main repo only)
+# 1. Context detection (uses $TASK_CONTEXT or detects)
+# 2. Task ID detection (uses $CURRENT_TASK_ID or detects from folder)
+# 3. Spawn directory verification ($CLAUDE_SPAWN_DIR)
+# 4. Branch alignment with task (worktree only)
+# 5. Existing worktree check (main repo only)
 
-TASK_ID="$1"
+USER_INPUT="$1"
+TASK_ID=""
 
 # Helper: output JSON and exit
 output_json() {
@@ -38,10 +44,13 @@ EOF
     exit 0
 }
 
-# Validate task ID provided
-if [ -z "$TASK_ID" ]; then
-    output_json "" "error" '"missing_task_id"' "Task ID is required" "" ""
-fi
+# Helper: detect task ID from task-system/task-NNN folder
+detect_task_from_folder() {
+    local task_folder=$(ls -d task-system/task-[0-9]* 2>/dev/null | head -1)
+    if [ -n "$task_folder" ]; then
+        echo "$task_folder" | grep -oP 'task-system/task-\K\d+'
+    fi
+}
 
 # Get git root and current branch
 GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
@@ -51,14 +60,18 @@ fi
 
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
 
-# Detect context: main repo or worktree
-GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
-GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
-
-if [ "$GIT_DIR" != "$GIT_COMMON_DIR" ]; then
-    CONTEXT="worktree"
+# Use $TASK_CONTEXT from session-init.sh if available, otherwise detect
+if [ -n "$TASK_CONTEXT" ]; then
+    CONTEXT="$TASK_CONTEXT"
 else
-    CONTEXT="main"
+    # Fallback: detect context from git
+    GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+    GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
+    if [ "$GIT_DIR" != "$GIT_COMMON_DIR" ]; then
+        CONTEXT="worktree"
+    else
+        CONTEXT="main"
+    fi
 fi
 
 # Check spawn directory if available
@@ -74,24 +87,36 @@ fi
 
 # Worktree-specific validations
 if [ "$CONTEXT" = "worktree" ]; then
-    # Extract task ID from worktree path
-    # Pattern: task-system/tasks/NNN
-    WORKTREE_TASK_ID=$(echo "$GIT_ROOT" | grep -oP 'task-system/tasks/\K\d+' | head -1)
-
-    if [ -z "$WORKTREE_TASK_ID" ]; then
-        output_json "$CONTEXT" "error" '"invalid_worktree"' "Cannot determine task ID from worktree path: $GIT_ROOT" "$CURRENT_BRANCH" "$GIT_ROOT"
+    # Use $CURRENT_TASK_ID from session-init.sh if available, otherwise detect from folder
+    if [ -n "$CURRENT_TASK_ID" ]; then
+        DETECTED_TASK_ID="$CURRENT_TASK_ID"
+    else
+        # Fallback: detect from folder
+        DETECTED_TASK_ID=$(detect_task_from_folder)
     fi
 
-    # Normalize task IDs for comparison (remove leading zeros)
-    NORMALIZED_INPUT=$(echo "$TASK_ID" | sed 's/^0*//')
-    NORMALIZED_WORKTREE=$(echo "$WORKTREE_TASK_ID" | sed 's/^0*//')
-
-    if [ "$NORMALIZED_INPUT" != "$NORMALIZED_WORKTREE" ]; then
-        output_json "$CONTEXT" "error" '"wrong_worktree"' "This worktree is for task $WORKTREE_TASK_ID, not task $TASK_ID" "$CURRENT_BRANCH" "$GIT_ROOT"
+    if [ -z "$DETECTED_TASK_ID" ]; then
+        output_json "$CONTEXT" "error" '"no_task_folder"' "No task-system/task-NNN folder found in worktree. Cannot determine which task this is." "$CURRENT_BRANCH" "$GIT_ROOT"
     fi
+
+    # Use detected task ID as source of truth
+    TASK_ID="$DETECTED_TASK_ID"
+
+    # If user provided input, validate it matches detected task ID
+    if [ -n "$USER_INPUT" ]; then
+        NORMALIZED_INPUT=$(echo "$USER_INPUT" | sed 's/^0*//')
+        NORMALIZED_DETECTED=$(echo "$DETECTED_TASK_ID" | sed 's/^0*//')
+
+        if [ "$NORMALIZED_INPUT" != "$NORMALIZED_DETECTED" ]; then
+            output_json "$CONTEXT" "error" '"task_id_mismatch"' "This worktree contains task $DETECTED_TASK_ID, not task $USER_INPUT" "$CURRENT_BRANCH" "$GIT_ROOT"
+        fi
+    fi
+
+    # Normalize for branch validation
+    NORMALIZED_TASK=$(echo "$TASK_ID" | sed 's/^0*//')
 
     # Check branch matches expected pattern (task-NNN-{type})
-    EXPECTED_BRANCH_PATTERN="^task-0*${NORMALIZED_INPUT}-"
+    EXPECTED_BRANCH_PATTERN="^task-0*${NORMALIZED_TASK}-"
     if ! echo "$CURRENT_BRANCH" | grep -qE "$EXPECTED_BRANCH_PATTERN"; then
         output_json "$CONTEXT" "error" '"branch_mismatch"' "Expected branch task-$TASK_ID-*, got $CURRENT_BRANCH" "$CURRENT_BRANCH" "$GIT_ROOT"
     fi
@@ -99,7 +124,12 @@ if [ "$CONTEXT" = "worktree" ]; then
     # All validations passed for worktree
     output_json "$CONTEXT" "ok" "null" "Worktree validated for task $TASK_ID" "$CURRENT_BRANCH" "$GIT_ROOT"
 else
-    # Main repo - check if worktree already exists for this task
+    # Main repo - task ID is required from user
+    if [ -z "$USER_INPUT" ]; then
+        output_json "$CONTEXT" "error" '"missing_task_id"' "Task ID is required when running from main repo" "$CURRENT_BRANCH" ""
+    fi
+
+    TASK_ID="$USER_INPUT"
     NORMALIZED_INPUT=$(echo "$TASK_ID" | sed 's/^0*//')
 
     # Check path pattern: task-system/tasks/NNN

@@ -9,7 +9,7 @@ Dynamically generates a task list by scanning local worktrees and remote PRs. No
 
 ## Status Derivation
 
-Task status is derived from filesystem and git state:
+Task status is derived from filesystem and git state. The `task-system/task-NNN` folder is the source of truth for identifying which task a worktree contains.
 
 | Status | Signal |
 |--------|--------|
