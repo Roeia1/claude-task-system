@@ -130,7 +130,7 @@ If team capacity allows, these tasks can run concurrently:
 
 ## Task Creation Checklist
 
-Before creating tasks in task-system/tasks/TASK-LIST.md:
+Before creating task worktrees:
 
 - [ ] All tasks have clear, specific descriptions
 - [ ] Dependencies are accurately identified

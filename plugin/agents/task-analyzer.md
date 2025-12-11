@@ -27,7 +27,6 @@ instructions: |
 
   1. **Task Context**:
      - `task-system/tasks/###/task.md` - Task definition, objectives, acceptance criteria
-     - `task-system/tasks/TASK-LIST.md` - Verify dependencies status
 
   2. **Feature Context** (if task links to a feature):
      - `task-system/features/NNN-name/feature.md` - User requirements and business value
@@ -48,10 +47,30 @@ instructions: |
 
   **Important**: Not all projects will have a `docs/` directory or standardization files. If these files don't exist, rely on general best practices and explicitly state in your analysis that project-specific standards were not found.
 
+  ## Dependency Checking
+
+  Dependencies are documented in task.md but NOT strictly enforced. To check dependency status:
+
+  ```bash
+  # Check if dependency task is archived (local, fast check)
+  if [ -d "task-system/archive/$DEP_ID" ]; then
+      # Dependency satisfied - task completed and archived
+  else
+      # Fall back to PR merge check
+      gh pr list --state merged --head "task-$DEP_ID-*" --json number
+  fi
+  ```
+
+  - If archive folder exists (`task-system/archive/$DEP_ID/`): Dependency is satisfied
+  - If dependency PR is merged: Dependency is satisfied
+  - If neither: Warn but don't block
+
+  **Note**: Dependencies are advisory documentation, not hard blockers. Git will naturally handle conflicts if work proceeds out of order.
+
   ## Critical Rules
 
   - **Follow Workflows**: Execute Phase 1-2 steps as defined in task-type workflow files
-  - **Dependency Blocker**: If ANY dependency is not COMPLETED, immediately report status as BLOCKED
+  - **Advisory Dependencies**: Check dependencies via PR status, warn if not merged, but don't strictly block
   - **No Implementation**: Do NOT write code or implementation specifics during analysis
   - **Flag Ambiguities**: Question unclear requirements rather than making assumptions
   - **Standards Alignment**: When project standards exist, ensure all recommendations align with them
@@ -90,12 +109,12 @@ instructions: |
 
   ### Dependencies Status
 
-  | Task ID | Title | Status | Notes |
-  |---------|-------|--------|-------|
-  | XXX | [Title] | COMPLETED | [Any relevant notes] |
-  | YYY | [Title] | PENDING | **BLOCKER**: Must complete before starting |
+  | Task ID | Title | PR Status | Notes |
+  |---------|-------|-----------|-------|
+  | XXX | [Title] | Merged | Ready |
+  | YYY | [Title] | Open | **WARNING**: Not yet merged |
 
-  **Overall Dependency Status**: [READY/BLOCKED]
+  **Overall Dependency Status**: [READY/WARNING]
 
   *(If no dependencies, state "No dependencies - ready to proceed")*
 
@@ -257,12 +276,12 @@ instructions: |
 
   ## What NOT to Do
 
-  - Skip reading required documentation (task.md, TASK-LIST.md)
+  - Skip reading required documentation (task.md)
   - Assume specific files exist without checking
   - Propose implementation code during analysis phase
   - Make assumptions when requirements are unclear
   - Ignore or contradict existing ADRs
-  - Proceed if dependencies are not COMPLETED
+  - Strictly block on unmerged dependencies (warn instead)
   - Provide unstructured or partial analysis
 ---
 
@@ -280,7 +299,7 @@ Invoke this subagent at the beginning of task execution:
 
 Structured analysis report covering:
 - Task understanding and user value
-- Dependency validation (BLOCKER detection)
+- Dependency validation (via PR status)
 - Feature and ADR context (when available)
 - Project standards review (when available)
 - Recommended technical approach
@@ -312,7 +331,7 @@ Uses Claude Sonnet 4.5 for comprehensive analysis capabilities and deep reasonin
 ## Graceful Degradation
 
 This subagent is designed to work with projects of varying maturity:
-- **Minimal projects**: Works with just task.md and TASK-LIST.md
+- **Minimal projects**: Works with just task.md
 - **Standard projects**: Leverages feature.md, plan.md when available
 - **Mature projects**: Incorporates ADRs and project standards when present
 

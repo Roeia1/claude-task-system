@@ -4,7 +4,7 @@
 
 ## Purpose
 
-This command analyzes a feature's definition and technical plan to generate a breakdown of executable tasks. It creates both a reference task list (tasks.md) in the feature directory and actual task files in the task-system for execution.
+This command analyzes a feature's definition and technical plan to generate a breakdown of executable tasks. Each task is created with its own worktree, branch, and PR for immediate execution capability.
 
 ## Usage
 
@@ -24,9 +24,8 @@ cd task-system/features/001-user-authentication
 3. **AI generates task breakdown** following implementation phases
 4. **Shows proposed tasks** for review and modification
 5. **After approval**:
+   - Creates worktree + branch + PR for each task
    - Creates `tasks.md` in feature directory (reference)
-   - Creates individual task files in `task-system/tasks/NNN/`
-   - Updates `task-system/tasks/TASK-LIST.md` with new PENDING tasks
 6. **Links tasks back to feature** for traceability
 
 ## Command Logic
@@ -35,6 +34,8 @@ cd task-system/features/001-user-authentication
 
 1. **Feature directory exists** with both feature.md and plan.md
 2. **Tasks not already generated** (or user confirms regeneration)
+3. **Must be run from main repo** (not a worktree)
+4. **Clean working directory** (no uncommitted changes)
 
 ### Process
 
@@ -131,7 +132,6 @@ cd task-system/features/001-user-authentication
    ## Proposed Task Breakdown
 
    Total: 12 tasks
-   Estimated effort: 2-3 weeks
    Parallelizable: 6 tasks
 
    Phase 1: Setup (2 tasks)
@@ -166,19 +166,25 @@ cd task-system/features/001-user-authentication
 
 9. **Create tasks in execution system**
 
-   For each task in the breakdown:
+   For each task in the breakdown (sequentially):
 
    a. **Determine next task ID**:
-      - Read `task-system/tasks/TASK-LIST.md`
-      - Find highest task ID
-      - Increment by 1
+      - Scan existing `task-system/tasks/*/` directories
+      - Check remote branches: `git branch -r | grep task-`
+      - Find highest ID and increment by 1
 
-   b. **Create task directory**:
+   b. **Create branch**:
       ```bash
-      mkdir -p task-system/tasks/NNN/
+      git branch "task-$TASK_ID-$TYPE"
       ```
 
-   c. **Generate task.md** from template:
+   c. **Create worktree**:
+      ```bash
+      mkdir -p task-system/tasks
+      git worktree add "task-system/tasks/$TASK_ID" "task-$TASK_ID-$TYPE"
+      ```
+
+   d. **Generate task.md** from template:
       - Use task-template.md from plugin's templates/execution/
       - Fill in sections:
         * Feature Context (link to feature.md, plan.md, ADRs)
@@ -193,18 +199,37 @@ cd task-system/features/001-user-authentication
         * Resources & Links (link to plan.md, ADRs, docs)
         * Acceptance Criteria (specific to task)
 
-   d. **Add to TASK-LIST.md**:
-      ```markdown
-      ## PENDING
-      015 | P1 | feature | Implement User model | Create user entity with validation [feature:001-user-auth]
-      016 | P1 | feature | Implement Session model | Session management and expiry [feature:001-user-auth]
+   e. **Commit task definition**:
+      ```bash
+      cd "task-system/tasks/$TASK_ID"
+      git add .
+      git commit -m "docs(task-$TASK_ID): create task definition"
+      ```
+
+   f. **Push branch**:
+      ```bash
+      git push -u origin "task-$TASK_ID-$TYPE"
+      ```
+
+   g. **Create draft PR**:
+      ```bash
+      gh pr create \
+        --title "Task $TASK_ID: $TITLE" \
+        --body "## Task Definition\n\nSee: task-system/tasks/$TASK_ID/task.md\n\n## Feature\n\nFeature: $FEATURE_ID\n\n---\nStatus: Not started" \
+        --head "task-$TASK_ID-$TYPE" \
+        --draft
+      ```
+
+   h. **Return to main repo**:
+      ```bash
+      cd -
       ```
 
 10. **Create feature tasks.md**
 
     - Save the task breakdown in `task-system/features/NNN-slug/tasks.md`
-    - This serves as a reference/overview
-    - The actual executable tasks are in `task-system/tasks/NNN/`
+    - This serves as a reference/overview with links to each task
+    - Include PR numbers for each task
 
 11. **Report completion**
 
@@ -214,15 +239,16 @@ cd task-system/features/001-user-authentication
     Summary:
     - Tasks created: 015-026 (12 tasks)
     - Task breakdown: task-system/features/001-user-authentication/tasks.md
-    - Added to: task-system/tasks/TASK-LIST.md (PENDING section)
 
-    Task files created in:
-    - task-system/tasks/015/ through task-system/tasks/026/
+    Tasks with worktrees and PRs:
+    - task-system/tasks/015/ (PR #XX)
+    - task-system/tasks/016/ (PR #YY)
+    - ...
 
     Next steps:
-    1. Review task files: task-system/tasks/015/task.md
-    2. Start first task: /task-system:start-task 015
-    3. Or review all tasks: cat task-system/tasks/TASK-LIST.md
+    1. Use "list tasks" to see all tasks
+    2. cd task-system/tasks/015 && claude
+    3. Say "start task 015" to begin workflow
 
     Recommended execution order:
     1. Tasks 015-016 (Setup, sequential)
@@ -269,25 +295,26 @@ Please run /task-system:plan-feature first to create the technical plan.
 ```
 Warning: tasks.md already exists in this feature.
 
-Existing tasks found in TASK-LIST.md:
-- 015-020: Tasks for task-system/features/001-user-authentication
+Existing task worktrees found:
+- task-system/tasks/015/ (PR #XX - open)
+- task-system/tasks/016/ (PR #YY - open)
 
 Do you want to:
-1. Regenerate tasks (will create new task IDs)
-2. Update existing tasks (preserve IDs)
-3. Cancel
+1. Regenerate tasks (will create new task IDs and PRs)
+2. Cancel
 
-Your choice: [1/2/3]
+Your choice: [1/2]
 ```
 
 ## Notes
 
 - Review generated tasks before starting execution
-- Tasks can be reordered or modified in TASK-LIST.md if needed
-- The feature's tasks.md in features/ is a reference - task-system/tasks/TASK-LIST.md is the source of truth
-- Tasks link back to features for context and traceability
+- Each task has its own worktree, branch, and PR
+- Tasks can be worked on in parallel from different machines
+- Use "list tasks" to see status of all tasks
+- Use "resume task NNN" to continue work on a task from another machine
 - Large features may generate 15-20+ tasks - that's fine
 
 ---
 
-**Next Command**: After generating tasks, use `/task-system:start-task NNN` to begin execution.
+**Next Command**: After generating tasks, `cd task-system/tasks/NNN` and use `/task-system:start-task NNN` to begin execution.

@@ -8,25 +8,34 @@ Validates task state and hands off to the type-specific workflow.
 
 ## Step 1: Validate Task State
 
-1. **Read** `task-system/tasks/TASK-LIST.md`
+1. **Read task definition** from `task-system/tasks/$TASK_ID/task.md`:
+   - Extract task type (feature/bugfix/refactor/performance/deployment)
+   - Extract priority (P1/P2/P3)
+   - Extract title and description
+   - Extract dependencies (if any)
 
-2. **Verify task exists**:
-   - Search for task `$TASK_ID` in the file
-   - Not found → Error: "Task $TASK_ID not found in TASK-LIST"
+2. **Determine task status**:
+   - If `journal.md` exists: Task is IN_PROGRESS (resuming work)
+   - If no `journal.md`: Task is PENDING (starting fresh)
 
-3. **Check status**:
-   - If in COMPLETED section → Error: "Task $TASK_ID already completed"
-   - If in PENDING or IN_PROGRESS → Continue
+3. **Check dependencies** (from task.md "Dependencies:" section):
+   - For each dependency, check if archived or PR is merged:
+     ```bash
+     # Check archive first (fast local check), then PR status
+     if [ -d "task-system/archive/$DEP_ID" ]; then
+         # Dependency satisfied - archived
+     else
+         gh pr list --state merged --head "task-$DEP_ID-*" --json number
+     fi
+     ```
+   - Archived or merged → Dependency satisfied
+   - Neither → Warning: "Dependency task $DEP_ID not yet completed"
+   - Note: Dependencies are advisory (documented but not enforced)
 
-4. **Check dependencies** (read `task-system/tasks/$TASK_ID/task.md`):
-   - Parse "Dependencies:" section
-   - For each dependency, verify it is in COMPLETED section of TASK-LIST.md
-   - Any not completed → Error: "Blocked by: XXX (PENDING), YYY (IN_PROGRESS)"
-
-5. **Get task metadata** from TASK-LIST.md:
+4. **Get task metadata** from task.md:
    - Task title
-   - Task type (feature/bugfix/refactor/performance/deployment)
-   - Priority (P1/P2/P3)
+   - Task type
+   - Priority
 
 ---
 
@@ -48,6 +57,7 @@ Task $TASK_ID Ready for Execution
 Branch: $BRANCH
 Type: {type}
 Priority: {priority}
+Status: {PENDING or IN_PROGRESS}
 
 ---------------------------------------------------------------
 Ready to begin workflow execution

@@ -15,9 +15,8 @@ The completion command automatically handles:
 1. **Cleans CLAUDE.md** - removes worktree-specific isolation instructions
 2. **Commits any final changes** in your working directory
 3. **Verifies PR is ready** (all checks passing, no conflicts)
-4. **Updates task status** to COMPLETED in TASK-LIST.md
-5. **Merges the PR** automatically
-6. **Instructs cleanup** - tells you to run worktree-cleanup from main repo
+4. **Merges the PR** automatically
+5. **Instructs cleanup** - tells you to run worktree-cleanup from main repo
 
 ## After Completion: Cleanup
 
@@ -68,9 +67,9 @@ Before running the completion command, review:
 
 Once both completion and cleanup are done:
 
-- Task is marked COMPLETED in TASK-LIST.md
+- PR is merged to main (task is COMPLETED)
 - Worktree directory is removed
-- PR is merged to main
+- Use "list tasks" to see task status
 - Ready to start next task
 
 ## Troubleshooting

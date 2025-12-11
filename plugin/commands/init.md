@@ -12,25 +12,19 @@ Creates the `task-system/` directory structure for tracking features, tasks, and
    - `task-system/features/`
    - `task-system/tasks/`
    - `task-system/adrs/`
-   - `task-system/worktrees/`
+   - `task-system/archive/`
 
-2. Create `task-system/tasks/TASK-LIST.md` with initial content:
-   ```markdown
-   # Task List
-
-   ## IN_PROGRESS
-
-   ## PENDING
-
-   ## COMPLETED
-   ```
-
-3. Add gitignore pattern for worktrees:
+2. Add gitignore pattern for task worktrees:
    - Check if `.gitignore` exists at project root
-   - If the pattern `task-system/worktrees/` is not already present, append:
+   - If the pattern `task-system/tasks/*/` is not already present, append:
      ```
-     # Claude Task System - Worktrees (ephemeral, not tracked)
-     task-system/worktrees/
+     # Claude Task System - Task worktrees (each task folder is a git worktree)
+     task-system/tasks/*/
      ```
 
-4. Confirm to user: "Task system initialized. You can now use /task-system:define-feature to start."
+3. Confirm to user: "Task system initialized. You can now use /task-system:define-feature to start."
+
+## Notes
+
+- **Task worktrees**: Each task gets its own worktree in `task-system/tasks/NNN/`
+- **Use `list tasks`**: To see all tasks and their status
