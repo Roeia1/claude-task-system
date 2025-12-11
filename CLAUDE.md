@@ -144,8 +144,9 @@ Use `list tasks` to see current task status.
 ### Architecture Decision Records
 
 ```bash
-# Create ADR (context-aware)
-/task-system:adr "choice of JWT vs session-based auth"
+# Create ADR (context-aware) - use natural language
+# Say: "create ADR for JWT vs session-based auth"
+# Say: "document decision for database choice"
 
 # If in feature directory → creates task-system/features/001-auth/adr/001-jwt-choice.md
 # If in repo root → creates task-system/adrs/NNN-decision.md
