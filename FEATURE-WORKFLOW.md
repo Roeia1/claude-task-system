@@ -18,10 +18,10 @@ Each phase requires human review and approval before proceeding.
 
 **Goal**: Clearly define what needs to be built and why, without implementation details.
 
-### Command: `/project:define-feature`
+### Activation: Say "define feature [description]"
 
 ```bash
-/project:define-feature "user authentication with email/password and OAuth"
+# Say: "define feature user authentication with email/password and OAuth"
 ```
 
 ### What Happens
@@ -459,7 +459,7 @@ See `execution/PARALLEL-WORKFLOW-GUIDE.md` for details.
 
 ```bash
 # 1. Define feature
-/project:define-feature "user authentication with email/password"
+# Say: "define feature user authentication with email/password"
 # Output: planning/features/001-user-authentication/feature.md
 
 # 2. Review and refine feature.md (manual)
@@ -547,7 +547,7 @@ docs/adr/                # Project-wide ADRs (if any)
 **Feature**: Export data to CSV
 
 **Workflow**:
-1. `/project:define-feature "export data to CSV"`
+1. Say "define feature export data to CSV"
 2. `/project:plan-feature` (simple plan, maybe no ADRs)
 3. `/project:generate-tasks` (maybe 3-4 tasks)
 4. Execute tasks with 8-phase workflow
@@ -559,7 +559,7 @@ docs/adr/                # Project-wide ADRs (if any)
 **Feature**: Multi-tenant user management
 
 **Workflow**:
-1. `/project:define-feature` with extensive clarification
+1. Say "define feature multi-tenant user management" (with extensive clarification)
 2. `/project:plan-feature` with multiple ADRs
 3. `/project:generate-tasks` (15-20 tasks)
 4. Execute tasks, some in parallel
@@ -624,7 +624,7 @@ Ready to start? Here's your first workflow:
 
 ```bash
 # 1. Try with a simple feature first
-/project:define-feature "add export to CSV functionality"
+# Say: "define feature add export to CSV functionality"
 
 # 2. Follow the prompts
 # 3. Review each output

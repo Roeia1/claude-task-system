@@ -22,7 +22,7 @@ Creates the `task-system/` directory structure for tracking features, tasks, and
      task-system/tasks/*/
      ```
 
-3. Confirm to user: "Task system initialized. You can now use /task-system:define-feature to start."
+3. Confirm to user: "Task system initialized. You can now say 'define feature [name]' to start."
 
 ## Notes
 

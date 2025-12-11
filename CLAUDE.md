@@ -74,7 +74,6 @@ plugin/                         # Plugin source code
 │   └── task-analyzer.md
 ├── commands/                   # Slash commands
 │   ├── init.md                # Initialize task-system structure
-│   ├── define-feature.md      # Create feature definition
 │   ├── plan-feature.md        # Technical planning
 │   ├── generate-tasks.md      # Task breakdown
 │   ├── adr.md                 # Architecture decision records
@@ -122,7 +121,7 @@ Use `list tasks` to see current task status.
 
 ```bash
 # 1. Define the feature (what to build)
-/task-system:define-feature "user authentication system"
+# Say: "define feature user authentication system"
 # Creates: task-system/features/001-user-authentication/feature.md
 # Output: User stories, requirements, acceptance criteria
 # AI assists with clarifications for ambiguities

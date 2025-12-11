@@ -52,7 +52,7 @@ cd task-system/features/001-user-authentication
    ```bash
    if [[ ! -f "task-system/features/NNN-slug/feature.md" ]]; then
      echo "Error: feature.md not found"
-     echo "Run /task-system:define-feature first"
+     echo "Say 'define feature [name]' first"
      exit 1
    fi
    ```
@@ -230,7 +230,7 @@ Which feature? [001/002]:
 ```
 Error: feature.md not found in task-system/features/001-example/
 
-Please run /task-system:define-feature first to create the feature definition.
+Please say "define feature [name]" first to create the feature definition.
 ```
 
 ### Unresolved Clarifications
