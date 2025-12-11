@@ -12,6 +12,7 @@ When activated, finalize and complete a task. Must be run from within the task's
 - **Task Definition**: `task-system/task-NNN/task.md`
 - **Journal**: `task-system/task-NNN/journal.md`
 - **Archive**: `task-system/archive/NNN/` (destination for archiving)
+- **Scripts**: `scripts/remove-worktree.sh` (in this skill folder)
 
 ## Important
 
@@ -111,6 +112,39 @@ This ensures:
 2. **Merge**: `gh pr merge --squash --delete-branch`
 3. **Confirm merge successful**
 
+### Step 10: Remove Worktree
+
+Determine paths and remove the worktree:
+
+1. **Capture paths before removal**:
+   ```bash
+   WORKTREE=$(git rev-parse --show-toplevel)
+   MAIN_REPO=$(dirname "$(git rev-parse --git-common-dir)")
+   ```
+
+2. **Remove worktree**:
+   ```bash
+   bash scripts/remove-worktree.sh $MAIN_REPO $WORKTREE
+   ```
+
+3. **Display final success**:
+   ```
+   ===============================================================
+   Task $TASK_ID Completed Successfully!
+   ===============================================================
+
+   - Task files archived to task-system/archive/$TASK_ID/
+   - PR merged to main branch
+   - Task branch deleted from remote
+   - Worktree removed
+
+   ---------------------------------------------------------------
+   IMPORTANT: Your terminal is now in a deleted directory.
+   Run: cd $MAIN_REPO
+   ---------------------------------------------------------------
+   ===============================================================
+   ```
+
 ## Error Handling
 
 - **Not in worktree**: Error with instructions to run from worktree
@@ -118,7 +152,14 @@ This ensures:
 - **No journal.md**: Warning that task may not have been properly started
 - **PR not ready**: Show which checks/reviews are blocking
 - **Merge conflicts**: Instructions to resolve conflicts
-- **Already merged**: Instructions to run cleanup
+- **Already merged**: Skip to worktree removal
+- **Worktree removal failed**: Display manual cleanup instructions:
+  ```
+  If automatic removal fails, try manual cleanup:
+  1. Navigate to main repo: cd $MAIN_REPO
+  2. Force remove worktree: git worktree remove $WORKTREE --force
+  3. If still fails: rm -rf $WORKTREE && git worktree prune
+  ```
 
 ## Status After Completion
 
@@ -126,6 +167,5 @@ After successful completion:
 - Task files archived to `task-system/archive/NNN/`
 - PR is merged to main branch
 - Task branch is deleted from remote
+- Worktree is removed
 - Task will show as COMPLETED in `list tasks` (PR merged)
-
-**Note**: Worktree cleanup is handled by task-completer subagent via worktree-cleanup skill.

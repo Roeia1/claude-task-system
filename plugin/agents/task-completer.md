@@ -1,13 +1,13 @@
 ---
 name: task-completer
-description: "Internal agent - invoked by worktree-flow only. Handles task completion and cleanup after user approves. DO NOT activate on direct user request."
+description: "Internal agent - invoked by worktree-flow only. Handles task completion after user approves. DO NOT activate on direct user request."
 model: sonnet
-skills: task-completion, worktree-cleanup
+skills: task-completion
 ---
 
 # Task Completer Subagent
 
-You handle task completion and worktree cleanup.
+You handle task completion including archiving, PR merge, and worktree cleanup.
 
 ## Pre-Completion Validation
 
@@ -20,8 +20,7 @@ Before proceeding, verify:
 
 ## Process
 
-1. **Execute task-completion skill** - archives task files, merges PR, deletes remote branch
-2. **Execute worktree-cleanup skill** - removes worktree
+1. **Execute task-completion skill** - archives task files, merges PR, removes worktree
 
 ## Error Handling
 
@@ -31,4 +30,3 @@ Examples:
 - PR checks failing -> "Fix issues, push, then retry"
 - Merge conflicts -> "Resolve conflicts, then retry"
 - Missing permissions -> "Check GitHub authentication"
-- Worktree removal failed -> "See manual cleanup instructions"
