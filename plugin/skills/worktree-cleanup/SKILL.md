@@ -5,12 +5,13 @@ description: "Internal skill - ONLY activated by task-completer subagent after t
 
 # Worktree Cleanup Skill
 
-Archives task files and removes the worktree after task completion. Must be run from within the worktree being cleaned up.
+Removes the worktree after task completion. Must be run from within the worktree being cleaned up.
+
+**Note**: Task files are archived during task-completion (before merge), so this skill only handles worktree removal.
 
 ## File Locations
 
 - **Task Worktrees**: `task-system/tasks/NNN/` (git worktrees)
-- **Archive**: `task-system/archive/NNN/` (archived task files)
 - **Scripts**: `scripts/` (relative to this skill)
 
 ---
@@ -34,17 +35,7 @@ TASK_ID=$(echo "$WORKTREE" | grep -oP 'task-system/tasks/\K\d+')
 
 Verify all values are set before proceeding.
 
-### Step 2: Archive Task Files
-
-Run the archive script:
-
-```bash
-bash scripts/archive-task.sh $TASK_ID $MAIN_REPO $WORKTREE
-```
-
-This copies `task.md` and `journal.md` to `task-system/archive/$TASK_ID/`.
-
-### Step 3: Remove Worktree
+### Step 2: Remove Worktree
 
 Run the remove script:
 
@@ -54,7 +45,7 @@ bash scripts/remove-worktree.sh $MAIN_REPO $WORKTREE
 
 This removes the worktree and prunes stale references using `git -C` (no directory navigation needed).
 
-### Step 4: Display Success
+### Step 3: Display Success
 
 ```
 ===============================================================
@@ -62,7 +53,6 @@ Worktree Cleanup Complete
 ===============================================================
 
 Task: $TASK_ID
-Archived to: task-system/archive/$TASK_ID/
 Worktree removed successfully
 
 ---------------------------------------------------------------
@@ -81,7 +71,6 @@ Run: cd $MAIN_REPO
 | Error | Action |
 |-------|--------|
 | Not in worktree | Error: Must run from within a worktree |
-| Archive failed | Warn but continue with removal |
 | Removal failed | Display manual cleanup instructions |
 
 ### Manual Cleanup (if automatic removal fails)

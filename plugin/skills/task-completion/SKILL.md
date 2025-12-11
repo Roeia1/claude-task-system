@@ -9,8 +9,9 @@ When activated, finalize and complete a task. Must be run from within the task's
 
 ## File Locations
 
-- **Task Definition**: `task-system/tasks/NNN/task.md`
-- **Journal**: `task-system/tasks/NNN/journal.md`
+- **Task Definition**: `task-system/task-NNN/task.md`
+- **Journal**: `task-system/task-NNN/journal.md`
+- **Archive**: `task-system/archive/NNN/` (destination for archiving)
 
 ## Important
 
@@ -26,8 +27,8 @@ This skill must be run **from within the task's worktree**, not from the main re
 
 ### Step 2: Task Verification
 
-1. **Read task definition** from `task-system/tasks/$TASK_ID/task.md`
-2. **Verify journal.md exists** (indicates work was started)
+1. **Read task definition** from `task-system/task-$TASK_ID/task.md`
+2. **Verify journal.md exists** at `task-system/task-$TASK_ID/journal.md` (indicates work was started)
 3. **If user provided task ID**: Verify it matches current worktree's task
 
 ### Step 3: Clean CLAUDE.md
@@ -50,7 +51,7 @@ This skill must be run **from within the task's worktree**, not from the main re
 
 ### Step 5: Finalize Journal
 
-1. **Read journal** from `task-system/tasks/$TASK_ID/journal.md`
+1. **Read journal** from `task-system/task-$TASK_ID/journal.md`
 2. **Add completion entry**:
    - Timestamp
    - Summary of achievements
@@ -60,10 +61,42 @@ This skill must be run **from within the task's worktree**, not from the main re
 ### Step 6: Commit Completion Documentation
 
 1. **Stage changes**: `git add task-system/`
-2. **Commit**: `git commit -m "docs(task-$TASK_ID): complete Phase 8 documentation"`
+2. **Commit**: `git commit -m "docs(task-$TASK_ID): finalize task documentation"`
 3. **Push**: `git push`
 
-### Step 7: Verify PR Readiness
+### Step 7: Archive and Remove Task Files
+
+Archive task files before merge - files go to main via the merge.
+
+1. **Create archive directory**:
+   ```bash
+   mkdir -p task-system/archive/$TASK_ID
+   ```
+
+2. **Move task files to archive**:
+   ```bash
+   mv task-system/task-$TASK_ID/task.md task-system/archive/$TASK_ID/
+   mv task-system/task-$TASK_ID/journal.md task-system/archive/$TASK_ID/
+   ```
+
+3. **Remove the task folder**:
+   ```bash
+   rm -rf task-system/task-$TASK_ID
+   ```
+
+4. **Commit archive + deletion together**:
+   ```bash
+   git add task-system/archive/$TASK_ID/ task-system/task-$TASK_ID
+   git commit -m "archive(task-$TASK_ID): move task files to archive before merge"
+   git push
+   ```
+
+This ensures:
+- Archive files go to main via merge
+- `task-system/task-NNN/` folder is removed before merge
+- Single atomic commit for archive operation
+
+### Step 8: Verify PR Readiness
 
 1. **Check PR status** using `gh pr view`
 2. **Verify**:
@@ -72,13 +105,13 @@ This skill must be run **from within the task's worktree**, not from the main re
    - Required reviews approved
 3. **Handle issues** if found (failed checks, conflicts, missing reviews)
 
-### Step 8: Merge the PR
+### Step 9: Merge the PR
 
 1. **Display PR information** for final confirmation
 2. **Merge**: `gh pr merge --squash --delete-branch`
 3. **Confirm merge successful**
 
-### Step 9: Instruct Cleanup
+### Step 10: Instruct Cleanup
 
 Display instructions for worktree cleanup:
 

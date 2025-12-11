@@ -215,7 +215,7 @@ cd task-system/features/001-user-authentication
       ```bash
       gh pr create \
         --title "Task $TASK_ID: $TITLE" \
-        --body "## Task Definition\n\nSee: task-system/tasks/$TASK_ID/task.md\n\n## Feature\n\nFeature: $FEATURE_ID\n\n---\nStatus: Not started" \
+        --body "## Task Definition\n\nSee: task-system/task-$TASK_ID/task.md\n\n## Feature\n\nFeature: $FEATURE_ID\n\n---\nStatus: Not started" \
         --head "task-$TASK_ID-$TYPE" \
         --draft
       ```

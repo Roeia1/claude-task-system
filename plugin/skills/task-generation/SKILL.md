@@ -82,9 +82,10 @@ git worktree add "task-system/tasks/$TASK_ID" "task-$TASK_ID-$TYPE"
 
 ```bash
 # Create task directory structure in worktree
-mkdir -p "task-system/tasks/$TASK_ID/task-system/tasks/$TASK_ID"
+mkdir -p "task-system/tasks/$TASK_ID/task-system/task-$TASK_ID"
 
 # Write task.md with full context
+# Location: task-system/tasks/$TASK_ID/task-system/task-$TASK_ID/task.md
 # (Use task template, populate with feature links, objectives, etc.)
 ```
 
@@ -114,7 +115,7 @@ gh pr create \
   --title "Task $TASK_ID: $TITLE" \
   --body "## Task Definition
 
-See: task-system/tasks/$TASK_ID/task.md
+See: task-system/task-$TASK_ID/task.md
 
 ## Feature Context
 
@@ -147,8 +148,8 @@ After all tasks are created:
 
    | ID | Title | Type | Priority | PR |
    |----|-------|------|----------|-----|
-   | 015 | [Title](../../tasks/015/task.md) | feature | P1 | #XX |
-   | 016 | [Title](../../tasks/016/task.md) | feature | P1 | #YY |
+   | 015 | [Title](../task-015/task.md) | feature | P1 | #XX |
+   | 016 | [Title](../task-016/task.md) | feature | P1 | #YY |
 
    ## Dependencies
 

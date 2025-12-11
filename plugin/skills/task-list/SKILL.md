@@ -13,8 +13,8 @@ Task status is derived from filesystem and git state:
 
 | Status | Signal |
 |--------|--------|
-| PENDING | Worktree exists in `task-system/tasks/NNN/`, no `journal.md` |
-| IN_PROGRESS | Worktree exists, `journal.md` present |
+| PENDING | Worktree exists in `task-system/tasks/NNN/`, no `journal.md` in `task-system/task-NNN/` |
+| IN_PROGRESS | Worktree exists, `journal.md` present in `task-system/task-NNN/` |
 | REMOTE | Open PR with task branch, no local worktree |
 | COMPLETED | PR merged (query with `gh pr list --state merged`) |
 
@@ -31,10 +31,10 @@ Task status is derived from filesystem and git state:
 
 2. **Filter for task worktrees** (pattern: `task-system/tasks/NNN`):
    - Extract task ID from path
-   - Check if `journal.md` exists in worktree to determine status
+   - Check if `journal.md` exists in `task-system/task-NNN/` within worktree to determine status
 
 3. **For each local task**:
-   - Read `task.md` to get: title, type, priority
+   - Read `task.md` from `task-system/task-NNN/task.md` to get: title, type, priority
    - Determine status: PENDING (no journal.md) or IN_PROGRESS (has journal.md)
 
 ### Step 2: Scan Remote PRs
@@ -106,8 +106,9 @@ IN_PROGRESS=()
 PENDING=()
 
 for TASK_ID in "${LOCAL_TASKS[@]}"; do
-    TASK_DIR="task-system/tasks/$TASK_ID"
-    if [ -f "$TASK_DIR/journal.md" ]; then
+    WORKTREE_DIR="task-system/tasks/$TASK_ID"
+    TASK_FOLDER="$WORKTREE_DIR/task-system/task-$TASK_ID"
+    if [ -f "$TASK_FOLDER/journal.md" ]; then
         IN_PROGRESS+=("$TASK_ID")
     else
         PENDING+=("$TASK_ID")

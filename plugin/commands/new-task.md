@@ -100,7 +100,7 @@ Based on your input, I'll update:
 
 ```
 Created Task 003: Implement Victory Retailer XML Support
-Location: task-system/tasks/003/task.md
+Location: task-system/task-003/task.md
 
 Generated Content:
    - 4 clear objectives with success criteria

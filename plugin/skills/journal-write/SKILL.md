@@ -22,7 +22,7 @@ This skill is responsible for:
 
 ## File Locations
 
-- **Journal**: `task-system/tasks/NNN/journal.md`
+- **Journal**: `task-system/task-NNN/journal.md`
 - **Task Type Workflows**: Plugin's `skills/task-start/workflows/{type}-workflow.md`
 
 ## Input Requirements
@@ -64,7 +64,7 @@ adr_references: ["ADR-003"]
 
 ### Step 1: Load Context
 
-1. **Verify journal exists** at `task-system/tasks/{task_id}/journal.md`:
+1. **Verify journal exists** at `task-system/task-{task_id}/journal.md`:
 
    - If NO: Error - journal must be created first (use journal-create skill)
    - If YES: Continue to read and validate

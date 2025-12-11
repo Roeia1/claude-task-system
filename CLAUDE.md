@@ -40,11 +40,10 @@ task-system/                    # Created in user's project root
 │       ├── tasks.md           # Reference to generated tasks
 │       └── adr/               # Feature-specific ADRs
 │           └── NNN-decision.md
-├── tasks/                      # Task worktrees (each is a git worktree)
+├── tasks/                      # Task worktrees (gitignored, each is a git worktree)
 │   └── NNN/                   # Task worktree with branch task-NNN-type
-│       ├── task.md            # Task definition and requirements
-│       └── journal.md         # Execution log (created when task starts)
-├── archive/                    # Completed task archives
+│       └── [full project]     # Complete project checkout
+├── archive/                    # Completed task archives (tracked in git)
 │   └── NNN/                   # Archived task files
 │       ├── task.md            # Original task definition
 │       └── journal.md         # Execution log
@@ -52,7 +51,17 @@ task-system/                    # Created in user's project root
     └── NNN-decision-title.md
 ```
 
-**Note**: Each `task-system/tasks/NNN/` directory is a git worktree, not a regular directory. Task status is derived dynamically from filesystem and git state.
+**Inside each task worktree** (`task-system/tasks/NNN/`):
+```
+task-system/
+├── task-NNN/              # Task-specific folder
+│   ├── task.md           # Task definition and requirements
+│   └── journal.md        # Execution log (created when task starts)
+├── archive/              # Tracked archive folder
+└── features/             # Other tracked folders
+```
+
+**Note**: Each `task-system/tasks/NNN/` directory is a git worktree containing a full project checkout. The `task-system/tasks/` folder is gitignored to prevent endless nesting. Task files live in `task-system/task-NNN/` within each worktree.
 
 The plugin itself lives in:
 
@@ -91,8 +100,8 @@ Task status is derived from filesystem and git state (no persistent TASK-LIST.md
 
 | Status | Signal |
 |--------|--------|
-| PENDING | Worktree exists in `task-system/tasks/NNN/`, no `journal.md` |
-| IN_PROGRESS | Worktree exists, `journal.md` present |
+| PENDING | Worktree exists in `task-system/tasks/NNN/`, no `journal.md` in `task-system/task-NNN/` |
+| IN_PROGRESS | Worktree exists, `journal.md` present in `task-system/task-NNN/` |
 | REMOTE | Open PR with task branch, no local worktree |
 | COMPLETED | PR merged, files archived to `task-system/archive/NNN/` |
 
@@ -273,12 +282,12 @@ Each task type follows a specialized workflow (in `plugin/skills/task-start/work
 Tasks link back to features for full context:
 
 ```markdown
-# In task-system/tasks/015/task.md
+# In task-system/task-015/task.md (inside worktree)
 
 ## Feature Context
-**Feature**: [001-user-authentication](../../features/001-user-authentication/feature.md)
-**Technical Plan**: [plan.md](../../features/001-user-authentication/plan.md)
-**ADRs**: [adr/](../../features/001-user-authentication/adr/)
+**Feature**: [001-user-authentication](../features/001-user-authentication/feature.md)
+**Technical Plan**: [plan.md](../features/001-user-authentication/plan.md)
+**ADRs**: [adr/](../features/001-user-authentication/adr/)
 
 ## Overview
 [Task-specific implementation details...]
@@ -340,7 +349,7 @@ Negative: [tradeoffs]
 
 ## Task File Structure
 
-Each task in `task-system/tasks/###/task.md` contains:
+Each task in `task-system/task-###/task.md` (inside worktree) contains:
 
 - **Feature Context**: Links to feature definition and plan
 - **Overview**: What needs to be accomplished and why
@@ -386,4 +395,4 @@ When user signals review ("I made a review", "Check PR comments"):
 - **Keep Complexity Minimal**: Only add what's directly needed
 - **Trust the Discipline**: The phased workflow prevents costly mistakes
 - **Dynamic Status**: No TASK-LIST.md - status derived from filesystem and git state
-- **Task Archiving**: Completed tasks are automatically archived to `task-system/archive/` during worktree cleanup
+- **Task Archiving**: Completed tasks are archived to `task-system/archive/` before PR merge (as part of task-completion)
