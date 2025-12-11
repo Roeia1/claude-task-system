@@ -19,11 +19,20 @@ Archives task files and removes the worktree after task completion. Must be run 
 
 ### Step 1: Determine Paths
 
-From current worktree location, determine:
+Use git commands to determine paths exactly:
 
-1. **Task ID**: Extract from current path (pattern: `task-system/tasks/NNN`)
-2. **Worktree path**: Current git root (`git rev-parse --show-toplevel`)
-3. **Main repo path**: 3 levels up from worktree (`$WORKTREE/../../..`)
+```bash
+# Worktree path (current git root)
+WORKTREE=$(git rev-parse --show-toplevel)
+
+# Main repo path (parent of .git common dir)
+MAIN_REPO=$(dirname "$(git rev-parse --git-common-dir)")
+
+# Task ID (extract from worktree path pattern: task-system/tasks/NNN)
+TASK_ID=$(echo "$WORKTREE" | grep -oP 'task-system/tasks/\K\d+')
+```
+
+Verify all values are set before proceeding.
 
 ### Step 2: Archive Task Files
 
