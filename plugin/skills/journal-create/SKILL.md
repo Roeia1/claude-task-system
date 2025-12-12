@@ -20,8 +20,10 @@ This skill focuses on **HOW to create journal files**:
 ## File Locations
 
 - **Journal Template**: `journal-template.md` (in this skill folder)
-- **Journal Output**: `task-system/task-{task_id}/journal.md`
-- **Task File**: `task-system/task-{task_id}/task.md`
+- **Journal Output**: `{worktree_path}/task-system/task-{task_id}/journal.md`
+- **Task File**: `{worktree_path}/task-system/task-{task_id}/task.md`
+
+**IMPORTANT**: All file paths MUST be constructed using the provided `worktree_path`. Never use relative paths or search for files by name.
 
 ## Input Requirements
 
@@ -30,6 +32,7 @@ When calling this skill, provide:
 ### Required Parameters
 
 - **task_id**: Task number (e.g., "042")
+- **worktree_path**: Absolute path to the worktree root (e.g., "/path/to/project/task-system/tasks/042")
 
 ### Optional Parameters
 
@@ -48,10 +51,12 @@ Collect all placeholder values:
 | Placeholder       | Value Source                                                  |
 | ----------------- | ------------------------------------------------------------- |
 | `{TASK_ID}`       | From task_id parameter                                        |
-| `{TASK_TITLE}`    | Read first heading from `task-system/task-{task_id}/task.md` |
-| `{BRANCH_NAME}`   | Run `git branch --show-current`                               |
+| `{TASK_TITLE}`    | Read first heading from `{worktree_path}/task-system/task-{task_id}/task.md` |
+| `{BRANCH_NAME}`   | Run `git branch --show-current` (from worktree_path)          |
 | `{PR_LINK}`       | From pr_link parameter or "Pending"                           |
 | `{BASE_BRANCH}`   | Run `git symbolic-ref refs/remotes/origin/HEAD` or use "main" |
+
+**IMPORTANT**: When reading task.md, use the full absolute path: `{worktree_path}/task-system/task-{task_id}/task.md`
 
 ### Step 3: Replace Placeholders
 
@@ -63,7 +68,7 @@ Replace all placeholders in the template with gathered values:
 
 ### Step 4: Write Journal File
 
-1. Write the populated template to `task-system/task-{task_id}/journal.md`
+1. Write the populated template to `{worktree_path}/task-system/task-{task_id}/journal.md`
 2. Ensure proper formatting is preserved
 3. Verify file was created successfully
 
@@ -71,14 +76,14 @@ Replace all placeholders in the template with gathered values:
 
 Report back:
 
-- Journal created at `task-system/task-{task_id}/journal.md`
+- Journal created at `{worktree_path}/task-system/task-{task_id}/journal.md`
 - Ready for first entry via journal-write skill
 
 ## Error Handling
 
 ### Task Directory Missing
 
-If `task-system/task-{task_id}/` doesn't exist:
+If `{worktree_path}/task-system/task-{task_id}/` doesn't exist:
 
 - **Error**: Task not initialized
 - **Action**: Report to calling agent that task directory must be created first

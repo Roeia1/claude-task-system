@@ -1,7 +1,7 @@
 ---
 name: journaling
-description: Handles journal creation and writing. Invoke per journaling guidelines.\nProvide: task_id, phase, activity, content, next_action. Optional: is_phase_transition, adr_references.\nExamples:\n- "Create journal for task 042. Starting Phase 1, read task.md, understood requirements for user authentication. Dependencies verified. Next: begin detailed analysis."\n- "Document Phase 1 completion for task 042. Moving to Phase 2. Verified dependencies, identified concern about rate limiting. Next: request Phase 2 permission."\n- "Log implementation challenge for task 042 in Phase 4. Database schema, circular dependency users/orgs tables, solved with deferred constraints. Next: implement User model."\n- "Document blocker for task 042 in Phase 4. API returns 500, tried X and Y. Next: discuss alternatives with user."
-model: sonnet
+description: Handles journal creation and writing. Invoke per journaling guidelines.\nProvide: task_id, worktree_path (absolute path), phase, activity, content, next_action. Optional: is_phase_transition, adr_references.\nExamples:\n- "Create journal for task 042 at /path/to/tasks/042. Starting Phase 1, read task.md, understood requirements for user authentication. Dependencies verified. Next: begin detailed analysis."\n- "Document Phase 1 completion for task 042 at /path/to/tasks/042. Moving to Phase 2. Verified dependencies, identified concern about rate limiting. Next: request Phase 2 permission."\n- "Log implementation challenge for task 042 at /path/to/tasks/042 in Phase 4. Database schema, circular dependency users/orgs tables, solved with deferred constraints. Next: implement User model."\n- "Document blocker for task 042 at /path/to/tasks/042 in Phase 4. API returns 500, tried X and Y. Next: discuss alternatives with user."
+model: haiku
 skills: journal-write, journal-create
 ---
 
@@ -23,6 +23,7 @@ Main execution agents provide:
 **Required**:
 
 - **task_id**: Task number (e.g., "042")
+- **worktree_path**: Absolute path to the worktree root (e.g., "/path/to/project/task-system/tasks/042")
 - **phase**: Current phase (e.g., "Phase 1", "Phase 4: Implementation")
 - **activity**: What's being documented (e.g., "task started", "Database Schema Implementation")
 - **content**: The journal entry content
@@ -37,14 +38,17 @@ Main execution agents provide:
 
 ### Step 1: Ensure Journal Exists
 
-- Check if journal file exists at `task-system/task-{task_id}/journal.md`
-- **If not exists**: Use the journal-create skill to create it
+- Construct the absolute journal path: `{worktree_path}/task-system/task-{task_id}/journal.md`
+- Check if journal file exists at this absolute path
+- **If not exists**: Use the journal-create skill to create it (pass worktree_path)
 - **If exists**: Continue to Step 2
 
 ### Step 2: Write Entry
 
-- Use the journal-write skill with all provided parameters
+- Use the journal-write skill with all provided parameters (including worktree_path)
 - The skill handles validation, formatting, and file updates
+
+**IMPORTANT**: Always use the provided `worktree_path` to construct absolute file paths. Never search for files by name or use relative paths that could resolve to wrong locations.
 
 ## Output
 

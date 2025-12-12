@@ -22,7 +22,9 @@ This skill is responsible for:
 
 ## File Locations
 
-- **Journal**: `task-system/task-NNN/journal.md`
+- **Journal**: `{worktree_path}/task-system/task-NNN/journal.md`
+
+**IMPORTANT**: All file paths MUST be constructed using the provided `worktree_path`. Never use relative paths or search for files by name.
 
 ## Input Requirements
 
@@ -31,6 +33,7 @@ When calling this skill, the agent must provide:
 ### Required Parameters
 
 - **task_id**: Task number (e.g., "123")
+- **worktree_path**: Absolute path to the worktree root (e.g., "/path/to/project/task-system/tasks/123")
 - **phase**: Current phase identifier (e.g., "Phase 4: Implementation")
 - **activity**: Specific activity or decision being documented (e.g., "Database Schema Implementation", "PR Review Response")
 - **content**: Main journal entry content - what happened, decisions made, challenges encountered, solutions applied
@@ -45,6 +48,7 @@ When calling this skill, the agent must provide:
 
 ```
 task_id: "042"
+worktree_path: "/home/user/project/task-system/tasks/042"
 phase: "Phase 4: Implementation"
 activity: "Database Schema Implementation"
 content: |
@@ -63,19 +67,23 @@ adr_references: ["ADR-003"]
 
 ### Step 1: Load Context
 
-1. **Verify journal exists** at `task-system/task-{task_id}/journal.md`:
+1. **Construct absolute path**: `{worktree_path}/task-system/task-{task_id}/journal.md`
+
+2. **Verify journal exists** at this absolute path:
 
    - If NO: Error - journal must be created first (use journal-create skill)
    - If YES: Continue to read and validate
 
-2. **Read journal** (if it exists):
+3. **Read journal** using the absolute path:
 
    - Identify current phase from "Current Phase" header
    - Locate "Progress Log" section for insertion point
 
-3. **Validate journal structure**:
+4. **Validate journal structure**:
    - Ensure required sections exist
    - Verify journal follows proper structure
+
+**IMPORTANT**: Always use the constructed absolute path. Never search for files by name or use relative paths.
 
 ### Step 2: Validate Input Quality
 
