@@ -106,3 +106,27 @@ P1 - Critical path for the counts feature; blocks Phase 5 integration
 - Graceful output (`● 0 ◐ 0 ○ 0` or similar) when no tasks exist
 - Script completes within 100ms performance budget
 - No crashes or errors when task-system directory is missing or empty
+
+## Lessons Learned
+
+### Technical Insights
+
+1. **Bash arithmetic and `set -e`**: The `((var++))` operator returns exit code 1 when incrementing from 0, which causes script failure with `set -e`. Solution: Use `var=$((var + 1))` instead.
+
+2. **Git context isolation**: When running git commands from a script that might be invoked from different directories, use `git -C $dir` to explicitly specify the repository context rather than relying on the current working directory.
+
+3. **Environment variable isolation**: Reset environment variables like `CLAUDE_SPAWN_DIR` in `load_environment()` to prevent inheriting values from the caller's environment.
+
+4. **Performance optimization**: Bash parameter expansion (`${var#prefix}`, `${var%%-*}`) is significantly faster than subprocess calls (`sed`, `awk`) for simple string manipulation. This matters in loops.
+
+### Patterns That Worked Well
+
+- **TDD approach**: Writing tests first (27 test cases) caught edge cases early and made implementation straightforward
+- **Mock filesystem helpers**: `createMockTaskSystem()` and `createMockGitRepo()` test helpers enabled comprehensive testing without touching real repositories
+- **Graceful degradation**: Returning zeros instead of errors for missing directories/repos provides better UX for statusline integration
+
+### Approaches to Avoid
+
+- Don't use `((var++))` with `set -e` - always use `$((var + 1))` assignment
+- Don't run git commands without explicit `-C` when the script may be invoked from arbitrary directories
+- Don't forget to test with branch names containing slashes (e.g., `feature/foo`) - they require special handling in test fixtures
