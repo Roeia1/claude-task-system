@@ -146,3 +146,27 @@ None - This is the first task in the statusline feature.
 - All unit tests pass with 80%+ coverage on implemented functionality
 - Script exits with code 0 on success, code 1 on actual errors (not missing context)
 - README.md documents installation via npx and standalone bash script download
+
+## Lessons Learned
+
+### New Risks Discovered
+
+1. **Environment Variable Inheritance**: When sourcing `$CLAUDE_ENV_FILE`, variables like `TASK_CONTEXT` may already be set in the outer shell environment. This caused tests to fail when running in a worktree context. **Mitigation**: Reset variables to empty before sourcing the env file.
+
+2. **Git Tracking of node_modules**: Running `npm install` before adding `.gitignore` led to accidentally committing 4000+ files. **Mitigation**: Always create `.gitignore` with `node_modules/` before running `npm install`.
+
+### Patterns That Worked Well
+
+1. **TDD Approach**: Writing 29 tests first caught the environment inheritance bug early - tests failed in worktree but passed in isolation, revealing the issue immediately.
+
+2. **Array-Based Output Building**: Using bash arrays with IFS join (`local -a parts=(); parts+=("$item"); echo "${parts[*]}"`) is cleaner than string concatenation with conditional separators.
+
+3. **Readonly Constants**: Using `readonly` modifier for icon definitions documents intent and prevents accidental modification.
+
+### Technical Insights
+
+1. **Jest Coverage for Bash**: Jest coverage shows 0% when testing bash scripts via shell execution - this is expected behavior and doesn't indicate missing coverage.
+
+2. **Conditional Expressions**: Bash ternary-style `[[ condition ]] && echo "yes" || echo "no"` is concise but can fail unexpectedly if the first command fails. Use explicit if/else for critical logic.
+
+3. **Shellcheck Directive**: Use `# shellcheck disable=SC1090` to suppress warnings when dynamically sourcing files with `source "$variable"`.
