@@ -77,19 +77,16 @@ plugin/                         # Plugin source code
 │   ├── init.md                # Initialize task-system structure
 │   ├── adr.md                 # Architecture decision records
 │   └── ...
-├── skills/                     # Skills for task execution
-│   ├── task-start/
-│   │   ├── SKILL.md
-│   │   └── workflows/         # Type-specific execution workflows
-│   ├── task-list/             # Dynamic task list generation
-│   ├── task-resume/           # Resume remote tasks locally
-│   └── ...
-└── templates/                  # Artifact templates
-    ├── execution/
-    │   └── task-template.md
-    └── planning/
-        ├── feature-template.md
-        └── ...
+└── skills/                     # Skills for task execution
+    ├── feature-definition/
+    │   ├── SKILL.md
+    │   └── templates/         # Skill-specific templates
+    ├── task-start/
+    │   ├── SKILL.md
+    │   └── workflows/         # Type-specific execution workflows
+    ├── task-list/             # Dynamic task list generation
+    ├── task-resume/           # Resume remote tasks locally
+    └── ...
 ```
 
 ### Dynamic Task Status

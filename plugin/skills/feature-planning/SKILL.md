@@ -9,8 +9,8 @@ When activated, help the user create a technical implementation plan that descri
 
 ## File Locations
 
-- **Plan Template**: Read from plugin's `templates/planning/plan-template.md`
-- **ADR Template**: Read from plugin's `templates/planning/adr-template.md`
+- **Plan Template**: `templates/plan-template.md`
+- **ADR Template**: `../architecture-decisions/templates/adr-template.md`
 - **Input**: `task-system/features/NNN-slug/feature.md`
 - **Output**: `task-system/features/NNN-slug/plan.md`
 - **ADRs**: `task-system/features/NNN-slug/adr/`
@@ -47,7 +47,7 @@ When activated, help the user create a technical implementation plan that descri
    - Note dependencies and constraints
 
 5. **Load plan template**
-   - Read plan template from plugin's `templates/planning/plan-template.md`
+   - Read plan template from `templates/plan-template.md`
    - Use as structure for generation
 
 6. **AI-assisted technical planning** (7 phases with human review)
@@ -294,5 +294,5 @@ After technical plan is complete, suggest running the **task-generation** skill 
 
 ## References
 
-- Plan template structure: Plugin's `templates/planning/plan-template.md`
-- ADR template: Plugin's `templates/planning/adr-template.md`
+- Plan template structure: `templates/plan-template.md`
+- ADR template: `../architecture-decisions/templates/adr-template.md`

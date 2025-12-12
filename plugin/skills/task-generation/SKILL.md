@@ -9,8 +9,7 @@ When activated, generate executable tasks from feature planning artifacts. Each 
 
 ## File Locations
 
-- **Task Breakdown Template**: Read from plugin's `templates/planning/task-breakdown-template.md`
-- **Task Template**: Read from plugin's `templates/execution/task-template.md`
+- **Task Breakdown Template**: `templates/task-breakdown-template.md`
 - **Input**: `task-system/features/NNN-slug/feature.md` and `plan.md`
 - **Output (Reference)**: `task-system/features/NNN-slug/tasks.md`
 - **Output (Task Worktrees)**: `task-system/tasks/NNN/` (git worktrees)
@@ -30,9 +29,8 @@ When activated, generate executable tasks from feature planning artifacts. Each 
 2. **Read planning artifacts**:
    - `feature.md` for user stories, acceptance criteria, requirements
    - `plan.md` for implementation phases, technology choices, data models, APIs
-3. **Read templates** from plugin:
-   - `templates/planning/task-breakdown-template.md` for structure
-   - `templates/execution/task-template.md` for individual tasks
+3. **Read template**:
+   - `templates/task-breakdown-template.md` for structure
 4. **AI-generated task breakdown**:
    - Identify distinct work units from plan
    - Determine dependencies between units
@@ -139,6 +137,7 @@ For each approved task, spawn a `task-builder` subagent that handles both git se
 | `feature_id`   | Feature ID (e.g., "001-user-authentication")     |
 
 **Parallel execution**: All task-builder instances run concurrently. Each instance:
+
 1. Creates git branch and worktree (fast-fail before expensive work)
 2. Generates comprehensive task.md content
 3. Commits, pushes, and creates draft PR
@@ -285,8 +284,3 @@ After task generation:
 - Use `list tasks` to see all generated tasks
 - Use `start task NNN` to begin execution on a specific task
 - Tasks are ready to be worked on in parallel (different machines/sessions)
-
-## References
-
-- Task template: Plugin's `templates/execution/task-template.md`
-- Task breakdown template: Plugin's `templates/planning/task-breakdown-template.md`

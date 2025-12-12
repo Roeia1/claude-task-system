@@ -9,7 +9,7 @@ When activated, help the user create a feature definition document that describe
 
 ## File Locations
 
-- **Template**: Read from plugin's `templates/planning/feature-template.md`
+- **Template**: `templates/feature-template.md`
 - **Output**: `task-system/features/NNN-slug/feature.md`
 
 ## Directory Structure Created
@@ -44,7 +44,7 @@ task-system/features/NNN-slug/
    - Create `task-system/features/NNN-slug/adr/` subdirectory
 
 5. **Load feature template**
-   - Read feature template from plugin's `templates/planning/feature-template.md`
+   - Read feature template from `templates/feature-template.md`
    - Use as structure for generation
 
 6. **AI-assisted generation**
@@ -232,4 +232,4 @@ After feature definition is complete, suggest running the **feature-planning** s
 
 ## References
 
-- Feature template structure: Plugin's `templates/planning/feature-template.md`
+- Feature template structure: `templates/feature-template.md`
