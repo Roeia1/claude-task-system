@@ -1,7 +1,7 @@
 ---
 name: task-completer
 description: "Internal agent - invoked by worktree-flow only. Handles task completion after user approves. DO NOT activate on direct user request."
-model: sonnet
+model: haiku
 skills: task-completion
 ---
 

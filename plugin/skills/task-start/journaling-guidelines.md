@@ -55,10 +55,13 @@ Use Task tool with subagent_type="journaling" and provide prepared content
 You MUST provide ALL of these parameters - the subagent will FAIL without them:
 
 - **task_id**: Task number (e.g., "042") - REQUIRED
+- **worktree_path**: Absolute path to the worktree root (get from `$WORKTREE_PATH` or `pwd`) - REQUIRED
 - **phase**: Current phase (e.g., "Phase 4: Implementation") - REQUIRED
 - **activity**: What's being documented (e.g., "Database Schema Implementation") - REQUIRED
 - **content**: The journal entry narrative (what happened, decisions, reasoning) - REQUIRED
 - **next_action**: Specific next step (MUST be concrete and actionable) - REQUIRED
+
+**IMPORTANT**: The `worktree_path` MUST be an absolute path (e.g., `/home/user/project/task-system/tasks/042`). This ensures the journaling subagent can locate the journal file without searching.
 
 ### Optional Parameters
 
@@ -71,6 +74,7 @@ You MUST provide ALL of these parameters - the subagent will FAIL without them:
 Invoke journaling subagent with:
 
 task_id: "042"
+worktree_path: "/home/user/project/task-system/tasks/042"
 phase: "Phase 1"
 activity: "Task Started"
 content: |
@@ -86,6 +90,7 @@ next_action: "Begin Phase 1: Task Analysis following feature-workflow.md"
 Invoke journaling subagent with:
 
 task_id: "042"
+worktree_path: "/home/user/project/task-system/tasks/042"
 phase: "Phase 3: Test Creation"
 activity: "Phase 2 Complete: Solution Design Finalized"
 is_phase_transition: true
@@ -108,6 +113,7 @@ adr_references: ["ADR-005"]
 Invoke journaling subagent with:
 
 task_id: "042"
+worktree_path: "/home/user/project/task-system/tasks/042"
 phase: "Phase 4: Implementation"
 activity: "Database Schema Implementation"
 content: |
@@ -125,6 +131,7 @@ next_action: "Implement User model with password hashing before organization rel
 Invoke journaling subagent with:
 
 task_id: "042"
+worktree_path: "/home/user/project/task-system/tasks/042"
 phase: "Phase 6: Verification & Polish"
 activity: "PR Review Response"
 content: |
