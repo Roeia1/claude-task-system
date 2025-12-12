@@ -47,7 +47,7 @@ If no section flags are specified, all sections are shown.
 
 Environment:
   CLAUDE_ENV_FILE    Path to environment file with pre-detected context variables.
-                     Expected variables: TASK_CONTEXT, CURRENT_TASK_ID
+                     Expected variables: TASK_CONTEXT, CURRENT_TASK_ID, CLAUDE_SPAWN_DIR
 
 Examples:
   task-status                    # Show all sections with icons
@@ -197,12 +197,16 @@ count_remote_tasks() {
     # Count branches that don't have local worktrees
     local branch
     while IFS= read -r branch; do
-        # Extract task ID from branch name (e.g., "origin/task-001-feature" -> "001")
-        local task_id
-        task_id=$(echo "$branch" | sed -n 's/.*origin\/task-\([0-9]\+\)-.*/\1/p')
+        # Extract task ID from branch name (e.g., "  origin/task-001-feature" -> "001")
+        # Trim leading whitespace and extract ID using parameter expansion
+        branch="${branch#"${branch%%[![:space:]]*}"}"  # Trim leading whitespace
 
-        # Skip if we couldn't extract task ID
-        [[ -z "$task_id" ]] && continue
+        # Extract task ID: remove "origin/task-" prefix, then extract digits before "-"
+        local task_id="${branch#origin/task-}"
+        task_id="${task_id%%-*}"
+
+        # Skip if we couldn't extract a valid numeric task ID
+        [[ ! "$task_id" =~ ^[0-9]+$ ]] && continue
 
         # Check if this task has a local worktree
         if [[ "$LOCAL_TASK_IDS" != *" $task_id"* ]]; then
