@@ -1,0 +1,32 @@
+{
+  "name": "@claude-task-system/statusline",
+  "version": "0.1.0",
+  "description": "Statusline integration script for Claude Task System - displays task context in terminal prompts",
+  "bin": {
+    "task-status": "./bin/task-status"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "lint": "shellcheck bin/task-status scripts/*.sh"
+  },
+  "keywords": [
+    "claude",
+    "task-system",
+    "statusline",
+    "prompt"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "README.md"
+  ]
+}
