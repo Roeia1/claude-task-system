@@ -11,7 +11,8 @@
       "version": "1.0.0",
       "source": {
         "source": "github",
-        "repo": "Roeia1/claude-task-system"
+        "repo": "Roeia1/claude-task-system",
+        "path": "plugin"
       },
       "author": {
         "name": "Roei Avrahami",
