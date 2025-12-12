@@ -22,7 +22,7 @@ This is the **Claude Task System** - a structured development workflow that comb
    - Generate task breakdown for approval
 
 3. **Task Execution Phase**
-   - Task Analysis → Solution Design → Test Creation (TDD) → Implementation → Refactor → Verification → Reflection → Completion
+   - Each task type follows a specialized workflow (feature, bugfix, refactor, performance, deployment)
    - Each phase requires explicit permission to proceed
    - Tests written before implementation (non-negotiable)
    - Journaling subagent documents decisions and learnings throughout
@@ -71,9 +71,8 @@ plugin/                         # Plugin source code
 │   └── plugin.json            # Plugin manifest
 ├── agents/                     # Subagent definitions
 │   ├── journaling.md
-│   ├── task-completer.md
-│   ├── task-content-generator.md
-│   └── task-generator.md
+│   ├── task-builder.md
+│   └── task-completer.md
 ├── commands/                   # Slash commands
 │   ├── init.md                # Initialize task-system structure
 │   ├── adr.md                 # Architecture decision records
@@ -192,44 +191,23 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 
 ### Workflow Discipline
 
-Each task type follows a specialized workflow (in `plugin/skills/task-start/workflows/`). The number of phases varies by task type:
+Each task type follows a specialized workflow defined in `plugin/skills/task-start/workflows/`. All workflows share common principles but are tailored to their domain:
 
-**Feature Tasks (5 phases)**:
-1. **Phase 1: Test Creation (TDD)** - Write tests for expected behavior, verify they fail
-2. **Phase 2: Implementation** - Implement to pass tests, commit logical milestones
-3. **Phase 3: Refactor** - Improve code quality, ensure tests still pass
-4. **Phase 4-5: Verification & Reflection** - Verify acceptance criteria, update task file with learnings
-5. **Completion** - Task-completer handles PR merge
+- **Feature**: Test-driven development flow. Write failing tests first, implement to pass them, refactor for quality, then verify and reflect.
 
-**Bugfix Tasks (6 phases)**:
-1. **Phase 1: Bug Investigation** - Reproduce bug, identify root cause
-2. **Phase 2: Test-First Bug Fix** - Write test reproducing the bug
-3. **Phase 3: Minimal Fix Implementation** - Apply targeted fix
-4. **Phase 4: Validation & Edge Cases** - Test edge cases and integration
-5. **Phase 5-6: Verification & Reflection**
-6. **Completion**
+- **Bugfix**: Investigation-first flow. Reproduce and understand the bug, write a test that captures it, apply minimal fix, validate edge cases, then verify and reflect.
 
-**Refactor Tasks (6 phases)**:
-1. **Phase 1: Code Analysis & Planning** - Identify technical debt, plan strategy
-2. **Phase 2: Safety Net Creation** - Add tests for code being refactored
-3. **Phase 3: Incremental Refactoring** - Apply changes in small, safe increments
-4. **Phase 4: Quality Validation** - Verify metrics improved, no regressions
-5. **Phase 5-6: Verification & Reflection**
-6. **Completion**
+- **Refactor**: Safety-net flow. Analyze code and plan changes, add tests to protect existing behavior, make incremental changes, validate quality improvements, then verify and reflect.
 
-**Performance Tasks (6 phases)**:
-1. **Phase 1: Performance Analysis** - Establish baseline, identify bottlenecks
-2. **Phase 2: Benchmark Test Creation** - Create performance test suite
-3. **Phase 3: Performance Implementation** - Apply optimizations incrementally
-4. **Phase 4: Performance Validation** - Verify targets met
-5. **Phase 5-6: Verification & Reflection**
-6. **Completion**
+- **Performance**: Measurement-driven flow. Establish baselines and identify bottlenecks, create benchmark tests, apply optimizations incrementally, validate targets are met, then verify and reflect.
 
-**Deployment Tasks (8 phases)**: See `deployment-workflow.md` for specialized operational workflow
+- **Deployment**: Operational flow with additional phases for infrastructure concerns. See `deployment-workflow.md` for details.
+
+All workflows end with **Verification** (check acceptance criteria), **Reflection** (document learnings), and **Completion** (task-completer handles PR merge).
 
 ### Non-Negotiable Rules
 
-- **Test-Driven Development**: Tests must be written before implementation (Phase 1 for features)
+- **Test-Driven Development**: Tests must be written before implementation
 - **Phase Progression**: Each phase requires explicit user permission to proceed
 - **No Test Modification**: After tests are written, they can only be changed with explicit user approval
 - **Continuous Journaling**: Invoke journaling subagent throughout to document decisions and insights
