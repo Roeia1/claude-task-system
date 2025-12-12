@@ -4,22 +4,23 @@
 
 set -euo pipefail
 
-# Default configuration
+# Configuration flags (set by argument parsing)
 USE_ICONS=true
 SHOW_ORIGIN=false
 SHOW_TASK=false
 SHOW_COUNTS=false
 SHOW_ALL=true
 
-# Icons (Unicode)
-ICON_MAIN="⎇"
-ICON_WORKTREE="⌂"
+# Context variables (populated from CLAUDE_ENV_FILE)
+TASK_CONTEXT=""
+CURRENT_TASK_ID=""
 
-# ASCII fallbacks
-ASCII_MAIN="[M]"
-ASCII_WORKTREE="[W]"
+# Icon definitions
+readonly ICON_MAIN="⎇"
+readonly ICON_WORKTREE="⌂"
+readonly ASCII_MAIN="[M]"
+readonly ASCII_WORKTREE="[W]"
 
-# Usage information
 show_help() {
     cat << 'EOF'
 Usage: task-status [OPTIONS]
@@ -51,7 +52,6 @@ Exit codes:
 EOF
 }
 
-# Parse command line arguments
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -94,101 +94,50 @@ parse_args() {
     fi
 }
 
-# Source environment file if available
 load_environment() {
-    # Reset variables - only use values from CLAUDE_ENV_FILE, not inherited environment
-    # This ensures consistent behavior regardless of outer environment
+    # Only use values from CLAUDE_ENV_FILE, not inherited environment
     TASK_CONTEXT=""
     CURRENT_TASK_ID=""
 
-    # Check if CLAUDE_ENV_FILE is set and non-empty
-    if [[ -n "${CLAUDE_ENV_FILE:-}" ]]; then
-        # Check if file exists and is readable
-        if [[ -f "$CLAUDE_ENV_FILE" && -r "$CLAUDE_ENV_FILE" ]]; then
-            # Source the file, ignoring errors from malformed content
-            # shellcheck disable=SC1090
-            source "$CLAUDE_ENV_FILE" 2>/dev/null || true
-        fi
+    if [[ -n "${CLAUDE_ENV_FILE:-}" && -f "$CLAUDE_ENV_FILE" && -r "$CLAUDE_ENV_FILE" ]]; then
+        # shellcheck disable=SC1090
+        source "$CLAUDE_ENV_FILE" 2>/dev/null || true
     fi
 }
 
-# Output origin indicator
-output_origin() {
-    local indicator
-
-    # Determine context (default to "main" if not set)
-    local context="${TASK_CONTEXT:-main}"
-
+# Get indicator for context type
+# Args: $1 = context ("main" or "worktree")
+get_indicator() {
+    local context="$1"
     if [[ "$context" == "worktree" ]]; then
-        if [[ "$USE_ICONS" == "true" ]]; then
-            indicator="$ICON_WORKTREE"
-        else
-            indicator="$ASCII_WORKTREE"
-        fi
+        [[ "$USE_ICONS" == "true" ]] && echo -n "$ICON_WORKTREE" || echo -n "$ASCII_WORKTREE"
     else
-        # Default to main for any other value or unset
-        if [[ "$USE_ICONS" == "true" ]]; then
-            indicator="$ICON_MAIN"
-        else
-            indicator="$ASCII_MAIN"
-        fi
-    fi
-
-    echo -n "$indicator"
-}
-
-# Output task ID
-output_task() {
-    if [[ -n "${CURRENT_TASK_ID:-}" ]]; then
-        echo -n "$CURRENT_TASK_ID"
+        [[ "$USE_ICONS" == "true" ]] && echo -n "$ICON_MAIN" || echo -n "$ASCII_MAIN"
     fi
 }
 
-# Output task counts (placeholder for future implementation)
-output_counts() {
-    # Placeholder - will be implemented in future tasks
-    :
+build_output() {
+    local -a parts=()
+
+    if [[ "$SHOW_ORIGIN" == "true" ]]; then
+        parts+=("$(get_indicator "${TASK_CONTEXT:-main}")")
+    fi
+
+    if [[ "$SHOW_TASK" == "true" && -n "$CURRENT_TASK_ID" ]]; then
+        parts+=("$CURRENT_TASK_ID")
+    fi
+
+    # SHOW_COUNTS placeholder - will be implemented in future tasks
+
+    # Join parts with space separator
+    local IFS=' '
+    echo "${parts[*]}"
 }
 
-# Main function
 main() {
     parse_args "$@"
     load_environment
-
-    local output=""
-    local separator=" "
-
-    if [[ "$SHOW_ORIGIN" == "true" ]]; then
-        output+=$(output_origin)
-    fi
-
-    if [[ "$SHOW_TASK" == "true" ]]; then
-        local task_output
-        task_output=$(output_task)
-        if [[ -n "$task_output" ]]; then
-            if [[ -n "$output" ]]; then
-                output+="$separator"
-            fi
-            output+="$task_output"
-        fi
-    fi
-
-    if [[ "$SHOW_COUNTS" == "true" ]]; then
-        local counts_output
-        counts_output=$(output_counts)
-        if [[ -n "$counts_output" ]]; then
-            if [[ -n "$output" ]]; then
-                output+="$separator"
-            fi
-            output+="$counts_output"
-        fi
-    fi
-
-    if [[ -n "$output" ]]; then
-        echo "$output"
-    fi
-
-    exit 0
+    build_output
 }
 
 main "$@"
