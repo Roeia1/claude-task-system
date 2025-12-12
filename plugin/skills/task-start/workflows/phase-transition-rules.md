@@ -24,35 +24,17 @@ May I proceed to Phase [N+1]: [Phase Name]?
 
 ### Exit Criteria Requirement
 
-Before requesting permission, verify all exit criteria for the current phase are met:
+Before requesting permission, verify all exit criteria for the current phase are met. Exit criteria vary by task type - see the specific workflow file:
 
-- Phase 1: Clear understanding documented, concerns identified, initial commit made
-- Phase 2: Complete solution design documented, architecture decisions committed
-- Phase 3: All tests written and failing as expected, test strategy committed
-- Phase 4: All tests passing, implementation complete, all milestones committed
-- Phase 5: Code is clean and maintainable, all tests still passing, refactoring committed
-- Phase 6: All criteria verified, code polished, quality checks pass, PR ready for review
-- Phase 7: Complete reflection documented, task file updated with learnings
-- Phase 8: Ready to merge PR and complete task
+- `feature-workflow.md` - 5 phases
+- `bugfix-workflow.md` - 6 phases
+- `refactor-workflow.md` - 6 phases
+- `performance-workflow.md` - 6 phases
+- `deployment-workflow.md` - 8 phases
 
 ### Sequential Execution
 
-Phases must be completed in order:
-
-```
-Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 → Phase 8
-```
-
-**No skipping phases.** Each phase builds on the previous.
-
-### Exception: Combined Phases
-
-Some workflows combine phases when it makes sense:
-
-- **Task Analyzer Subagent**: Combines Phase 1 (Analysis) and Phase 2 (Design) into a single comprehensive analysis step
-- **Deployment Tasks**: May have different phase structure suited to operational workflows
-
-When phases are combined, still request permission before proceeding to the next distinct phase.
+Phases must be completed in order. **No skipping phases.** Each phase builds on the previous.
 
 ### What User Permission Looks Like
 
@@ -78,9 +60,9 @@ If user says "wait", "hold", "not yet", or provides feedback:
 
 While permission is only *required* at phase boundaries, consider proactively asking for review within complex phases:
 
-- Major architectural decisions (Phase 2)
-- Complex test strategies (Phase 3)
-- Significant implementation milestones (Phase 4)
-- Extensive refactoring (Phase 5)
+- Major architectural decisions
+- Complex test strategies
+- Significant implementation milestones
+- Extensive refactoring
 
 Use phrasing: "Should I request a review before proceeding with [specific action]?"

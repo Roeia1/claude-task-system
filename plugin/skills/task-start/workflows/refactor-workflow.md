@@ -1,29 +1,8 @@
 # Refactor Task Execution Workflow
 
-## Phase 1: Task Analysis
+## Phase 1: Code Analysis & Planning
 
 **Prerequisites**: Git setup completed by task-start skill
-
-### Task Analysis
-
-1. Read entire task file thoroughly
-2. Review all dependencies are COMPLETED
-3. Analyze refactoring objectives and quality goals
-4. Review existing sub-tasks in task file
-5. Identify ambiguities or concerns
-6. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis" && git push`
-
-### Exit Criteria
-
-- Clear understanding documented
-- Quality goals identified
-- Initial commit made
-
-> **Phase Transition**: See [Phase Transition Rules](./phase-transition-rules.md)
-
-**Request permission to proceed to Phase 2**
-
-## Phase 2: Code Analysis & Planning
 
 1. Identify technical debt and quality issues in target code
 2. Analyze existing test coverage for refactor areas
@@ -41,9 +20,9 @@
 - Refactoring strategy planned
 - Quality metrics defined
 
-**Request permission to proceed to Phase 3**
+**Request permission to proceed to Phase 2**
 
-## Phase 3: Safety Net Creation
+## Phase 2: Safety Net Creation
 
 1. Run existing tests to establish baseline (all must pass)
 2. Identify areas with insufficient test coverage for refactoring
@@ -60,9 +39,9 @@
 - Adequate test coverage for refactor areas
 - Safety net committed
 
-**Request permission to proceed to Phase 4**
+**Request permission to proceed to Phase 3**
 
-## Phase 4: Incremental Refactoring
+## Phase 3: Incremental Refactoring
 
 1. Apply refactoring changes in small, safe increments
 2. **Commit frequently**: After each logical refactoring step
@@ -88,9 +67,9 @@
 - All logical improvements committed
 - Performance maintained or improved
 
-**Request permission to proceed to Phase 5**
+**Request permission to proceed to Phase 4**
 
-## Phase 5: Quality Validation
+## Phase 4: Quality Validation
 
 1. Run complete test suite to verify no regressions
 2. Check code quality metrics against baseline:
@@ -109,13 +88,13 @@
 - Performance maintained
 - Validation documented
 
-**Request permission to proceed to Phase 6**
+**Request permission to proceed to Phase 5**
 
-## Phase 6-7: Verification & Reflection
+## Phase 5-6: Verification & Reflection
 
 > **Complete Checklist**: See [Verification Checklist](./verification-checklist.md)
 
-### Phase 6: Refactoring-Specific Checks
+### Phase 5: Refactoring-Specific Checks
 
 1. Verify all refactoring objectives from task file achieved
 2. **Check that no functionality was inadvertently changed**
@@ -123,9 +102,9 @@
 4. Run final code quality checks
 5. Mark PR ready for review
 
-**Request permission to proceed to Phase 7**
+**Request permission to proceed to Phase 6**
 
-### Phase 7: Refactoring Reflection
+### Phase 6: Refactoring Reflection
 
 1. Review entire refactoring journey
 
@@ -174,7 +153,7 @@ When encountering issues:
 
 **Proactive review requests** when:
 - Planning major structural changes
-- Completing phases 2, 3, 5, 6
+- Completing phases 1, 2, 4, 5
 - Encountering unexpected complexity
 - Finding significant additional refactoring opportunities
 - Hitting performance or dependency concerns

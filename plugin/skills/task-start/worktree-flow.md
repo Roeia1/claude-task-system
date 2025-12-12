@@ -75,11 +75,11 @@ You are in an ISOLATED worktree environment:
 ```
 
 Point to type-specific workflow for Phase 1 execution:
-- `workflows/feature-workflow.md`
-- `workflows/bugfix-workflow.md`
-- `workflows/refactor-workflow.md`
-- `workflows/performance-workflow.md`
-- `workflows/deployment-workflow.md`
+- `workflows/feature-workflow.md` → Phase 1: Test Creation (TDD)
+- `workflows/bugfix-workflow.md` → Phase 1: Bug Investigation
+- `workflows/refactor-workflow.md` → Phase 1: Code Analysis & Planning
+- `workflows/performance-workflow.md` → Phase 1: Performance Analysis
+- `workflows/deployment-workflow.md` → Phase 1: Pre-Deployment Analysis
 
 ---
 

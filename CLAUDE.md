@@ -180,7 +180,7 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 # Say "start task 015" to begin workflow
 
 # From WORKTREE: Complete and merge
-# Grant permission after Phase 7 for automatic completion
+# Grant permission after final phase for automatic completion
 
 # From MAIN REPO: Cleanup worktree after completion
 # Say "cleanup worktree for task 015"
@@ -190,59 +190,46 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 
 ### Workflow Discipline
 
-Each task follows this sequence (defined in type-specific workflows in `plugin/skills/task-start/workflows/`):
+Each task type follows a specialized workflow (in `plugin/skills/task-start/workflows/`). The number of phases varies by task type:
 
-1. **Phase 1: Task Analysis**
-   - Read task file and linked feature documentation
-   - Check dependencies (advisory - warn if not merged)
-   - Invoke journaling subagent to document analysis
-   - Commit initial analysis
+**Feature Tasks (5 phases)**:
+1. **Phase 1: Test Creation (TDD)** - Write tests for expected behavior, verify they fail
+2. **Phase 2: Implementation** - Implement to pass tests, commit logical milestones
+3. **Phase 3: Refactor** - Improve code quality, ensure tests still pass
+4. **Phase 4-5: Verification & Reflection** - Verify acceptance criteria, update task file with learnings
+5. **Completion** - Task-completer handles PR merge
 
-2. **Phase 2: Solution Design**
-   - Review feature plan and ADRs
-   - Document technical approach
-   - Consider risks and tradeoffs
-   - Create ADRs for architectural decisions
-   - Commit design documentation
+**Bugfix Tasks (6 phases)**:
+1. **Phase 1: Bug Investigation** - Reproduce bug, identify root cause
+2. **Phase 2: Test-First Bug Fix** - Write test reproducing the bug
+3. **Phase 3: Minimal Fix Implementation** - Apply targeted fix
+4. **Phase 4: Validation & Edge Cases** - Test edge cases and integration
+5. **Phase 5-6: Verification & Reflection**
+6. **Completion**
 
-3. **Phase 3: Test Creation (TDD)**
-   - Write tests for expected behavior
-   - NO implementation code during this phase
-   - Verify all tests fail as expected
-   - Commit test suite
+**Refactor Tasks (6 phases)**:
+1. **Phase 1: Code Analysis & Planning** - Identify technical debt, plan strategy
+2. **Phase 2: Safety Net Creation** - Add tests for code being refactored
+3. **Phase 3: Incremental Refactoring** - Apply changes in small, safe increments
+4. **Phase 4: Quality Validation** - Verify metrics improved, no regressions
+5. **Phase 5-6: Verification & Reflection**
+6. **Completion**
 
-4. **Phase 4: Implementation**
-   - Implement to pass tests
-   - NEVER modify tests without user permission
-   - Create ADRs for implementation decisions
-   - Commit logical milestones frequently
-   - Invoke journaling subagent to document decisions and challenges
+**Performance Tasks (6 phases)**:
+1. **Phase 1: Performance Analysis** - Establish baseline, identify bottlenecks
+2. **Phase 2: Benchmark Test Creation** - Create performance test suite
+3. **Phase 3: Performance Implementation** - Apply optimizations incrementally
+4. **Phase 4: Performance Validation** - Verify targets met
+5. **Phase 5-6: Verification & Reflection**
+6. **Completion**
 
-5. **Phase 5: Refactor**
-   - Improve code quality
-   - Ensure tests still pass
-   - Commit refactoring changes
-
-6. **Phase 6: Verification & Polish**
-   - Verify acceptance criteria from feature
-   - Run quality checks (per quality-gates.md)
-   - Mark PR ready for review
-   - Request user approval
-
-7. **Phase 7: Reflection**
-   - Update task file with learnings
-   - Document key decisions
-   - Summarize accomplishments
-
-8. **Completion** (automatic after Phase 7 approval)
-   - Task-completer subagent handles PR merge
-   - Cleanup worktree from main repo afterward
+**Deployment Tasks (8 phases)**: See `deployment-workflow.md` for specialized operational workflow
 
 ### Non-Negotiable Rules
 
-- **Test-Driven Development**: Tests must be written in Phase 3, before implementation
+- **Test-Driven Development**: Tests must be written before implementation (Phase 1 for features)
 - **Phase Progression**: Each phase requires explicit user permission to proceed
-- **No Test Modification**: After Phase 3, tests can only be changed with explicit user approval
+- **No Test Modification**: After tests are written, they can only be changed with explicit user approval
 - **Continuous Journaling**: Invoke journaling subagent throughout to document decisions and insights
 - **Commit Discipline**: Commit and push at the end of each phase and at logical milestones
 - **Sequential Execution**: Complete phases in order, no skipping
@@ -251,9 +238,7 @@ Each task follows this sequence (defined in type-specific workflows in `plugin/s
 ### Git Commit Format
 
 ```bash
-# Phase-based commits
-git commit -m "docs(task-XXX): initial task analysis and journal setup"
-git commit -m "docs(task-XXX): complete solution design and architecture"
+# Phase-based commits (feature task example)
 git commit -m "test(task-XXX): add comprehensive test suite for [feature]"
 git commit -m "feat(task-XXX): implement core [component] functionality"
 git commit -m "refactor(task-XXX): improve [specific improvement]"
