@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# task-status: Statusline integration script for Claude Task System
+# This is a stub - implementation pending (TDD Phase 1)
+
+# TODO: Implement argument parsing
+# TODO: Implement $CLAUDE_ENV_FILE sourcing
+# TODO: Implement origin indicator output
+
+exit 0
