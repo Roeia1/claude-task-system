@@ -15,11 +15,30 @@ SHOW_ALL=true
 TASK_CONTEXT=""
 CURRENT_TASK_ID=""
 
-# Icon definitions
+# Icon definitions - Origin
 readonly ICON_MAIN="⎇"
 readonly ICON_WORKTREE="⌂"
 readonly ASCII_MAIN="[M]"
 readonly ASCII_WORKTREE="[W]"
+
+# Icon definitions - Task types
+readonly ICON_FEATURE="✦"
+readonly ICON_BUGFIX="●"
+readonly ICON_REFACTOR="⟳"
+readonly ICON_PERFORMANCE="⚡"
+readonly ICON_DEPLOYMENT="▲"
+readonly ICON_UNKNOWN="◆"
+readonly ASCII_FEATURE="[feat]"
+readonly ASCII_BUGFIX="[bug]"
+readonly ASCII_REFACTOR="[refactor]"
+readonly ASCII_PERFORMANCE="[perf]"
+readonly ASCII_DEPLOYMENT="[deploy]"
+readonly ASCII_UNKNOWN="[?]"
+
+# Parsed task data (populated by parse_task_md)
+TASK_TITLE=""
+TASK_TYPE=""
+TASK_FEATURE=""
 
 show_help() {
     cat << 'EOF'
@@ -116,6 +135,146 @@ get_indicator() {
     fi
 }
 
+# Get icon for task type
+# Args: $1 = type (feature|bugfix|refactor|performance|deployment)
+get_type_icon() {
+    local type="$1"
+    # Normalize: lowercase and trim whitespace
+    type=$(echo "$type" | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    if [[ "$USE_ICONS" == "true" ]]; then
+        case "$type" in
+            feature)     echo -n "$ICON_FEATURE" ;;
+            bugfix)      echo -n "$ICON_BUGFIX" ;;
+            refactor)    echo -n "$ICON_REFACTOR" ;;
+            performance) echo -n "$ICON_PERFORMANCE" ;;
+            deployment)  echo -n "$ICON_DEPLOYMENT" ;;
+            *)           echo -n "$ICON_UNKNOWN" ;;
+        esac
+    else
+        case "$type" in
+            feature)     echo -n "$ASCII_FEATURE" ;;
+            bugfix)      echo -n "$ASCII_BUGFIX" ;;
+            refactor)    echo -n "$ASCII_REFACTOR" ;;
+            performance) echo -n "$ASCII_PERFORMANCE" ;;
+            deployment)  echo -n "$ASCII_DEPLOYMENT" ;;
+            *)           echo -n "$ASCII_UNKNOWN" ;;
+        esac
+    fi
+}
+
+# Parse task.md file and populate TASK_TITLE, TASK_TYPE, TASK_FEATURE
+# Uses CURRENT_TASK_ID and CLAUDE_SPAWN_DIR to locate task.md
+parse_task_md() {
+    TASK_TITLE=""
+    TASK_TYPE=""
+    TASK_FEATURE=""
+
+    # Need task ID to locate file
+    if [[ -z "$CURRENT_TASK_ID" ]]; then
+        return 0
+    fi
+
+    # Construct path to task.md
+    local spawn_dir="${CLAUDE_SPAWN_DIR:-.}"
+    local task_file="$spawn_dir/task-system/task-$CURRENT_TASK_ID/task.md"
+
+    # Check if file exists and is readable
+    if [[ ! -f "$task_file" || ! -r "$task_file" ]]; then
+        return 0
+    fi
+
+    # Read file content (limit to first 100 lines for performance)
+    local content
+    content=$(head -n 100 "$task_file" 2>/dev/null) || return 0
+
+    # Extract task title from "# Task NNN: Title" header
+    # Match first line starting with "# Task" and extract everything after first colon
+    local title_line
+    title_line=$(echo "$content" | grep -m1 "^# Task [0-9]*:" 2>/dev/null) || true
+    if [[ -n "$title_line" ]]; then
+        # Extract everything after first colon, trim whitespace
+        TASK_TITLE=$(echo "$title_line" | sed 's/^# Task [0-9]*:[[:space:]]*//')
+        # Truncate to 40 chars if too long
+        if [[ ${#TASK_TITLE} -gt 40 ]]; then
+            TASK_TITLE="${TASK_TITLE:0:37}..."
+        fi
+    fi
+
+    # Extract task type from "## Task Type" section
+    # Look for line after "## Task Type" that contains the type keyword
+    local in_type_section=false
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^##[[:space:]]+Task[[:space:]]+Type ]]; then
+            in_type_section=true
+            continue
+        fi
+        if [[ "$in_type_section" == "true" ]]; then
+            # Skip empty lines
+            if [[ -z "$line" || "$line" =~ ^[[:space:]]*$ ]]; then
+                continue
+            fi
+            # Check if we hit another section
+            if [[ "$line" =~ ^## ]]; then
+                break
+            fi
+            # Extract the type keyword (first word before " - " or end of line)
+            local type_word
+            type_word=$(echo "$line" | sed 's/^[[:space:]]*//' | cut -d' ' -f1 | tr -d '-')
+            if [[ -n "$type_word" ]]; then
+                TASK_TYPE="$type_word"
+                break
+            fi
+        fi
+    done <<< "$content"
+
+    # Extract feature reference from "## Feature Context" section
+    # Look for "**Feature**:" line and extract feature name from link
+    local feature_line
+    feature_line=$(echo "$content" | grep -m1 '\*\*Feature\*\*:' 2>/dev/null) || true
+    if [[ -n "$feature_line" ]]; then
+        # Extract from markdown link format: [NNN-feature-name](path)
+        # Get text between [ and ]
+        local feature_ref
+        feature_ref=$(echo "$feature_line" | sed -n 's/.*\[\([^]]*\)\].*/\1/p')
+        if [[ -n "$feature_ref" ]]; then
+            # Remove leading numbers and dash (e.g., "001-" from "001-user-auth")
+            TASK_FEATURE=$(echo "$feature_ref" | sed 's/^[0-9]*-//')
+        fi
+    fi
+}
+
+# Format the task section output
+# Returns: "Title type_icon feature_name" or "--" if no task info
+format_task_section() {
+    local -a parts=()
+
+    # If no task info available, return "--"
+    if [[ -z "$TASK_TITLE" && -z "$TASK_TYPE" && -z "$TASK_FEATURE" ]]; then
+        echo -n "--"
+        return
+    fi
+
+    # Add title if available
+    if [[ -n "$TASK_TITLE" ]]; then
+        parts+=("$TASK_TITLE")
+    fi
+
+    # Add type icon if available
+    if [[ -n "$TASK_TYPE" ]]; then
+        parts+=("$(get_type_icon "$TASK_TYPE")")
+    fi
+
+    # Add feature name if available
+    if [[ -n "$TASK_FEATURE" ]]; then
+        parts+=("$TASK_FEATURE")
+    fi
+
+    # Join with spaces
+    local IFS=' '
+    echo -n "${parts[*]}"
+}
+
 build_output() {
     local -a parts=()
 
@@ -123,8 +282,12 @@ build_output() {
         parts+=("$(get_indicator "${TASK_CONTEXT:-main}")")
     fi
 
-    if [[ "$SHOW_TASK" == "true" && -n "$CURRENT_TASK_ID" ]]; then
-        parts+=("$CURRENT_TASK_ID")
+    if [[ "$SHOW_TASK" == "true" ]]; then
+        local task_section
+        task_section=$(format_task_section)
+        if [[ -n "$task_section" ]]; then
+            parts+=("$task_section")
+        fi
     fi
 
     # SHOW_COUNTS placeholder - will be implemented in future tasks
@@ -137,6 +300,7 @@ build_output() {
 main() {
     parse_args "$@"
     load_environment
+    parse_task_md
     build_output
 }
 
