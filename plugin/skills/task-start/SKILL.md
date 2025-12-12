@@ -5,7 +5,7 @@ description: ONLY activate on DIRECT user request to start a task. User must exp
 
 # Task Start Skill
 
-Begins the 8-phase execution workflow for a task. Must be run from within the task's worktree.
+Begins the execution workflow for a task. Must be run from within the task's worktree.
 
 ## Prerequisites
 
@@ -13,19 +13,21 @@ Begins the 8-phase execution workflow for a task. Must be run from within the ta
 - Must be run from within the task's worktree directory
 - If not in worktree, provides instructions to navigate there
 
-## Step 0: Get Task ID (Optional in Worktree)
+## Step 0: Get Task ID (Optional)
 
 **Task ID is auto-detected from `task-system/task-NNN` folder when in a worktree.**
 
 **If user specified a task ID** (e.g., "start task 042", "work on task 15"):
+
 - Extract the task ID from their prompt
-- Store as `$USER_INPUT` (used for validation)
+- Store as `$USER_INPUT` (used for validation against detected task)
 
 **If no task ID specified**:
+
 - That's OK - task ID will be auto-detected from folder in worktree
 - Store empty `$USER_INPUT`
 
-**Note**: In main repo, task ID will still be required (error if not provided).
+**Note**: This command only works from within a task worktree.
 
 ## Step 1: Detect Context and Validate
 
@@ -38,13 +40,13 @@ bash scripts/detect-context.sh $USER_INPUT
 **Parse JSON output** and check `status`:
 
 - If `status: "error"`:
+
   - Display the `message` to user
   - Provide guidance based on `error_type`:
+    - `not_in_worktree`: "You must be in a task worktree to start a task. Use 'list tasks' to see available tasks."
     - `no_task_folder`: "No task-system/task-NNN folder found. Cannot determine which task this is."
     - `task_id_mismatch`: "This worktree contains a different task than you requested"
     - `branch_mismatch`: "The git branch doesn't match the task. Check your git state"
-    - `missing_task_id`: "Task ID is required when running from main repo"
-    - `no_worktree_exists`: "No worktree exists for task. Use 'resume task $TASK_ID' if it exists remotely, or create a new task"
   - **STOP** - do not continue
 
 - If `status: "ok"`:
@@ -53,53 +55,32 @@ bash scripts/detect-context.sh $USER_INPUT
 ## Step 2: Execute Worktree Flow
 
 Read and execute `worktree-flow.md` which:
+
 1. Validates task state and reads task metadata
 2. Loads journaling guidelines
 3. Hands off to type-specific workflow for Phase 1 execution
 
 ---
 
-## From Main Repo Instructions
+## From Main Repo Handling
 
-If the user runs `start task NNN` from the main repository (not a worktree):
+If the user runs `start task` from the main repository (not a worktree), the script returns a `not_in_worktree` error.
 
-**Check if worktree exists**:
-```bash
-if [ -d "task-system/tasks/$TASK_ID" ]; then
-    # Worktree exists - provide navigation instructions
-fi
-```
+Display:
 
-**If worktree exists**, display:
 ```
 ===============================================================
-Task $TASK_ID Worktree Found
+Cannot Start Task From Main Repository
 ===============================================================
 
-To continue working on this task:
+Tasks can only be started from within their worktree.
 
-1. Open a new terminal (or new Claude session)
-2. cd task-system/tasks/$TASK_ID
-3. Start Claude Code
-4. Say "start task" (task ID is auto-detected from folder)
+To start a task:
+1. Navigate to the task worktree: cd task-system/tasks/NNN
+2. Start a new Claude session
+3. Say "start task"
 
-This task already has a worktree ready for execution.
-===============================================================
-```
-
-**If no worktree exists**:
-```
-===============================================================
-No Worktree for Task $TASK_ID
-===============================================================
-
-This task doesn't have a local worktree yet.
-
-Options:
-- If task exists remotely: "resume task $TASK_ID"
-- If task doesn't exist: "create task [description]"
-
-Use "list tasks" to see available tasks.
+Use "list tasks" to see available tasks and their status.
 ===============================================================
 ```
 
@@ -107,10 +88,9 @@ Use "list tasks" to see available tasks.
 
 ## Error Handling
 
-| Error | Message |
-|-------|---------|
-| No task folder | "No task-system/task-NNN folder found in worktree" |
-| Task ID mismatch | "This worktree contains task XXX, not task YYY" |
-| Branch mismatch | "Expected branch task-$TASK_ID-*, got $CURRENT_BRANCH" |
-| Missing task ID | "Task ID is required when running from main repo" |
-| No worktree exists | "No worktree for task $TASK_ID. Use 'resume task' or create new task" |
+| Error            | Message                                                    |
+| ---------------- | ---------------------------------------------------------- |
+| Not in worktree  | "Tasks can only be started from within a worktree"         |
+| No task folder   | "No task-system/task-NNN folder found in worktree"         |
+| Task ID mismatch | "This worktree contains task XXX, not task YYY"            |
+| Branch mismatch  | "Expected branch task-$TASK_ID-\*, got $CURRENT_BRANCH"    |
