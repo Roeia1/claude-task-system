@@ -23,6 +23,19 @@ flowchart LR
     D -.- D1[journal.md]
 ```
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [How It Works](#how-it-works)
+- [Key Features](#key-features)
+- [Commands & Skills Reference](#commands-reference)
+- [Workflow Examples](#workflow-examples)
+- [Directory Structure](#directory-structure)
+- [Non-Negotiable Rules](#non-negotiable-rules)
+- [Plugin Architecture](#plugin-architecture)
+- [Requirements](#requirements)
+- [Contributing](#contributing)
+
 ---
 
 ## Quick Start
