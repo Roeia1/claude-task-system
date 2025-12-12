@@ -132,7 +132,9 @@ function createMockGitRepo(remoteBranches = []) {
   // Create remote branches
   for (const branch of remoteBranches) {
     execSync(`git checkout -b ${branch}`, { cwd: tmpDir, stdio: 'pipe' });
-    fs.writeFileSync(path.join(tmpDir, `${branch}.txt`), branch);
+    // Use a safe filename by replacing / with -
+    const safeFilename = branch.replace(/\//g, '-');
+    fs.writeFileSync(path.join(tmpDir, `${safeFilename}.txt`), branch);
     execSync('git add .', { cwd: tmpDir, stdio: 'pipe' });
     execSync(`git commit -m "Add ${branch}"`, { cwd: tmpDir, stdio: 'pipe' });
     execSync(`git push origin ${branch}`, { cwd: tmpDir, stdio: 'pipe' });

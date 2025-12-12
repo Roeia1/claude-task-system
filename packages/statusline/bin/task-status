@@ -14,12 +14,21 @@ SHOW_ALL=true
 # Context variables (populated from CLAUDE_ENV_FILE)
 TASK_CONTEXT=""
 CURRENT_TASK_ID=""
+CLAUDE_SPAWN_DIR=""
 
 # Icon definitions
 readonly ICON_MAIN="⎇"
 readonly ICON_WORKTREE="⌂"
 readonly ASCII_MAIN="[M]"
 readonly ASCII_WORKTREE="[W]"
+
+# Task count icons
+readonly ICON_IN_PROGRESS="●"
+readonly ICON_PENDING="◐"
+readonly ICON_REMOTE="○"
+readonly ASCII_IN_PROGRESS="I:"
+readonly ASCII_PENDING="P:"
+readonly ASCII_REMOTE="R:"
 
 show_help() {
     cat << 'EOF'
@@ -98,6 +107,7 @@ load_environment() {
     # Only use values from CLAUDE_ENV_FILE, not inherited environment
     TASK_CONTEXT=""
     CURRENT_TASK_ID=""
+    CLAUDE_SPAWN_DIR=""
 
     if [[ -n "${CLAUDE_ENV_FILE:-}" && -f "$CLAUDE_ENV_FILE" && -r "$CLAUDE_ENV_FILE" ]]; then
         # shellcheck disable=SC1090
@@ -116,6 +126,105 @@ get_indicator() {
     fi
 }
 
+# Count local tasks by scanning task-system/tasks/ directory
+# Sets: IN_PROGRESS_COUNT, PENDING_COUNT, LOCAL_TASK_IDS (space-separated)
+count_local_tasks() {
+    IN_PROGRESS_COUNT=0
+    PENDING_COUNT=0
+    LOCAL_TASK_IDS=""
+
+    local tasks_dir="${CLAUDE_SPAWN_DIR:-}/task-system/tasks"
+
+    # Return zeros if tasks directory doesn't exist
+    if [[ ! -d "$tasks_dir" ]]; then
+        return 0
+    fi
+
+    # Scan each subdirectory in tasks/
+    local task_dir
+    for task_dir in "$tasks_dir"/*/; do
+        # Skip if no directories found (glob didn't match)
+        [[ -d "$task_dir" ]] || continue
+
+        # Extract task ID from directory name
+        local task_id
+        task_id=$(basename "$task_dir")
+
+        # Check if this is a valid task worktree (has task-system/task-{ID}/ folder)
+        local task_folder="$task_dir/task-system/task-$task_id"
+        if [[ ! -d "$task_folder" ]]; then
+            # Malformed task directory - skip it
+            continue
+        fi
+
+        # Track this task ID for remote filtering
+        LOCAL_TASK_IDS="$LOCAL_TASK_IDS $task_id"
+
+        # Check for journal.md to determine status
+        if [[ -f "$task_folder/journal.md" ]]; then
+            IN_PROGRESS_COUNT=$((IN_PROGRESS_COUNT + 1))
+        else
+            PENDING_COUNT=$((PENDING_COUNT + 1))
+        fi
+    done
+}
+
+# Count remote task branches that don't have local worktrees
+# Sets: REMOTE_COUNT
+count_remote_tasks() {
+    REMOTE_COUNT=0
+
+    # Need CLAUDE_SPAWN_DIR to determine git context
+    local spawn_dir="${CLAUDE_SPAWN_DIR:-}"
+    if [[ -z "$spawn_dir" ]]; then
+        return 0
+    fi
+
+    # Check if spawn dir is a git repository
+    if ! git -C "$spawn_dir" rev-parse --git-dir &>/dev/null; then
+        return 0
+    fi
+
+    # Get remote task branches
+    local remote_branches
+    remote_branches=$(git -C "$spawn_dir" branch -r 2>/dev/null | grep -E 'origin/task-[0-9]+-' || true)
+
+    # If no remote branches, return 0
+    if [[ -z "$remote_branches" ]]; then
+        return 0
+    fi
+
+    # Count branches that don't have local worktrees
+    local branch
+    while IFS= read -r branch; do
+        # Extract task ID from branch name (e.g., "origin/task-001-feature" -> "001")
+        local task_id
+        task_id=$(echo "$branch" | sed -n 's/.*origin\/task-\([0-9]\+\)-.*/\1/p')
+
+        # Skip if we couldn't extract task ID
+        [[ -z "$task_id" ]] && continue
+
+        # Check if this task has a local worktree
+        if [[ "$LOCAL_TASK_IDS" != *" $task_id"* ]]; then
+            REMOTE_COUNT=$((REMOTE_COUNT + 1))
+        fi
+    done <<< "$remote_branches"
+}
+
+# Format task counts for output
+# Returns: formatted string with counts
+format_task_counts() {
+    local output=""
+
+    if [[ "$USE_ICONS" == "true" ]]; then
+        output="$ICON_IN_PROGRESS $IN_PROGRESS_COUNT $ICON_PENDING $PENDING_COUNT $ICON_REMOTE $REMOTE_COUNT"
+    else
+        output="${ASCII_IN_PROGRESS}${IN_PROGRESS_COUNT} ${ASCII_PENDING}${PENDING_COUNT} ${ASCII_REMOTE}${REMOTE_COUNT}"
+    fi
+
+    echo -n "$output"
+}
+
 build_output() {
     local -a parts=()
 
@@ -127,7 +236,12 @@ build_output() {
         parts+=("$CURRENT_TASK_ID")
     fi
 
-    # SHOW_COUNTS placeholder - will be implemented in future tasks
+    if [[ "$SHOW_COUNTS" == "true" ]]; then
+        # Count local and remote tasks
+        count_local_tasks
+        count_remote_tasks
+        parts+=("$(format_task_counts)")
+    fi
 
     # Join parts with space separator
     local IFS=' '
