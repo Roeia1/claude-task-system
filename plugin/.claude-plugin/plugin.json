@@ -21,6 +21,10 @@
     "source": "github",
     "repo": "Roeia1/claude-task-system"
   },
+  "commands": [
+    "./commands/init.md"
+  ],
+  "skills": "./skills/",
   "agents": [
     "agents/journaling.md",
     "agents/task-builder.md",
