@@ -71,7 +71,9 @@ plugin/                         # Plugin source code
 │   └── plugin.json            # Plugin manifest
 ├── agents/                     # Subagent definitions
 │   ├── journaling.md
-│   └── task-analyzer.md
+│   ├── task-completer.md
+│   ├── task-content-generator.md
+│   └── task-generator.md
 ├── commands/                   # Slash commands
 │   ├── init.md                # Initialize task-system structure
 │   ├── adr.md                 # Architecture decision records
