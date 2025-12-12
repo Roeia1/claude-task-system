@@ -87,7 +87,7 @@ When activated, generate executable tasks from feature planning artifacts. Each 
 
 ### Phase 2: Task Creation (After Approval)
 
-Task creation runs in **two parallel phases**: content generation, then git setup.
+Task creation spawns parallel `task-builder` subagents, one per task. Each handles git setup, content generation, and PR creation.
 
 #### Step 2a: Pre-allocate Task IDs
 
@@ -120,15 +120,14 @@ Store the allocated `task_ids` array for use in subsequent steps.
 - T001 gets ID 015, T002 gets ID 016
 - T001's dependencies reference "016" (not T002)
 
-#### Step 2b: Generate Task Content (Parallel Subagents)
+#### Step 2b: Build Tasks (Parallel Subagents)
 
-For each approved task, spawn a `task-content-generator` subagent to produce robust task.md content.
-
-**Spawn task-content-generator** for each task with:
+For each approved task, spawn a `task-builder` subagent that handles both git setup and content generation:
 
 | Parameter      | Value                                            |
 | -------------- | ------------------------------------------------ |
 | `task_id`      | Pre-allocated ID (e.g., "015")                   |
+| `task_type`    | feature/bugfix/refactor/performance/deployment   |
 | `task_title`   | Task title                                       |
 | `task_brief`   | 1-3 sentence description from breakdown          |
 | `task_scope`   | Which section(s) of plan.md this task implements |
@@ -136,32 +135,17 @@ For each approved task, spawn a `task-content-generator` subagent to produce rob
 | `plan_path`    | Path to plan.md                                  |
 | `adr_paths`    | Array of relevant ADR paths                      |
 | `dependencies` | List of dependency task IDs and titles           |
-| `task_type`    | feature/bugfix/refactor/performance/deployment   |
 | `priority`     | P1/P2/P3                                         |
+| `feature_id`   | Feature ID (e.g., "001-user-authentication")     |
 
-**Parallel execution**: All content generators run concurrently. Each reads plan.md focused on its task's scope and produces comprehensive task.md content.
+**Parallel execution**: All task-builder instances run concurrently. Each instance:
+1. Creates git branch and worktree (fast-fail before expensive work)
+2. Generates comprehensive task.md content
+3. Commits, pushes, and creates draft PR
 
-**Collect results**: Wait for all content generators to complete and collect:
+**Wait for all subagents** to complete before proceeding.
 
-- `task_id` → `task_content` (full task.md markdown string)
-
-#### Step 2c: Create Git Infrastructure (Parallel Subagents)
-
-For each task with generated content, invoke the `task-generator` subagent:
-
-| Parameter      | Value                                          |
-| -------------- | ---------------------------------------------- |
-| `task_id`      | Pre-allocated ID (e.g., "015")                 |
-| `task_type`    | feature/bugfix/refactor/performance/deployment |
-| `task_title`   | Task title                                     |
-| `task_content` | Full task.md content from Step 2b              |
-| `feature_id`   | Feature ID (e.g., "001-user-authentication")   |
-| `feature_name` | Feature name for PR body                       |
-| `priority`     | P1/P2/P3                                       |
-
-**Parallel execution**: All subagents run concurrently. Each operates on its own pre-allocated task ID, branch, and worktree.
-
-#### Step 2d: Collect Results
+#### Step 2c: Collect Results
 
 Wait for all subagents to complete and collect results:
 
