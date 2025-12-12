@@ -7,15 +7,6 @@ description: "ONLY activate on DIRECT user request to resume a remote task. User
 
 Creates a local worktree from an existing remote task branch, allowing work to continue on a task started elsewhere.
 
-## When to Use
-
-Use this skill when:
-- A task exists as a remote PR but has no local worktree
-- The user wants to continue work on a task started on another machine
-- The `task-list` skill shows a task as "REMOTE (no local worktree)"
-
----
-
 ## Process
 
 ### Step 1: Get Task ID

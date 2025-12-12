@@ -23,7 +23,6 @@ This skill is responsible for:
 ## File Locations
 
 - **Journal**: `task-system/task-NNN/journal.md`
-- **Task Type Workflows**: Plugin's `skills/task-start/workflows/{type}-workflow.md`
 
 ## Input Requirements
 

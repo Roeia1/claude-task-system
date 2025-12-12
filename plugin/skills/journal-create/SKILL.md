@@ -23,13 +23,6 @@ This skill focuses on **HOW to create journal files**:
 - **Journal Output**: `task-system/task-{task_id}/journal.md`
 - **Task File**: `task-system/task-{task_id}/task.md`
 
-## When to Create
-
-Create a journal file when:
-
-- Journal file doesn't exist at `task-system/task-{task_id}/journal.md`
-- Task directory exists at `task-system/task-{task_id}/`
-
 ## Input Requirements
 
 When calling this skill, provide:
