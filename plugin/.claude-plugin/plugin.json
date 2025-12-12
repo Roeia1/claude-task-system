@@ -2,7 +2,10 @@
   "name": "claude-task-system",
   "description": "Structured task workflow with feature planning, journaling, and architecture decision records",
   "version": "1.0.0",
-  "author": "Roei Avrahami <roei.avrahami2@gmail.com>",
+  "author": {
+    "name": "Roei Avrahami",
+    "email": "roei.avrahami2@gmail.com"
+  },
   "homepage": "https://github.com/Roeia1/claude-task-system",
   "repository": "https://github.com/Roeia1/claude-task-system",
   "license": "MIT",
