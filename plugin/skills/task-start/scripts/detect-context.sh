@@ -1,7 +1,7 @@
 #!/bin/bash
-# Comprehensive context detection and validation for task-start
+# Context detection and validation for task-start
 #
-# Input: Task ID as first argument (optional in worktree, required in main repo)
+# Input: Task ID as first argument (optional, used for validation in worktree)
 # Output: JSON with context, status, and validation results
 #
 # Uses env vars from session-init.sh when available:
@@ -13,7 +13,8 @@
 # 2. Task ID detection (uses $CURRENT_TASK_ID or detects from folder)
 # 3. Spawn directory verification ($CLAUDE_SPAWN_DIR)
 # 4. Branch alignment with task (worktree only)
-# 5. Existing worktree check (main repo only)
+#
+# Note: Tasks can only be started from within a worktree
 
 USER_INPUT="$1"
 TASK_ID=""
@@ -124,21 +125,6 @@ if [ "$CONTEXT" = "worktree" ]; then
     # All validations passed for worktree
     output_json "$CONTEXT" "ok" "null" "Worktree validated for task $TASK_ID" "$CURRENT_BRANCH" "$GIT_ROOT"
 else
-    # Main repo - task ID is required from user
-    if [ -z "$USER_INPUT" ]; then
-        output_json "$CONTEXT" "error" '"missing_task_id"' "Task ID is required when running from main repo" "$CURRENT_BRANCH" ""
-    fi
-
-    TASK_ID="$USER_INPUT"
-    NORMALIZED_INPUT=$(echo "$TASK_ID" | sed 's/^0*//')
-
-    # Check path pattern: task-system/tasks/NNN
-    EXISTING_WORKTREE=$(git worktree list | grep -E "task-system/tasks/0*${NORMALIZED_INPUT}\s" | awk '{print $1}')
-
-    if [ -n "$EXISTING_WORKTREE" ]; then
-        output_json "$CONTEXT" "error" '"worktree_exists"' "Task $TASK_ID already has a worktree. Open a new Claude session there: $EXISTING_WORKTREE" "$CURRENT_BRANCH" "$EXISTING_WORKTREE"
-    fi
-
-    # No worktree exists - provide guidance
-    output_json "$CONTEXT" "error" '"no_worktree_exists"' "No worktree exists for task $TASK_ID. Use 'resume task $TASK_ID' if it exists remotely, or create a new task." "$CURRENT_BRANCH" ""
+    # Main repo - tasks can only be started from within a worktree
+    output_json "$CONTEXT" "error" '"not_in_worktree"' "Tasks can only be started from within a worktree. Navigate to task-system/tasks/NNN and start a new Claude session there." "$CURRENT_BRANCH" ""
 fi
