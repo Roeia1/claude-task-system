@@ -13,7 +13,10 @@
         "source": "github",
         "repo": "Roeia1/claude-task-system"
       },
-      "author": "Roei Avrahami",
+      "author": {
+        "name": "Roei Avrahami",
+        "email": "roei.avrahami2@gmail.com"
+      },
       "license": "MIT",
       "keywords": [
         "task-management",
