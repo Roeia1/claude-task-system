@@ -8,6 +8,8 @@
 
 > Transform feature ideas into shipped code through structured planning, test-driven development, and documented decisions.
 
+A complete development lifecycle from feature ideation through planning, task breakdown, and rigorous execution. Every phase requires human review. Tests come first. Decisions are documented. Nothing gets lost.
+
 ```mermaid
 flowchart LR
     A[📝 Define] -->|WHAT| B[🏗️ Plan]
