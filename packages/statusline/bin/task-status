@@ -50,7 +50,7 @@ Options:
   --help        Show this help message and exit
   --no-icons    Use ASCII characters instead of Unicode icons
   --origin      Show only the origin indicator (main repo vs worktree)
-  --task        Show only the current task ID
+  --task        Show only the current task info (title, type, feature)
   --counts      Show only task counts
 
 If no section flags are specified, all sections are shown.
@@ -139,28 +139,22 @@ get_indicator() {
 # Args: $1 = type (feature|bugfix|refactor|performance|deployment)
 get_type_icon() {
     local type="$1"
-    # Normalize: lowercase and trim whitespace
-    type=$(echo "$type" | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    # Normalize: lowercase and trim whitespace using bash parameter expansion
+    type="${type,,}"              # lowercase
+    type="${type#"${type%%[![:space:]]*}"}"  # trim leading
+    type="${type%"${type##*[![:space:]]}"}"  # trim trailing
 
-    if [[ "$USE_ICONS" == "true" ]]; then
-        case "$type" in
-            feature)     echo -n "$ICON_FEATURE" ;;
-            bugfix)      echo -n "$ICON_BUGFIX" ;;
-            refactor)    echo -n "$ICON_REFACTOR" ;;
-            performance) echo -n "$ICON_PERFORMANCE" ;;
-            deployment)  echo -n "$ICON_DEPLOYMENT" ;;
-            *)           echo -n "$ICON_UNKNOWN" ;;
-        esac
-    else
-        case "$type" in
-            feature)     echo -n "$ASCII_FEATURE" ;;
-            bugfix)      echo -n "$ASCII_BUGFIX" ;;
-            refactor)    echo -n "$ASCII_REFACTOR" ;;
-            performance) echo -n "$ASCII_PERFORMANCE" ;;
-            deployment)  echo -n "$ASCII_DEPLOYMENT" ;;
-            *)           echo -n "$ASCII_UNKNOWN" ;;
-        esac
-    fi
+    local icon ascii
+    case "$type" in
+        feature)     icon="$ICON_FEATURE";     ascii="$ASCII_FEATURE" ;;
+        bugfix)      icon="$ICON_BUGFIX";      ascii="$ASCII_BUGFIX" ;;
+        refactor)    icon="$ICON_REFACTOR";    ascii="$ASCII_REFACTOR" ;;
+        performance) icon="$ICON_PERFORMANCE"; ascii="$ASCII_PERFORMANCE" ;;
+        deployment)  icon="$ICON_DEPLOYMENT";  ascii="$ASCII_DEPLOYMENT" ;;
+        *)           icon="$ICON_UNKNOWN";     ascii="$ASCII_UNKNOWN" ;;
+    esac
+
+    [[ "$USE_ICONS" == "true" ]] && echo -n "$icon" || echo -n "$ascii"
 }
 
 # Parse task.md file and populate TASK_TITLE, TASK_TYPE, TASK_FEATURE

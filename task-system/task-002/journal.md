@@ -86,3 +86,37 @@ Completed comprehensive test suite for task information parsing using test-drive
 **Learning:** The comprehensive test suite clearly defines expectations for all parsing scenarios, including error cases. This creates a clear contract for the implementation phase.
 
 **Next**: Commit test suite with git, then request permission to proceed to Phase 2 (Implementation)
+
+### 2025-12-13 14:45 - Phase 2 Complete: Task Parsing Implemented
+
+Implemented all task parsing functionality for the --task flag. All 60 tests now pass.
+
+**Functions Added:**
+
+1. `parse_task_md()` - Reads task.md from `$CLAUDE_SPAWN_DIR/task-system/task-$CURRENT_TASK_ID/task.md`, extracts title, type, and feature reference
+2. `get_type_icon()` - Maps task types to Unicode/ASCII icons with normalization (lowercase, trim whitespace)
+3. `format_task_section()` - Assembles output as "title type_icon feature" or "--" for fallback
+
+**Icon Mappings Implemented:**
+
+- feature: ✦ / [feat]
+- bugfix: ● / [bug]
+- refactor: ⟳ / [refactor]
+- performance: ⚡ / [perf]
+- deployment: ▲ / [deploy]
+- unknown: ◆ / [?]
+
+**Edge Cases Handled:**
+
+- Missing task.md file → outputs "--"
+- Missing CURRENT_TASK_ID → outputs "--"
+- Title with colons → extracts everything after first colon
+- Long titles → truncates to 37 chars + "..."
+- Missing sections → graceful fallback for each field
+- Whitespace in type → normalized via trim
+
+**Test Modification:** Updated 2 Task 001 tests that expected raw task ID output. Per plan.md spec, --task now outputs "--" when task.md is missing (not the raw ID).
+
+**Learning:** The test-driven approach ensured all edge cases were properly handled before writing implementation code. The function decomposition (parse_task_md → get_type_icon → format_task_section) makes the code maintainable and testable.
+
+**Next:** Request permission to proceed to Phase 3 (Refactor)
