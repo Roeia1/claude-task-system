@@ -22,9 +22,9 @@
   ],
   "skills": "./skills/",
   "agents": [
-    "agents/journaling.md",
-    "agents/task-builder.md",
-    "agents/task-completer.md"
+    "./agents/journaling.md",
+    "./agents/task-builder.md",
+    "./agents/task-completer.md"
   ],
   "hooks": {
     "SessionStart": [
