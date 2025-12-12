@@ -23,26 +23,26 @@ None - This is the first task in the statusline feature.
 
 ## Objectives
 
-- [ ] Create npm package skeleton in `packages/statusline/` with proper structure
-- [ ] Implement command-line argument parsing (`--help`, `--no-icons`, `--origin`, `--task`, `--counts`)
-- [ ] Source `$CLAUDE_ENV_FILE` to read pre-detected context variables
-- [ ] Output origin indicator based on `TASK_CONTEXT` variable (main vs worktree)
-- [ ] Write comprehensive unit tests for all implemented functionality
-- [ ] Create basic package documentation (README.md)
+- [x] Create npm package skeleton in `packages/statusline/` with proper structure
+- [x] Implement command-line argument parsing (`--help`, `--no-icons`, `--origin`, `--task`, `--counts`)
+- [x] Source `$CLAUDE_ENV_FILE` to read pre-detected context variables
+- [x] Output origin indicator based on `TASK_CONTEXT` variable (main vs worktree)
+- [x] Write comprehensive unit tests for all implemented functionality
+- [x] Create basic package documentation (README.md)
 
 ## Sub-tasks
 
-1. [ ] Create npm package directory structure (`packages/statusline/`, `bin/`, `scripts/`)
-2. [ ] Create `package.json` with proper metadata and bin entry
-3. [ ] Create main bash script `bin/task-status` with shebang and argument parsing
-4. [ ] Implement `--help` flag showing usage information
-5. [ ] Implement `--no-icons` flag setting ASCII fallback mode
-6. [ ] Implement `--origin`, `--task`, `--counts` flags (section selectors)
-7. [ ] Implement sourcing of `$CLAUDE_ENV_FILE` with fallback handling
-8. [ ] Implement origin indicator output (using `TASK_CONTEXT` variable)
-9. [ ] Write Jest tests for argument parsing logic
-10. [ ] Write integration tests for origin detection and output
-11. [ ] Create README.md with installation and usage instructions
+1. [x] Create npm package directory structure (`packages/statusline/`, `bin/`, `scripts/`)
+2. [x] Create `package.json` with proper metadata and bin entry
+3. [x] Create main bash script `bin/task-status` with shebang and argument parsing
+4. [x] Implement `--help` flag showing usage information
+5. [x] Implement `--no-icons` flag setting ASCII fallback mode
+6. [x] Implement `--origin`, `--task`, `--counts` flags (section selectors)
+7. [x] Implement sourcing of `$CLAUDE_ENV_FILE` with fallback handling
+8. [x] Implement origin indicator output (using `TASK_CONTEXT` variable)
+9. [x] Write Jest tests for argument parsing logic
+10. [x] Write integration tests for origin detection and output
+11. [x] Create README.md with installation and usage instructions
 
 ## Technical Approach
 
