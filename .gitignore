@@ -1,0 +1,3 @@
+
+# Claude Task System - Task worktrees (each task folder is a git worktree)
+task-system/tasks/*/
