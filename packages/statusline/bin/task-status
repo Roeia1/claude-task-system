@@ -39,7 +39,6 @@ readonly ASCII_UNKNOWN="[?]"
 TASK_TITLE=""
 TASK_TYPE=""
 TASK_FEATURE=""
-
 show_help() {
     cat << 'EOF'
 Usage: task-status [OPTIONS]
@@ -268,7 +267,6 @@ format_task_section() {
     local IFS=' '
     echo -n "${parts[*]}"
 }
-
 build_output() {
     local -a parts=()
 
