@@ -1,20 +1,20 @@
 #!/bin/bash
 # SessionStart hook - detects and persists task context
 
-# Detect worktree vs main
-GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
-GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
-
-if [ "$GIT_DIR" != "$GIT_COMMON_DIR" ]; then
-    TASK_CONTEXT="worktree"
-    # Detect task ID from folder
-    TASK_FOLDER=$(ls -d task-system/task-[0-9]* 2>/dev/null | head -1)
-    if [ -n "$TASK_FOLDER" ]; then
-        CURRENT_TASK_ID=$(echo "$TASK_FOLDER" | grep -oP 'task-system/task-\K\d+')
+# Detect task ID from task-system/task-NNN folder
+CURRENT_TASK_ID=""
+for dir in task-system/task-[0-9]*/; do
+    if [ -d "$dir" ]; then
+        CURRENT_TASK_ID=$(basename "$dir" | sed 's/task-//')
+        break
     fi
+done
+
+# Task folder present = worktree, otherwise = main
+if [ -n "$CURRENT_TASK_ID" ]; then
+    TASK_CONTEXT="worktree"
 else
     TASK_CONTEXT="main"
-    CURRENT_TASK_ID=""
 fi
 
 # Write to CLAUDE_ENV_FILE for bash access
