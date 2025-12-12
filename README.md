@@ -26,9 +26,17 @@ Without structure, AI-assisted development often leads to:
 
 Claude Task System provides a **complete lifecycle** from feature ideation through planning, task breakdown, and rigorous phased execution:
 
-```
-Feature Definition → Technical Planning → Task Generation → Disciplined Execution
-     (WHAT)              (HOW)              (BREAKDOWN)          (TDD)
+```mermaid
+flowchart LR
+    A[📝 Define] -->|WHAT| B[🏗️ Plan]
+    B -->|HOW| C[📋 Generate]
+    C -->|BREAKDOWN| D[⚡ Execute]
+    D -->|TDD| E((✅))
+
+    A -.- A1[feature.md]
+    B -.- B1[plan.md]
+    C -.- C1[tasks/]
+    D -.- D1[journal.md]
 ```
 
 Every phase requires human review. Tests come first. Decisions are documented. Nothing gets lost.
