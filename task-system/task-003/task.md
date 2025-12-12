@@ -26,24 +26,24 @@ P1 - Critical path for the counts feature; blocks Phase 5 integration
 
 ## Objectives
 
-- [ ] Implement local worktree scanning to find task directories
-- [ ] Detect journal.md presence to distinguish in-progress from pending tasks
-- [ ] Query git for remote task branches without local worktrees
-- [ ] Output formatted task counts with correct icons/ASCII fallbacks
-- [ ] Handle edge cases gracefully (no tasks, no git remote, malformed directories)
+- [x] Implement local worktree scanning to find task directories
+- [x] Detect journal.md presence to distinguish in-progress from pending tasks
+- [x] Query git for remote task branches without local worktrees
+- [x] Output formatted task counts with correct icons/ASCII fallbacks
+- [x] Handle edge cases gracefully (no tasks, no git remote, malformed directories)
 
 ## Sub-tasks
 
-1. [ ] Create `count_local_tasks()` function that scans `task-system/tasks/` for worktree directories
-2. [ ] Implement journal.md detection within each worktree's `task-system/task-NNN/` folder
-3. [ ] Categorize local tasks as in-progress (journal exists) or pending (no journal)
-4. [ ] Create `count_remote_tasks()` function that queries `git branch -r` for task branches
-5. [ ] Filter remote branches to exclude those with existing local worktrees
-6. [ ] Create `format_task_counts()` function to assemble the counts output string
-7. [ ] Implement icon vs ASCII fallback based on `--no-icons` flag
-8. [ ] Add `--counts` flag handling to output task counts section
-9. [ ] Write unit tests for count functions with mock filesystem
-10. [ ] Write integration tests covering various task configurations
+1. [x] Create `count_local_tasks()` function that scans `task-system/tasks/` for worktree directories
+2. [x] Implement journal.md detection within each worktree's `task-system/task-NNN/` folder
+3. [x] Categorize local tasks as in-progress (journal exists) or pending (no journal)
+4. [x] Create `count_remote_tasks()` function that queries `git branch -r` for task branches
+5. [x] Filter remote branches to exclude those with existing local worktrees
+6. [x] Create `format_task_counts()` function to assemble the counts output string
+7. [x] Implement icon vs ASCII fallback based on `--no-icons` flag
+8. [x] Add `--counts` flag handling to output task counts section
+9. [x] Write unit tests for count functions with mock filesystem
+10. [x] Write integration tests covering various task configurations
 
 ## Technical Approach
 

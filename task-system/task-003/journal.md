@@ -6,7 +6,7 @@
 - **PR**: Pending
 - **Base Branch**: main
 
-## Current Phase: Phase 1 - Test Creation
+## Current Phase: Phase 3 - Refactor
 
 ## Progress Log
 
@@ -73,3 +73,66 @@ All tests failing as expected (TDD approach).
 Existing tests (29) continue to pass.
 
 **Next:** Request permission to proceed to Phase 2 (Implementation)
+
+### 2025-12-13 15:30 - Phase 2 Complete: Implementation Finished
+
+Completed implementation of task counts scanning functionality. All 27 new tests now passing (56 total including existing tests).
+
+**Functions implemented**:
+
+1. **count_local_tasks()**:
+   - Scans `$CLAUDE_SPAWN_DIR/task-system/tasks/` directory
+   - Detects journal.md presence in each worktree's `task-system/task-NNN/` folder
+   - Categorizes as in-progress (journal exists) or pending (no journal)
+   - Skips malformed task directories (missing task-system folder)
+   - Returns 0/0 gracefully when directory missing or empty
+   - Sets: IN_PROGRESS_COUNT, PENDING_COUNT, LOCAL_TASK_IDS
+
+2. **count_remote_tasks()**:
+   - Uses `CLAUDE_SPAWN_DIR` for git context (runs `git -C`)
+   - Queries `git branch -r` filtered to `origin/task-[0-9]+-*` pattern
+   - Excludes branches that have existing local worktrees (using LOCAL_TASK_IDS)
+   - Returns 0 gracefully when no git repo or remote configured
+   - Sets: REMOTE_COUNT
+
+3. **format_task_counts()**:
+   - Unicode icons: ● (in-progress) ◐ (pending) ○ (remote)
+   - ASCII fallback: I: P: R: with --no-icons flag
+   - Format: "● N ◐ N ○ N" or "I:N P:N R:N"
+
+**Key implementation decisions**:
+- Used `$((var + 1))` instead of `((var++))` to avoid exit code 1 with `set -e` when incrementing from 0
+- Reset `CLAUDE_SPAWN_DIR` in load_environment() to prevent inheriting from caller
+- Run git commands with `-C $spawn_dir` to ensure correct repository context
+
+All sub-tasks marked complete in task.md.
+
+**Next:** Request permission to proceed to Phase 3 (Refactor)
+
+### 2025-12-13 17:00 - Phase 3 Complete: Code Quality Improvements
+
+Reviewed implementation critically and applied targeted refactoring improvements.
+
+**Changes made**:
+
+1. **Performance optimization**:
+   - Replaced `sed` subprocess with bash parameter expansion for task ID extraction
+   - Uses native bash string manipulation: `${branch#origin/task-}` and `${task_id%%-*}`
+   - Eliminates subprocess overhead in the hot path (called once per remote branch)
+
+2. **Documentation improvement**:
+   - Added `CLAUDE_SPAWN_DIR` to help text environment variables section
+   - Users now know all three expected variables from the env file
+
+3. **Code clarity**:
+   - Added detailed comments for whitespace trimming logic
+   - Improved regex validation with `[[ "$task_id" =~ ^[0-9]+$ ]]`
+
+**Decisions NOT to refactor**:
+- Kept `$((var + 1))` pattern as-is - it's readable and necessary for `set -e` compatibility
+- Did not add additional abstraction - code is appropriately simple for the task
+- Did not consolidate icon definitions - they're well-organized by category
+
+All 56 tests continue to pass after refactoring.
+
+**Next:** Request permission to proceed to Phase 4 (Verification)
