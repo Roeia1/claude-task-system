@@ -6,25 +6,7 @@
 [![Skills](https://img.shields.io/badge/skills-11-green)](https://github.com/Roeia1/claude-task-system)
 [![Agents](https://img.shields.io/badge/agents-3-orange)](https://github.com/Roeia1/claude-task-system)
 
-> A structured development workflow plugin for Claude Code that combines human-guided feature planning with disciplined task execution using test-driven development.
-
-**Stop the AI chaos. Start shipping with discipline.**
-
----
-
-## The Problem
-
-Without structure, AI-assisted development often leads to:
-
-- **Scope creep**: "Fix this bug" becomes a 15-file refactoring adventure
-- **Lost context**: Yesterday's decisions forgotten in today's session
-- **No traceability**: Which feature spawned this task? Why did we choose this approach?
-- **Skipped tests**: "I'll add tests later" (spoiler: you won't)
-- **Scattered decisions**: Architectural choices buried in chat history
-
-## The Solution
-
-Claude Task System provides a **complete lifecycle** from feature ideation through planning, task breakdown, and rigorous phased execution:
+> Transform feature ideas into shipped code through structured planning, test-driven development, and documented decisions.
 
 ```mermaid
 flowchart LR
@@ -38,8 +20,6 @@ flowchart LR
     C -.- C1[tasks/]
     D -.- D1[journal.md]
 ```
-
-Every phase requires human review. Tests come first. Decisions are documented. Nothing gets lost.
 
 ---
 
