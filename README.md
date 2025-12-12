@@ -29,9 +29,22 @@ flowchart LR
 
 ### Installation
 
+**Option 1: From GitHub**
+
 ```bash
-# Add the plugin to Claude Code
-claude plugin add Roeia1/claude-task-system
+# Add the marketplace
+/plugin marketplace add Roeia1/claude-task-system
+
+# Install the plugin
+/plugin install claude-task-system@claude-task-system
+```
+
+**Option 2: Interactive**
+
+```bash
+# Browse and install via menu
+/plugin
+# Select "Browse Plugins" → find claude-task-system → install
 ```
 
 ### Initialize Your Project
