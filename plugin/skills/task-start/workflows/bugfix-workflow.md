@@ -1,29 +1,8 @@
 # Bugfix Task Execution Workflow
 
-## Phase 1: Task Analysis
+## Phase 1: Bug Investigation
 
 **Prerequisites**: Git setup completed by task-start skill
-
-### Task Analysis
-
-1. Read entire task file thoroughly
-2. Review all dependencies are COMPLETED
-3. Analyze bug description, symptoms, and impact
-4. Review existing sub-tasks in task file
-5. Identify ambiguities or concerns about the bug
-6. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis" && git push`
-
-### Exit Criteria
-
-- Clear understanding of bug documented
-- Impact and urgency assessed
-- Initial commit made
-
-> **Phase Transition**: See [Phase Transition Rules](./phase-transition-rules.md)
-
-**Request permission to proceed to Phase 2**
-
-## Phase 2: Bug Investigation
 
 1. Reproduce the bug reliably using provided steps
 2. Identify the root cause through debugging/analysis
@@ -41,9 +20,9 @@
 - Fix approach determined
 - Investigation documented
 
-**Request permission to proceed to Phase 3**
+**Request permission to proceed to Phase 2**
 
-## Phase 3: Test-First Bug Fix
+## Phase 2: Test-First Bug Fix
 
 1. Write test that reproduces the bug with current code
 2. Verify the test fails (confirming bug exists)
@@ -62,9 +41,9 @@
 - Regression prevention tests added
 - Test strategy committed
 
-**Request permission to proceed to Phase 4**
+**Request permission to proceed to Phase 3**
 
-## Phase 4: Minimal Fix Implementation
+## Phase 3: Minimal Fix Implementation
 
 1. Apply targeted fix to make bug reproduction test pass
 2. **Commit minimal fix immediately**: `fix(task-XXX): resolve [specific bug] in [component]` && git push
@@ -87,9 +66,9 @@
 - Original bug symptoms resolved
 - Fix committed
 
-**Request permission to proceed to Phase 5**
+**Request permission to proceed to Phase 4**
 
-## Phase 5: Validation & Edge Cases
+## Phase 4: Validation & Edge Cases
 
 1. Test edge cases and boundary conditions related to the bug
 2. Perform integration testing in affected areas
@@ -104,13 +83,13 @@
 - Integration scenarios verified
 - Validation results documented
 
-**Request permission to proceed to Phase 6**
+**Request permission to proceed to Phase 5**
 
-## Phase 6-7: Verification & Reflection
+## Phase 5-6: Verification & Reflection
 
 > **Complete Checklist**: See [Verification Checklist](./verification-checklist.md)
 
-### Phase 6: Bugfix-Specific Checks
+### Phase 5: Bugfix-Specific Checks
 
 1. Verify all acceptance criteria from task file met
 2. Ensure all sub-tasks are checked off
@@ -120,9 +99,9 @@
 6. Run final code quality checks
 7. Mark PR ready for review
 
-**Request permission to proceed to Phase 7**
+**Request permission to proceed to Phase 6**
 
-### Phase 7: Bugfix Reflection
+### Phase 6: Bugfix Reflection
 
 1. Review entire bugfix journey
 
@@ -170,6 +149,6 @@ When encountering issues:
 **Proactive review requests** when:
 - Root cause is complex or unclear
 - Fix approach has multiple valid options
-- Completing phases 2, 3, 5, 6
+- Completing phases 1, 2, 4, 5
 - Discovering scope creep or additional related issues
 - Finding design problems that extend beyond the bug

@@ -1,80 +1,10 @@
 # Feature Task Execution Workflow
 
-## Phase 1: Task Analysis
+## Phase 1: Test Creation (TDD)
 
 **Prerequisites**: Git setup completed by task-start skill
 
-### Option A: Use Task Analyzer Subagent (Recommended)
-
-For comprehensive analysis with automated standards validation:
-
-1. **Ask user permission**: "Ready to run Task Analyzer subagent for Phase 1-2 analysis?"
-2. **If approved**, delegate to task-analyzer subagent (see `agents/task-analyzer.md`)
-3. **Subagent performs**:
-   - Reads task.md, feature.md, plan.md, and all relevant ADRs
-   - Validates dependencies are COMPLETED (blocks if not)
-   - Reviews project standards (coding-standards.md, architecture-principles.md, quality-gates.md, tech-stack.md)
-   - Generates comprehensive analysis report with structured output
-   - Identifies risks, ambiguities, and architectural decisions
-   - Recommends technical approach aligned with standards
-4. **Present analysis** to user for review
-5. **Commit initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis" && git push`
-
-**Benefits of Task Analyzer**:
-- Comprehensive standards compliance check
-- Structured, consistent analysis format
-- Automatic dependency validation
-- Reduces risk of missing critical context
-- Isolates heavy documentation reading from main conversation
-
-### Option B: Manual Analysis (Fallback)
-
-If subagent is unavailable or user prefers manual approach:
-
-1. Read entire task file thoroughly
-2. Review all dependencies are COMPLETED
-3. Analyze requirements, objectives, and acceptance criteria
-4. Review existing sub-tasks in task file
-5. Identify ambiguities or concerns
-6. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis" && git push`
-
-### Exit Criteria
-
-- Clear understanding documented
-- Concerns identified
-- Initial commit made
-- **If using subagent**: Comprehensive analysis report reviewed and approved
-
-> **Phase Transition**: See [Phase Transition Rules](./phase-transition-rules.md) for permission protocol.
-
-**Request permission to proceed to Phase 2**
-
-## Phase 2: Solution Design
-
-**Note**: If using Task Analyzer subagent, Phase 1 and 2 are performed together. The subagent provides solution design as part of its comprehensive analysis. Skip to Phase 3 if subagent was used.
-
-### Manual Solution Design (when subagent not used)
-
-1. Research technical approach using provided resources
-2. Analyze existing codebase patterns
-3. Design solution architecture
-4. Consider how to approach sub-tasks from task file
-5. Consider risks identified in task file
-6. Plan how solution will be tested
-7. **Commit and push design work**: `git add . && git commit -m "docs(task-XXX): complete solution design and architecture" && git push`
-8. **Consider review request**: For major architectural decisions, ask user if they want to review the design
-
-### Exit Criteria
-
-- Complete solution design documented
-- Architecture decisions committed
-- **If using subagent**: Technical approach validated against project standards
-
-**Request permission to proceed to Phase 3**
-
-## Phase 3: Test Creation (TDD)
-
-1. Write tests that reflect the agreed solution
+1. Write tests that reflect the solution from task.md's Technical Approach
 2. Focus on:
    - Expected behavior, not implementation details
    - End-to-end scenarios validating complete feature
@@ -89,9 +19,9 @@ If subagent is unavailable or user prefers manual approach:
 - All tests written, failing as expected
 - Test strategy committed
 
-**Request permission to proceed to Phase 4**
+**Request permission to proceed to Phase 2**
 
-## Phase 4: Implementation
+## Phase 2: Implementation
 
 1. Implement functionality to make failing tests pass
 2. **Commit and push logical milestones**: Use meaningful commits for each significant piece of functionality
@@ -104,7 +34,7 @@ If subagent is unavailable or user prefers manual approach:
 5. Check off completed sub-tasks in task file
 6. Run tests frequently to track progress
 7. Continue until all tests pass
-8. **Handle design issues**: If significant design flaws emerge, address within this phase using Phase 2-style analysis
+8. **Handle design issues**: If significant design flaws emerge, discuss with user
 9. **Consider mid-phase review**: For complex implementations, ask user if they want to review progress
 
 ### Exit Criteria
@@ -113,9 +43,9 @@ If subagent is unavailable or user prefers manual approach:
 - Implementation complete
 - All logical milestones committed
 
-**Request permission to proceed to Phase 5**
+**Request permission to proceed to Phase 3**
 
-## Phase 5: Refactor
+## Phase 3: Refactor
 
 1. Review implementation critically
 2. Identify improvements:
@@ -135,22 +65,22 @@ If subagent is unavailable or user prefers manual approach:
 - All tests still passing
 - Refactoring work committed
 
-**Request permission to proceed to Phase 6**
+**Request permission to proceed to Phase 4**
 
-## Phase 6-7: Verification & Reflection
+## Phase 4-5: Verification & Reflection
 
-> **Complete Checklist**: See [Verification Checklist](./verification-checklist.md) for Phase 6 verification steps and Phase 7 reflection guide.
+> **Complete Checklist**: See [Verification Checklist](./verification-checklist.md) for Phase 4 verification steps and Phase 5 reflection guide.
 
-### Phase 6 Summary
+### Phase 4 Summary
 
 1. Verify all acceptance criteria from task file
 2. Run final code quality checks
 3. Mark PR ready for review
 4. Request user approval
 
-**Request permission to proceed to Phase 7**
+**Request permission to proceed to Phase 5**
 
-### Phase 7 Summary
+### Phase 5 Summary
 
 1. Review entire task journey
 2. Update task file with learnings
@@ -159,8 +89,8 @@ If subagent is unavailable or user prefers manual approach:
 
 ## Important Rules
 
-- **Test-Driven Development**: NEVER write implementation code before tests (Phase 3)
-- **Test Modification**: NEVER modify tests after Phase 3 without explicit permission - see [Test Modification Protocol](./test-modification-protocol.md)
+- **Test-Driven Development**: NEVER write implementation code before tests (Phase 1)
+- **Test Modification**: NEVER modify tests after Phase 1 without explicit permission - see [Test Modification Protocol](./test-modification-protocol.md)
 - **Phase Progression**: NEVER proceed to next phase without permission - see [Phase Transition Rules](./phase-transition-rules.md)
 - **Sequential Execution**: Complete phases in order
 - **Commit Discipline**: Commit logical milestones throughout development
@@ -178,7 +108,7 @@ When encountering issues:
 
 ### 2. Design Flaws
 - Document the flaw discovered
-- Discuss with user whether to revisit Phase 2
+- Discuss with user whether to revisit task.md's Technical Approach
 
 ### 3. Technical Blockers
 - Present alternative solutions to user
@@ -200,5 +130,5 @@ When encountering issues:
 
 **Proactive review requests**: Ask user "Should I request a review?" when:
 - Making major technical decisions
-- Completing phases 2, 3, 5, 6
+- Completing phases 1, 3, 4
 - Encountering scope creep or requirement changes

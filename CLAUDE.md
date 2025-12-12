@@ -22,7 +22,7 @@ This is the **Claude Task System** - a structured development workflow that comb
    - Generate task breakdown for approval
 
 3. **Task Execution Phase**
-   - Task Analysis → Solution Design → Test Creation (TDD) → Implementation → Refactor → Verification → Reflection → Completion
+   - Each task type follows a specialized workflow (feature, bugfix, refactor, performance, deployment)
    - Each phase requires explicit permission to proceed
    - Tests written before implementation (non-negotiable)
    - Journaling subagent documents decisions and learnings throughout
@@ -71,7 +71,8 @@ plugin/                         # Plugin source code
 │   └── plugin.json            # Plugin manifest
 ├── agents/                     # Subagent definitions
 │   ├── journaling.md
-│   └── task-analyzer.md
+│   ├── task-builder.md
+│   └── task-completer.md
 ├── commands/                   # Slash commands
 │   ├── init.md                # Initialize task-system structure
 │   ├── adr.md                 # Architecture decision records
@@ -180,7 +181,7 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 # Say "start task 015" to begin workflow
 
 # From WORKTREE: Complete and merge
-# Grant permission after Phase 7 for automatic completion
+# Grant permission after final phase for automatic completion
 
 # From MAIN REPO: Cleanup worktree after completion
 # Say "cleanup worktree for task 015"
@@ -190,59 +191,25 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 
 ### Workflow Discipline
 
-Each task follows this sequence (defined in type-specific workflows in `plugin/skills/task-start/workflows/`):
+Each task type follows a specialized workflow defined in `plugin/skills/task-start/workflows/`. All workflows share common principles but are tailored to their domain:
 
-1. **Phase 1: Task Analysis**
-   - Read task file and linked feature documentation
-   - Check dependencies (advisory - warn if not merged)
-   - Invoke journaling subagent to document analysis
-   - Commit initial analysis
+- **Feature**: Test-driven development flow. Write failing tests first, implement to pass them, refactor for quality, then verify and reflect.
 
-2. **Phase 2: Solution Design**
-   - Review feature plan and ADRs
-   - Document technical approach
-   - Consider risks and tradeoffs
-   - Create ADRs for architectural decisions
-   - Commit design documentation
+- **Bugfix**: Investigation-first flow. Reproduce and understand the bug, write a test that captures it, apply minimal fix, validate edge cases, then verify and reflect.
 
-3. **Phase 3: Test Creation (TDD)**
-   - Write tests for expected behavior
-   - NO implementation code during this phase
-   - Verify all tests fail as expected
-   - Commit test suite
+- **Refactor**: Safety-net flow. Analyze code and plan changes, add tests to protect existing behavior, make incremental changes, validate quality improvements, then verify and reflect.
 
-4. **Phase 4: Implementation**
-   - Implement to pass tests
-   - NEVER modify tests without user permission
-   - Create ADRs for implementation decisions
-   - Commit logical milestones frequently
-   - Invoke journaling subagent to document decisions and challenges
+- **Performance**: Measurement-driven flow. Establish baselines and identify bottlenecks, create benchmark tests, apply optimizations incrementally, validate targets are met, then verify and reflect.
 
-5. **Phase 5: Refactor**
-   - Improve code quality
-   - Ensure tests still pass
-   - Commit refactoring changes
+- **Deployment**: Operational flow with additional phases for infrastructure concerns. See `deployment-workflow.md` for details.
 
-6. **Phase 6: Verification & Polish**
-   - Verify acceptance criteria from feature
-   - Run quality checks (per quality-gates.md)
-   - Mark PR ready for review
-   - Request user approval
-
-7. **Phase 7: Reflection**
-   - Update task file with learnings
-   - Document key decisions
-   - Summarize accomplishments
-
-8. **Completion** (automatic after Phase 7 approval)
-   - Task-completer subagent handles PR merge
-   - Cleanup worktree from main repo afterward
+All workflows end with **Verification** (check acceptance criteria), **Reflection** (document learnings), and **Completion** (task-completer handles PR merge).
 
 ### Non-Negotiable Rules
 
-- **Test-Driven Development**: Tests must be written in Phase 3, before implementation
+- **Test-Driven Development**: Tests must be written before implementation
 - **Phase Progression**: Each phase requires explicit user permission to proceed
-- **No Test Modification**: After Phase 3, tests can only be changed with explicit user approval
+- **No Test Modification**: After tests are written, they can only be changed with explicit user approval
 - **Continuous Journaling**: Invoke journaling subagent throughout to document decisions and insights
 - **Commit Discipline**: Commit and push at the end of each phase and at logical milestones
 - **Sequential Execution**: Complete phases in order, no skipping
@@ -251,9 +218,7 @@ Each task follows this sequence (defined in type-specific workflows in `plugin/s
 ### Git Commit Format
 
 ```bash
-# Phase-based commits
-git commit -m "docs(task-XXX): initial task analysis and journal setup"
-git commit -m "docs(task-XXX): complete solution design and architecture"
+# Phase-based commits (feature task example)
 git commit -m "test(task-XXX): add comprehensive test suite for [feature]"
 git commit -m "feat(task-XXX): implement core [component] functionality"
 git commit -m "refactor(task-XXX): improve [specific improvement]"

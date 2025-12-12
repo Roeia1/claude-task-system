@@ -1,29 +1,8 @@
 # Performance Task Execution Workflow
 
-## Phase 1: Task Analysis
+## Phase 1: Performance Analysis
 
 **Prerequisites**: Git setup completed by task-start skill
-
-### Task Analysis
-
-1. Read entire task file thoroughly
-2. Review all dependencies are COMPLETED
-3. Analyze performance requirements and target metrics
-4. Review existing sub-tasks in task file
-5. Identify ambiguities or concerns about performance goals
-6. **Commit and push initial work**: `git add . && git commit -m "docs(task-XXX): initial task analysis" && git push`
-
-### Exit Criteria
-
-- Clear understanding of performance goals documented
-- Target metrics identified
-- Initial commit made
-
-> **Phase Transition**: See [Phase Transition Rules](./phase-transition-rules.md)
-
-**Request permission to proceed to Phase 2**
-
-## Phase 2: Performance Analysis
 
 1. Establish baseline performance measurements
 2. Identify specific bottlenecks and performance issues
@@ -42,9 +21,9 @@
 - Optimization targets set
 - Analysis committed
 
-**Request permission to proceed to Phase 3**
+**Request permission to proceed to Phase 2**
 
-## Phase 3: Benchmark Test Creation
+## Phase 2: Benchmark Test Creation
 
 1. Create comprehensive performance test suite
 2. Establish benchmark tests for current baseline metrics
@@ -65,9 +44,9 @@
 - Success criteria defined
 - Benchmarks committed
 
-**Request permission to proceed to Phase 4**
+**Request permission to proceed to Phase 3**
 
-## Phase 4: Performance Implementation
+## Phase 3: Performance Implementation
 
 1. Apply performance optimizations incrementally
 2. **Measure impact after each optimization**: Run benchmarks to verify improvements
@@ -91,9 +70,9 @@
 - No functional regressions introduced
 - Implementation completed
 
-**Request permission to proceed to Phase 5**
+**Request permission to proceed to Phase 4**
 
-## Phase 5: Performance Validation
+## Phase 4: Performance Validation
 
 1. Run complete performance test suite
 2. Compare final metrics against baseline and targets
@@ -113,13 +92,13 @@
 - System stability confirmed
 - Validation results documented
 
-**Request permission to proceed to Phase 6**
+**Request permission to proceed to Phase 5**
 
-## Phase 6-7: Verification & Reflection
+## Phase 5-6: Verification & Reflection
 
 > **Complete Checklist**: See [Verification Checklist](./verification-checklist.md)
 
-### Phase 6: Performance-Specific Checks
+### Phase 5: Performance-Specific Checks
 
 1. Verify all performance objectives from task file achieved
 2. **Confirm no functionality was compromised** for performance
@@ -127,9 +106,9 @@
 4. Run final code quality checks
 5. Mark PR ready for review
 
-**Request permission to proceed to Phase 7**
+**Request permission to proceed to Phase 6**
 
-### Phase 7: Performance Reflection
+### Phase 6: Performance Reflection
 
 1. Review entire optimization journey
 
@@ -174,7 +153,7 @@ When encountering issues:
 
 > **Base Protocol**: See [Test Modification Protocol](./test-modification-protocol.md)
 
-Apply the test modification protocol to benchmark changes. After Phase 3, if benchmarks need modification:
+Apply the test modification protocol to benchmark changes. After Phase 2, if benchmarks need modification:
 
 1. Explain to user with performance reasoning
 2. Wait for explicit permission
@@ -186,7 +165,7 @@ Apply the test modification protocol to benchmark changes. After Phase 3, if ben
 
 **Proactive review requests** when:
 - Setting performance targets and optimization strategy
-- Completing phases 2, 3, 5, 6
+- Completing phases 1, 2, 4, 5
 - Discovering significant architectural performance issues
 - Finding tradeoffs between performance and maintainability
 - Hitting diminishing returns on optimization efforts
