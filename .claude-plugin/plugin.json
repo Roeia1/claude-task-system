@@ -19,8 +19,7 @@
   ],
   "source": {
     "source": "github",
-    "repo": "Roeia1/claude-task-system",
-    "path": "plugin"
+    "repo": "Roeia1/claude-task-system"
   },
   "commands": [
     "./commands/init.md"
