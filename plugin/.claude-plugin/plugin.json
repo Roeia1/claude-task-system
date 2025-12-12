@@ -17,10 +17,6 @@
     "architecture-decisions",
     "journaling"
   ],
-  "source": {
-    "source": "github",
-    "repo": "Roeia1/claude-task-system"
-  },
   "commands": [
     "./commands/init.md"
   ],

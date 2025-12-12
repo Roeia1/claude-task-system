@@ -9,10 +9,7 @@
       "name": "claude-task-system",
       "description": "Structured task workflow with feature planning, journaling, and architecture decision records",
       "version": "1.0.0",
-      "source": {
-        "source": "github",
-        "repo": "Roeia1/claude-task-system"
-      },
+      "source": "./plugin",
       "author": {
         "name": "Roei Avrahami",
         "email": "roei.avrahami2@gmail.com"
