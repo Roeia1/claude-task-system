@@ -1,29 +1,59 @@
 # @claude-task-system/statusline
 
-Statusline integration script for Claude Task System - displays task context in terminal prompts.
+A lightweight statusline script for [Claude Code](https://claude.ai/code) that displays **task system context** in your terminal prompt. Always know which task you're working on and whether you're in a worktree or main repo.
+
+Inspired by [claude-powerline](https://github.com/Owloops/claude-powerline) - can be used standalone or combined with other statusline tools.
+
+## What It Shows
+
+```
+⌂ 015                   # In task worktree 015
+⎇                       # In main repository
+⌂ 042                   # In task worktree 042
+```
+
+| Context | Unicode | ASCII |
+|---------|---------|-------|
+| Main repo | `⎇` | `[M]` |
+| Task worktree | `⌂` | `[W]` |
 
 ## Installation
 
-### Via npx (Recommended)
+### Quick Start (Recommended)
 
-Run directly without installation:
+Add to your Claude Code `settings.json`:
 
-```bash
-npx @claude-task-system/statusline
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "npx -y @claude-task-system/statusline@latest"
+  }
+}
 ```
 
-### Via npm
+The `npx -y` command automatically downloads and runs the latest version.
 
-Install globally:
+### Global Install
 
 ```bash
 npm install -g @claude-task-system/statusline
-task-status
 ```
 
-### Standalone Bash Script
+Then configure Claude Code:
 
-Download and use the standalone script directly:
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "task-status"
+  }
+}
+```
+
+### Standalone Script
+
+Download and use directly:
 
 ```bash
 curl -o task-status https://raw.githubusercontent.com/Roeia1/claude-task-system/main/packages/statusline/scripts/claude-task-system-statusline.sh
@@ -39,47 +69,74 @@ task-status [OPTIONS]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `--help` | Show help message and exit |
-| `--no-icons` | Use ASCII characters instead of Unicode icons |
-| `--origin` | Show only the origin indicator (main repo vs worktree) |
+| Flag | Description |
+|------|-------------|
+| `--help` | Show help message |
+| `--no-icons` | Use ASCII instead of Unicode (`[M]`/`[W]` instead of `⎇`/`⌂`) |
+| `--origin` | Show only the origin indicator |
 | `--task` | Show only the current task ID |
-| `--counts` | Show only task counts |
-
-If no section flags are specified, all sections are shown.
+| `--counts` | Show only task counts (coming soon) |
 
 ### Examples
 
 ```bash
-# Show all sections with icons
+# Full output with icons
 task-status
+# Output: ⌂ 015
 
-# Show all sections with ASCII
+# ASCII mode (no special fonts needed)
 task-status --no-icons
+# Output: [W] 015
 
-# Show only origin indicator
+# Just the origin indicator
 task-status --origin
+# Output: ⌂
 
-# Show origin and task sections
+# Origin and task only
 task-status --origin --task
+# Output: ⌂ 015
 ```
 
-## Environment
+## Combining with claude-powerline
 
-The script reads context from `$CLAUDE_ENV_FILE` which should contain:
+Chain multiple statusline tools together:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "echo \"$(npx -y @claude-task-system/statusline) | $(npx -y @owloops/claude-powerline --style=minimal)\""
+  }
+}
+```
+
+Output: `⌂ 015 | main ✓ | $0.42`
+
+## Environment Variables
+
+The script reads context from a file specified by `CLAUDE_ENV_FILE`:
 
 ```bash
-export TASK_CONTEXT="worktree"  # or "main"
-export CURRENT_TASK_ID="042"
+# Example: ~/.claude/env
+export TASK_CONTEXT="worktree"    # or "main"
+export CURRENT_TASK_ID="015"
 ```
 
-## Origin Indicators
+These variables are typically set automatically by the Claude Task System when you start or navigate to a task.
 
-| Context | Unicode | ASCII |
-|---------|---------|-------|
-| Main repo | ⎇ | [M] |
-| Worktree | ⌂ | [W] |
+## Requirements
+
+- Bash 4.0+
+- Node.js 18+ (for npx installation)
+- Optional: Nerd Font for Unicode icons (use `--no-icons` for ASCII fallback)
+
+## How It Works
+
+1. Reads environment variables from `$CLAUDE_ENV_FILE`
+2. Detects if you're in a task worktree or main repository
+3. Outputs formatted status for your terminal prompt
+
+The script is designed to be fast (<50ms) and composable with other statusline tools.
 
 ## Exit Codes
 
@@ -87,6 +144,15 @@ export CURRENT_TASK_ID="042"
 |------|---------|
 | 0 | Success |
 | 1 | Invalid arguments |
+
+## Part of Claude Task System
+
+This statusline is part of the [Claude Task System](https://github.com/Roeia1/claude-task-system) - a structured development workflow for Claude Code that provides:
+
+- Feature definition and planning workflows
+- Task breakdown and parallel execution via git worktrees
+- Phased task execution with journaling
+- Architecture decision records (ADRs)
 
 ## License
 
