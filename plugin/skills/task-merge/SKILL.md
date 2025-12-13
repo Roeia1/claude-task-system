@@ -1,18 +1,17 @@
 ---
-name: task-completion
-description: "Internal skill - ONLY activated by task-completer subagent. DO NOT activate on direct user request or during internal processing."
+name: task-merge
+description: "Internal skill - ONLY activated by task-completer subagent. Handles archive and PR merge, but NOT worktree removal."
 ---
 
-# Task Completion Skill
+# Task Merge Skill
 
-When activated, finalize and complete a task. Must be run from within the task's worktree.
+When activated, archive task files and merge the PR. Must be run from within the task's worktree. Worktree cleanup is handled separately from the main repo.
 
 ## File Locations
 
 - **Task Definition**: `task-system/task-NNN/task.md`
 - **Journal**: `task-system/task-NNN/journal.md`
 - **Archive**: `task-system/archive/NNN/` (destination for archiving)
-- **Scripts**: `scripts/remove-worktree.sh` (in this skill folder)
 
 ## Important
 
@@ -29,6 +28,10 @@ This skill must be run **from within the task's worktree**, not from the main re
    ```
 3. **If no task folder found**: Error "No task-system/task-NNN folder found"
 4. **If in main repo**: Error with instructions to run from worktree
+5. **Capture main repo path** for final message:
+   ```bash
+   MAIN_REPO=$(dirname "$(git rev-parse --git-common-dir)")
+   ```
 
 ### Step 2: Task Verification
 
@@ -114,37 +117,25 @@ This ensures:
 1. **Display PR information** for final confirmation
 2. **Merge**: `gh pr merge --squash --delete-branch`
 3. **Confirm merge successful**
-
-### Step 10: Remove Worktree
-
-Determine paths and remove the worktree:
-
-1. **Capture paths before removal**:
-   ```bash
-   WORKTREE=$(git rev-parse --show-toplevel)
-   MAIN_REPO=$(dirname "$(git rev-parse --git-common-dir)")
-   ```
-
-2. **Remove worktree**:
-   ```bash
-   bash scripts/remove-worktree.sh $MAIN_REPO $WORKTREE
-   ```
-
-3. **Display final success**:
+4. **Display success and cleanup instructions**:
    ```
    ===============================================================
-   Task $TASK_ID Completed Successfully!
+   Task $TASK_ID Merged Successfully!
    ===============================================================
 
    - Task files archived to task-system/archive/$TASK_ID/
    - PR merged to main branch
    - Task branch deleted from remote
-   - Worktree removed
 
    ---------------------------------------------------------------
-   IMPORTANT: Your terminal is now in a deleted directory.
-   Run: cd $MAIN_REPO
+   NEXT STEP: Clean up the worktree from the main repository
    ---------------------------------------------------------------
+
+   1. Navigate to main repo: cd $MAIN_REPO
+   2. Start a new Claude session
+   3. Say: "cleanup task $TASK_ID"
+
+   (Or manually: git worktree remove task-system/tasks/$TASK_ID --force)
    ===============================================================
    ```
 
@@ -155,20 +146,13 @@ Determine paths and remove the worktree:
 - **No journal.md**: Warning that task may not have been properly started
 - **PR not ready**: Show which checks/reviews are blocking
 - **Merge conflicts**: Instructions to resolve conflicts
-- **Already merged**: Skip to worktree removal
-- **Worktree removal failed**: Display manual cleanup instructions:
-  ```
-  If automatic removal fails, try manual cleanup:
-  1. Navigate to main repo: cd $MAIN_REPO
-  2. Force remove worktree: git worktree remove $WORKTREE --force
-  3. If still fails: rm -rf $WORKTREE && git worktree prune
-  ```
+- **Already merged**: Display cleanup instructions directly
 
-## Status After Completion
+## Status After Merge
 
-After successful completion:
+After successful merge:
 - Task files archived to `task-system/archive/NNN/`
 - PR is merged to main branch
 - Task branch is deleted from remote
-- Worktree is removed
+- Worktree still exists (user must run cleanup from main repo)
 - Task will show as COMPLETED in `list tasks` (PR merged)

@@ -1,9 +1,9 @@
 # Claude Task System
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-1.0.2-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.3-blue)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Skills](https://img.shields.io/badge/skills-11-green)](https://github.com/Roeia1/claude-task-system)
+[![Skills](https://img.shields.io/badge/skills-12-green)](https://github.com/Roeia1/claude-task-system)
 [![Agents](https://img.shields.io/badge/agents-3-orange)](https://github.com/Roeia1/claude-task-system)
 
 > Transform feature ideas into shipped code through structured planning, test-driven development, and documented decisions.
@@ -276,6 +276,7 @@ Creates local worktree from the remote branch and picks up where you left off.
 | Task Start | "start task [id]" | Begin task execution workflow |
 | Task List | "list tasks" | Show all tasks with status |
 | Task Resume | "resume task [id]" | Continue remote task locally |
+| Task Cleanup | "cleanup task [id]" | Remove worktree after PR merge |
 | Architecture Decisions | "create ADR for [topic]" | Document architectural decisions |
 
 ---
@@ -293,12 +294,18 @@ Creates local worktree from the remote branch and picks up where you left off.
 > generate tasks
 # Review proposed tasks, approve
 
-# Session 2+: Execute tasks
+# Session 2: Execute task (in worktree)
 $ cd task-system/tasks/001
 $ claude
 > start task 001
 # Complete TDD workflow with phase gates
-# PR reviewed and merged automatically
+# Grant completion permission -> PR merged
+
+# Session 3: Cleanup (from main repo)
+$ cd ../../../  # Back to main repo
+$ claude
+> cleanup task 001
+# Worktree removed, task fully completed
 ```
 
 ### Bug Fix
@@ -392,7 +399,7 @@ plugin/
 ├── agents/
 │   ├── journaling.md       # Documents decisions throughout
 │   ├── task-builder.md     # Creates tasks in parallel
-│   └── task-completer.md   # Handles PR merge and cleanup
+│   └── task-completer.md   # Handles PR merge (cleanup done separately)
 ├── commands/
 │   └── init.md             # Initialize task-system
 ├── skills/
@@ -402,6 +409,8 @@ plugin/
 │   ├── task-start/         # Execute workflows
 │   ├── task-list/          # Dynamic status
 │   ├── task-resume/        # Continue remotely
+│   ├── task-merge/         # Archive and merge PR
+│   ├── task-cleanup/       # Remove worktree
 │   ├── architecture-decisions/
 │   └── ...
 └── hooks/

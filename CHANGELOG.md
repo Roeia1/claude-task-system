@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2025-12-13
+
+### Changed
+
+- **task-completion**: Split into two-step flow to avoid agent running inside worktree it's deleting
+  - New `task-merge` skill: Archives files and merges PR (runs in worktree)
+  - New `task-cleanup` skill: Removes worktree after merge (runs from main repo)
+  - User says "cleanup task NNN" from main repo after PR is merged
+
+### Removed
+
+- **task-completion**: Replaced by `task-merge` and `task-cleanup` skills
+
 ## [1.0.2] - 2025-12-13
 
 ### Changed
