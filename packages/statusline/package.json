@@ -1,9 +1,9 @@
 {
   "name": "@claude-task-system/statusline",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Statusline integration script for Claude Task System - displays task context in terminal prompts",
   "bin": {
-    "task-status": "./bin/task-status"
+    "task-status": "bin/task-status"
   },
   "scripts": {
     "test": "jest",
@@ -16,8 +16,14 @@
     "statusline",
     "prompt"
   ],
-  "author": "",
+  "author": "Roei Avrahami <roei.avrahami2@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Roeia1/claude-task-system.git",
+    "directory": "packages/statusline"
+  },
+  "homepage": "https://github.com/Roeia1/claude-task-system#readme",
   "devDependencies": {
     "jest": "^29.7.0"
   },
