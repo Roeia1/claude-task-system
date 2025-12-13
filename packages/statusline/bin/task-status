@@ -11,10 +11,10 @@ SHOW_TASK=false
 SHOW_COUNTS=false
 SHOW_ALL=true
 
-# Context variables (populated from CLAUDE_ENV_FILE)
-TASK_CONTEXT=""
-CURRENT_TASK_ID=""
-CLAUDE_SPAWN_DIR=""
+# Context variables (populated from CLAUDE_ENV_FILE or environment)
+TASK_CONTEXT="${TASK_CONTEXT:-}"
+CURRENT_TASK_ID="${CURRENT_TASK_ID:-}"
+CLAUDE_SPAWN_DIR="${CLAUDE_SPAWN_DIR:-}"
 
 # Icon definitions
 readonly ICON_MAIN="⎇"
@@ -125,15 +125,13 @@ parse_args() {
 }
 
 load_environment() {
-    # Only use values from CLAUDE_ENV_FILE, not inherited environment
-    TASK_CONTEXT=""
-    CURRENT_TASK_ID=""
-    CLAUDE_SPAWN_DIR=""
-
+    # Prefer CLAUDE_ENV_FILE, fallback to environment variables
     if [[ -n "${CLAUDE_ENV_FILE:-}" && -f "$CLAUDE_ENV_FILE" && -r "$CLAUDE_ENV_FILE" ]]; then
+        # Load from env file (preferred method)
         # shellcheck disable=SC1090
         source "$CLAUDE_ENV_FILE" 2>/dev/null || true
     fi
+    # If CLAUDE_ENV_FILE not available, variables inherit from environment (if set)
 }
 
 # Get indicator for context type

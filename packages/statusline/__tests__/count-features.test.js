@@ -10,6 +10,12 @@ const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
  */
 function runScript(args = [], env = {}, cwd = undefined) {
   const fullEnv = { ...process.env, ...env };
+  // Remove keys that are explicitly set to undefined
+  Object.keys(fullEnv).forEach(key => {
+    if (fullEnv[key] === undefined) {
+      delete fullEnv[key];
+    }
+  });
   const options = {
     env: fullEnv,
     encoding: 'utf8',
@@ -309,7 +315,7 @@ describe('task-status --counts (feature counts)', () => {
       const envFile = createTempEnvFile('export TASK_CONTEXT="main"');
 
       try {
-        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
+        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile, CLAUDE_SPAWN_DIR: undefined });
         expect(result.exitCode).toBe(0);
         // Should output zeros or graceful fallback
         expect(result.stdout).toMatch(/A:0/);
