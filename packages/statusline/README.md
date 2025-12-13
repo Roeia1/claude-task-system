@@ -118,22 +118,22 @@ chmod +x task-status
 
 ## Combining with claude-powerline
 
-This package reads from environment variables, not Claude's stdout. When combining with tools like claude-powerline that process Claude's output, **pipe this package last**:
+Run both statuslines sequentially using `;` - claude-powerline first (it reads Claude's stdout), then this package (reads environment variables):
 
 ```json
 {
   "statusLine": {
     "type": "command",
-    "command": "echo \"$(npx -y @owloops/claude-powerline --style=minimal) $(npx -y @claude-task-system/statusline)\""
+    "command": "npx -y @owloops/claude-powerline@latest 2>/dev/null; npx -y @claude-task-system/statusline"
   }
 }
 ```
 
-**Output:** `main ✓ | $0.42 ⌂ ✨ Add feature (Auth) ● 1 ◐ 2 ○ 0 | ◨ 1 ◧ 1`
+This outputs both statuslines on separate lines. The `2>/dev/null` suppresses any stderr from claude-powerline.
 
-The order matters because:
-- `claude-powerline` reads Claude's stdout for usage/git info
-- `@claude-task-system/statusline` reads environment variables independently
+**Why this order matters:**
+- `claude-powerline` must run first to capture Claude's stdout for usage/git info
+- `@claude-task-system/statusline` reads environment variables independently and can run after
 
 ## Usage
 
