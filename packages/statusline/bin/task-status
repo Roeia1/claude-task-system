@@ -132,6 +132,30 @@ load_environment() {
         source "$CLAUDE_ENV_FILE" 2>/dev/null || true
     fi
     # If CLAUDE_ENV_FILE not available, variables inherit from environment (if set)
+
+    # Final fallback: use current working directory if CLAUDE_SPAWN_DIR not set
+    if [[ -z "${CLAUDE_SPAWN_DIR:-}" ]]; then
+        CLAUDE_SPAWN_DIR="$PWD"
+    fi
+
+    # Auto-detect TASK_CONTEXT if not set
+    if [[ -z "${TASK_CONTEXT:-}" ]]; then
+        # Check if we're in a worktree by looking for task-system/task-NNN folder
+        if [[ -d "${CLAUDE_SPAWN_DIR}/task-system" ]]; then
+            for dir in "${CLAUDE_SPAWN_DIR}"/task-system/task-[0-9]*/; do
+                if [[ -d "$dir" ]]; then
+                    TASK_CONTEXT="worktree"
+                    # Extract task ID if not already set
+                    if [[ -z "${CURRENT_TASK_ID:-}" ]]; then
+                        CURRENT_TASK_ID=$(basename "$dir" | sed 's/task-//')
+                    fi
+                    break
+                fi
+            done
+        fi
+        # Default to main if still not set
+        TASK_CONTEXT="${TASK_CONTEXT:-main}"
+    fi
 }
 
 # Get indicator for context type

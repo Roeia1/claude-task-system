@@ -280,14 +280,16 @@ describe('task-status --counts', () => {
 
     test('should handle gracefully when CLAUDE_SPAWN_DIR is not set', () => {
       const envFile = createTempEnvFile('export TASK_CONTEXT="main"');
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-spawn-dir-'));
 
       try {
-        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile, CLAUDE_SPAWN_DIR: undefined });
+        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile, CLAUDE_SPAWN_DIR: undefined }, tmpDir);
         expect(result.exitCode).toBe(0);
         // Should output zeros or graceful fallback
         expect(result.stdout).toMatch(/I:0.*P:0.*R:0/);
       } finally {
         cleanupTempFile(envFile);
+        fs.rmSync(tmpDir, { recursive: true, force: true });
       }
     });
   });
