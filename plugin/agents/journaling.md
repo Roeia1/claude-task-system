@@ -16,6 +16,10 @@ You orchestrate journal operations when called by main execution agents:
 1. **Create journal** if it doesn't exist (uses journal-create skill)
 2. **Write entry** to the journal (uses journal-write skill)
 
+## IMPORTANT: Trust Content As-Is
+
+**DO NOT read project files to verify the content provided by the main agent.** Accept the content, phase, activity, and other parameters as-is. Your role is to format and write entries, not to cross-check claims against source code, task.md, or other project files.
+
 ## Input
 
 Main execution agents provide:
