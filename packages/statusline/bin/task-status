@@ -382,24 +382,6 @@ get_task_type_icon() {
     fi
 }
 
-# Format a powerline segment
-# Args: $1 = content, $2 = bg_color, $3 = fg_color, $4 = next_bg_color
-segment() {
-    local content="$1"
-    local bg="$2"
-    local fg="$3"
-    local next_bg="${4:-}"
-
-    # Output: bg + fg + content + reset
-    printf "%b%b %s %b" "$bg" "$fg" "$content" "$RESET"
-
-    # Add separator if there's a next background
-    if [[ -n "$next_bg" ]]; then
-        # Separator with current bg as fg color, next bg as background
-        printf "%b%b%s%b" "$next_bg" "$bg" "$SEPARATOR" "$RESET"
-    fi
-}
-
 # Format origin section
 # Returns: origin segment
 format_origin_segment() {
@@ -509,68 +491,49 @@ format_counts_segment() {
 build_output() {
     local output=""
     local segments=()
-    local prev_bg=""
 
     # Collect segments that should be shown
-    if [[ "$SHOW_ORIGIN" == "true" ]]; then
-        local context="${TASK_CONTEXT:-main}"
-        if [[ "$context" == "worktree" ]]; then
-            prev_bg="$BG_CYAN"
-        else
-            prev_bg="$BG_BLUE"
-        fi
-        segments+=("origin")
-    fi
-
-    if [[ "$SHOW_TASK" == "true" && -n "$CURRENT_TASK_ID" ]]; then
-        segments+=("task")
-    fi
-
-    if [[ "$SHOW_COUNTS" == "true" ]]; then
-        segments+=("counts")
-    fi
+    [[ "$SHOW_ORIGIN" == "true" ]] && segments+=("origin")
+    [[ "$SHOW_TASK" == "true" && -n "$CURRENT_TASK_ID" ]] && segments+=("task")
+    [[ "$SHOW_COUNTS" == "true" ]] && segments+=("counts")
 
     # Build output with separators
     local segment_count=${#segments[@]}
-    local i=0
 
-    for segment_type in "${segments[@]}"; do
-        i=$((i + 1))
-        local next_bg=""
+    for i in "${!segments[@]}"; do
+        local segment_type="${segments[$i]}"
 
-        # Determine next background color
-        if [[ $i -lt $segment_count ]]; then
-            local next_segment="${segments[$i]}"
+        # Format the segment
+        case "$segment_type" in
+            origin) output+=$(format_origin_segment) ;;
+            task) output+=$(format_task_segment) ;;
+            counts) output+=$(format_counts_segment) ;;
+        esac
+
+        # Add separator if not the last segment
+        if [[ $i -lt $((segment_count - 1)) ]]; then
+            local next_segment="${segments[$((i + 1))]}"
+            local current_bg next_bg
+
+            # Get colors inline to avoid subshells
+            case "$segment_type" in
+                origin)
+                    [[ "${TASK_CONTEXT:-main}" == "worktree" ]] && current_bg="$BG_CYAN" || current_bg="$BG_BLUE"
+                    ;;
+                task) current_bg="$BG_GRAY" ;;
+                counts) current_bg="$BG_DARK_GRAY" ;;
+            esac
+
             case "$next_segment" in
                 origin)
-                    local context="${TASK_CONTEXT:-main}"
-                    [[ "$context" == "worktree" ]] && next_bg="$BG_CYAN" || next_bg="$BG_BLUE"
+                    [[ "${TASK_CONTEXT:-main}" == "worktree" ]] && next_bg="$BG_CYAN" || next_bg="$BG_BLUE"
                     ;;
                 task) next_bg="$BG_GRAY" ;;
                 counts) next_bg="$BG_DARK_GRAY" ;;
             esac
-        fi
 
-        # Format segment
-        case "$segment_type" in
-            origin)
-                output+=$(format_origin_segment)
-                if [[ -n "$next_bg" ]]; then
-                    output+="${next_bg}${prev_bg}${SEPARATOR}${RESET}"
-                    prev_bg="$next_bg"
-                fi
-                ;;
-            task)
-                output+=$(format_task_segment)
-                if [[ -n "$next_bg" ]]; then
-                    output+="${next_bg}${BG_GRAY}${SEPARATOR}${RESET}"
-                    prev_bg="$next_bg"
-                fi
-                ;;
-            counts)
-                output+=$(format_counts_segment)
-                ;;
-        esac
+            output+="${next_bg}${current_bg}${SEPARATOR}${RESET}"
+        fi
     done
 
     printf "%s\n" "$output"
