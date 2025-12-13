@@ -17,22 +17,22 @@ CURRENT_TASK_ID="${CURRENT_TASK_ID:-}"
 CLAUDE_SPAWN_DIR="${CLAUDE_SPAWN_DIR:-}"
 
 # Icon definitions
-readonly ICON_MAIN="⎇"
-readonly ICON_WORKTREE="⌂"
+readonly ICON_MAIN="🏠"
+readonly ICON_WORKTREE="🌿"
 readonly ASCII_MAIN="[M]"
 readonly ASCII_WORKTREE="[W]"
 
 # Task count icons
-readonly ICON_IN_PROGRESS="●"
-readonly ICON_PENDING="◐"
-readonly ICON_REMOTE="○"
+readonly ICON_IN_PROGRESS="🔄"
+readonly ICON_PENDING="⏸️"
+readonly ICON_REMOTE="☁️"
 readonly ASCII_IN_PROGRESS="I:"
 readonly ASCII_PENDING="P:"
 readonly ASCII_REMOTE="R:"
 
 # Feature count icons
-readonly ICON_FEATURE_ACTIVE="◨"
-readonly ICON_FEATURE_DRAFT="◧"
+readonly ICON_FEATURE_ACTIVE="⭐"
+readonly ICON_FEATURE_DRAFT="📝"
 readonly ASCII_FEATURE_ACTIVE="A:"
 readonly ASCII_FEATURE_DRAFT="D:"
 

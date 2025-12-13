@@ -7,21 +7,21 @@ Inspired by [claude-powerline](https://github.com/Owloops/claude-powerline). Can
 ## What It Shows
 
 ```
- ⌂  ✨ Implement User Auth (Authentication)  ● 2 ◐ 1 ○ 3 | ◨ 1 ◧ 2
-└─┘ └────────────────────────────────────────┘ └───────────────────────┘
- │              Task Info Segment                  Counts Segment
- │
+ 🌿  ✨ Implement User Auth (Authentication)  🔄 2 ⏸️ 1 ☁️ 3 | ⭐ 1 📝 2
+└──┘ └────────────────────────────────────────┘ └─────────────────────────┘
+  │              Task Info Segment                    Counts Segment
+  │
 Origin Segment
 ```
 
 **Full output example (in a task worktree):**
 ```
-⌂ ✨ Add dark mode toggle (UI Redesign) ● 1 ◐ 2 ○ 0 | ◨ 2 ◧ 1
+🌿 ✨ Add dark mode toggle (UI Redesign) 🔄 1 ⏸️ 2 ☁️ 0 | ⭐ 2 📝 1
 ```
 
 **In main repository:**
 ```
-⎇ ● 1 ◐ 2 ○ 3 | ◨ 2 ◧ 1
+🏠 🔄 1 ⏸️ 2 ☁️ 3 | ⭐ 2 📝 1
 ```
 
 ## Segments
@@ -32,8 +32,8 @@ Shows whether you're in the main repository or a task worktree.
 
 | Context | Unicode | ASCII | Color |
 |---------|---------|-------|-------|
-| Main repo | `⎇` | `[M]` | Blue |
-| Task worktree | `⌂` | `[W]` | Cyan |
+| Main repo | `🏠` | `[M]` | Blue |
+| Task worktree | `🌿` | `[W]` | Cyan |
 
 ### Task Info Segment
 
@@ -63,18 +63,18 @@ Shows project-wide task and feature statistics.
 
 | Status | Unicode | ASCII | Description |
 |--------|---------|-------|-------------|
-| In Progress | `●` | `I:` | Tasks with `journal.md` present |
-| Pending | `◐` | `P:` | Tasks without `journal.md` |
-| Remote | `○` | `R:` | Remote branches without local worktrees |
+| In Progress | `🔄` | `I:` | Tasks with `journal.md` present |
+| Pending | `⏸️` | `P:` | Tasks without `journal.md` |
+| Remote | `☁️` | `R:` | Remote branches without local worktrees |
 
 **Feature Counts** (scans `task-system/features/`):
 
 | Status | Unicode | ASCII | Description |
 |--------|---------|-------|-------------|
-| Active | `◨` | `A:` | Features with status "In Progress" |
-| Draft | `◧` | `D:` | Features with status "Draft" or "Planned" |
+| Active | `⭐` | `A:` | Features with status "In Progress" |
+| Draft | `📝` | `D:` | Features with status "Draft" or "Planned" |
 
-**Example:** `● 2 ◐ 1 ○ 3 | ◨ 1 ◧ 2` (2 in-progress, 1 pending, 3 remote tasks; 1 active, 2 draft features)
+**Example:** `🔄 2 ⏸️ 1 ☁️ 3 | ⭐ 1 📝 2` (2 in-progress, 1 pending, 3 remote tasks; 1 active, 2 draft features)
 
 ## Installation
 
@@ -166,7 +166,7 @@ Combine flags to show specific segments: `--origin --task` shows origin and task
 ```bash
 # Full output (all segments)
 task-status
-# Output: ⌂ ✨ Implement Auth (User System) ● 1 ◐ 2 ○ 0 | ◨ 1 ◧ 1
+# Output: 🌿 ✨ Implement Auth (User System) 🔄 1 ⏸️ 2 ☁️ 0 | ⭐ 1 📝 1
 
 # ASCII mode
 task-status --no-icons
@@ -174,7 +174,7 @@ task-status --no-icons
 
 # Origin only
 task-status --origin
-# Output: ⌂
+# Output: 🌿
 
 # Task info only
 task-status --task
@@ -182,11 +182,11 @@ task-status --task
 
 # Counts only
 task-status --counts
-# Output: ● 1 ◐ 2 ○ 0 | ◨ 1 ◧ 1
+# Output: 🔄 1 ⏸️ 2 ☁️ 0 | ⭐ 1 📝 1
 
 # Origin and counts (skip task info)
 task-status --origin --counts
-# Output: ⌂ ● 1 ◐ 2 ○ 0 | ◨ 1 ◧ 1
+# Output: 🌿 🔄 1 ⏸️ 2 ☁️ 0 | ⭐ 1 📝 1
 ```
 
 ## Environment Variables
