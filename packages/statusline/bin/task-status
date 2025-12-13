@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # task-status: Statusline integration script for Claude Task System
-# Displays task context information for terminal prompts
+# Displays task context information for terminal prompts with powerline formatting
 
 set -euo pipefail
 
@@ -35,6 +35,21 @@ readonly ICON_FEATURE_ACTIVE="◨"
 readonly ICON_FEATURE_DRAFT="◧"
 readonly ASCII_FEATURE_ACTIVE="A:"
 readonly ASCII_FEATURE_DRAFT="D:"
+
+# ANSI color codes for dark theme (256-color mode)
+readonly BG_BLUE=$'\x1b[48;5;25m'       # Main origin background (#3465a4)
+readonly BG_CYAN=$'\x1b[48;5;30m'       # Worktree origin background (#06989a)
+readonly BG_GRAY=$'\x1b[48;5;240m'      # Task info background (#555753)
+readonly BG_DARK_GRAY=$'\x1b[48;5;235m' # Counts background (#2e3436)
+
+# Foreground colors
+readonly FG_WHITE=$'\x1b[38;5;15m'
+readonly FG_BLACK=$'\x1b[38;5;0m'
+readonly FG_LIGHT_GRAY=$'\x1b[38;5;250m'
+
+# Powerline separator (U+E0B0)
+readonly SEPARATOR=$'\ue0b0'
+readonly RESET=$'\x1b[0m'
 
 show_help() {
     cat << 'EOF'
@@ -221,7 +236,6 @@ count_remote_tasks() {
     done <<< "$remote_branches"
 }
 
-<<<<<<< HEAD
 # Count features by status from feature.md files
 # Sets: FEATURE_ACTIVE_COUNT, FEATURE_DRAFT_COUNT
 count_features_by_status() {
@@ -275,10 +289,160 @@ count_features_by_status() {
     done
 }
 
-=======
->>>>>>> origin/master
-# Format task counts for output
-# Returns: formatted string with counts
+# Parse task.md to extract task information
+# Sets: TASK_TITLE, TASK_TYPE, FEATURE_LINK
+parse_task_info() {
+    TASK_TITLE=""
+    TASK_TYPE=""
+    FEATURE_LINK=""
+
+    local task_file="${CLAUDE_SPAWN_DIR:-}/task-system/task-${CURRENT_TASK_ID}/task.md"
+
+    # Return if task file doesn't exist
+    if [[ ! -f "$task_file" ]]; then
+        return 0
+    fi
+
+    # Extract task title (first line matching "# Task NNN: Title")
+    local title_line
+    title_line=$(grep -m1 '^# Task [0-9]*:' "$task_file" 2>/dev/null || true)
+    if [[ -n "$title_line" ]]; then
+        TASK_TITLE="${title_line#*: }"
+    fi
+
+    # Extract task type from "**Type:** value" line
+    local type_line
+    type_line=$(grep -m1 '^\*\*Type:\*\*' "$task_file" 2>/dev/null || true)
+    if [[ -n "$type_line" ]]; then
+        TASK_TYPE="${type_line#*\*\*Type:\*\* }"
+    fi
+
+    # Extract feature link from "**Feature:** [NNN-name](path)" line
+    local feature_line
+    feature_line=$(grep -m1 '^\*\*Feature:\*\*' "$task_file" 2>/dev/null || true)
+    if [[ -n "$feature_line" ]]; then
+        # Extract just the feature ID and name from markdown link
+        FEATURE_LINK=$(echo "$feature_line" | sed -n 's/.*\[\([^]]*\)\].*/\1/p')
+    fi
+}
+
+# Parse feature.md to extract feature name
+# Args: $1 = feature ID (e.g., "001-auth")
+# Returns: feature name via stdout
+get_feature_name() {
+    local feature_id="$1"
+    local feature_file="${CLAUDE_SPAWN_DIR:-}/task-system/features/${feature_id}/feature.md"
+
+    # If not found and we're in a worktree, try going up to task-system level
+    if [[ ! -f "$feature_file" && "${TASK_CONTEXT:-}" == "worktree" ]]; then
+        # In worktree: /path/to/main/task-system/tasks/042
+        # Features at:  /path/to/main/task-system/features
+        # Go up two levels from worktree to task-system, then into features
+        feature_file="${CLAUDE_SPAWN_DIR:-}/../../features/${feature_id}/feature.md"
+    fi
+
+    if [[ ! -f "$feature_file" ]]; then
+        echo -n ""
+        return
+    fi
+
+    # Extract feature name from "# Feature: Name" line
+    local name_line
+    name_line=$(grep -m1 '^# Feature:' "$feature_file" 2>/dev/null || true)
+    if [[ -n "$name_line" ]]; then
+        echo -n "${name_line#*: }"
+    else
+        echo -n ""
+    fi
+}
+
+# Get task type icon
+# Args: $1 = task type
+get_task_type_icon() {
+    local task_type="$1"
+
+    if [[ "$USE_ICONS" == "true" ]]; then
+        case "$task_type" in
+            feature) echo -n "✨" ;;
+            bugfix) echo -n "🐛" ;;
+            refactor) echo -n "♻️" ;;
+            performance) echo -n "⚡" ;;
+            deployment) echo -n "🚀" ;;
+            *) echo -n "📝" ;;
+        esac
+    else
+        case "$task_type" in
+            feature) echo -n "[F]" ;;
+            bugfix) echo -n "[B]" ;;
+            refactor) echo -n "[R]" ;;
+            performance) echo -n "[P]" ;;
+            deployment) echo -n "[D]" ;;
+            *) echo -n "[T]" ;;
+        esac
+    fi
+}
+
+# Format origin section
+# Returns: origin segment
+format_origin_segment() {
+    local context="${TASK_CONTEXT:-main}"
+    local indicator
+    indicator=$(get_indicator "$context")
+
+    local bg_color
+    if [[ "$context" == "worktree" ]]; then
+        bg_color="$BG_CYAN"
+    else
+        bg_color="$BG_BLUE"
+    fi
+
+    echo -n "$bg_color$FG_WHITE $indicator $RESET"
+}
+
+# Format task info section
+# Returns: task info segment
+format_task_segment() {
+    # Parse task information
+    parse_task_info
+
+    local content=""
+
+    # Build task info string
+    if [[ -n "$TASK_TYPE" ]]; then
+        local type_icon
+        type_icon=$(get_task_type_icon "$TASK_TYPE")
+        content="$type_icon"
+    fi
+
+    if [[ -n "$TASK_TITLE" ]]; then
+        # Truncate title if too long
+        local title="$TASK_TITLE"
+        if [[ ${#title} -gt 30 ]]; then
+            title="${title:0:27}..."
+        fi
+        content="$content $title"
+    else
+        content="$content Task $CURRENT_TASK_ID"
+    fi
+
+    # Add feature name if available
+    if [[ -n "$FEATURE_LINK" ]]; then
+        local feature_name
+        feature_name=$(get_feature_name "$FEATURE_LINK")
+        if [[ -n "$feature_name" ]]; then
+            # Truncate feature name if too long
+            if [[ ${#feature_name} -gt 20 ]]; then
+                feature_name="${feature_name:0:17}..."
+            fi
+            content="$content ($feature_name)"
+        fi
+    fi
+
+    echo -n "$BG_GRAY$FG_WHITE $content $RESET"
+}
+
+# Format task counts
+# Returns: formatted string with task counts
 format_task_counts() {
     local output=""
 
@@ -291,9 +455,8 @@ format_task_counts() {
     echo -n "$output"
 }
 
-<<<<<<< HEAD
-# Format feature counts for output
-# Returns: formatted string with counts
+# Format feature counts
+# Returns: formatted string with feature counts
 format_feature_counts() {
     local output=""
 
@@ -306,36 +469,74 @@ format_feature_counts() {
     echo -n "$output"
 }
 
-=======
->>>>>>> origin/master
+# Format counts section (task counts + feature counts)
+# Returns: counts segment
+format_counts_segment() {
+    # Count tasks and features
+    count_local_tasks
+    count_remote_tasks
+    count_features_by_status
+
+    local task_counts
+    task_counts=$(format_task_counts)
+
+    local feature_counts
+    feature_counts=$(format_feature_counts)
+
+    local content="$task_counts | $feature_counts"
+
+    echo -n "$BG_DARK_GRAY$FG_LIGHT_GRAY $content $RESET"
+}
+
 build_output() {
-    local -a parts=()
+    local output=""
+    local segments=()
 
-    if [[ "$SHOW_ORIGIN" == "true" ]]; then
-        parts+=("$(get_indicator "${TASK_CONTEXT:-main}")")
-    fi
+    # Collect segments that should be shown
+    [[ "$SHOW_ORIGIN" == "true" ]] && segments+=("origin")
+    [[ "$SHOW_TASK" == "true" && -n "$CURRENT_TASK_ID" ]] && segments+=("task")
+    [[ "$SHOW_COUNTS" == "true" ]] && segments+=("counts")
 
-    if [[ "$SHOW_TASK" == "true" && -n "$CURRENT_TASK_ID" ]]; then
-        parts+=("$CURRENT_TASK_ID")
-    fi
+    # Build output with separators
+    local segment_count=${#segments[@]}
 
-    if [[ "$SHOW_COUNTS" == "true" ]]; then
-        # Count local and remote tasks
-        count_local_tasks
-        count_remote_tasks
-        parts+=("$(format_task_counts)")
-<<<<<<< HEAD
+    for i in "${!segments[@]}"; do
+        local segment_type="${segments[$i]}"
 
-        # Count features by status
-        count_features_by_status
-        parts+=("$(format_feature_counts)")
-=======
->>>>>>> origin/master
-    fi
+        # Format the segment
+        case "$segment_type" in
+            origin) output+=$(format_origin_segment) ;;
+            task) output+=$(format_task_segment) ;;
+            counts) output+=$(format_counts_segment) ;;
+        esac
 
-    # Join parts with space separator
-    local IFS=' '
-    echo "${parts[*]}"
+        # Add separator if not the last segment
+        if [[ $i -lt $((segment_count - 1)) ]]; then
+            local next_segment="${segments[$((i + 1))]}"
+            local current_bg next_bg
+
+            # Get colors inline to avoid subshells
+            case "$segment_type" in
+                origin)
+                    [[ "${TASK_CONTEXT:-main}" == "worktree" ]] && current_bg="$BG_CYAN" || current_bg="$BG_BLUE"
+                    ;;
+                task) current_bg="$BG_GRAY" ;;
+                counts) current_bg="$BG_DARK_GRAY" ;;
+            esac
+
+            case "$next_segment" in
+                origin)
+                    [[ "${TASK_CONTEXT:-main}" == "worktree" ]] && next_bg="$BG_CYAN" || next_bg="$BG_BLUE"
+                    ;;
+                task) next_bg="$BG_GRAY" ;;
+                counts) next_bg="$BG_DARK_GRAY" ;;
+            esac
+
+            output+="${next_bg}${current_bg}${SEPARATOR}${RESET}"
+        fi
+    done
+
+    printf "%s\n" "$output"
 }
 
 main() {

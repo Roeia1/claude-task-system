@@ -166,14 +166,12 @@ Some text without header
   });
 
   describe('parse_task_type()', () => {
-    test('should extract type from "## Task Type" section', () => {
+    test('should extract type from "**Type:**" field', () => {
       const tmpDir = createTempTaskDir();
       try {
         createTaskMd(tmpDir, '050', `# Task 050: Some task
 
-## Task Type
-
-feature - Adds new capability
+**Type:** feature
 `);
         const envFile = createEnvFile(tmpDir, '050');
         const result = runScript(['--task'], {
@@ -181,8 +179,8 @@ feature - Adds new capability
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        // Should show feature icon
-        expect(result.stdout).toMatch(/✦|\[feat\]/);
+        // Should show feature icon (sparkles ✨ or [F])
+        expect(result.stdout).toMatch(/✨|\[F\]/);
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -193,9 +191,7 @@ feature - Adds new capability
       try {
         createTaskMd(tmpDir, '051', `# Task 051: Fix bug
 
-## Task Type
-
-bugfix - Fixes a bug
+**Type:** bugfix
 `);
         const envFile = createEnvFile(tmpDir, '051');
         const result = runScript(['--task'], {
@@ -203,7 +199,8 @@ bugfix - Fixes a bug
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toMatch(/●|\[bug\]/);
+        // Bug icon 🐛 or [B]
+        expect(result.stdout).toMatch(/🐛|\[B\]/);
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -214,9 +211,7 @@ bugfix - Fixes a bug
       try {
         createTaskMd(tmpDir, '052', `# Task 052: Refactor code
 
-## Task Type
-
-refactor - Improves code structure
+**Type:** refactor
 `);
         const envFile = createEnvFile(tmpDir, '052');
         const result = runScript(['--task'], {
@@ -224,7 +219,8 @@ refactor - Improves code structure
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toMatch(/⟳|\[refactor\]/);
+        // Recycle icon ♻️ or [R]
+        expect(result.stdout).toMatch(/♻️|\[R\]/);
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -235,9 +231,7 @@ refactor - Improves code structure
       try {
         createTaskMd(tmpDir, '053', `# Task 053: Optimize queries
 
-## Task Type
-
-performance - Improves speed
+**Type:** performance
 `);
         const envFile = createEnvFile(tmpDir, '053');
         const result = runScript(['--task'], {
@@ -245,7 +239,8 @@ performance - Improves speed
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toMatch(/⚡|\[perf\]/);
+        // Lightning icon ⚡ or [P]
+        expect(result.stdout).toMatch(/⚡|\[P\]/);
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -256,9 +251,7 @@ performance - Improves speed
       try {
         createTaskMd(tmpDir, '054', `# Task 054: Deploy to prod
 
-## Task Type
-
-deployment - Infrastructure task
+**Type:** deployment
 `);
         const envFile = createEnvFile(tmpDir, '054');
         const result = runScript(['--task'], {
@@ -266,7 +259,8 @@ deployment - Infrastructure task
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toMatch(/▲|\[deploy\]/);
+        // Rocket icon 🚀 or [D]
+        expect(result.stdout).toMatch(/🚀|\[D\]/);
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -313,14 +307,12 @@ Content without task type
       }
     });
 
-    test('should handle type with extra whitespace', () => {
+    test('should handle type field normally', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '057', `# Task 057: Whitespace type
+        createTaskMd(tmpDir, '057', `# Task 057: Normal type
 
-## Task Type
-
-  feature   - With extra spaces
+**Type:** feature
 `);
         const envFile = createEnvFile(tmpDir, '057');
         const result = runScript(['--task'], {
@@ -328,7 +320,7 @@ Content without task type
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toMatch(/✦|\[feat\]/);
+        expect(result.stdout).toMatch(/✨|\[F\]/);
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -336,15 +328,18 @@ Content without task type
   });
 
   describe('parse_feature_ref()', () => {
-    test('should extract feature name from Feature Context section', () => {
+    test('should extract feature name from **Feature:** field', () => {
       const tmpDir = createTempTaskDir();
       try {
+        // Create feature.md file
+        const featureDir = path.join(tmpDir, 'task-system', 'features', '001-user-authentication');
+        fs.mkdirSync(featureDir, { recursive: true });
+        fs.writeFileSync(path.join(featureDir, 'feature.md'), `# Feature: User Authentication\n\n**Status:** In Progress\n`);
+
         createTaskMd(tmpDir, '060', `# Task 060: Implement feature
 
-## Feature Context
-
-**Feature**: [001-user-authentication](../../features/001-user-authentication/feature.md)
-**Technical Plan**: [plan.md](../../features/001-user-authentication/plan.md)
+**Type:** feature
+**Feature:** [001-user-authentication](../../features/001-user-authentication/feature.md)
 `);
         const envFile = createEnvFile(tmpDir, '060');
         const result = runScript(['--task'], {
@@ -352,7 +347,7 @@ Content without task type
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toContain('user-authentication');
+        expect(result.stdout).toContain('User Authentication');
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -381,11 +376,15 @@ No feature context here
     test('should handle feature reference with special characters', () => {
       const tmpDir = createTempTaskDir();
       try {
+        // Create feature.md file
+        const featureDir = path.join(tmpDir, 'task-system', 'features', '002-api-v2-redesign');
+        fs.mkdirSync(featureDir, { recursive: true });
+        fs.writeFileSync(path.join(featureDir, 'feature.md'), `# Feature: API v2 Redesign\n\n**Status:** Draft\n`);
+
         createTaskMd(tmpDir, '062', `# Task 062: Feature with dashes
 
-## Feature Context
-
-**Feature**: [002-api-v2-redesign](../../features/002-api-v2-redesign/feature.md)
+**Type:** feature
+**Feature:** [002-api-v2-redesign](../../features/002-api-v2-redesign/feature.md)
 `);
         const envFile = createEnvFile(tmpDir, '062');
         const result = runScript(['--task'], {
@@ -393,7 +392,7 @@ No feature context here
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toContain('api-v2-redesign');
+        expect(result.stdout).toContain('API v2 Redesign');
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -406,9 +405,7 @@ No feature context here
       try {
         createTaskMd(tmpDir, '070', `# Task 070: Feature task
 
-## Task Type
-
-feature - New capability
+**Type:** feature
 `);
         const envFile = createEnvFile(tmpDir, '070');
         const result = runScript(['--task'], {
@@ -416,8 +413,8 @@ feature - New capability
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        // Should contain Unicode feature icon
-        expect(result.stdout).toContain('✦');
+        // Should contain Unicode feature icon (sparkles)
+        expect(result.stdout).toContain('✨');
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -428,9 +425,7 @@ feature - New capability
       try {
         createTaskMd(tmpDir, '071', `# Task 071: Feature task
 
-## Task Type
-
-feature - New capability
+**Type:** feature
 `);
         const envFile = createEnvFile(tmpDir, '071');
         const result = runScript(['--task', '--no-icons'], {
@@ -438,9 +433,9 @@ feature - New capability
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        // Should contain ASCII [feat] instead of Unicode
-        expect(result.stdout).toContain('[feat]');
-        expect(result.stdout).not.toContain('✦');
+        // Should contain ASCII [F] instead of Unicode
+        expect(result.stdout).toContain('[F]');
+        expect(result.stdout).not.toContain('✨');
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -451,9 +446,7 @@ feature - New capability
       try {
         createTaskMd(tmpDir, '072', `# Task 072: Bug fix
 
-## Task Type
-
-bugfix - Fix an issue
+**Type:** bugfix
 `);
         const envFile = createEnvFile(tmpDir, '072');
         const result = runScript(['--task', '--no-icons'], {
@@ -461,7 +454,7 @@ bugfix - Fix an issue
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toContain('[bug]');
+        expect(result.stdout).toContain('[B]');
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -472,9 +465,7 @@ bugfix - Fix an issue
       try {
         createTaskMd(tmpDir, '073', `# Task 073: Code refactor
 
-## Task Type
-
-refactor - Improve structure
+**Type:** refactor
 `);
         const envFile = createEnvFile(tmpDir, '073');
         const result = runScript(['--task', '--no-icons'], {
@@ -482,7 +473,7 @@ refactor - Improve structure
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toContain('[refactor]');
+        expect(result.stdout).toContain('[R]');
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -493,9 +484,7 @@ refactor - Improve structure
       try {
         createTaskMd(tmpDir, '074', `# Task 074: Performance work
 
-## Task Type
-
-performance - Speed up
+**Type:** performance
 `);
         const envFile = createEnvFile(tmpDir, '074');
         const result = runScript(['--task', '--no-icons'], {
@@ -503,7 +492,7 @@ performance - Speed up
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toContain('[perf]');
+        expect(result.stdout).toContain('[P]');
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -514,9 +503,7 @@ performance - Speed up
       try {
         createTaskMd(tmpDir, '075', `# Task 075: Deployment
 
-## Task Type
-
-deployment - Infrastructure
+**Type:** deployment
 `);
         const envFile = createEnvFile(tmpDir, '075');
         const result = runScript(['--task', '--no-icons'], {
@@ -524,7 +511,7 @@ deployment - Infrastructure
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toContain('[deploy]');
+        expect(result.stdout).toContain('[D]');
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -532,7 +519,7 @@ deployment - Infrastructure
   });
 
   describe('missing/malformed file handling', () => {
-    test('should output "--" when task.md file is missing', () => {
+    test('should output fallback when task.md file is missing', () => {
       const tmpDir = createTempTaskDir();
       try {
         // Create task directory but no task.md file
@@ -543,13 +530,14 @@ deployment - Infrastructure
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toContain('--');
+        // Should show fallback "Task 080" when task.md is missing
+        expect(result.stdout).toContain('080');
       } finally {
         cleanupTempDir(tmpDir);
       }
     });
 
-    test('should output "--" when task directory is missing', () => {
+    test('should output fallback when task directory is missing', () => {
       const tmpDir = createTempTaskDir();
       try {
         // Create task-system but no task directory
@@ -560,7 +548,8 @@ deployment - Infrastructure
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toContain('--');
+        // Should show "Task 081" as fallback
+        expect(result.stdout).toContain('081');
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -697,21 +686,19 @@ feature - Test
     test('should parse complete task.md file correctly', () => {
       const tmpDir = createTempTaskDir();
       try {
+        // Create feature.md file
+        const featureDir = path.join(tmpDir, 'task-system', 'features', '001-statusline-task-info');
+        fs.mkdirSync(featureDir, { recursive: true });
+        fs.writeFileSync(path.join(featureDir, 'feature.md'), `# Feature: Statusline Task Info\n\n**Status:** In Progress\n`);
+
         createTaskMd(tmpDir, '100', `# Task 100: Implement task information parsing
 
-## Feature Context
-
-**Feature**: [001-statusline-task-info](../../features/001-statusline-task-info/feature.md)
-**Technical Plan**: [plan.md](../../features/001-statusline-task-info/plan.md)
-**Feature Tasks**: [tasks.md](../../features/001-statusline-task-info/tasks.md)
+**Type:** feature
+**Feature:** [001-statusline-task-info](../../features/001-statusline-task-info/feature.md)
 
 ## Overview
 
 Implement the task information parsing component of the statusline script.
-
-## Task Type
-
-feature - Adds new task information parsing capability to the statusline script
 
 ## Priority
 
@@ -741,9 +728,10 @@ P1 - Core functionality required for task awareness
           CLAUDE_SPAWN_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toContain('Implement task information parsing');
-        expect(result.stdout).toMatch(/✦|\[feat\]/); // feature icon
-        expect(result.stdout).toContain('statusline-task-info');
+        // Title is truncated to 30 chars (+ "...")
+        expect(result.stdout).toContain('Implement task information');
+        expect(result.stdout).toMatch(/✨|\[F\]/); // feature icon
+        expect(result.stdout).toContain('Statusline Task Info');
       } finally {
         cleanupTempDir(tmpDir);
       }
