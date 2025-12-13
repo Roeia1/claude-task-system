@@ -30,6 +30,12 @@ readonly ASCII_IN_PROGRESS="I:"
 readonly ASCII_PENDING="P:"
 readonly ASCII_REMOTE="R:"
 
+# Feature count icons
+readonly ICON_FEATURE_ACTIVE="◨"
+readonly ICON_FEATURE_DRAFT="◧"
+readonly ASCII_FEATURE_ACTIVE="A:"
+readonly ASCII_FEATURE_DRAFT="D:"
+
 show_help() {
     cat << 'EOF'
 Usage: task-status [OPTIONS]
@@ -215,6 +221,62 @@ count_remote_tasks() {
     done <<< "$remote_branches"
 }
 
+<<<<<<< HEAD
+# Count features by status from feature.md files
+# Sets: FEATURE_ACTIVE_COUNT, FEATURE_DRAFT_COUNT
+count_features_by_status() {
+    FEATURE_ACTIVE_COUNT=0
+    FEATURE_DRAFT_COUNT=0
+
+    local features_dir="${CLAUDE_SPAWN_DIR:-}/task-system/features"
+
+    # Return zeros if features directory doesn't exist
+    if [[ ! -d "$features_dir" ]]; then
+        return 0
+    fi
+
+    # Scan each feature directory
+    local feature_dir
+    for feature_dir in "$features_dir"/*/; do
+        # Skip if no directories found (glob didn't match)
+        [[ -d "$feature_dir" ]] || continue
+
+        local feature_md="$feature_dir/feature.md"
+
+        # Skip if feature.md doesn't exist
+        [[ -f "$feature_md" ]] || continue
+
+        # Extract status line (first occurrence of **Status:**)
+        local status_line
+        status_line=$(grep -m1 '^\*\*Status:\*\*' "$feature_md" 2>/dev/null || true)
+
+        # Skip if no status line found
+        [[ -n "$status_line" ]] || continue
+
+        # Extract status value (everything after "**Status:** ")
+        local status="${status_line#*\*\*Status:\*\* }"
+
+        # Normalize: trim whitespace and convert to lowercase for comparison
+        status=$(echo "$status" | xargs | tr '[:upper:]' '[:lower:]')
+
+        # Categorize status
+        case "$status" in
+            "in progress")
+                FEATURE_ACTIVE_COUNT=$((FEATURE_ACTIVE_COUNT + 1))
+                ;;
+            "draft"|"planned")
+                FEATURE_DRAFT_COUNT=$((FEATURE_DRAFT_COUNT + 1))
+                ;;
+            # Skip unknown statuses (Complete, Archived, etc.)
+            *)
+                continue
+                ;;
+        esac
+    done
+}
+
+=======
+>>>>>>> origin/master
 # Format task counts for output
 # Returns: formatted string with counts
 format_task_counts() {
@@ -229,6 +291,23 @@ format_task_counts() {
     echo -n "$output"
 }
 
+<<<<<<< HEAD
+# Format feature counts for output
+# Returns: formatted string with counts
+format_feature_counts() {
+    local output=""
+
+    if [[ "$USE_ICONS" == "true" ]]; then
+        output="$ICON_FEATURE_ACTIVE $FEATURE_ACTIVE_COUNT $ICON_FEATURE_DRAFT $FEATURE_DRAFT_COUNT"
+    else
+        output="${ASCII_FEATURE_ACTIVE}${FEATURE_ACTIVE_COUNT} ${ASCII_FEATURE_DRAFT}${FEATURE_DRAFT_COUNT}"
+    fi
+
+    echo -n "$output"
+}
+
+=======
+>>>>>>> origin/master
 build_output() {
     local -a parts=()
 
@@ -245,6 +324,13 @@ build_output() {
         count_local_tasks
         count_remote_tasks
         parts+=("$(format_task_counts)")
+<<<<<<< HEAD
+
+        # Count features by status
+        count_features_by_status
+        parts+=("$(format_feature_counts)")
+=======
+>>>>>>> origin/master
     fi
 
     # Join parts with space separator
