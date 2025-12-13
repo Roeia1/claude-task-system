@@ -89,4 +89,15 @@ After the type-specific workflow completes and user grants completion permission
 
 1. **Invoke task-completer subagent** with task_id
 2. **On error**: Control returns to user with specific issue
-3. **On success**: Display completion message and cleanup instructions
+3. **On success**:
+   - PR is merged, files are archived
+   - Display cleanup instructions:
+     ```
+     Task merged successfully!
+
+     To complete cleanup:
+     1. Navigate to main repo: cd <main_repo_path>
+     2. Start a new Claude session
+     3. Say: "cleanup task <task_id>"
+     ```
+   - Note: Worktree cleanup is handled separately from main repo to avoid agent running in deleted directory

@@ -178,10 +178,13 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 # Say "start task 015" to begin workflow
 
 # From WORKTREE: Complete and merge
-# Grant permission after final phase for automatic completion
+# Grant permission after final phase
+# -> Archives files, merges PR, but worktree remains
 
-# From MAIN REPO: Cleanup worktree after completion
-# Say "cleanup worktree for task 015"
+# From MAIN REPO: Cleanup worktree (new session)
+# cd back to main repo
+# Say "cleanup task 015"
+# -> Verifies PR merged, removes worktree
 ```
 
 ## Critical Execution Rules
@@ -200,7 +203,7 @@ Each task type follows a specialized workflow defined in `plugin/skills/task-sta
 
 - **Deployment**: Operational flow with additional phases for infrastructure concerns. See `deployment-workflow.md` for details.
 
-All workflows end with **Verification** (check acceptance criteria), **Reflection** (document learnings), and **Completion** (task-completer handles PR merge).
+All workflows end with **Verification** (check acceptance criteria), **Reflection** (document learnings), and **Merge** (task-completer handles PR merge). After merge, run `cleanup task NNN` from main repo to remove worktree.
 
 ### Non-Negotiable Rules
 
@@ -355,4 +358,5 @@ When user signals review ("I made a review", "Check PR comments"):
 - **Keep Complexity Minimal**: Only add what's directly needed
 - **Trust the Discipline**: The phased workflow prevents costly mistakes
 - **Dynamic Status**: No TASK-LIST.md - status derived from filesystem and git state
-- **Task Archiving**: Completed tasks are archived to `task-system/archive/` before PR merge (as part of task-completion)
+- **Task Archiving**: Completed tasks are archived to `task-system/archive/` before PR merge (as part of task-merge)
+- **Two-Step Completion**: Task merge happens in worktree, worktree cleanup happens from main repo (avoids agent running in deleted directory)

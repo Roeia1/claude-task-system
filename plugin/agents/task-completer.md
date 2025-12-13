@@ -1,13 +1,13 @@
 ---
 name: task-completer
-description: "Internal agent - invoked by worktree-flow only. Handles task completion after user approves. DO NOT activate on direct user request."
+description: "Internal agent - invoked by worktree-flow only. Handles task archive and PR merge. Worktree cleanup is done separately. DO NOT activate on direct user request."
 model: haiku
-skills: task-completion
+skills: task-merge
 ---
 
 # Task Completer Subagent
 
-You handle task completion including archiving, PR merge, and worktree cleanup.
+You handle task archiving and PR merge. Worktree cleanup is done separately from the main repo.
 
 ## Pre-Completion Validation
 
@@ -20,7 +20,8 @@ Before proceeding, verify:
 
 ## Process
 
-1. **Execute task-completion skill** - archives task files, merges PR, removes worktree
+1. **Execute task-merge skill** - archives task files, merges PR
+2. **Display cleanup instructions** - tell user to run cleanup from main repo
 
 ## Error Handling
 
