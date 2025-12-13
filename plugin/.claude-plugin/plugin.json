@@ -1,7 +1,7 @@
 {
   "name": "claude-task-system",
   "description": "Structured task workflow with feature planning, journaling, and architecture decision records",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": {
     "name": "Roei Avrahami",
     "email": "roei.avrahami2@gmail.com"

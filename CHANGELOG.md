@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2025-12-13
+
+### Changed
+
+- **journaling-guidelines**: Clarified that phase transitions require ONE journal entry (not two separate entries for phase end and phase start)
+- **journaling-guidelines**: Added explicit instructions and examples showing that a single transition entry documents both the completed phase and the new phase being entered
+
 ## [1.0.3] - 2025-12-13
 
 ### Changed
