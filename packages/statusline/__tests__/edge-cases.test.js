@@ -291,8 +291,10 @@ describe('Edge Cases: Malformed Files', () => {
       const taskMd = '# Task 042: Test Task\n\n**Type:** feature\n';
       fs.writeFileSync(path.join(taskFolder, 'task.md'), taskMd);
 
+      // When in worktree, CLAUDE_SPAWN_DIR should point to worktree root
+      const worktreeDir = taskDir;
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${worktreeDir}"`
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -541,8 +543,10 @@ describe('Edge Cases: Special Characters and Encoding', () => {
       fs.mkdirSync(featureDir, { recursive: true });
       fs.writeFileSync(path.join(featureDir, 'feature.md'), '# Feature: Test\n\n**Status:** In Progress\n');
 
+      // When in worktree, CLAUDE_SPAWN_DIR should point to worktree root
+      const worktreeDir = taskDir;
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${worktreeDir}"`
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });

@@ -549,8 +549,10 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
           }
         ]
       });
+      // When in worktree, CLAUDE_SPAWN_DIR should point to the worktree root, not main repo
+      const worktreeDir = path.join(tmpDir, 'task-system', 'tasks', '042');
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${worktreeDir}"`
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
