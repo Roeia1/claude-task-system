@@ -631,7 +631,7 @@ feature - Test feature
         });
         expect(result.exitCode).toBe(0);
         // Should have worktree icon and task info
-        expect(result.stdout).toMatch(/[\u2302]|\[W\]/); // worktree icon
+        expect(result.stdout).toMatch(/[🌿]|\[W\]/); // worktree icon
         expect(result.stdout).toContain('Combined output test');
       } finally {
         cleanupTempDir(tmpDir);

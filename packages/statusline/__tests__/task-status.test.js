@@ -84,7 +84,7 @@ describe('task-status script', () => {
           expect(result.exitCode).toBe(0);
           // ASCII fallback should use [M] instead of icon
           expect(result.stdout).toContain('[M]');
-          expect(result.stdout).not.toContain('\u2387'); // Not the unicode icon
+          expect(result.stdout).not.toContain('🏠'); // Not the unicode icon
         } finally {
           cleanupTempFile(envFile);
         }
@@ -96,7 +96,7 @@ describe('task-status script', () => {
           const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
           // Should contain unicode icon for main repo
-          expect(result.stdout).toMatch(/[\u2302\u2387]/); // Home or branch icon
+          expect(result.stdout).toMatch(/[🌿🏠]/); // Home or branch icon
         } finally {
           cleanupTempFile(envFile);
         }
@@ -229,8 +229,8 @@ describe('task-status script', () => {
         try {
           const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
-          // Unicode: branch icon (U+2387)
-          expect(result.stdout).toMatch(/[\u2387]/);
+          // Unicode: home icon 🏠
+          expect(result.stdout).toMatch(/[🏠]/);
         } finally {
           cleanupTempFile(envFile);
         }
@@ -265,8 +265,8 @@ describe('task-status script', () => {
         try {
           const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
-          // Unicode: home icon (U+2302)
-          expect(result.stdout).toMatch(/[\u2302]/);
+          // Unicode: branch icon 🌿
+          expect(result.stdout).toMatch(/[🌿]/);
         } finally {
           cleanupTempFile(envFile);
         }

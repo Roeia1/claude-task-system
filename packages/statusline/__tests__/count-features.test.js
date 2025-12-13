@@ -349,7 +349,7 @@ describe('task-status --counts (feature counts)', () => {
   });
 
   describe('format_feature_counts() - output formatting', () => {
-    test('should output Unicode icons by default (◨ active, ◧ draft)', () => {
+    test('should output Unicode icons by default (⭐ active, 📝 draft)', () => {
       const mockDir = createMockFeatures({
         features: [
           { id: '001', name: 'auth', status: 'In Progress' },
@@ -362,9 +362,9 @@ describe('task-status --counts (feature counts)', () => {
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
-        // Should use Unicode icons: ◨ for active, ◧ for draft
-        expect(result.stdout).toMatch(/◨ 1/);   // 1 active
-        expect(result.stdout).toMatch(/◧ 2/);   // 2 draft
+        // Should use Unicode icons: ⭐ for active, 📝 for draft
+        expect(result.stdout).toMatch(/⭐ 1/);   // 1 active
+        expect(result.stdout).toMatch(/📝 2/);   // 2 draft
       } finally {
         cleanupTempFile(envFile);
         cleanupMockFeatures(mockDir);
@@ -401,8 +401,8 @@ describe('task-status --counts (feature counts)', () => {
         // Unicode version
         let result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toMatch(/◨ 0/);
-        expect(result.stdout).toMatch(/◧ 0/);
+        expect(result.stdout).toMatch(/⭐ 0/);
+        expect(result.stdout).toMatch(/📝 0/);
 
         // ASCII version
         result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -585,14 +585,14 @@ describe('task-status --counts (feature counts)', () => {
       try {
         // Default (icons)
         let result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
-        expect(result.stdout).toMatch(/◨/);  // Active icon
-        expect(result.stdout).toMatch(/◧/);  // Draft icon
+        expect(result.stdout).toMatch(/⭐/);  // Active icon
+        expect(result.stdout).toMatch(/📝/);  // Draft icon
 
         // With --no-icons (ASCII)
         result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
         expect(result.stdout).toMatch(/A:/);
         expect(result.stdout).toMatch(/D:/);
-        expect(result.stdout).not.toMatch(/◨|◧/);
+        expect(result.stdout).not.toMatch(/⭐|📝/);
       } finally {
         cleanupTempFile(envFile);
         cleanupMockFeatures(mockDir);

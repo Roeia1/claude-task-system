@@ -424,7 +424,7 @@ describe('task-status --counts', () => {
   });
 
   describe('format_task_counts() - output formatting', () => {
-    test('should output Unicode icons by default (● in-progress, ◐ pending, ○ remote)', () => {
+    test('should output Unicode icons by default (🔄 in-progress, ⏸️ pending, ☁️ remote)', () => {
       const mockDir = createMockTaskSystem({
         tasksWithJournal: ['001', '002'],
         tasksWithoutJournal: ['003'],
@@ -434,10 +434,10 @@ describe('task-status --counts', () => {
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
-        // Should use Unicode icons: ● for in-progress, ◐ for pending, ○ for remote
-        expect(result.stdout).toMatch(/● 2/);   // 2 in-progress
-        expect(result.stdout).toMatch(/◐ 1/);   // 1 pending
-        expect(result.stdout).toMatch(/○ 0/);   // 0 remote (no git repo)
+        // Should use Unicode icons: 🔄 for in-progress, ⏸️ for pending, ☁️ for remote
+        expect(result.stdout).toMatch(/🔄 2/);   // 2 in-progress
+        expect(result.stdout).toMatch(/⏸️ 1/);   // 1 pending
+        expect(result.stdout).toMatch(/☁️ 0/);   // 0 remote (no git repo)
       } finally {
         cleanupTempFile(envFile);
         cleanupMockTaskSystem(mockDir);
@@ -472,9 +472,9 @@ describe('task-status --counts', () => {
         // Unicode version
         let result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toMatch(/● 0/);
-        expect(result.stdout).toMatch(/◐ 0/);
-        expect(result.stdout).toMatch(/○ 0/);
+        expect(result.stdout).toMatch(/🔄 0/);
+        expect(result.stdout).toMatch(/⏸️ 0/);
+        expect(result.stdout).toMatch(/☁️ 0/);
 
         // ASCII version
         result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -709,16 +709,16 @@ describe('task-status --counts', () => {
       try {
         // Default (icons)
         let result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
-        expect(result.stdout).toMatch(/●/);  // In-progress icon
-        expect(result.stdout).toMatch(/◐/);  // Pending icon
-        expect(result.stdout).toMatch(/○/);  // Remote icon
+        expect(result.stdout).toMatch(/🔄/);  // In-progress icon
+        expect(result.stdout).toMatch(/⏸️/);  // Pending icon
+        expect(result.stdout).toMatch(/☁️/);  // Remote icon
 
         // With --no-icons (ASCII)
         result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
         expect(result.stdout).toMatch(/I:/);
         expect(result.stdout).toMatch(/P:/);
         expect(result.stdout).toMatch(/R:/);
-        expect(result.stdout).not.toMatch(/●|◐|○/);
+        expect(result.stdout).not.toMatch(/🔄|⏸️|☁️/);
       } finally {
         cleanupTempFile(envFile);
         cleanupMockTaskSystem(mockDir);
