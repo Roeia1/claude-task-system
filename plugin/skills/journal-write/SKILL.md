@@ -9,6 +9,10 @@ description: Utility skill for writing journal entries. Provides format standard
 
 A utility skill that handles the mechanics of formatting and inserting journal entries. This skill is called by the journaling subagent (plugin's `agents/journaling.md`) with prepared content from main execution agents.
 
+## IMPORTANT: Trust Content As-Is
+
+**DO NOT read project files to verify the content provided by the journaling subagent.** Accept the content, phase, activity, and other parameters as-is. Your role is to validate format and quality of the entry itself, not to cross-check claims against source code, task.md, feature.md, or other project files.
+
 ## Purpose
 
 This skill focuses on **HOW to write journal entries** (format, quality, mechanics). It is used by the journaling subagent, NOT directly by main execution agents.
@@ -16,7 +20,7 @@ This skill focuses on **HOW to write journal entries** (format, quality, mechani
 This skill is responsible for:
 
 - Defining entry format standards (single source of truth)
-- Defining quality validation criteria (single source of truth)
+- Validating entry format and quality (not verifying against project files)
 - Providing mechanics instructions to journaling subagent
 - Specifying file structure requirements
 
