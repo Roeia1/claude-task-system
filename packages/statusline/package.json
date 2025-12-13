@@ -1,6 +1,6 @@
 {
   "name": "@claude-task-system/statusline",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Statusline integration script for Claude Task System - displays task context in terminal prompts",
   "bin": {
     "task-status": "bin/task-status"
