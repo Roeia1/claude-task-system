@@ -116,9 +116,21 @@ chmod +x task-status
 ./task-status
 ```
 
-## Combining with claude-powerline
+## Combining with Other Statusline Tools
 
-Run both statuslines sequentially using `;` - claude-powerline first (it reads Claude's stdout), then this package (reads environment variables):
+This package reads from environment variables, not Claude's stdout. This makes it easy to combine with other statusline tools that do process Claude's output.
+
+**General pattern:** Run stdout-dependent tools first, then this package last:
+
+```bash
+<other-statusline-tool>; npx -y @claude-task-system/statusline
+```
+
+Each command's output appears on its own line in the statusline.
+
+### Example: Combining with claude-powerline
+
+[claude-powerline](https://github.com/Owloops/claude-powerline) displays git info, usage costs, and session metrics. Combine them like this:
 
 ```json
 {
@@ -129,11 +141,7 @@ Run both statuslines sequentially using `;` - claude-powerline first (it reads C
 }
 ```
 
-This outputs both statuslines on separate lines. The `2>/dev/null` suppresses any stderr from claude-powerline.
-
-**Why this order matters:**
-- `claude-powerline` must run first to capture Claude's stdout for usage/git info
-- `@claude-task-system/statusline` reads environment variables independently and can run after
+The `2>/dev/null` suppresses stderr from the first tool. claude-powerline runs first to capture Claude's stdout, then this package adds task context below it.
 
 ## Usage
 
