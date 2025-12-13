@@ -11,6 +11,7 @@ Display task system context information in Claude Code's statusline, giving user
 ## Motivation
 
 When working within the task system workflow, users currently have no ambient awareness of:
+
 - Which task they're working on
 - What phase of execution they're in
 - Which feature the task belongs to
@@ -27,6 +28,7 @@ This information requires manually checking files or running commands. By surfac
 **So that** I always know which task I'm working on without checking files
 
 **Acceptance Criteria:**
+
 - [ ] Statusline displays task ID with icon (e.g., " 015") when in a task worktree
 - [ ] Statusline displays task type with icon (e.g., "" for feature, "" for bugfix)
 - [ ] Statusline shows indicator (e.g., " --") when in main repo or non-task directory
@@ -39,6 +41,7 @@ This information requires manually checking files or running commands. By surfac
 **So that** I can track my progress and know what comes next
 
 **Acceptance Criteria:**
+
 - [ ] Statusline displays current phase with icon (e.g., " P2" or " Phase 2")
 - [ ] Phase information is derived from journal.md entries
 - [ ] Shows "Not Started" if task exists but journal.md doesn't
@@ -51,6 +54,7 @@ This information requires manually checking files or running commands. By surfac
 **So that** I maintain awareness of the broader context
 
 **Acceptance Criteria:**
+
 - [ ] Statusline displays feature name/ID when task is linked to a feature
 - [ ] Feature info is extracted from task.md's Feature Context section
 - [ ] Shows gracefully when task has no feature linkage
@@ -62,6 +66,7 @@ This information requires manually checking files or running commands. By surfac
 **So that** I don't accidentally work in the wrong worktree
 
 **Acceptance Criteria:**
+
 - [ ] Statusline updates within 1 second of directory change
 - [ ] Correctly identifies task context from worktree path
 - [ ] Works when opening new Claude Code sessions in worktrees
@@ -73,6 +78,7 @@ This information requires manually checking files or running commands. By surfac
 **So that** I have visibility into overall project progress at a glance
 
 **Acceptance Criteria:**
+
 - [ ] Statusline displays task counts grouped by status (e.g., " 2/1/3" for in-progress/pending/remote)
 - [ ] Statusline displays feature counts by status (e.g., " 1/2" for in-progress/draft)
 - [ ] Counts update when tasks or features change status
@@ -85,6 +91,7 @@ This information requires manually checking files or running commands. By surfac
 **So that** I have instant awareness of my working context without checking manually
 
 **Acceptance Criteria:**
+
 - [ ] Statusline shows distinct indicator for main repo (e.g., "" or " main")
 - [ ] Statusline shows distinct indicator for task worktree (e.g., "" or " worktree")
 - [ ] Indicator is visible from the moment the session starts
@@ -106,11 +113,13 @@ This information requires manually checking files or running commands. By surfac
 ## Non-Functional Requirements
 
 ### Performance
+
 - Statusline script must complete within 100ms to avoid UI lag
 - File parsing should be minimal (read only necessary sections)
 - Should cache results when possible between rapid updates
 
 ### Usability
+
 - Information should be concise (fit in typical terminal width)
 - Use Nerd Font icons for quick visual scanning (e.g., , , , , , )
 - Compact format examples:
@@ -119,6 +128,7 @@ This information requires manually checking files or running commands. By surfac
 - Output must be composable (can be combined with other statusline outputs via pipes)
 
 ### Compatibility
+
 - Must work alongside existing statusline scripts (claude-powerline, custom scripts)
 - Should support both bash and cross-platform implementations
 - Must handle edge cases (missing files, corrupted data) gracefully
