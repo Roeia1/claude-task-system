@@ -14,31 +14,22 @@ SHOW_ALL=true
 # Context variables (populated from CLAUDE_ENV_FILE)
 TASK_CONTEXT=""
 CURRENT_TASK_ID=""
+CLAUDE_SPAWN_DIR=""
 
-# Icon definitions - Origin
+# Icon definitions
 readonly ICON_MAIN="⎇"
 readonly ICON_WORKTREE="⌂"
 readonly ASCII_MAIN="[M]"
 readonly ASCII_WORKTREE="[W]"
 
-# Icon definitions - Task types
-readonly ICON_FEATURE="✦"
-readonly ICON_BUGFIX="●"
-readonly ICON_REFACTOR="⟳"
-readonly ICON_PERFORMANCE="⚡"
-readonly ICON_DEPLOYMENT="▲"
-readonly ICON_UNKNOWN="◆"
-readonly ASCII_FEATURE="[feat]"
-readonly ASCII_BUGFIX="[bug]"
-readonly ASCII_REFACTOR="[refactor]"
-readonly ASCII_PERFORMANCE="[perf]"
-readonly ASCII_DEPLOYMENT="[deploy]"
-readonly ASCII_UNKNOWN="[?]"
+# Task count icons
+readonly ICON_IN_PROGRESS="●"
+readonly ICON_PENDING="◐"
+readonly ICON_REMOTE="○"
+readonly ASCII_IN_PROGRESS="I:"
+readonly ASCII_PENDING="P:"
+readonly ASCII_REMOTE="R:"
 
-# Parsed task data (populated by parse_task_md)
-TASK_TITLE=""
-TASK_TYPE=""
-TASK_FEATURE=""
 show_help() {
     cat << 'EOF'
 Usage: task-status [OPTIONS]
@@ -49,14 +40,14 @@ Options:
   --help        Show this help message and exit
   --no-icons    Use ASCII characters instead of Unicode icons
   --origin      Show only the origin indicator (main repo vs worktree)
-  --task        Show only the current task info (title, type, feature)
+  --task        Show only the current task ID
   --counts      Show only task counts
 
 If no section flags are specified, all sections are shown.
 
 Environment:
   CLAUDE_ENV_FILE    Path to environment file with pre-detected context variables.
-                     Expected variables: TASK_CONTEXT, CURRENT_TASK_ID
+                     Expected variables: TASK_CONTEXT, CURRENT_TASK_ID, CLAUDE_SPAWN_DIR
 
 Examples:
   task-status                    # Show all sections with icons
@@ -116,6 +107,7 @@ load_environment() {
     # Only use values from CLAUDE_ENV_FILE, not inherited environment
     TASK_CONTEXT=""
     CURRENT_TASK_ID=""
+    CLAUDE_SPAWN_DIR=""
 
     if [[ -n "${CLAUDE_ENV_FILE:-}" && -f "$CLAUDE_ENV_FILE" && -r "$CLAUDE_ENV_FILE" ]]; then
         # shellcheck disable=SC1090
@@ -134,139 +126,109 @@ get_indicator() {
     fi
 }
 
-# Get icon for task type
-# Args: $1 = type (feature|bugfix|refactor|performance|deployment)
-get_type_icon() {
-    local type="$1"
-    # Normalize: lowercase and trim whitespace using bash parameter expansion
-    type="${type,,}"              # lowercase
-    type="${type#"${type%%[![:space:]]*}"}"  # trim leading
-    type="${type%"${type##*[![:space:]]}"}"  # trim trailing
+# Count local tasks by scanning task-system/tasks/ directory
+# Sets: IN_PROGRESS_COUNT, PENDING_COUNT, LOCAL_TASK_IDS (space-separated)
+count_local_tasks() {
+    IN_PROGRESS_COUNT=0
+    PENDING_COUNT=0
+    LOCAL_TASK_IDS=""
 
-    local icon ascii
-    case "$type" in
-        feature)     icon="$ICON_FEATURE";     ascii="$ASCII_FEATURE" ;;
-        bugfix)      icon="$ICON_BUGFIX";      ascii="$ASCII_BUGFIX" ;;
-        refactor)    icon="$ICON_REFACTOR";    ascii="$ASCII_REFACTOR" ;;
-        performance) icon="$ICON_PERFORMANCE"; ascii="$ASCII_PERFORMANCE" ;;
-        deployment)  icon="$ICON_DEPLOYMENT";  ascii="$ASCII_DEPLOYMENT" ;;
-        *)           icon="$ICON_UNKNOWN";     ascii="$ASCII_UNKNOWN" ;;
-    esac
+    local tasks_dir="${CLAUDE_SPAWN_DIR:-}/task-system/tasks"
 
-    [[ "$USE_ICONS" == "true" ]] && echo -n "$icon" || echo -n "$ascii"
-}
-
-# Parse task.md file and populate TASK_TITLE, TASK_TYPE, TASK_FEATURE
-# Uses CURRENT_TASK_ID and CLAUDE_SPAWN_DIR to locate task.md
-parse_task_md() {
-    TASK_TITLE=""
-    TASK_TYPE=""
-    TASK_FEATURE=""
-
-    # Need task ID to locate file
-    if [[ -z "$CURRENT_TASK_ID" ]]; then
+    # Return zeros if tasks directory doesn't exist
+    if [[ ! -d "$tasks_dir" ]]; then
         return 0
     fi
 
-    # Construct path to task.md
-    local spawn_dir="${CLAUDE_SPAWN_DIR:-.}"
-    local task_file="$spawn_dir/task-system/task-$CURRENT_TASK_ID/task.md"
+    # Scan each subdirectory in tasks/
+    local task_dir
+    for task_dir in "$tasks_dir"/*/; do
+        # Skip if no directories found (glob didn't match)
+        [[ -d "$task_dir" ]] || continue
 
-    # Check if file exists and is readable
-    if [[ ! -f "$task_file" || ! -r "$task_file" ]]; then
-        return 0
-    fi
+        # Extract task ID from directory name
+        local task_id
+        task_id=$(basename "$task_dir")
 
-    # Read file content (limit to first 100 lines for performance)
-    local content
-    content=$(head -n 100 "$task_file" 2>/dev/null) || return 0
-
-    # Extract task title from "# Task NNN: Title" header
-    # Match first line starting with "# Task" and extract everything after first colon
-    local title_line
-    title_line=$(echo "$content" | grep -m1 "^# Task [0-9]*:" 2>/dev/null) || true
-    if [[ -n "$title_line" ]]; then
-        # Extract everything after first colon, trim whitespace
-        TASK_TITLE=$(echo "$title_line" | sed 's/^# Task [0-9]*:[[:space:]]*//')
-        # Truncate to 40 chars if too long
-        if [[ ${#TASK_TITLE} -gt 40 ]]; then
-            TASK_TITLE="${TASK_TITLE:0:37}..."
-        fi
-    fi
-
-    # Extract task type from "## Task Type" section
-    # Look for line after "## Task Type" that contains the type keyword
-    local in_type_section=false
-    while IFS= read -r line; do
-        if [[ "$line" =~ ^##[[:space:]]+Task[[:space:]]+Type ]]; then
-            in_type_section=true
+        # Check if this is a valid task worktree (has task-system/task-{ID}/ folder)
+        local task_folder="$task_dir/task-system/task-$task_id"
+        if [[ ! -d "$task_folder" ]]; then
+            # Malformed task directory - skip it
             continue
         fi
-        if [[ "$in_type_section" == "true" ]]; then
-            # Skip empty lines
-            if [[ -z "$line" || "$line" =~ ^[[:space:]]*$ ]]; then
-                continue
-            fi
-            # Check if we hit another section
-            if [[ "$line" =~ ^## ]]; then
-                break
-            fi
-            # Extract the type keyword (first word before " - " or end of line)
-            local type_word
-            type_word=$(echo "$line" | sed 's/^[[:space:]]*//' | cut -d' ' -f1 | tr -d '-')
-            if [[ -n "$type_word" ]]; then
-                TASK_TYPE="$type_word"
-                break
-            fi
-        fi
-    done <<< "$content"
 
-    # Extract feature reference from "## Feature Context" section
-    # Look for "**Feature**:" line and extract feature name from link
-    local feature_line
-    feature_line=$(echo "$content" | grep -m1 '\*\*Feature\*\*:' 2>/dev/null) || true
-    if [[ -n "$feature_line" ]]; then
-        # Extract from markdown link format: [NNN-feature-name](path)
-        # Get text between [ and ]
-        local feature_ref
-        feature_ref=$(echo "$feature_line" | sed -n 's/.*\[\([^]]*\)\].*/\1/p')
-        if [[ -n "$feature_ref" ]]; then
-            # Remove leading numbers and dash (e.g., "001-" from "001-user-auth")
-            TASK_FEATURE=$(echo "$feature_ref" | sed 's/^[0-9]*-//')
+        # Track this task ID for remote filtering
+        LOCAL_TASK_IDS="$LOCAL_TASK_IDS $task_id"
+
+        # Check for journal.md to determine status
+        if [[ -f "$task_folder/journal.md" ]]; then
+            IN_PROGRESS_COUNT=$((IN_PROGRESS_COUNT + 1))
+        else
+            PENDING_COUNT=$((PENDING_COUNT + 1))
         fi
-    fi
+    done
 }
 
-# Format the task section output
-# Returns: "Title type_icon feature_name" or "--" if no task info
-format_task_section() {
-    local -a parts=()
+# Count remote task branches that don't have local worktrees
+# Sets: REMOTE_COUNT
+count_remote_tasks() {
+    REMOTE_COUNT=0
 
-    # If no task info available, return "--"
-    if [[ -z "$TASK_TITLE" && -z "$TASK_TYPE" && -z "$TASK_FEATURE" ]]; then
-        echo -n "--"
-        return
+    # Need CLAUDE_SPAWN_DIR to determine git context
+    local spawn_dir="${CLAUDE_SPAWN_DIR:-}"
+    if [[ -z "$spawn_dir" ]]; then
+        return 0
     fi
 
-    # Add title if available
-    if [[ -n "$TASK_TITLE" ]]; then
-        parts+=("$TASK_TITLE")
+    # Check if spawn dir is a git repository
+    if ! git -C "$spawn_dir" rev-parse --git-dir &>/dev/null; then
+        return 0
     fi
 
-    # Add type icon if available
-    if [[ -n "$TASK_TYPE" ]]; then
-        parts+=("$(get_type_icon "$TASK_TYPE")")
+    # Get remote task branches
+    local remote_branches
+    remote_branches=$(git -C "$spawn_dir" branch -r 2>/dev/null | grep -E 'origin/task-[0-9]+-' || true)
+
+    # If no remote branches, return 0
+    if [[ -z "$remote_branches" ]]; then
+        return 0
     fi
 
-    # Add feature name if available
-    if [[ -n "$TASK_FEATURE" ]]; then
-        parts+=("$TASK_FEATURE")
-    fi
+    # Count branches that don't have local worktrees
+    local branch
+    while IFS= read -r branch; do
+        # Extract task ID from branch name (e.g., "  origin/task-001-feature" -> "001")
+        # Trim leading whitespace and extract ID using parameter expansion
+        branch="${branch#"${branch%%[![:space:]]*}"}"  # Trim leading whitespace
 
-    # Join with spaces
-    local IFS=' '
-    echo -n "${parts[*]}"
+        # Extract task ID: remove "origin/task-" prefix, then extract digits before "-"
+        local task_id="${branch#origin/task-}"
+        task_id="${task_id%%-*}"
+
+        # Skip if we couldn't extract a valid numeric task ID
+        [[ ! "$task_id" =~ ^[0-9]+$ ]] && continue
+
+        # Check if this task has a local worktree
+        if [[ "$LOCAL_TASK_IDS" != *" $task_id"* ]]; then
+            REMOTE_COUNT=$((REMOTE_COUNT + 1))
+        fi
+    done <<< "$remote_branches"
 }
+
+# Format task counts for output
+# Returns: formatted string with counts
+format_task_counts() {
+    local output=""
+
+    if [[ "$USE_ICONS" == "true" ]]; then
+        output="$ICON_IN_PROGRESS $IN_PROGRESS_COUNT $ICON_PENDING $PENDING_COUNT $ICON_REMOTE $REMOTE_COUNT"
+    else
+        output="${ASCII_IN_PROGRESS}${IN_PROGRESS_COUNT} ${ASCII_PENDING}${PENDING_COUNT} ${ASCII_REMOTE}${REMOTE_COUNT}"
+    fi
+
+    echo -n "$output"
+}
+
 build_output() {
     local -a parts=()
 
@@ -274,15 +236,16 @@ build_output() {
         parts+=("$(get_indicator "${TASK_CONTEXT:-main}")")
     fi
 
-    if [[ "$SHOW_TASK" == "true" ]]; then
-        local task_section
-        task_section=$(format_task_section)
-        if [[ -n "$task_section" ]]; then
-            parts+=("$task_section")
-        fi
+    if [[ "$SHOW_TASK" == "true" && -n "$CURRENT_TASK_ID" ]]; then
+        parts+=("$CURRENT_TASK_ID")
     fi
 
-    # SHOW_COUNTS placeholder - will be implemented in future tasks
+    if [[ "$SHOW_COUNTS" == "true" ]]; then
+        # Count local and remote tasks
+        count_local_tasks
+        count_remote_tasks
+        parts+=("$(format_task_counts)")
+    fi
 
     # Join parts with space separator
     local IFS=' '
@@ -292,7 +255,6 @@ build_output() {
 main() {
     parse_args "$@"
     load_environment
-    parse_task_md
     build_output
 }
 
