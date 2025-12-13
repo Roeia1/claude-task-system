@@ -221,6 +221,7 @@ count_remote_tasks() {
     done <<< "$remote_branches"
 }
 
+<<<<<<< HEAD
 # Count features by status from feature.md files
 # Sets: FEATURE_ACTIVE_COUNT, FEATURE_DRAFT_COUNT
 count_features_by_status() {
@@ -274,6 +275,8 @@ count_features_by_status() {
     done
 }
 
+=======
+>>>>>>> origin/master
 # Format task counts for output
 # Returns: formatted string with counts
 format_task_counts() {
@@ -288,6 +291,7 @@ format_task_counts() {
     echo -n "$output"
 }
 
+<<<<<<< HEAD
 # Format feature counts for output
 # Returns: formatted string with counts
 format_feature_counts() {
@@ -302,6 +306,8 @@ format_feature_counts() {
     echo -n "$output"
 }
 
+=======
+>>>>>>> origin/master
 build_output() {
     local -a parts=()
 
@@ -318,10 +324,13 @@ build_output() {
         count_local_tasks
         count_remote_tasks
         parts+=("$(format_task_counts)")
+<<<<<<< HEAD
 
         # Count features by status
         count_features_by_status
         parts+=("$(format_feature_counts)")
+=======
+>>>>>>> origin/master
     fi
 
     # Join parts with space separator
