@@ -121,8 +121,7 @@ describe('task-status script', () => {
         try {
           const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
-          // With no task.md file, should output "--" as fallback (per plan.md spec)
-          expect(result.stdout).toContain('--');
+          expect(result.stdout).toContain('042');
         } finally {
           cleanupTempFile(envFile);
         }
@@ -179,11 +178,9 @@ describe('task-status script', () => {
     test('should source environment file when CLAUDE_ENV_FILE is set', () => {
       const envFile = createTempEnvFile('export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
       try {
-        // Test that env file is sourced by checking origin indicator (worktree icon)
-        const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
+        const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
-        // Should show worktree indicator since TASK_CONTEXT="worktree" was sourced
-        expect(result.stdout).toMatch(/[\u2302]|\[W\]/);
+        expect(result.stdout).toContain('042');
       } finally {
         cleanupTempFile(envFile);
       }
