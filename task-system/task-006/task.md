@@ -131,3 +131,37 @@ None - This is the first task in the feature implementation sequence.
 - Both scripts are executable (chmod +x)
 - Running test script produces clear pass/fail output for each test case
 - Test runner script exists at `tests/run-tests.sh` for running all plugin tests
+
+## Lessons Learned
+
+### What Worked Well
+
+1. **TDD Approach**: Writing tests first ensured clear requirements and immediate validation. All 11 tests passed on first implementation run.
+
+2. **Distinct Exit Codes**: Using separate exit codes (0, 1, 2, 3) for different failure modes makes debugging and error handling straightforward for callers.
+
+3. **Strict Bash Mode**: Using `set -euo pipefail` caught potential issues early and enforced proper variable handling.
+
+4. **Test Helper Functions**: Extracting `run_test()` and `run_tmux_test()` reduced duplication and made tests more maintainable.
+
+### Key Decisions
+
+1. **Parameter Expansion for Defaults**: Used `${1:-}` syntax instead of checking `$#` for argument count. Cleaner with `set -u` enabled.
+
+2. **Tests Separate from Plugin**: Moved tests to `tests/` directory to keep plugin distribution clean. Tests mirror plugin structure for easy navigation.
+
+3. **TMUX-Dependent Test Flexibility**: Tests accept either exit 0 (in TMUX) or exit 3 (not in TMUX), making them runnable in any environment.
+
+### Patterns for Future Scripts
+
+- Always use `set -euo pipefail` for strict error handling
+- Use distinct exit codes with clear documentation
+- Write error messages to stderr (`>&2`)
+- Quote all variables, especially paths (handles spaces)
+- Use `#!/usr/bin/env bash` for portability
+
+### Risks Mitigated
+
+- **TMUX Availability**: Script fails gracefully with exit 3 when not in TMUX session
+- **Path Validation**: Checks both existence AND directory type before TMUX command
+- **Argument Handling**: Validates both presence and non-empty for required args

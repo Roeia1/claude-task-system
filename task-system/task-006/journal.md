@@ -131,3 +131,63 @@ All 9 acceptance criteria from task.md have been verified and pass:
 PR #19 marked ready for review. Committed: 8de0543
 
 **Next:** Request permission to proceed to Phase 5 (Reflection)
+
+### 2025-12-21 18:15 - Phase 5: Test Structure Refactoring
+
+Per user feedback, relocated tests outside the plugin directory. Tests should not be bundled with plugin distribution.
+
+**New Structure:**
+```
+tests/
+├── run-tests.sh                           # Test runner for all plugin tests
+└── plugin/skills/task-cleanup/
+    └── test-spawn-cleanup.sh              # Mirrors plugin structure
+```
+
+**Key Changes:**
+- Moved test script from `plugin/skills/task-cleanup/test-spawn-cleanup.sh` to `tests/plugin/skills/task-cleanup/test-spawn-cleanup.sh`
+- Test script now references plugin via relative path: `../../../../plugin/skills/task-cleanup/scripts/`
+- Added `tests/run-tests.sh` as a simple test runner that finds and executes all `test-*.sh` scripts
+- Test runner supports optional filter pattern for running specific test suites
+- Updated acceptance criteria in task.md to reflect new location
+
+**Benefits:**
+- Plugin distribution stays clean (no test code bundled)
+- Tests still mirror plugin structure for easy navigation and maintenance
+- Test runner enables running all tests with single command
+- Provides foundation for future tests as system grows
+
+**Verification:**
+- All 11 tests still passing from new location
+- Test references to plugin updated correctly
+- Task.md acceptance criteria updated
+
+Refactoring committed: 3cd9149
+
+**Next:** Continue with Phase 5 reflection and document final learnings
+
+### 2025-12-21 18:30 - Phase 5 Complete: Reflection and Learnings Documented
+
+Completed task reflection and documented learnings in task.md.
+
+**Task Journey Summary:**
+- Phase 1: Created 11 TDD tests covering all exit code scenarios
+- Phase 2: Implemented spawn-cleanup.sh - all tests passed on first run
+- Phase 3: Refactored to reduce duplication (extracted run_tmux_test helper)
+- Phase 4: Verified all 9 acceptance criteria
+- Phase 5: Documented learnings and patterns
+
+**Key Learnings:**
+1. TDD proved valuable - clear requirements led to immediate passing tests
+2. Distinct exit codes (0,1,2,3) make error handling straightforward
+3. Tests should live outside plugin for clean distribution
+4. `set -euo pipefail` + `${1:-}` pattern works well together
+
+**Deliverables:**
+- `plugin/skills/task-cleanup/scripts/spawn-cleanup.sh` (45 lines)
+- `tests/plugin/skills/task-cleanup/test-spawn-cleanup.sh` (11 tests)
+- `tests/run-tests.sh` (test runner for all plugin tests)
+
+Task ready for completion.
+
+**Next:** Request permission to complete task and merge PR
