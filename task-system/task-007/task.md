@@ -25,25 +25,25 @@ None - This task can be developed in parallel with T006 (spawn script creation).
 
 ## Objectives
 
-- [ ] Skill detects if running in worktree vs main repo using `.git` file/directory check
-- [ ] Worktree context: extracts task ID from `task-system/task-NNN/` folder
-- [ ] Worktree context: detects TMUX environment and prompts user appropriately
-- [ ] Worktree context: spawns cleanup pane when user confirms
-- [ ] Main repo context: preserves existing cleanup behavior unchanged
-- [ ] All error cases handled with graceful fallback to manual instructions
+- [x] Skill detects if running in worktree vs main repo using `$TASK_CONTEXT` (with `.git` fallback)
+- [x] Worktree context: extracts task ID from `$CURRENT_TASK_ID` (with folder fallback)
+- [x] Worktree context: detects TMUX environment and prompts user appropriately
+- [x] Worktree context: spawns cleanup pane when user confirms
+- [x] Main repo context: preserves existing cleanup behavior unchanged
+- [x] All error cases handled with graceful fallback to manual instructions
 
 ## Sub-tasks
 
-1. [ ] Add location detection section at start of skill (check if `.git` is file or directory)
-2. [ ] Create Step 2a: Worktree Context flow with task ID extraction
-3. [ ] Implement TMUX detection using `$TMUX` environment variable
-4. [ ] Add user prompt for spawn confirmation with default to yes
-5. [ ] Add spawn script invocation with proper arguments (task ID, main repo path)
-6. [ ] Add success/failure handling with appropriate messages
-7. [ ] Add manual instructions fallback for non-TMUX and user decline cases
-8. [ ] Preserve existing Step 2b: Main Repo Context flow (rename from current flow)
-9. [ ] Update skill description to reflect location-aware behavior
-10. [ ] Add notes section explaining the dual-context behavior
+1. [x] Add location detection section at start of skill (uses `$TASK_CONTEXT` with `.git` fallback)
+2. [x] Create Step 2a: Worktree Context flow with task ID extraction
+3. [x] Implement TMUX detection using `$TMUX` environment variable
+4. [x] Add user prompt for spawn confirmation with default to yes
+5. [x] Add spawn script invocation with proper arguments (task ID, main repo path)
+6. [x] Add success/failure handling with appropriate messages
+7. [x] Add manual instructions fallback for non-TMUX and user decline cases
+8. [x] Preserve existing Step 2b: Main Repo Context flow (rename from current flow)
+9. [x] Update skill description to reflect location-aware behavior
+10. [x] Add notes section explaining the dual-context behavior
 
 ## Technical Approach
 
@@ -108,11 +108,25 @@ None - This task can be developed in parallel with T006 (spawn script creation).
 
 ## Acceptance Criteria
 
-- [ ] When invoked from worktree in TMUX with user confirmation, spawn script is called with correct task ID and main repo path
-- [ ] When invoked from worktree in TMUX but user declines, manual cleanup instructions are displayed
-- [ ] When invoked from worktree outside TMUX, manual cleanup instructions are displayed without prompting
-- [ ] When invoked from main repo, existing cleanup behavior works unchanged
-- [ ] Task ID is correctly extracted from `task-system/task-NNN/` folder in worktree
-- [ ] Main repo path is correctly resolved via git command
-- [ ] All error scenarios fall back to manual instructions gracefully
-- [ ] Skill description accurately reflects the location-aware behavior
+- [x] When invoked from worktree in TMUX with user confirmation, spawn script is called with correct task ID and main repo path
+- [x] When invoked from worktree in TMUX but user declines, manual cleanup instructions are displayed
+- [x] When invoked from worktree outside TMUX, manual cleanup instructions are displayed without prompting
+- [x] When invoked from main repo, existing cleanup behavior works unchanged
+- [x] Task ID is correctly extracted from `task-system/task-NNN/` folder in worktree
+- [x] Main repo path is correctly resolved via git command
+- [x] All error scenarios fall back to manual instructions gracefully
+- [x] Skill description accurately reflects the location-aware behavior
+
+## Lessons Learned
+
+### Technical Insights
+- **Leverage existing infrastructure**: The session-init hook already sets `$TASK_CONTEXT` and `$CURRENT_TASK_ID` environment variables. Always check existing hooks and scripts before re-implementing detection logic.
+- **Fallback patterns**: Using env vars as primary with detection fallback provides reliability when hooks may not have run.
+
+### Patterns That Worked Well
+- **Dual-context skill design**: Step 2a (worktree) and Step 2b (main repo) pattern keeps logic organized and makes each context's flow clear.
+- **Graceful degradation**: All error paths fall back to manual instructions, ensuring users are never stuck.
+
+### Approaches to Avoid
+- Don't re-implement detection logic that already exists in hooks
+- Don't skip workflow phase gates - they exist to catch issues early
