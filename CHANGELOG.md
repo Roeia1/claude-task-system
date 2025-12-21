@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **task-cleanup**: Now location-aware - detects worktree vs main repo context
 - **task-completer**: Simplified to orchestrate task-merge then task-cleanup sequentially
-- **worktree-flow**: Updated completion flow to reflect automatic cleanup behavior
+- **worktree-flow**: Simplified task completion step (delegates to task-completer)
 
 ## [1.0.4] - 2025-12-13
 
