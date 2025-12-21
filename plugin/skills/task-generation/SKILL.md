@@ -87,7 +87,25 @@ When activated, generate executable tasks from feature planning artifacts. Each 
 
 Task creation spawns parallel `task-builder` subagents, one per task. Each handles git setup, content generation, and PR creation.
 
-#### Step 2a: Pre-allocate Task IDs
+#### Step 2a: Verify Sync with Origin (Critical)
+
+Before creating any tasks, verify local master is in sync with origin:
+
+```bash
+# Fetch latest from origin
+git fetch origin
+
+# Check if local has unpushed commits or differs from origin
+if ! git diff HEAD origin/master --quiet 2>/dev/null; then
+    echo "ERROR: Local master is not in sync with origin/master."
+    echo "Push or pull changes before generating tasks."
+    exit 1
+fi
+```
+
+**If this check fails, stop immediately.** Do not spawn task-builders. Creating worktrees from an unsynced state will cause orphaned merges where PRs merge into a base that doesn't exist on origin.
+
+#### Step 2b: Pre-allocate Task IDs
 
 Allocate all task IDs upfront to prevent race conditions:
 
@@ -118,7 +136,7 @@ Store the allocated `task_ids` array for use in subsequent steps.
 - T001 gets ID 015, T002 gets ID 016
 - T001's dependencies reference "016" (not T002)
 
-#### Step 2b: Build Tasks (Parallel Subagents)
+#### Step 2c: Build Tasks (Parallel Subagents)
 
 For each approved task, spawn a `task-builder` subagent that handles both git setup and content generation:
 
@@ -144,7 +162,7 @@ For each approved task, spawn a `task-builder` subagent that handles both git se
 
 **Wait for all subagents** to complete before proceeding.
 
-#### Step 2c: Collect Results
+#### Step 2d: Collect Results
 
 Wait for all subagents to complete and collect results:
 
