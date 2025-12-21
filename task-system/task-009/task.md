@@ -33,15 +33,15 @@ P2 - Documentation is important but depends on implementation tasks being comple
 
 ## Sub-tasks
 
-1. [ ] Review current "Two-Step Completion" section in CLAUDE.md (line 362)
-2. [ ] Update the Task Execution Workflow section to reflect automatic cleanup
-3. [ ] Add new subsection explaining TMUX requirement and behavior
-4. [ ] Document the user prompt flow when completing a task
-5. [ ] Document fallback behavior when not in TMUX
-6. [ ] Update the Important Notes section with TMUX-related notes
-7. [ ] Review and update task-cleanup skill documentation if needed
-8. [ ] Review and update task-completer agent documentation if needed
-9. [ ] Ensure consistency across all documentation references
+1. [x] Review current "Two-Step Completion" section in CLAUDE.md (line 362)
+2. [x] Update the Task Execution Workflow section to reflect automatic cleanup
+3. [x] Add new subsection explaining TMUX requirement and behavior
+4. [x] Document the user prompt flow when completing a task
+5. [x] Document fallback behavior when not in TMUX
+6. [x] Update the Important Notes section with TMUX-related notes
+7. [x] Review and update task-cleanup skill documentation if needed (already up-to-date)
+8. [x] Review and update task-completer agent documentation if needed (already up-to-date)
+9. [x] Ensure consistency across all documentation references (updated worktree-flow.md, CHANGELOG.md)
 
 ## Technical Approach
 

@@ -177,14 +177,33 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 # Start Claude session
 # Say "start task 015" to begin workflow
 
-# From WORKTREE: Complete and merge
+# From WORKTREE: Complete, merge, and cleanup
 # Grant permission after final phase
-# -> Archives files, merges PR, but worktree remains
+# -> Task-completer archives files and merges PR
+# -> Prompts: "Spawn cleanup pane at main repo? [Y/n]"
+# -> If in TMUX and confirmed: spawns new pane, runs cleanup automatically
+# -> If not in TMUX or declined: shows manual cleanup instructions
+```
 
-# From MAIN REPO: Cleanup worktree (new session)
-# cd back to main repo
-# Say "cleanup task 015"
-# -> Verifies PR merged, removes worktree
+### Automatic Cleanup (TMUX)
+
+When completing a task from within a worktree, the system can automatically handle cleanup:
+
+**Why TMUX is needed**: The cleanup process must remove the worktree directory, but the agent session is running inside that directory. TMUX allows spawning a new pane at the main repository to perform cleanup safely.
+
+**Flow when in TMUX**:
+1. Task-completer merges PR successfully
+2. Prompts: "Spawn cleanup pane at main repo? [Y/n]"
+3. On confirm: spawns new TMUX pane at main repo root
+4. New pane runs `cleanup task NNN` automatically
+5. Original session can terminate
+
+**Fallback when not in TMUX**:
+```bash
+# Manual cleanup instructions are displayed:
+# 1. Navigate to main repo: cd /path/to/main/repo
+# 2. Start a new Claude session
+# 3. Say: "cleanup task 015"
 ```
 
 ## Critical Execution Rules
@@ -203,7 +222,7 @@ Each task type follows a specialized workflow defined in `plugin/skills/task-sta
 
 - **Deployment**: Operational flow with additional phases for infrastructure concerns. See `deployment-workflow.md` for details.
 
-All workflows end with **Verification** (check acceptance criteria), **Reflection** (document learnings), and **Merge** (task-completer handles PR merge). After merge, run `cleanup task NNN` from main repo to remove worktree.
+All workflows end with **Verification** (check acceptance criteria), **Reflection** (document learnings), and **Merge** (task-completer handles PR merge and cleanup). In TMUX, cleanup is automatic; otherwise, manual instructions are provided.
 
 ### Non-Negotiable Rules
 
@@ -359,4 +378,4 @@ When user signals review ("I made a review", "Check PR comments"):
 - **Trust the Discipline**: The phased workflow prevents costly mistakes
 - **Dynamic Status**: No TASK-LIST.md - status derived from filesystem and git state
 - **Task Archiving**: Completed tasks are archived to `task-system/archive/` before PR merge (as part of task-merge)
-- **Two-Step Completion**: Task merge happens in worktree, worktree cleanup happens from main repo (avoids agent running in deleted directory)
+- **Automatic Cleanup**: When in TMUX, cleanup is automatic after merge (spawns new pane at main repo). Without TMUX, manual cleanup instructions are provided. See [Automatic Cleanup (TMUX)](#automatic-cleanup-tmux) for details.

@@ -91,13 +91,6 @@ After the type-specific workflow completes and user grants completion permission
 2. **On error**: Control returns to user with specific issue
 3. **On success**:
    - PR is merged, files are archived
-   - Display cleanup instructions:
-     ```
-     Task merged successfully!
-
-     To complete cleanup:
-     1. Navigate to main repo: cd <main_repo_path>
-     2. Start a new Claude session
-     3. Say: "cleanup task <task_id>"
-     ```
-   - Note: Worktree cleanup is handled separately from main repo to avoid agent running in deleted directory
+   - Task-cleanup skill is invoked automatically
+   - If in TMUX: prompts to spawn cleanup pane at main repo
+   - If not in TMUX: displays manual cleanup instructions
