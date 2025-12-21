@@ -88,9 +88,5 @@ Point to type-specific workflow for Phase 1 execution:
 After the type-specific workflow completes and user grants completion permission:
 
 1. **Invoke task-completer subagent** with task_id
-2. **On error**: Control returns to user with specific issue
-3. **On success**:
-   - PR is merged, files are archived
-   - Task-cleanup skill is invoked automatically
-   - If in TMUX: prompts to spawn cleanup pane at main repo
-   - If not in TMUX: displays manual cleanup instructions
+2. **On error**: Present error to user and return control
+3. **On success**: Task completion handled by subagent
