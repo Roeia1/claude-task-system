@@ -14,18 +14,39 @@ When activated, handles cleanup for a completed task. This skill is **location-a
 
 - Task PR must be merged (or about to be merged via task-completer)
 
+## Environment Variables
+
+The session-init hook sets these variables at session start:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `$TASK_CONTEXT` | "worktree" or "main" | `worktree` |
+| `$CURRENT_TASK_ID` | Task number (worktree only) | `007` |
+
+These are used for location detection and task ID extraction with fallback detection if not set.
+
 ## Process
 
 ### Step 1: Location Detection
 
-1. **Check if running in worktree or main repo**:
-   ```bash
-   if [ -f ".git" ]; then
-       # .git is a FILE -> In worktree, go to Step 2a
-   else
-       # .git is a DIRECTORY -> In main repo, go to Step 2b
-   fi
-   ```
+Use the `$TASK_CONTEXT` environment variable set by the session-init hook:
+
+```bash
+if [ "$TASK_CONTEXT" = "worktree" ]; then
+    # In worktree, go to Step 2a
+else
+    # In main repo (or $TASK_CONTEXT unset), go to Step 2b
+fi
+```
+
+**Fallback** (if `$TASK_CONTEXT` not set):
+```bash
+if [ -f ".git" ]; then
+    # .git is a FILE -> In worktree
+else
+    # .git is a DIRECTORY -> In main repo
+fi
+```
 
 ---
 
@@ -33,17 +54,24 @@ When activated, handles cleanup for a completed task. This skill is **location-a
 
 When running from inside a worktree, spawn a cleanup session at the main repo.
 
-#### 2a.1: Extract Task ID
+#### 2a.1: Get Task ID
 
-1. **Get task ID from `task-system/task-NNN/` folder**:
-   ```bash
-   TASK_ID=$(ls task-system/ | grep "^task-" | sed 's/task-//')
-   ```
-2. **If no task folder found**: Error with message:
-   ```
-   ERROR: No task-system/task-NNN folder found in this worktree.
-   Cannot determine task ID for cleanup.
-   ```
+Use the `$CURRENT_TASK_ID` environment variable set by the session-init hook:
+
+```bash
+TASK_ID="$CURRENT_TASK_ID"
+```
+
+**Fallback** (if `$CURRENT_TASK_ID` not set):
+```bash
+TASK_ID=$(ls task-system/ | grep "^task-" | sed 's/task-//')
+```
+
+**If task ID not found**: Error with message:
+```
+ERROR: No task-system/task-NNN folder found in this worktree.
+Cannot determine task ID for cleanup.
+```
 
 #### 2a.2: Get Main Repo Path
 
