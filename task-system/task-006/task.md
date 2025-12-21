@@ -127,6 +127,7 @@ None - This is the first task in the feature implementation sequence.
 - Script exits with code 2 when main_repo_path does not exist
 - Script exits with code 3 when TMUX command fails
 - Script exits with code 0 when TMUX pane is successfully spawned
-- test-spawn-cleanup.sh exists and validates all exit code scenarios
+- test-spawn-cleanup.sh exists at `tests/plugin/skills/task-cleanup/` (separate from plugin)
 - Both scripts are executable (chmod +x)
 - Running test script produces clear pass/fail output for each test case
+- Test runner script exists at `tests/run-tests.sh` for running all plugin tests

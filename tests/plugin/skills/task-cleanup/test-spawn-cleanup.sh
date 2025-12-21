@@ -3,7 +3,7 @@
 # test-spawn-cleanup.sh - Test suite for spawn-cleanup.sh
 #
 # Tests all exit code scenarios for the spawn-cleanup script.
-# Run this from the scripts directory or provide path to spawn-cleanup.sh.
+# Run from repo root: ./tests/plugin/skills/task-cleanup/test-spawn-cleanup.sh
 #
 # Exit Codes Tested:
 #   0 - Success (TMUX pane spawned)
@@ -24,14 +24,15 @@ TESTS_RUN=0
 TESTS_PASSED=0
 TESTS_FAILED=0
 
-# Get the directory where this script lives
+# Get the directory where this script lives and resolve path to plugin script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SPAWN_SCRIPT="${SCRIPT_DIR}/spawn-cleanup.sh"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
+SPAWN_SCRIPT="${REPO_ROOT}/plugin/skills/task-cleanup/scripts/spawn-cleanup.sh"
 
 # Check if spawn-cleanup.sh exists
 if [[ ! -f "$SPAWN_SCRIPT" ]]; then
     echo -e "${RED}ERROR: spawn-cleanup.sh not found at ${SPAWN_SCRIPT}${NC}"
-    echo "Please ensure spawn-cleanup.sh exists in the same directory as this test script."
+    echo "Expected location: plugin/skills/task-cleanup/scripts/spawn-cleanup.sh"
     exit 1
 fi
 
