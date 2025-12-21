@@ -43,6 +43,3 @@ if ! tmux split-window -h -c "$main_repo_path" "claude --prompt 'cleanup task $t
     echo "Make sure you are running inside a TMUX session" >&2
     exit 3
 fi
-
-# Success
-exit 0

@@ -17,7 +17,6 @@ set -euo pipefail
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Counters
@@ -43,7 +42,7 @@ if [[ ! -x "$SPAWN_SCRIPT" ]]; then
     exit 1
 fi
 
-# Test helper function
+# Test helper function for exact exit code match
 run_test() {
     local test_name="$1"
     local expected_exit="$2"
@@ -68,6 +67,33 @@ run_test() {
         echo "       Actual exit code:   ${actual_exit}"
         TESTS_FAILED=$((TESTS_FAILED + 1))
         return 1
+    fi
+}
+
+# Test helper for TMUX-dependent tests (accepts exit 0 or 3)
+run_tmux_test() {
+    local test_name="$1"
+    shift
+    local args=("$@")
+
+    TESTS_RUN=$((TESTS_RUN + 1))
+
+    set +e
+    "$SPAWN_SCRIPT" "${args[@]}" >/dev/null 2>&1
+    local actual_exit=$?
+    set -e
+
+    if [[ $actual_exit -eq 0 ]]; then
+        echo -e "${GREEN}PASS${NC}: ${test_name} (exit code: 0 - TMUX pane spawned)"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    elif [[ $actual_exit -eq 3 ]]; then
+        echo -e "${GREEN}PASS${NC}: ${test_name} (exit code: 3 - TMUX not available)"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+        echo -e "${RED}FAIL${NC}: ${test_name}"
+        echo "       Expected exit code: 0 or 3"
+        echo "       Actual exit code:   ${actual_exit}"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
 }
 
@@ -118,26 +144,7 @@ echo "--- Testing Exit Code 0 or 3: TMUX Behavior ---"
 echo ""
 
 # Test: Valid arguments - should exit 0 if in TMUX, exit 3 if not
-# This test passes if we get either 0 or 3 depending on TMUX availability
-set +e
-"$SPAWN_SCRIPT" "015" "$TEST_TMP_DIR" >/dev/null 2>&1
-valid_args_exit=$?
-set -e
-
-TESTS_RUN=$((TESTS_RUN + 1))
-
-if [[ $valid_args_exit -eq 0 ]]; then
-    echo -e "${GREEN}PASS${NC}: Valid arguments (exit code: 0 - TMUX pane spawned)"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-elif [[ $valid_args_exit -eq 3 ]]; then
-    echo -e "${GREEN}PASS${NC}: Valid arguments (exit code: 3 - TMUX not available, expected when not in TMUX)"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-else
-    echo -e "${RED}FAIL${NC}: Valid arguments"
-    echo "       Expected exit code: 0 (in TMUX) or 3 (not in TMUX)"
-    echo "       Actual exit code:   ${valid_args_exit}"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
-fi
+run_tmux_test "Valid arguments" "015" "$TEST_TMP_DIR"
 
 echo ""
 echo "--- Testing Edge Cases ---"
@@ -146,62 +153,15 @@ echo ""
 # Test: Path with spaces
 SPACE_DIR="${TEST_TMP_DIR}/path with spaces"
 mkdir -p "$SPACE_DIR"
-
-set +e
-"$SPAWN_SCRIPT" "015" "$SPACE_DIR" >/dev/null 2>&1
-space_exit=$?
-set -e
-
-TESTS_RUN=$((TESTS_RUN + 1))
-
-if [[ $space_exit -eq 0 ]] || [[ $space_exit -eq 3 ]]; then
-    echo -e "${GREEN}PASS${NC}: Path with spaces handled correctly (exit code: ${space_exit})"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-else
-    echo -e "${RED}FAIL${NC}: Path with spaces"
-    echo "       Expected exit code: 0 or 3"
-    echo "       Actual exit code:   ${space_exit}"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
-fi
+run_tmux_test "Path with spaces" "015" "$SPACE_DIR"
 
 # Test: Task ID with leading zeros
-set +e
-"$SPAWN_SCRIPT" "007" "$TEST_TMP_DIR" >/dev/null 2>&1
-leading_zero_exit=$?
-set -e
-
-TESTS_RUN=$((TESTS_RUN + 1))
-
-if [[ $leading_zero_exit -eq 0 ]] || [[ $leading_zero_exit -eq 3 ]]; then
-    echo -e "${GREEN}PASS${NC}: Task ID with leading zeros (007) handled correctly (exit code: ${leading_zero_exit})"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-else
-    echo -e "${RED}FAIL${NC}: Task ID with leading zeros (007)"
-    echo "       Expected exit code: 0 or 3"
-    echo "       Actual exit code:   ${leading_zero_exit}"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
-fi
+run_tmux_test "Task ID with leading zeros (007)" "007" "$TEST_TMP_DIR"
 
 # Test: Very long path
 LONG_PATH="${TEST_TMP_DIR}/this/is/a/very/long/path/that/goes/on/and/on"
 mkdir -p "$LONG_PATH"
-
-set +e
-"$SPAWN_SCRIPT" "015" "$LONG_PATH" >/dev/null 2>&1
-long_path_exit=$?
-set -e
-
-TESTS_RUN=$((TESTS_RUN + 1))
-
-if [[ $long_path_exit -eq 0 ]] || [[ $long_path_exit -eq 3 ]]; then
-    echo -e "${GREEN}PASS${NC}: Very long path handled correctly (exit code: ${long_path_exit})"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-else
-    echo -e "${RED}FAIL${NC}: Very long path"
-    echo "       Expected exit code: 0 or 3"
-    echo "       Actual exit code:   ${long_path_exit}"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
-fi
+run_tmux_test "Very long path" "015" "$LONG_PATH"
 
 # Print summary
 echo ""
