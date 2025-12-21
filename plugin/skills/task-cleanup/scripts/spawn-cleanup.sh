@@ -38,7 +38,7 @@ if [[ ! -d "$main_repo_path" ]]; then
 fi
 
 # Spawn TMUX pane with Claude cleanup session - exit 3 if fails
-if ! tmux split-window -h -c "$main_repo_path" "claude 'cleanup task $task_id'"; then
+if ! tmux split-window -h -c "$main_repo_path" "claude --dangerously-skip-permissions 'cleanup task $task_id'"; then
     echo "Error: Failed to spawn TMUX pane" >&2
     echo "Make sure you are running inside a TMUX session" >&2
     exit 3
