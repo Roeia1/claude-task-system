@@ -97,11 +97,10 @@ Cannot determine task ID for cleanup.
 2. **If NOT in TMUX**: Display manual instructions and exit:
    ```
    ===============================================================
-   Manual Cleanup Required (Not in TMUX)
+   Manual Cleanup Required
    ===============================================================
 
-   You are in a worktree and not running inside TMUX.
-   Automatic cleanup pane spawning requires TMUX.
+   Automatic cleanup requires TMUX (not detected).
 
    To complete cleanup manually:
    1. Navigate to main repo: cd $MAIN_REPO
@@ -119,10 +118,10 @@ Cannot determine task ID for cleanup.
 2. **If user declines** (enters 'n' or 'N'): Display manual instructions and exit:
    ```
    ===============================================================
-   Manual Cleanup Instructions
+   Manual Cleanup Required
    ===============================================================
 
-   To complete cleanup:
+   To complete cleanup manually:
    1. Navigate to main repo: cd $MAIN_REPO
    2. Start a new Claude session
    3. Say: "cleanup task $TASK_ID"
@@ -157,11 +156,10 @@ Cannot determine task ID for cleanup.
 4. **On failure** (exit non-zero): Display error and manual fallback:
    ```
    ===============================================================
-   Spawn Failed - Manual Cleanup Required
+   Spawn Failed
    ===============================================================
 
-   Could not spawn cleanup pane automatically.
-   Error code: $EXIT_CODE
+   Could not spawn cleanup pane (error code: $EXIT_CODE).
 
    To complete cleanup manually:
    1. Navigate to main repo: cd $MAIN_REPO
