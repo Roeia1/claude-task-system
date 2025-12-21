@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-12-21
+
+### Added
+
+- **automatic-cleanup**: Task cleanup is now automatic when running in TMUX
+  - After PR merge, system prompts: "Spawn cleanup pane at main repo? [Y/n]"
+  - If confirmed, spawns new TMUX pane at main repo with Claude cleanup session
+  - Falls back to manual instructions when not in TMUX
+
+### Changed
+
+- **task-cleanup**: Now location-aware - detects worktree vs main repo context
+- **task-completer**: Simplified to orchestrate task-merge then task-cleanup sequentially
+- **worktree-flow**: Simplified task completion step (delegates to task-completer)
+
 ## [1.0.4] - 2025-12-13
 
 ### Changed
