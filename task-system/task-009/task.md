@@ -26,10 +26,10 @@ P2 - Documentation is important but depends on implementation tasks being comple
 
 ## Objectives
 
-- [ ] Update CLAUDE.md to document the automatic cleanup flow
-- [ ] Document TMUX requirement for automatic cleanup
-- [ ] Explain the user prompts and expected behavior in worktree context
-- [ ] Ensure fallback to manual instructions is clearly documented
+- [x] Update CLAUDE.md to document the automatic cleanup flow
+- [x] Document TMUX requirement for automatic cleanup
+- [x] Explain the user prompts and expected behavior in worktree context
+- [x] Ensure fallback to manual instructions is clearly documented
 
 ## Sub-tasks
 
