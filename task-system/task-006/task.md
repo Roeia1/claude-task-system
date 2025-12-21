@@ -25,23 +25,23 @@ None - This is the first task in the feature implementation sequence.
 
 ## Objectives
 
-- [ ] Create spawn-cleanup.sh that spawns a TMUX pane with Claude cleanup session
-- [ ] Implement proper argument validation with distinct exit codes
-- [ ] Create test script that validates all exit code scenarios
-- [ ] Make both scripts executable and properly documented
+- [x] Create spawn-cleanup.sh that spawns a TMUX pane with Claude cleanup session
+- [x] Implement proper argument validation with distinct exit codes
+- [x] Create test script that validates all exit code scenarios
+- [x] Make both scripts executable and properly documented
 
 ## Sub-tasks
 
-1. [ ] Create scripts directory at `plugin/skills/task-cleanup/scripts/`
-2. [ ] Create spawn-cleanup.sh with argument parsing ($1=task_id, $2=main_repo_path)
-3. [ ] Add validation for missing/empty arguments (exit 1)
-4. [ ] Add path existence check for main_repo_path (exit 2)
-5. [ ] Add TMUX split-window command execution
-6. [ ] Add error handling for TMUX command failure (exit 3)
-7. [ ] Create test-spawn-cleanup.sh with test cases
-8. [ ] Add test for missing arguments scenario
-9. [ ] Add test for invalid path scenario
-10. [ ] Add test for valid arguments scenario (mock TMUX if not available)
+1. [x] Create scripts directory at `plugin/skills/task-cleanup/scripts/`
+2. [x] Create spawn-cleanup.sh with argument parsing ($1=task_id, $2=main_repo_path)
+3. [x] Add validation for missing/empty arguments (exit 1)
+4. [x] Add path existence check for main_repo_path (exit 2)
+5. [x] Add TMUX split-window command execution
+6. [x] Add error handling for TMUX command failure (exit 3)
+7. [x] Create test-spawn-cleanup.sh with test cases
+8. [x] Add test for missing arguments scenario
+9. [x] Add test for invalid path scenario
+10. [x] Add test for valid arguments scenario (mock TMUX if not available)
 
 ## Technical Approach
 
