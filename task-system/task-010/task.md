@@ -32,16 +32,16 @@ None - This is a foundational task with no prerequisites
 
 ## Sub-tasks
 
-1. [ ] Create `plugin/scripts/` directory structure
-2. [ ] Implement `claude-spawn.sh` with argument validation (path, prompt required)
-3. [ ] Add tmux environment detection (`$TMUX` variable check)
-4. [ ] Add target path existence validation
-5. [ ] Implement `tmux run-shell -d` spawn logic with 1-second delay
-6. [ ] Implement process termination via `kill $PPID`
-7. [ ] Modify `detect-context.sh` to return worktree path for requested task
-8. [ ] Modify `task-start/SKILL.md` to invoke spawn on `not_in_worktree` error
-9. [ ] Create test script `tests/plugin/scripts/test-claude-spawn.sh`
-10. [ ] Test all error cases and edge cases (spaces in paths, special chars in prompts)
+1. [x] Create `plugin/scripts/` directory structure
+2. [x] Implement `claude-spawn.sh` with argument validation (path, prompt required)
+3. [x] Add tmux environment detection (`$TMUX` variable check)
+4. [x] Add target path existence validation
+5. [x] Implement `tmux run-shell -d` spawn logic with 1-second delay
+6. [x] Implement process termination via `kill $PPID`
+7. [x] Modify `detect-context.sh` to return worktree path for requested task
+8. [x] Modify `task-start/SKILL.md` to invoke spawn on `not_in_worktree` error
+9. [x] Create test script `tests/plugin/scripts/test-claude-spawn.sh`
+10. [x] Test all error cases and edge cases (spaces in paths, special chars in prompts)
 
 ## Technical Approach
 

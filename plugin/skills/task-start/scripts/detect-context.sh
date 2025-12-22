@@ -126,5 +126,27 @@ if [ "$CONTEXT" = "worktree" ]; then
     output_json "$CONTEXT" "ok" "null" "Worktree validated for task $TASK_ID" "$CURRENT_BRANCH" "$GIT_ROOT"
 else
     # Main repo - tasks can only be started from within a worktree
-    output_json "$CONTEXT" "error" '"not_in_worktree"' "Tasks can only be started from within a worktree. Navigate to task-system/tasks/NNN and start a new Claude session there." "$CURRENT_BRANCH" ""
+    # If user provided a task ID, look up the worktree path for spawn support
+    WORKTREE_PATH=""
+    if [ -n "$USER_INPUT" ]; then
+        # Normalize task ID (remove leading zeros for path lookup, but keep for display)
+        NORMALIZED_INPUT=$(echo "$USER_INPUT" | sed 's/^0*//')
+
+        # Look for worktree in task-system/tasks/NNN format
+        # Try with leading zeros first (e.g., 010), then without (e.g., 10)
+        PADDED_ID=$(printf "%03d" "$NORMALIZED_INPUT" 2>/dev/null || echo "$USER_INPUT")
+
+        if [ -d "$GIT_ROOT/task-system/tasks/$PADDED_ID" ]; then
+            WORKTREE_PATH="$GIT_ROOT/task-system/tasks/$PADDED_ID"
+            TASK_ID="$PADDED_ID"
+        elif [ -d "$GIT_ROOT/task-system/tasks/$NORMALIZED_INPUT" ]; then
+            WORKTREE_PATH="$GIT_ROOT/task-system/tasks/$NORMALIZED_INPUT"
+            TASK_ID="$NORMALIZED_INPUT"
+        elif [ -d "$GIT_ROOT/task-system/tasks/$USER_INPUT" ]; then
+            WORKTREE_PATH="$GIT_ROOT/task-system/tasks/$USER_INPUT"
+            TASK_ID="$USER_INPUT"
+        fi
+    fi
+
+    output_json "$CONTEXT" "error" '"not_in_worktree"' "Tasks can only be started from within a worktree. Navigate to task-system/tasks/NNN and start a new Claude session there." "$CURRENT_BRANCH" "$WORKTREE_PATH"
 fi

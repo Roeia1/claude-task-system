@@ -41,13 +41,12 @@ bash scripts/detect-context.sh $USER_INPUT
 
 - If `status: "error"`:
 
-  - Display the `message` to user
-  - Provide guidance based on `error_type`:
-    - `not_in_worktree`: "You must be in a task worktree to start a task. Use 'list tasks' to see available tasks."
+  - Check `error_type` and handle accordingly:
+    - `not_in_worktree`: See [From Main Repo Handling](#from-main-repo-handling) below
     - `no_task_folder`: "No task-system/task-NNN folder found. Cannot determine which task this is."
     - `task_id_mismatch`: "This worktree contains a different task than you requested"
     - `branch_mismatch`: "The git branch doesn't match the task. Check your git state"
-  - **STOP** - do not continue
+  - For non-spawn errors: **STOP** - do not continue
 
 - If `status: "ok"`:
   - Continue to Step 2
@@ -66,7 +65,37 @@ Read and execute `worktree-flow.md` which:
 
 If the user runs `start task` from the main repository (not a worktree), the script returns a `not_in_worktree` error.
 
-Display:
+**Check JSON output for spawn support:**
+
+1. **If `worktree_path` is populated** (user specified a task ID and worktree exists):
+   - Attempt to spawn a new Claude session in the worktree
+   - Run:
+     ```bash
+     bash ../../scripts/claude-spawn.sh "$WORKTREE_PATH" "start task $TASK_ID"
+     ```
+   - Handle exit codes:
+     - Exit 0: Spawn succeeded, current Claude will be terminated (no further action)
+     - Exit 1: Not in TMUX - show manual navigation instructions
+     - Exit 2: Invalid arguments (should not happen if worktree_path is set)
+     - Exit 3: Path not found (worktree may have been deleted)
+
+2. **If `worktree_path` is empty** (no task ID specified or worktree doesn't exist):
+   - Show manual navigation instructions
+
+**Display for successful spawn (TMUX):**
+
+```
+===============================================================
+Spawning Claude in Task Worktree
+===============================================================
+
+Navigating to: task-system/tasks/NNN
+This session will terminate and a new session will start automatically.
+
+===============================================================
+```
+
+**Display for manual navigation (not in TMUX or spawn failed):**
 
 ```
 ===============================================================
@@ -90,7 +119,7 @@ Use "list tasks" to see available tasks and their status.
 
 | Error            | Message                                                    |
 | ---------------- | ---------------------------------------------------------- |
-| Not in worktree  | "Tasks can only be started from within a worktree"         |
+| Not in worktree  | Attempt spawn if worktree_path available, else show manual instructions |
 | No task folder   | "No task-system/task-NNN folder found in worktree"         |
 | Task ID mismatch | "This worktree contains task XXX, not task YYY"            |
 | Branch mismatch  | "Expected branch task-$TASK_ID-\*, got $CURRENT_BRANCH"    |
