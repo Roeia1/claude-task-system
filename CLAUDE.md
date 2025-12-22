@@ -173,8 +173,8 @@ Tasks are created with worktree + branch + PR upfront. The workflow:
 ```bash
 # From MAIN REPO (with TMUX): Auto-navigation
 # Say "start task 015"
-# -> System automatically spawns Claude in the correct worktree
-# -> Current session terminates, new session starts with "start task 015"
+# -> System spawns Claude in new pane at the correct worktree
+# -> Original pane is closed, new pane starts with "start task 015"
 # -> No manual navigation needed
 
 # From MAIN REPO (without TMUX): Manual navigation
@@ -206,7 +206,7 @@ When completing a task from within a worktree, the system can automatically hand
 2. Prompts: "Spawn cleanup pane at main repo? [Y/n]"
 3. On confirm: spawns new TMUX pane at main repo root
 4. New pane runs `cleanup task NNN` automatically
-5. Original session can terminate
+5. Original pane is automatically closed
 
 **Fallback when not in TMUX**:
 ```bash
@@ -389,4 +389,4 @@ When user signals review ("I made a review", "Check PR comments"):
 - **Dynamic Status**: No TASK-LIST.md - status derived from filesystem and git state
 - **Task Archiving**: Completed tasks are archived to `task-system/archive/` before PR merge (as part of task-merge)
 - **Automatic Cleanup**: When in TMUX, cleanup is automatic after merge (spawns new pane at main repo). Without TMUX, manual cleanup instructions are provided. See [Automatic Cleanup (TMUX)](#automatic-cleanup-tmux) for details.
-- **Auto-Navigation**: When in TMUX, starting a task from the wrong location automatically spawns Claude in the correct worktree. Without TMUX, manual navigation instructions are provided.
+- **Auto-Navigation**: When in TMUX, starting a task from the wrong location opens a new pane with Claude in the correct worktree (original pane is closed). Without TMUX, manual navigation instructions are provided.

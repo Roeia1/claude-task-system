@@ -9,18 +9,15 @@
 #   prompt - Initial prompt to pass to Claude (e.g., "start task 010")
 #
 # Exit Codes:
-#   0 - Success: New Claude session spawned, current process will be killed
+#   0 - Success: New pane created, user should exit current session
 #   1 - Not running inside TMUX (cannot spawn)
 #   2 - Invalid arguments (missing or empty path/prompt)
 #   3 - Target path does not exist or is not a directory
 #
 # Description:
-#   This script enables seamless handoff to a new Claude session in a different
-#   directory using tmux. It schedules the new Claude session using `tmux run-shell -d`
-#   (which survives parent process death), then kills the current Claude process.
-#
-#   The 1-second delay ensures the new session is fully scheduled before the
-#   current process terminates.
+#   This script creates a new tmux pane with Claude running in the target directory.
+#   The user should then exit the current Claude session (Ctrl+C or /exit).
+#   The new pane will already have Claude running with the specified prompt.
 #
 # Example:
 #   claude-spawn.sh /path/to/task-system/tasks/010 "start task 010"
@@ -68,26 +65,20 @@ if [[ -z "${TMUX:-}" ]]; then
     exit 1
 fi
 
-# Build the tmux command
-# Use run-shell -d to run the command detached (survives parent death)
-# Sleep 1 second to ensure this script completes scheduling before we kill the parent
-# Use exec to replace the shell with claude (cleaner process tree)
-# Quote the path and prompt properly to handle spaces and special characters
+# Get the current pane ID so we can close it after creating the new one
+CURRENT_PANE="$TMUX_PANE"
 
-# Escape single quotes for safe embedding in single-quoted shell command
-ESCAPED_PATH="${TARGET_PATH//\'/\'\\\'\'}"
-ESCAPED_PROMPT="${PROMPT//\'/\'\\\'\'}"
+# Create a new pane in the target directory and run Claude
+# -c sets the working directory for the new pane
+# The new pane runs Claude with the prompt
+# We use -d to create it without switching focus initially
+tmux split-window -h -c "$TARGET_PATH" "claude --dangerously-skip-permissions '$PROMPT'"
 
-# Build the command that will run in the new session
-SPAWN_CMD="sleep 1 && cd '$ESCAPED_PATH' && exec claude --dangerously-skip-permissions '$ESCAPED_PROMPT'"
+# Now switch to the new pane (it's the one we just created)
+# The new pane is to the right, so we select it
+tmux select-pane -R
 
-# Schedule the new Claude session using tmux run-shell
-# The -d flag makes it run detached/asynchronously
-tmux run-shell -d "$SPAWN_CMD"
+# Kill the original pane (the one running this script's parent Claude)
+tmux kill-pane -t "$CURRENT_PANE"
 
-# Kill the parent process (Claude) after scheduling the new session
-# $PPID is the parent process ID of this script (should be Claude)
-kill $PPID
-
-# This line should never be reached since we kill the parent
 exit 0

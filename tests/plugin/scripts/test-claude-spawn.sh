@@ -6,7 +6,7 @@
 # Run from repo root: ./tests/plugin/scripts/test-claude-spawn.sh
 #
 # Exit Codes Tested:
-#   0 - Success (Claude session spawned in TMUX)
+#   0 - Success (new pane created in TMUX, old pane killed)
 #   1 - Not running inside TMUX
 #   2 - Invalid arguments (missing or empty path/prompt)
 #   3 - Target path does not exist or is not a directory
@@ -72,7 +72,7 @@ run_test() {
 }
 
 # Test helper for TMUX-dependent tests (accepts exit 0 or 1)
-# Exit 0 = in TMUX, spawned successfully
+# Exit 0 = in TMUX, new pane created and old pane killed
 # Exit 1 = not in TMUX (expected when running tests outside TMUX)
 run_tmux_test() {
     local test_name="$1"
@@ -87,7 +87,7 @@ run_tmux_test() {
     set -e
 
     if [[ $actual_exit -eq 0 ]]; then
-        echo -e "${GREEN}PASS${NC}: ${test_name} (exit code: 0 - TMUX session spawned)"
+        echo -e "${GREEN}PASS${NC}: ${test_name} (exit code: 0 - new pane created, old pane killed)"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     elif [[ $actual_exit -eq 1 ]]; then
         echo -e "${GREEN}PASS${NC}: ${test_name} (exit code: 1 - Not in TMUX, expected behavior)"

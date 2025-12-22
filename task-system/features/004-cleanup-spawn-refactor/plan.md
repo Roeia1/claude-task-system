@@ -20,7 +20,7 @@ Refactor the task-cleanup skill to use `claude-spawn.sh` instead of `spawn-clean
 
 1. **claude-spawn.sh** (existing, unchanged)
    - **Purpose**: Spawn Claude session in a different directory
-   - **Responsibilities**: TMUX validation, session spawn via `tmux run-shell -d`, parent process termination
+   - **Responsibilities**: TMUX validation, create new pane via `tmux split-window -h`, kill original pane
    - **Interfaces**: `claude-spawn.sh <path> <prompt>` → exit codes 0/1/2/3
 
 2. **task-cleanup/SKILL.md** (modified)
@@ -47,12 +47,12 @@ Before:
 After:
 ┌─────────────────────┐         ┌──────────────────────┐
 │ task-cleanup/SKILL  │───────▶ │ claude-spawn.sh      │
-│ (worktree context)  │         │ (tmux run-shell -d)  │
+│ (worktree context)  │         │ (tmux split-window)  │
 └─────────────────────┘         └──────────────────────┘
                                           │
                                           ▼
-                                   Same TMUX pane
-                                   (session replaced)
+                                   New pane created,
+                                   old pane killed
 ```
 
 ### Data Flow
@@ -61,7 +61,7 @@ After:
 2. SKILL detects worktree context and validates TMUX
 3. User confirms spawn (preserved behavior)
 4. SKILL invokes `claude-spawn.sh` with main repo path and cleanup prompt
-5. claude-spawn.sh schedules new session and terminates current process
+5. claude-spawn.sh creates new pane with Claude, then kills original pane
 6. New Claude session starts at main repo with "cleanup task NNN" command
 
 ## Key Changes
@@ -92,8 +92,8 @@ Note the argument order is different:
 | Exit 3 | Exit 1 | TMUX not available/failed |
 
 **Important behavioral difference:**
-- `spawn-cleanup.sh` exit 0: Script returns, pane created, user sees success message
-- `claude-spawn.sh` exit 0: Script kills parent process, code after invocation never runs
+- `spawn-cleanup.sh` exit 0: Script returns, pane created, user sees success message, original pane remains
+- `claude-spawn.sh` exit 0: Script creates new pane, kills original pane, code after invocation never runs
 
 ### 3. Success Message Handling
 
@@ -116,13 +116,13 @@ You may close this session when ready.
 Spawning Cleanup at Main Repository
 ===============================================================
 
-Navigating to: $MAIN_REPO
-This session will terminate and cleanup will run automatically.
+Opening new pane at: $MAIN_REPO
+A new Claude session will run cleanup automatically.
 
 ===============================================================
 ```
 
-The success message must be displayed **before** calling claude-spawn.sh since the parent process will be killed.
+The success message must be displayed **before** calling claude-spawn.sh since the original pane will be killed.
 
 ### 4. Error Handling Update
 
@@ -131,7 +131,7 @@ Exit code interpretation must be updated:
 ```markdown
 | Exit Code | Meaning | Action |
 |-----------|---------|--------|
-| 0 | Success | (never reached - parent killed) |
+| 0 | Success | (never reached - original pane killed) |
 | 1 | Not in TMUX | Display manual instructions |
 | 2 | Invalid arguments | Display error + manual fallback |
 | 3 | Path not found | Display error + manual fallback |
@@ -188,7 +188,7 @@ Exit code interpretation must be updated:
 ### Verification Checklist
 
 - [ ] Cleanup spawn works in TMUX
-- [ ] Same pane is reused (no new pane created)
+- [ ] Old pane is closed after new pane is created
 - [ ] Manual fallback works without TMUX
 - [ ] Error messages are consistent with task-start
 - [ ] Main repo cleanup still works directly
@@ -197,7 +197,7 @@ Exit code interpretation must be updated:
 
 | Risk | Likelihood | Impact | Mitigation Strategy |
 |------|-----------|--------|---------------------|
-| Success message not shown before kill | Low | Medium | Display message before script call, flush output |
+| Success message not shown before pane killed | Low | Medium | Display message before script call, flush output |
 | Exit code confusion | Low | Low | Document mapping clearly, test all codes |
 | Path escaping issues | Low | Low | claude-spawn.sh already handles escaping |
 
