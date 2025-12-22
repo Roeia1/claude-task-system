@@ -12,7 +12,24 @@ Before releasing, ensure:
 
 - [ ] All features/fixes for this release are merged to `master`
 - [ ] All tests pass
-- [ ] CHANGELOG.md is updated with the new version's changes
+- [ ] CHANGELOG.md is updated with all changes since the previous version
+
+### Finding Changes Since Last Release
+
+To see what changed since the last version bump:
+
+```bash
+# Find the commit that bumped to current version
+git log --oneline --grep="chore: release" | head -1
+
+# Or find by version number
+git log --oneline --grep="1.2.0" | head -1
+
+# List commits since that point
+git log <commit-hash>..HEAD --oneline
+```
+
+Review each commit and categorize changes as Added, Changed, Fixed, or Removed for the changelog.
 
 ## Files to Update
 

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-12-22
+
+### Changed
+
+- **task-cleanup**: Unified to use shared `claude-spawn.sh` instead of separate `spawn-cleanup.sh` script
+  - Removed redundant `spawn-cleanup.sh` from `plugin/scripts/`
+  - Simplified codebase with single spawn utility
+
+### Fixed
+
+- **task-start**: Corrected `detect-context.sh` path reference (was `scripts/detect-context.sh`, now `skills/task-start/scripts/detect-context.sh`)
+- **claude-spawn**: Fixed session handoff to use `tmux split-window` instead of `run-shell` for proper interactive sessions
+
 ## [1.2.0] - 2025-12-22
 
 ### Added
