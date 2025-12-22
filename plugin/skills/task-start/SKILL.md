@@ -74,7 +74,7 @@ If the user runs `start task` from the main repository (not a worktree), the scr
      bash ../../scripts/claude-spawn.sh "$WORKTREE_PATH" "start task $TASK_ID"
      ```
    - Handle exit codes:
-     - Exit 0: Spawn succeeded, current Claude will be terminated (no further action)
+     - Exit 0: Spawn succeeded - new pane created with Claude, old pane killed (no further action)
      - Exit 1: Not in TMUX - show manual navigation instructions
      - Exit 2: Invalid arguments (should not happen if worktree_path is set)
      - Exit 3: Path not found (worktree may have been deleted)
@@ -89,8 +89,8 @@ If the user runs `start task` from the main repository (not a worktree), the scr
 Spawning Claude in Task Worktree
 ===============================================================
 
-Navigating to: task-system/tasks/NNN
-This session will terminate and a new session will start automatically.
+Opening new pane at: task-system/tasks/NNN
+A new Claude session will start in the new pane.
 
 ===============================================================
 ```

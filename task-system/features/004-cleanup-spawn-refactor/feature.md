@@ -6,23 +6,22 @@
 
 ## Overview
 
-Refactor the task-cleanup spawning mechanism to use the existing `claude-spawn.sh` script instead of the separate `spawn-cleanup.sh` script. This unifies the approach for spawning Claude sessions in different directories, maintaining consistency across the codebase and staying in the same TMUX session (terminating the current session rather than creating a new pane).
+Refactor the task-cleanup spawning mechanism to use the existing `claude-spawn.sh` script instead of the separate `spawn-cleanup.sh` script. This unifies the approach for spawning Claude sessions in different directories, maintaining consistency across the codebase. The script creates a new TMUX pane with Claude running in the target directory, then kills the original pane.
 
 ## Motivation
 
-Currently, there are two separate mechanisms for spawning Claude sessions in different directories:
+Currently, there are two separate scripts for spawning Claude sessions in different directories:
 
-1. **claude-spawn.sh** (used by task-start): Terminates the current session and spawns Claude in a new location using `tmux run-shell -d`. The user stays in the same TMUX pane.
+1. **claude-spawn.sh** (used by task-start): Creates a new TMUX pane using `tmux split-window -h`, runs Claude in the target directory, then kills the original pane.
 
-2. **spawn-cleanup.sh** (used by task-cleanup): Creates a new TMUX pane side-by-side using `tmux split-window -h`. The user now has two panes.
+2. **spawn-cleanup.sh** (used by task-cleanup): Also creates a new TMUX pane using `tmux split-window -h`, but doesn't kill the original pane.
 
-This inconsistency leads to:
+This duplication leads to:
 - **Duplicated logic** for TMUX handling and error cases
-- **Different user experiences** for similar operations
-- **Extra panes** that users need to manage after cleanup
 - **Maintenance burden** of two separate scripts with overlapping functionality
+- **Inconsistent behavior** between spawning scenarios
 
-Unifying on `claude-spawn.sh` provides a cleaner, more consistent experience where the user's session seamlessly transitions to the cleanup context without leaving behind orphaned sessions.
+Unifying on `claude-spawn.sh` provides a cleaner, more consistent experience and reduces code duplication.
 
 ## User Stories
 
@@ -33,9 +32,8 @@ Unifying on `claude-spawn.sh` provides a cleaner, more consistent experience whe
 **So that** I don't have to manage multiple TMUX panes or manually close the old session
 
 **Acceptance Criteria:**
-- [ ] When cleanup is triggered from a worktree, the current Claude session terminates
-- [ ] A new Claude session automatically starts at the main repo with the cleanup command
-- [ ] User remains in the same TMUX pane (no new pane created)
+- [ ] When cleanup is triggered from a worktree, a new pane opens with Claude at the main repo
+- [ ] The original pane is automatically closed after the new pane is created
 - [ ] The cleanup runs automatically without additional user interaction
 
 ### Story 2: Consistent Spawn Behavior Across Features
@@ -79,8 +77,7 @@ Unifying on `claude-spawn.sh` provides a cleaner, more consistent experience whe
 - Fewer scripts to maintain and test
 
 ### User Experience
-- No additional TMUX panes should be created during cleanup
-- Session transition should be seamless (kill current, start new)
+- Session transition should be seamless (create new pane, kill old pane)
 
 ## Out of Scope
 
@@ -92,7 +89,7 @@ Unifying on `claude-spawn.sh` provides a cleaner, more consistent experience whe
 ## Success Metrics
 
 - **Metric 1**: Script count - Target: 1 spawn script (down from 2)
-- **Metric 2**: Pane count after cleanup - Target: Same pane (1 instead of 2)
+- **Metric 2**: Pane count after cleanup - Target: 1 pane (old pane killed after new pane created)
 - **Metric 3**: Code consistency - Target: 100% of spawn operations use claude-spawn.sh
 
 ## Dependencies
