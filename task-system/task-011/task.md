@@ -25,23 +25,23 @@ None - this task has no prerequisites
 
 ## Objectives
 
-- [ ] Update task-cleanup/SKILL.md to use claude-spawn.sh instead of spawn-cleanup.sh
-- [ ] Remove the obsolete spawn-cleanup.sh script and its directory
-- [ ] Update all documentation references to reflect the new spawn mechanism
-- [ ] Ensure consistent error handling and exit code interpretation
+- [x] Update task-cleanup/SKILL.md to use claude-spawn.sh instead of spawn-cleanup.sh
+- [x] Remove the obsolete spawn-cleanup.sh script and its directory
+- [x] Update all documentation references to reflect the new spawn mechanism
+- [x] Ensure consistent error handling and exit code interpretation
 
 ## Sub-tasks
 
-1. [ ] Update Step 2a.5 in SKILL.md to invoke `plugin/scripts/claude-spawn.sh` instead of `plugin/skills/task-cleanup/scripts/spawn-cleanup.sh`
-2. [ ] Change argument order from `$TASK_ID $MAIN_REPO` to `$MAIN_REPO "cleanup task $TASK_ID"`
-3. [ ] Move success message display BEFORE the claude-spawn.sh call (parent gets killed, so message must appear first)
-4. [ ] Update success message text to reflect new behavior (session terminates vs new pane created)
-5. [ ] Update exit code handling to match claude-spawn.sh codes (0=success/killed, 1=not in TMUX, 2=invalid args, 3=path not found)
-6. [ ] Update Notes section to reference claude-spawn.sh instead of spawn-cleanup.sh
-7. [ ] Delete `plugin/skills/task-cleanup/scripts/spawn-cleanup.sh`
-8. [ ] Delete `plugin/skills/task-cleanup/scripts/` directory if empty
-9. [ ] Update CLAUDE.md line 82 to remove spawn-cleanup.sh reference from plugin/scripts/
-10. [ ] Verify task-completer.md needs no changes (currently does not reference spawn-cleanup.sh directly)
+1. [x] Update Step 2a.5 in SKILL.md to invoke `plugin/scripts/claude-spawn.sh` instead of `plugin/skills/task-cleanup/scripts/spawn-cleanup.sh`
+2. [x] Change argument order from `$TASK_ID $MAIN_REPO` to `$MAIN_REPO "cleanup task $TASK_ID"`
+3. [x] Move success message display BEFORE the claude-spawn.sh call (parent gets killed, so message must appear first)
+4. [x] Update success message text to reflect new behavior (session terminates vs new pane created)
+5. [x] Update exit code handling to match claude-spawn.sh codes (0=success/killed, 1=not in TMUX, 2=invalid args, 3=path not found)
+6. [x] Update Notes section to reference claude-spawn.sh instead of spawn-cleanup.sh
+7. [x] Delete `plugin/skills/task-cleanup/scripts/spawn-cleanup.sh`
+8. [x] Delete `plugin/skills/task-cleanup/scripts/` directory if empty
+9. [x] Update CLAUDE.md line 82 to remove spawn-cleanup.sh reference from plugin/scripts/
+10. [x] Verify task-completer.md needs no changes (currently does not reference spawn-cleanup.sh directly)
 
 ## Technical Approach
 
