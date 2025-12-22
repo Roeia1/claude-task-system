@@ -140,3 +140,29 @@ None - This is a foundational task with no prerequisites
 - [x] Manual navigation instructions shown when not in tmux
 - [x] All test cases pass in test script
 - [x] Transition feels seamless to user (no perceptible gap between sessions)
+
+## Lessons Learned
+
+### What Worked Well
+
+1. **TDD Approach**: Writing tests first (Phase 1) before implementation ensured clear requirements and made verification straightforward. The 17 test cases for claude-spawn.sh caught edge cases early.
+
+2. **Distinct Exit Codes**: Using separate exit codes (1=no tmux, 2=bad args, 3=bad path) made debugging and error handling much cleaner than a single failure code.
+
+3. **Shell Escaping Pattern**: The bash parameter expansion `${VAR//\'/\'\\\'\'}` for escaping single quotes is robust and reusable for future shell command construction.
+
+4. **Graceful Degradation**: Providing manual instructions when tmux is unavailable ensures the feature is useful even in non-tmux environments.
+
+### Technical Insights
+
+1. **tmux run-shell -d**: The `-d` flag is crucial - it runs the command detached/asynchronously, allowing it to survive the parent process death. Without `-d`, the new Claude session would be killed when the parent terminates.
+
+2. **Process Lifecycle**: The 1-second delay before `cd && exec claude` ensures the spawning script has fully scheduled the command in tmux before we kill the parent process.
+
+3. **Task ID Normalization**: Supporting both padded (010) and unpadded (10) task IDs in detect-context.sh required careful handling with `printf "%03d"` for path lookups.
+
+### Patterns to Reuse
+
+- **Generic spawn script**: `claude-spawn.sh` is intentionally generic (path + prompt args) so it can be reused for other "spawn Claude elsewhere" scenarios beyond task-start.
+
+- **Test structure**: The test helper functions `run_test()` and `run_tmux_test()` provide a clean pattern for testing bash scripts with expected exit codes.
