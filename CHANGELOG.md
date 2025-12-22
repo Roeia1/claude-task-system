@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-22
+
+### Added
+
+- **claude-spawn**: New utility script for seamless session handoff between directories
+  - `plugin/scripts/claude-spawn.sh` - Generic script to spawn Claude in a different directory via tmux
+  - Kills current Claude session after scheduling new one (no pane proliferation)
+  - Distinct exit codes for debugging: 1=no tmux, 2=bad args, 3=bad path
+  - Proper shell escaping for paths with spaces and prompts with special characters
+
+- **task-start auto-navigation**: Starting a task from the wrong location now auto-navigates
+  - Running "start task NNN" from master branch or wrong worktree automatically spawns Claude in the correct worktree
+  - Falls back to manual instructions when not running in tmux
+  - Uses `detect-context.sh` to resolve worktree path for any task ID
+
+### Changed
+
+- **detect-context.sh**: Enhanced to return worktree path for any requested task ID
+  - Supports both padded (010) and unpadded (10) task ID formats
+  - Returns `worktree_path` in JSON output for spawn integration
+
 ## [1.1.0] - 2025-12-21
 
 ### Added

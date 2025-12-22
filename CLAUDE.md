@@ -77,6 +77,9 @@ plugin/                         # Plugin source code
 │   ├── init.md                # Initialize task-system structure
 │   ├── adr.md                 # Architecture decision records
 │   └── ...
+├── scripts/                    # Utility scripts
+│   ├── claude-spawn.sh        # Spawn Claude in different directory via tmux
+│   └── spawn-cleanup.sh       # Spawn cleanup pane after task merge
 └── skills/                     # Skills for task execution
     ├── feature-definition/
     │   ├── SKILL.md
@@ -168,9 +171,16 @@ Use `list tasks` to see current task status.
 Tasks are created with worktree + branch + PR upfront. The workflow:
 
 ```bash
-# From MAIN REPO: Navigate to task worktree
+# From MAIN REPO (with TMUX): Auto-navigation
+# Say "start task 015"
+# -> System automatically spawns Claude in the correct worktree
+# -> Current session terminates, new session starts with "start task 015"
+# -> No manual navigation needed
+
+# From MAIN REPO (without TMUX): Manual navigation
 # Say "start task 015"
 # -> Shows instructions to cd into task-system/tasks/015/
+# -> User navigates manually and restarts Claude session
 
 # From WORKTREE: Execute workflow
 # cd task-system/tasks/015
@@ -379,3 +389,4 @@ When user signals review ("I made a review", "Check PR comments"):
 - **Dynamic Status**: No TASK-LIST.md - status derived from filesystem and git state
 - **Task Archiving**: Completed tasks are archived to `task-system/archive/` before PR merge (as part of task-merge)
 - **Automatic Cleanup**: When in TMUX, cleanup is automatic after merge (spawns new pane at main repo). Without TMUX, manual cleanup instructions are provided. See [Automatic Cleanup (TMUX)](#automatic-cleanup-tmux) for details.
+- **Auto-Navigation**: When in TMUX, starting a task from the wrong location automatically spawns Claude in the correct worktree. Without TMUX, manual navigation instructions are provided.
