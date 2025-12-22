@@ -1,7 +1,7 @@
 # Claude Task System
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-1.0.4-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skills](https://img.shields.io/badge/skills-12-green)](https://github.com/Roeia1/claude-task-system)
 [![Agents](https://img.shields.io/badge/agents-3-orange)](https://github.com/Roeia1/claude-task-system)
@@ -258,6 +258,31 @@ Continue tasks from any machine:
 
 Creates local worktree from the remote branch and picks up where you left off.
 
+### TMUX Integration (Auto-Navigation & Cleanup)
+
+When running inside TMUX, the task system provides seamless navigation and cleanup:
+
+**Auto-Navigation**: Start a task from anywhere—Claude automatically navigates to the correct worktree:
+
+```bash
+# From main repo or wrong worktree
+> start task 015
+# → Spawns Claude in task-system/tasks/015/ automatically
+# → No manual cd required
+```
+
+**Automatic Cleanup**: After merging a PR, cleanup happens automatically:
+
+```bash
+# After task completion in worktree
+> # Grant completion permission
+# → PR merged
+# → "Spawn cleanup pane? [Y/n]"
+# → New TMUX pane handles worktree removal
+```
+
+Without TMUX, manual instructions are provided for both operations.
+
 ---
 
 ## Commands Reference
@@ -402,6 +427,9 @@ plugin/
 │   └── task-completer.md   # Handles PR merge (cleanup done separately)
 ├── commands/
 │   └── init.md             # Initialize task-system
+├── scripts/
+│   ├── claude-spawn.sh     # Spawn Claude in different directory (TMUX)
+│   └── spawn-cleanup.sh    # Spawn cleanup pane after PR merge (TMUX)
 ├── skills/
 │   ├── feature-definition/ # Define WHAT to build
 │   ├── feature-planning/   # Design HOW to build
@@ -424,6 +452,7 @@ plugin/
 - [Claude Code CLI](https://github.com/anthropics/claude-code) installed
 - Git repository initialized
 - GitHub CLI (`gh`) for PR operations
+- TMUX (optional, enables auto-navigation and automatic cleanup)
 
 ---
 
