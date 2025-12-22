@@ -114,7 +114,7 @@ Allocate all task IDs upfront to prevent race conditions:
 TASK_COUNT=<number of approved tasks>
 
 # Allocate consecutive IDs atomically
-bash scripts/allocate-task-ids.sh $TASK_COUNT
+bash skills/task-generation/scripts/allocate-task-ids.sh $TASK_COUNT
 ```
 
 **Expected output**:

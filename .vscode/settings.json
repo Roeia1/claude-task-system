@@ -1,0 +1,4 @@
+{
+  "terminal.integrated.defaultProfile.linux": "tmux",
+  "editor.fontFamily": "'JetBrains Mono', Consolas, 'Courier New', monospace"
+}
