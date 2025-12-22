@@ -78,8 +78,7 @@ plugin/                         # Plugin source code
 │   ├── adr.md                 # Architecture decision records
 │   └── ...
 ├── scripts/                    # Utility scripts
-│   ├── claude-spawn.sh        # Spawn Claude in different directory via tmux
-│   └── spawn-cleanup.sh       # Spawn cleanup pane after task merge
+│   └── claude-spawn.sh        # Spawn Claude in different directory via tmux
 └── skills/                     # Skills for task execution
     ├── feature-definition/
     │   ├── SKILL.md

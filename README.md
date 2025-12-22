@@ -428,8 +428,7 @@ plugin/
 ├── commands/
 │   └── init.md             # Initialize task-system
 ├── scripts/
-│   ├── claude-spawn.sh     # Spawn Claude in different directory (TMUX)
-│   └── spawn-cleanup.sh    # Spawn cleanup pane after PR merge (TMUX)
+│   └── claude-spawn.sh     # Spawn Claude in different directory (TMUX)
 ├── skills/
 │   ├── feature-definition/ # Define WHAT to build
 │   ├── feature-planning/   # Design HOW to build

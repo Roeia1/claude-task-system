@@ -128,30 +128,30 @@ Cannot determine task ID for cleanup.
    ===============================================================
    ```
 
-#### 2a.5: Spawn Cleanup Pane
+#### 2a.5: Spawn Cleanup Session
 
-1. **Run spawn script**:
+1. **Display success message FIRST** (script kills parent process on success):
+   ```
+   ===============================================================
+   Spawning Cleanup at Main Repository
+   ===============================================================
+
+   Navigating to: $MAIN_REPO
+   This session will terminate and cleanup will run automatically.
+
+   ===============================================================
+   ```
+
+2. **Run spawn script**:
    ```bash
-   bash plugin/skills/task-cleanup/scripts/spawn-cleanup.sh "$TASK_ID" "$MAIN_REPO"
+   bash plugin/scripts/claude-spawn.sh "$MAIN_REPO" "cleanup task $TASK_ID"
    ```
-2. **Check exit code**:
-   - Exit 0: Success
-   - Exit 1: Invalid/missing arguments
-   - Exit 2: Main repo path not found
-   - Exit 3: TMUX command failed
 
-3. **On success** (exit 0):
-   ```
-   ===============================================================
-   Cleanup Pane Spawned Successfully
-   ===============================================================
-
-   A new TMUX pane has been opened at the main repository.
-   The cleanup process will run automatically there.
-
-   You may close this session when ready.
-   ===============================================================
-   ```
+3. **Handle exit codes** (only reached if spawn fails):
+   - Exit 0: Success (never reached - parent process killed)
+   - Exit 1: Not running inside TMUX
+   - Exit 2: Invalid/missing arguments
+   - Exit 3: Target path does not exist
 
 4. **On failure** (exit non-zero): Display error and manual fallback:
    ```
@@ -159,7 +159,7 @@ Cannot determine task ID for cleanup.
    Spawn Failed
    ===============================================================
 
-   Could not spawn cleanup pane (error code: $EXIT_CODE).
+   Could not spawn cleanup session (error code: $EXIT_CODE).
 
    To complete cleanup manually:
    1. Navigate to main repo: cd $MAIN_REPO
@@ -266,7 +266,7 @@ Task $TASK_ID is now fully completed.
 - This skill is **location-aware** - it detects whether it's running from a worktree or main repo
 - **Worktree context**: Uses TMUX spawn to cleanly hand off cleanup to a new session at main repo
 - **Main repo context**: Performs cleanup directly (original behavior preserved)
-- The spawn script (`scripts/spawn-cleanup.sh`) is a separate component that handles TMUX pane creation
+- The spawn script (`plugin/scripts/claude-spawn.sh`) handles session transition - it creates a new pane and kills the original
 - Safe to run multiple times (idempotent - reports already cleaned if no worktree)
 - Does not touch archived files - only removes the worktree
 - Gracefully degrades to manual instructions if TMUX unavailable or spawn fails
