@@ -13,6 +13,7 @@ Before releasing, ensure:
 - [ ] All features/fixes for this release are merged to `master`
 - [ ] All tests pass
 - [ ] CHANGELOG.md is updated with all changes since the previous version
+- [ ] README.md is reviewed and updated if needed (new features, changed behavior, removed functionality)
 
 ### Finding Changes Since Last Release
 
@@ -59,13 +60,19 @@ Add a new section at the top with the version and date:
 - **component**: Description of fix
 ```
 
-### 2. Update README.md
+### 2. Review and Update README.md
 
-Update the version badge:
+**Version badge**: Update to new version:
 
 ```markdown
 [![Version](https://img.shields.io/badge/version-X.Y.Z-blue)](CHANGELOG.md)
 ```
+
+**Content review**: Check if any changes in this release require README updates:
+- New features or skills added → Document in appropriate section
+- Changed behavior → Update affected descriptions
+- Removed functionality → Remove obsolete documentation
+- New commands or workflows → Add usage examples
 
 ### 3. Update Plugin Schema
 
