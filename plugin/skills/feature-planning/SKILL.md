@@ -23,12 +23,14 @@ When activated, help the user create a technical implementation plan that descri
 ## Process
 
 1. **Detect current feature**
+
    - Check if current directory is under `task-system/features/NNN-slug/`
    - If yes: Use that feature
    - If no: List available features and prompt user to select
    - If only one feature exists: Use it automatically
 
 2. **Validate feature.md exists**
+
    ```bash
    if [[ ! -f "task-system/features/NNN-slug/feature.md" ]]; then
      echo "Error: feature.md not found"
@@ -38,15 +40,18 @@ When activated, help the user create a technical implementation plan that descri
    ```
 
 3. **Check for unresolved clarifications**
+
    - Search feature.md for `[NEEDS CLARIFICATION:`
    - If found: Warn user and ask if they want to proceed anyway
 
 4. **Read feature.md**
+
    - Parse user stories, requirements, acceptance criteria
    - Extract functional and non-functional requirements
    - Note dependencies and constraints
 
 5. **Load plan template**
+
    - Read plan template from `templates/plan-template.md`
    - Use as structure for generation
 
@@ -138,31 +143,12 @@ Does this technical approach look correct? [y/n/revise]
 - revise: Make specific changes
 ```
 
-## Template Structure
-
-The generated plan.md follows this structure:
-
-- **Executive Summary**: 2-3 sentence overview
-- **Technical Approach**: Overall strategy and patterns
-- **System Architecture**: Components, responsibilities, interactions
-- **Technology Choices**: Language, framework, database, libraries (with rationale)
-- **Data Models**: Entities, schemas, relationships
-- **API Contracts**: Endpoints, request/response formats (if applicable)
-- **Implementation Strategy**: Phased approach with dependencies
-- **Testing Strategy**: Unit, integration, E2E approaches
-- **Security Considerations**: Auth, authorization, data protection
-- **Risk Assessment**: Risks, likelihood, impact, mitigation
-- **Performance Considerations**: Load expectations, optimization strategies
-- **Dependencies**: External services, infrastructure requirements
-- **Deployment Plan**: How to deploy and roll back
-- **Open Questions**: Items requiring decisions or research
-- **Architecture Decisions**: Links to created ADRs
-
 ## Technology Decision Guidelines
 
 ### When to Create an ADR
 
 Create an ADR for decisions about:
+
 - **Database choice**: PostgreSQL vs MongoDB vs DynamoDB
 - **Framework selection**: Express vs NestJS vs Fastify
 - **Authentication method**: JWT vs session-based vs OAuth
@@ -244,17 +230,20 @@ Your choice: [1/2/3]
 ### Architecture Design
 
 **Good** (clear components):
+
 ```markdown
 ## System Architecture
 
 ### Components
 
 1. **Authentication Service**
+
    - Purpose: Handle user authentication and session management
    - Responsibilities: Login, logout, token validation
    - Interfaces: REST API, JWT tokens
 
 2. **User Repository**
+
    - Purpose: Data access layer for user entities
    - Responsibilities: CRUD operations, user queries
    - Interfaces: TypeScript interface, PostgreSQL
@@ -266,6 +255,7 @@ Your choice: [1/2/3]
 ```
 
 **Bad** (vague):
+
 ```markdown
 ## System Architecture
 
