@@ -465,6 +465,8 @@ Contributions are welcome! Please:
 3. Follow the existing code patterns
 4. Submit a pull request
 
+For maintainers, see [RELEASING.md](RELEASING.md) for the version release process.
+
 ---
 
 ## License
