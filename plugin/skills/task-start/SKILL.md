@@ -34,7 +34,7 @@ Begins the execution workflow for a task. Must be run from within the task's wor
 Run the context detection script (task ID is optional in worktree):
 
 ```bash
-bash scripts/detect-context.sh $USER_INPUT
+bash skills/task-start/scripts/detect-context.sh $USER_INPUT
 ```
 
 **Parse JSON output** and check `status`:
