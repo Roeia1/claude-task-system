@@ -74,11 +74,12 @@ fi
 # Use exec to replace the shell with claude (cleaner process tree)
 # Quote the path and prompt properly to handle spaces and special characters
 
-# Escape single quotes in the prompt for safe embedding in single-quoted shell command
+# Escape single quotes for safe embedding in single-quoted shell command
+ESCAPED_PATH="${TARGET_PATH//\'/\'\\\'\'}"
 ESCAPED_PROMPT="${PROMPT//\'/\'\\\'\'}"
 
 # Build the command that will run in the new session
-SPAWN_CMD="sleep 1 && cd '$TARGET_PATH' && exec claude --dangerously-skip-permissions '$ESCAPED_PROMPT'"
+SPAWN_CMD="sleep 1 && cd '$ESCAPED_PATH' && exec claude --dangerously-skip-permissions '$ESCAPED_PROMPT'"
 
 # Schedule the new Claude session using tmux run-shell
 # The -d flag makes it run detached/asynchronously

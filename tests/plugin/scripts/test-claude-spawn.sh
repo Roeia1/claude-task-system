@@ -183,6 +183,11 @@ SPECIAL_DIR="${TEST_TMP_DIR}/path-with_special.chars"
 mkdir -p "$SPECIAL_DIR"
 run_tmux_test "Path with special chars (dash, underscore, dot)" "$SPECIAL_DIR" "start task"
 
+# Test: Path with single quotes (tests shell escaping)
+QUOTE_DIR="${TEST_TMP_DIR}/path'with'quotes"
+mkdir -p "$QUOTE_DIR"
+run_tmux_test "Path with single quotes" "$QUOTE_DIR" "start task"
+
 # Print summary
 echo ""
 echo "========================================"
