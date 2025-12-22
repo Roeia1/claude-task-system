@@ -25,10 +25,10 @@ None - This is a foundational task with no prerequisites
 
 ## Objectives
 
-- [ ] Create a generic, reusable spawn script for any "spawn Claude elsewhere" scenario
-- [ ] Enable automatic navigation to correct worktree when starting tasks from wrong location
-- [ ] Provide graceful fallback with manual instructions when tmux is unavailable
-- [ ] Ensure robust error handling with clear exit codes
+- [x] Create a generic, reusable spawn script for any "spawn Claude elsewhere" scenario
+- [x] Enable automatic navigation to correct worktree when starting tasks from wrong location
+- [x] Provide graceful fallback with manual instructions when tmux is unavailable
+- [x] Ensure robust error handling with clear exit codes
 
 ## Sub-tasks
 
@@ -129,14 +129,14 @@ None - This is a foundational task with no prerequisites
 
 ## Acceptance Criteria
 
-- [ ] `claude-spawn.sh` accepts path and prompt arguments
-- [ ] Script exits with code 1 when not running inside tmux
-- [ ] Script exits with code 2 when arguments are missing or empty
-- [ ] Script exits with code 3 when target path does not exist
-- [ ] Script successfully spawns new Claude session in target directory when in tmux
-- [ ] Current Claude process is terminated after scheduling new session
-- [ ] New Claude session executes with provided prompt
-- [ ] `task-start` invokes spawn when user runs "start task NNN" from wrong location
-- [ ] Manual navigation instructions shown when not in tmux
-- [ ] All test cases pass in test script
-- [ ] Transition feels seamless to user (no perceptible gap between sessions)
+- [x] `claude-spawn.sh` accepts path and prompt arguments
+- [x] Script exits with code 1 when not running inside tmux
+- [x] Script exits with code 2 when arguments are missing or empty
+- [x] Script exits with code 3 when target path does not exist
+- [x] Script successfully spawns new Claude session in target directory when in tmux
+- [x] Current Claude process is terminated after scheduling new session
+- [x] New Claude session executes with provided prompt
+- [x] `task-start` invokes spawn when user runs "start task NNN" from wrong location
+- [x] Manual navigation instructions shown when not in tmux
+- [x] All test cases pass in test script
+- [x] Transition feels seamless to user (no perceptible gap between sessions)
