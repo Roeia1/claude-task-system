@@ -18,7 +18,15 @@
     "journaling"
   ],
   "commands": [
-    "./commands/init.md"
+    "./commands/init.md",
+    "./commands/task-list.md",
+    "./commands/task-start.md",
+    "./commands/task-cleanup.md",
+    "./commands/task-resume.md",
+    "./commands/feature-definition.md",
+    "./commands/feature-planning.md",
+    "./commands/architecture-decisions.md",
+    "./commands/task-generation.md"
   ],
   "skills": "./skills/",
   "agents": [
