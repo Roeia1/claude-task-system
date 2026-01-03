@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-01-03
+
+### Fixed
+
+- **plugin-paths**: Use `${CLAUDE_PLUGIN_ROOT}` for all instruction file references to ensure paths resolve correctly when plugin is installed in other projects
+- **plugin-paths**: Fix remaining path references in skills and commands to use plugin root variable
+
+### Documentation
+
+- **CLAUDE.md**: Add guidance on using `${CLAUDE_PLUGIN_ROOT}` for plugin path references
+
 ## [1.3.0] - 2026-01-03
 
 ### Added
