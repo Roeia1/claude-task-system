@@ -1,6 +1,6 @@
 ---
 description: "Generate tasks from a feature plan"
-argument-hint: ""
+argument-hint: "[feature-id]"
 ---
 
 Content: ../instructions/task-generation/INSTRUCTIONS.md
