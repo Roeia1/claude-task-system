@@ -1,0 +1,5 @@
+{
+  "enabledPlugins": {
+    "claude-task-system@claude-task-system": true
+  }
+}
