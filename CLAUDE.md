@@ -91,6 +91,27 @@ plugin/                         # Plugin source code
     └── ...
 ```
 
+### Plugin Path References
+
+When referencing files within the plugin (templates, scripts, workflows, step-instructions), always use `${CLAUDE_PLUGIN_ROOT}` instead of relative paths. This ensures paths resolve correctly when the plugin is installed in other projects.
+
+**Why**: Relative paths like `templates/foo.md` or `../scripts/bar.sh` resolve relative to the user's project directory, not the plugin installation directory. Using `${CLAUDE_PLUGIN_ROOT}` ensures Claude reads from the correct location.
+
+**Pattern**:
+```markdown
+# In instruction files, use:
+`${CLAUDE_PLUGIN_ROOT}/instructions/skill-name/templates/template.md`
+`${CLAUDE_PLUGIN_ROOT}/scripts/script-name.sh`
+`${CLAUDE_PLUGIN_ROOT}/instructions/skill-name/workflows/workflow.md`
+
+# NOT relative paths like:
+`templates/template.md`
+`../../scripts/script-name.sh`
+`workflows/workflow.md`
+```
+
+**Exception**: Paths in templates that will be written to the user's project (e.g., `../features/NNN/feature.md` in task-template.md) should remain relative since they reference the user's project structure, not plugin files.
+
 ### Dynamic Task Status
 
 Task status is derived from filesystem and git state (no persistent TASK-LIST.md):
