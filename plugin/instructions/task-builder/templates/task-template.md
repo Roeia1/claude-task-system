@@ -17,7 +17,7 @@ Brief description of what needs to be accomplished and why it matters to the pro
 
 ## Task Type
 
-[feature|refactor|bugfix|performance|deployment] - Determines which workflow to follow during execution (see plugin skills/task-start/workflows/)
+[feature|refactor|bugfix|performance|deployment] - Determines which workflow to follow during execution
 
 ## Priority
 

@@ -4,8 +4,8 @@ When activated, help the user create a technical implementation plan that descri
 
 ## File Locations
 
-- **Plan Template**: `templates/plan-template.md`
-- **ADR Template**: `../architecture-decisions/templates/adr-template.md`
+- **Plan Template**: `${CLAUDE_PLUGIN_ROOT}/instructions/feature-planning/templates/plan-template.md`
+- **ADR Template**: `${CLAUDE_PLUGIN_ROOT}/instructions/architecture-decisions/templates/adr-template.md`
 - **Input**: `task-system/features/NNN-slug/feature.md`
 - **Output**: `task-system/features/NNN-slug/plan.md`
 - **ADRs**: `task-system/features/NNN-slug/adr/`
@@ -47,7 +47,7 @@ When activated, help the user create a technical implementation plan that descri
 
 5. **Load plan template**
 
-   - Read plan template from `templates/plan-template.md`
+   - Read plan template from `${CLAUDE_PLUGIN_ROOT}/instructions/feature-planning/templates/plan-template.md`
    - Use as structure for generation
 
 6. **AI-assisted technical planning** (7 phases with human review)
@@ -279,5 +279,5 @@ After technical plan is complete, suggest running the **task-generation** skill 
 
 ## References
 
-- Plan template structure: `templates/plan-template.md`
-- ADR template: `../architecture-decisions/templates/adr-template.md`
+- Plan template structure: `${CLAUDE_PLUGIN_ROOT}/instructions/feature-planning/templates/plan-template.md`
+- ADR template: `${CLAUDE_PLUGIN_ROOT}/instructions/architecture-decisions/templates/adr-template.md`

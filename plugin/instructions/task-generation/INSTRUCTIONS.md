@@ -4,7 +4,7 @@ When activated, generate executable tasks from feature planning artifacts. Each 
 
 ## File Locations
 
-- **Task Breakdown Template**: `templates/task-breakdown-template.md`
+- **Task Breakdown Template**: `${CLAUDE_PLUGIN_ROOT}/instructions/task-generation/templates/task-breakdown-template.md`
 - **Input**: `task-system/features/NNN-slug/feature.md` and `plan.md`
 - **Output (Reference)**: `task-system/features/NNN-slug/tasks.md`
 - **Output (Task Worktrees)**: `task-system/tasks/NNN/` (git worktrees)
@@ -25,7 +25,7 @@ When activated, generate executable tasks from feature planning artifacts. Each 
    - `feature.md` for user stories, acceptance criteria, requirements
    - `plan.md` for implementation phases, technology choices, data models, APIs
 3. **Read template**:
-   - `templates/task-breakdown-template.md` for structure
+   - `${CLAUDE_PLUGIN_ROOT}/instructions/task-generation/templates/task-breakdown-template.md` for structure
 4. **AI-generated task breakdown**:
    - Identify distinct work units from plan
    - Determine dependencies between units

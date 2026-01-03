@@ -26,15 +26,15 @@ Execute these steps **in order**. Read each instruction file just before executi
 
 ### Step 1: Git Setup
 
-Read and execute `step-instructions/01-git-setup.md`
+Read and execute `${CLAUDE_PLUGIN_ROOT}/instructions/task-builder/step-instructions/01-git-setup.md`
 
 ### Step 2: Content Generation
 
-Read and execute `step-instructions/02-content-gen.md`
+Read and execute `${CLAUDE_PLUGIN_ROOT}/instructions/task-builder/step-instructions/02-content-gen.md`
 
 ### Step 3: Finalize
 
-Read and execute `step-instructions/03-finalize.md`
+Read and execute `${CLAUDE_PLUGIN_ROOT}/instructions/task-builder/step-instructions/03-finalize.md`
 
 ## Output Format
 

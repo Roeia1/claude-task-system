@@ -66,7 +66,7 @@ If the user runs `start task` from the main repository (not a worktree), the scr
    - Attempt to spawn a new Claude session in the worktree
    - Run:
      ```bash
-     bash ../../scripts/claude-spawn.sh "$WORKTREE_PATH" "start task $TASK_ID"
+     bash ${CLAUDE_PLUGIN_ROOT}/scripts/claude-spawn.sh "$WORKTREE_PATH" "start task $TASK_ID"
      ```
    - Handle exit codes:
      - Exit 0: Spawn succeeded - new pane created with Claude, old pane killed (no further action)

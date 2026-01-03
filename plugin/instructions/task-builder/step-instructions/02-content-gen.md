@@ -14,7 +14,7 @@ You have these parameters available:
 ### 1. Read Required Files
 
 ```
-1. Task template: plugin/skills/task-builder/templates/task-template.md
+1. Task template: ${CLAUDE_PLUGIN_ROOT}/instructions/task-builder/templates/task-template.md
 2. Plan: {plan_path} - Focus on sections mentioned in {task_scope}
 3. Feature: {feature_path} - Extract acceptance criteria and user value
 4. ADRs: {adr_paths} - Note architectural constraints (if any provided)

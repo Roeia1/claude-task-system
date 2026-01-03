@@ -43,7 +43,7 @@ Validates task state and hands off to the type-specific workflow.
 
 ## Step 2: Load Journaling Guidelines
 
-Read `journaling-guidelines.md` (in this skill folder) for reference during workflow execution.
+Read `${CLAUDE_PLUGIN_ROOT}/instructions/task-start/journaling-guidelines.md` for reference during workflow execution.
 
 ---
 
@@ -65,7 +65,7 @@ Status: {PENDING or IN_PROGRESS}
 Ready to begin workflow execution
 ---------------------------------------------------------------
 
-Read the workflow at: workflows/{type}-workflow.md
+Read the workflow at: `${CLAUDE_PLUGIN_ROOT}/instructions/task-start/workflows/{type}-workflow.md`
 
 You are in an ISOLATED worktree environment:
 - All file operations are relative to this directory
@@ -75,11 +75,11 @@ You are in an ISOLATED worktree environment:
 ```
 
 Point to type-specific workflow for Phase 1 execution:
-- `workflows/feature-workflow.md` → Phase 1: Test Creation (TDD)
-- `workflows/bugfix-workflow.md` → Phase 1: Bug Investigation
-- `workflows/refactor-workflow.md` → Phase 1: Code Analysis & Planning
-- `workflows/performance-workflow.md` → Phase 1: Performance Analysis
-- `workflows/deployment-workflow.md` → Phase 1: Pre-Deployment Analysis
+- `${CLAUDE_PLUGIN_ROOT}/instructions/task-start/workflows/feature-workflow.md` → Phase 1: Test Creation (TDD)
+- `${CLAUDE_PLUGIN_ROOT}/instructions/task-start/workflows/bugfix-workflow.md` → Phase 1: Bug Investigation
+- `${CLAUDE_PLUGIN_ROOT}/instructions/task-start/workflows/refactor-workflow.md` → Phase 1: Code Analysis & Planning
+- `${CLAUDE_PLUGIN_ROOT}/instructions/task-start/workflows/performance-workflow.md` → Phase 1: Performance Analysis
+- `${CLAUDE_PLUGIN_ROOT}/instructions/task-start/workflows/deployment-workflow.md` → Phase 1: Pre-Deployment Analysis
 
 ---
 

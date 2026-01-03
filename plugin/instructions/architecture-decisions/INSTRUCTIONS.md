@@ -4,7 +4,7 @@ Create ADRs to document significant architectural decisions along with their con
 
 ## File Locations
 
-- **Template**: `templates/adr-template.md`
+- **Template**: `${CLAUDE_PLUGIN_ROOT}/instructions/architecture-decisions/templates/adr-template.md`
 - **Global ADRs**: `task-system/adrs/`
 - **Feature ADRs**: `task-system/features/NNN-slug/adr/`
 
@@ -101,7 +101,7 @@ Context: Feature: 001-user-auth
 
 ### 4. Compile Complete ADR
 
-1. **Read template** from `templates/adr-template.md`
+1. **Read template** from `${CLAUDE_PLUGIN_ROOT}/instructions/architecture-decisions/templates/adr-template.md`
 2. **Fill in all sections**:
    - Title: ADR NNN: [decision title]
    - Status: Proposed (user can change to Accepted later)
@@ -233,4 +233,4 @@ Next steps:
 
 ## References
 
-- ADR template: `templates/adr-template.md`
+- ADR template: `${CLAUDE_PLUGIN_ROOT}/instructions/architecture-decisions/templates/adr-template.md`

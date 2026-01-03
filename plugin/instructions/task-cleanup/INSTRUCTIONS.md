@@ -139,7 +139,7 @@ Cannot determine task ID for cleanup.
 
 2. **Run spawn script**:
    ```bash
-   bash plugin/scripts/claude-spawn.sh "$MAIN_REPO" "cleanup task $TASK_ID"
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/claude-spawn.sh "$MAIN_REPO" "cleanup task $TASK_ID"
    ```
 
 3. **Handle exit codes** (only reached if spawn fails):
@@ -261,7 +261,7 @@ Task $TASK_ID is now fully completed.
 - This skill is **location-aware** - it detects whether it's running from a worktree or main repo
 - **Worktree context**: Uses TMUX spawn to cleanly hand off cleanup to a new session at main repo
 - **Main repo context**: Performs cleanup directly (original behavior preserved)
-- The spawn script (`plugin/scripts/claude-spawn.sh`) handles session transition - it creates a new pane and kills the original
+- The spawn script (`${CLAUDE_PLUGIN_ROOT}/scripts/claude-spawn.sh`) handles session transition - it creates a new pane and kills the original
 - Safe to run multiple times (idempotent - reports already cleaned if no worktree)
 - Does not touch archived files - only removes the worktree
 - Gracefully degrades to manual instructions if TMUX unavailable or spawn fails
