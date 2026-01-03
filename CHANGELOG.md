@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-01-03
+
+### Added
+
+- **slash-commands**: 8 new slash commands for direct skill invocation
+  - `/task-system:task-list` - List all tasks with status
+  - `/task-system:task-start [task-id]` - Start working on a task
+  - `/task-system:task-cleanup [task-id]` - Cleanup completed task worktree
+  - `/task-system:task-resume [task-id]` - Resume a remote task locally
+  - `/task-system:feature-definition [description]` - Define a new feature
+  - `/task-system:feature-planning [feature-id]` - Create technical plan for feature
+  - `/task-system:architecture-decisions [topic]` - Create an architecture decision record
+  - `/task-system:task-generation [feature-id]` - Generate tasks from feature plan
+
+### Changed
+
+- **plugin-structure**: Refactored to centralized `plugin/instructions/` directory
+  - Skills and commands now share instruction content (single source of truth)
+  - All 12 SKILL.md files converted to thin wrappers with `Content:` references
+  - Supporting artifacts (templates, workflows, scripts) moved to `instructions/` subdirectories
+  - Cleaner separation between registration metadata and execution instructions
+
 ## [1.2.1] - 2025-12-22
 
 ### Changed

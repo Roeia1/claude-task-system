@@ -1,7 +1,7 @@
 # Claude Task System
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-1.2.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skills](https://img.shields.io/badge/skills-12-green)](https://github.com/Roeia1/claude-task-system)
 [![Agents](https://img.shields.io/badge/agents-3-orange)](https://github.com/Roeia1/claude-task-system)
@@ -287,11 +287,23 @@ Without TMUX, manual instructions are provided for both operations.
 
 ## Commands Reference
 
+All non-internal skills are available as both skills (natural language) and slash commands:
+
 | Command | Description |
 |---------|-------------|
 | `/task-system:init` | Initialize task-system directory structure |
+| `/task-system:feature-definition [description]` | Create feature requirements document |
+| `/task-system:feature-planning [feature-id]` | Design technical implementation plan |
+| `/task-system:task-generation [feature-id]` | Generate executable tasks from plan |
+| `/task-system:task-list` | Show all tasks with status |
+| `/task-system:task-start [task-id]` | Begin task execution workflow |
+| `/task-system:task-resume [task-id]` | Continue remote task locally |
+| `/task-system:task-cleanup [task-id]` | Remove worktree after PR merge |
+| `/task-system:architecture-decisions [topic]` | Document architectural decisions |
 
 ## Skills Reference
+
+Skills can be invoked via natural language. Most are also available as slash commands (see Commands Reference above).
 
 | Skill | Activation | Description |
 |-------|------------|-------------|
@@ -420,28 +432,32 @@ git commit -m "docs(task-001): verification complete"
 ```
 plugin/
 ├── .claude-plugin/
-│   └── plugin.json         # Plugin manifest
+│   └── plugin.json           # Plugin manifest
 ├── agents/
-│   ├── journaling.md       # Documents decisions throughout
-│   ├── task-builder.md     # Creates tasks in parallel
-│   └── task-completer.md   # Handles PR merge (cleanup done separately)
-├── commands/
-│   └── init.md             # Initialize task-system
+│   ├── journaling.md         # Documents decisions throughout
+│   ├── task-builder.md       # Creates tasks in parallel
+│   └── task-completer.md     # Handles PR merge (cleanup done separately)
+├── commands/                  # Slash commands (9 total)
+│   ├── init.md               # /task-system:init
+│   ├── task-list.md          # /task-system:task-list
+│   ├── task-start.md         # /task-system:task-start
+│   └── ...                   # (all reference instructions/)
+├── instructions/              # Centralized instruction content
+│   ├── task-start/
+│   │   ├── INSTRUCTIONS.md
+│   │   └── workflows/
+│   ├── feature-definition/
+│   │   ├── INSTRUCTIONS.md
+│   │   └── templates/
+│   └── ...                   # (12 instruction directories)
 ├── scripts/
-│   └── claude-spawn.sh     # Spawn Claude in different directory (TMUX)
-├── skills/
-│   ├── feature-definition/ # Define WHAT to build
-│   ├── feature-planning/   # Design HOW to build
-│   ├── task-generation/    # Break into tasks
-│   ├── task-start/         # Execute workflows
-│   ├── task-list/          # Dynamic status
-│   ├── task-resume/        # Continue remotely
-│   ├── task-merge/         # Archive and merge PR
-│   ├── task-cleanup/       # Remove worktree
-│   ├── architecture-decisions/
-│   └── ...
+│   └── claude-spawn.sh       # Spawn Claude in different directory (TMUX)
+├── skills/                    # Thin wrappers (reference instructions/)
+│   ├── feature-definition/SKILL.md
+│   ├── task-start/SKILL.md
+│   └── ...                   # (12 skill wrappers)
 └── hooks/
-    └── session-init.sh     # Session startup
+    └── session-init.sh       # Session startup
 ```
 
 ---
