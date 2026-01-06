@@ -22,22 +22,50 @@ This orchestration system enables:
 ## Architecture
 
 ```
-Main Claude Agent (orchestrator)
+Human runs: /implement <identifier>
     │
-    ├─▶ Runs background Python script
-    │       │
-    │       └─▶ Loop:
-    │             1. Build prompt (task.json + journal.md + worker instructions)
-    │             2. Spawn: claude -p --json-schema '{...}' ...
-    │             3. Parse status from stdout JSON
-    │             4. ONGOING → continue loop
-    │             5. FINISH/BLOCKED → exit loop
+    ▼
+Main Claude Agent
     │
-    └─▶ Script returns ─▶ Main agent reads result
-                              │
-                              ├─▶ FINISH: Report completion
-                              └─▶ BLOCKED: /clear, handle with fresh context
+    └─▶ Resolves identifier → runs background Python script for task
+            │
+            └─▶ Loop:
+                  1. Build prompt (task.json + journal.md + worker instructions)
+                  2. Spawn: claude -p --json-schema '{...}' ...
+                  3. Parse status from stdout JSON
+                  4. ONGOING → continue loop
+                  5. FINISH/BLOCKED → exit loop
+                        │
+                        ▼
+            Script returns ─▶ Main agent reads result
+                                  │
+                                  ├─▶ FINISH: Report completion
+                                  └─▶ BLOCKED: Report blocker, await human command
+
+Human navigates to worktree, starts new Claude session
+    │
+    ▼
+Human runs: /resolve (only if BLOCKED)
+    │
+    ▼
+Main Agent (in worktree context)
+    │
+    ├─▶ Reads blocker.md, explores codebase
+    ├─▶ Proposes solution(s)
+    └─▶ Human approves → resolution.md written
+
+Human runs: /implement <identifier> (to resume, from main repo)
 ```
+
+**Commands:**
+- `/implement <identifier>` - Start or resume the implementation loop for a task (run from main repo)
+- `/resolve` - Handle a blocker for a task (run from within task worktree)
+
+**Identifier formats (for /implement):**
+- Task ID: `015`, `42`
+- Task name: `user-authentication`, `jwt-utils`
+- Feature name: `001-user-auth` → prompts user to select task from feature
+
 
 ## Task Representation
 
@@ -123,19 +151,24 @@ This allows objectives to be tailored to their domain - UI objectives can have d
 | Flexible objective structure     | Different objectives need different context (steps vs notes)                  |
 | No approach section              | Implementation details belong in objectives, not separate section             |
 | Autonomous objective selection   | Agent picks based on task state and context, not array order                  |
-| Continue in_progress on startup  | Session continuity - pick up where last session left off                      |
+| Continue in_progress objective   | Session continuity - pick up where last session left off                      |
 | Read last commits at startup     | Context continuity even for completed work                                    |
-| Complete before switching        | Finish current objective before starting another (no mid-objective switching) |
+| Complete objective before switch | Finish current objective before starting another (no mid-objective switching) |
 | Multi-test per objective         | Write all failing tests that describe requirements, then implement            |
 | No phases                        | Removed refactor/verification/reflection as separate phases                   |
 | Commit + journal paired          | Always done together, not part of implementation flow                         |
 | Blocker at execution level       | Simpler than per-objective blockers                                           |
 | Run all tests                    | No per-objective test tracking needed                                         |
 | Direct journal writes            | No subagent/skills - workers write journal.md directly (simpler, less context)|
+| `blocked` objective status       | Clear state for objectives needing human input; enables resolution workflow   |
+| File-based blocker/resolution    | blocker.md and resolution.md for clear, structured communication              |
+| Main agent handles resolution    | No subagent - main agent executes `/resolve` with full codebase access        |
+| Human-triggered resumption       | No auto-resume; human reviews resolution and triggers next run explicitly     |
+| Flexible identifier resolution   | `/implement` accepts task ID, name, or feature; `/resolve` runs from worktree |
 
 ## Worker Behavior
 
-The worker prompt (see Functional Requirements §3) instructs each spawned worker on:
+The worker prompt (see Functional Requirements §4) instructs each spawned worker on:
 
 1. **Session Startup**: Read task.json, journal.md, read last commits (for context continuity), run existing tests, select objective to work on
 2. **Objective Selection**: If `in_progress` exists, continue it. Otherwise, autonomously select based on task state and context understanding (not array order).
@@ -147,15 +180,27 @@ The worker prompt (see Functional Requirements §3) instructs each spawned worke
 
 The `--json-schema` flag shapes the worker's **final output**, not its task goal. The worker prompt clarifies this: "Your exit JSON is validated by schema - ensure it's valid."
 
+## Task Status Values
+
+Task status is derived from filesystem state and objective progress:
+
+```
+PENDING      → Worktree exists, no journal.md, all objectives pending
+IN_PROGRESS  → journal.md exists, work in progress, no blocker
+BLOCKED      → blocker.md exists, awaiting /resolve
+COMPLETED    → All objectives done, PR merged
+```
+
 ## Objective Status Values
 
 ```
 pending      → Not started
 in_progress  → Currently working on
+blocked      → Stuck, needs human input (blocker.md created)
 done         → Completed, tests pass
 ```
 
-## Orchestrator Status Values
+## Worker Exit Status Values
 
 ```
 ONGOING  → Made progress, more objectives remain
@@ -173,7 +218,7 @@ BLOCKED  → Need human decision (blocker field has details)
 
 **Acceptance Criteria:**
 
-- [ ] Main agent spawns background orchestration script
+- [ ] Main agent spawns background implementation script
 - [ ] Worker reads task.json, journal.md, and last commits at startup
 - [ ] Worker continues in_progress objective if one exists, otherwise selects based on context
 - [ ] Worker writes all failing tests for an objective, then implements until all pass
@@ -191,9 +236,16 @@ BLOCKED  → Need human decision (blocker field has details)
 
 **Acceptance Criteria:**
 
-- [ ] BLOCKED includes clear description of what's needed
-- [ ] Main agent can /clear and handle with fresh context
-- [ ] After resolution, orchestration can resume
+- [ ] Worker creates `blocker.md` with detailed description when stuck
+- [ ] Worker marks objective as `blocked` in task.json
+- [ ] Worker exits with BLOCKED status
+- [ ] Implementation exits and reports blocker to human
+- [ ] Human navigates to worktree, runs `/resolve` (main agent handles directly)
+- [ ] Main agent has full codebase access for resolution
+- [ ] Main agent proposes solution, human approves/modifies
+- [ ] Resolution written to `resolution.md`
+- [ ] Human runs `/implement <identifier>` again to resume
+- [ ] Next worker reads resolution.md and continues blocked objective
 - [ ] Journal captures blocker and resolution
 
 ### Story 3: Progress Preservation
@@ -210,10 +262,27 @@ BLOCKED  → Need human decision (blocker field has details)
 - [ ] Last commits readable at next session startup for context continuity
 - [ ] Git commits preserve recoverable state
 
-### Story 4: Configurable Execution
+### Story 4: Command-Driven Control
 
 **As a** developer
-**I want** to configure orchestration parameters via script/CLI
+**I want** explicit commands to control implementation and resolution
+**So that** I have full control over when automation runs
+
+**Acceptance Criteria:**
+
+- [ ] `/implement <identifier>` accepts task ID, task name, or feature name
+- [ ] `/implement` with feature name prompts user to select task from feature
+- [ ] `/implement` validates task context before running (task.json exists, worktree valid)
+- [ ] `/implement` can resume after BLOCKED (with resolution.md)
+- [ ] `/resolve` validates it's running from a task worktree
+- [ ] `/resolve` executed by main agent directly (no subagent)
+- [ ] `/resolve` only available when blocker.md exists for the task
+- [ ] Neither command auto-triggers the other
+
+### Story 5: Configurable Execution
+
+**As a** developer
+**I want** to configure implementation parameters via script/CLI
 **So that** I can control resource usage and tooling
 
 **Acceptance Criteria:**
@@ -223,6 +292,153 @@ BLOCKED  → Need human decision (blocker field has details)
 - [ ] Script accepts model parameter (default: sonnet)
 - [ ] Script accepts mcp_config path for custom servers
 - [ ] Script accepts tools list for custom tool access
+
+## Blocker Resolution Workflow
+
+When an implementation worker encounters a situation where it cannot proceed, it enters the blocker resolution workflow:
+
+```
+Human runs: /implement <identifier>
+    │
+    ▼
+Command resolves identifier to task
+(if feature name → prompt user to select task)
+    │
+    ▼
+Implementation Script (background)
+    │
+    └─▶ Loop: spawn workers until FINISH or BLOCKED
+            │
+            ▼
+Implementation Worker (encounters blocker)
+    │
+    ├─▶ Creates blocker.md with detailed description
+    ├─▶ Marks objective as `blocked` in task.json
+    ├─▶ Updates journal.md with context
+    ├─▶ Commits and pushes all changes
+    └─▶ Exits with BLOCKED status
+            │
+            ▼
+Script exits, returns to Main Agent
+    │
+    └─▶ Reports: "BLOCKED - see blocker.md for details"
+            │
+            ▼
+Human navigates to worktree, starts new Claude session
+    │
+    ▼
+Human runs: /resolve
+    │
+    ▼
+Main Agent (in worktree context)
+    │
+    ├─▶ Validates worktree and blocker.md exist
+    ├─▶ Reads blocker.md, task.json, journal.md
+    ├─▶ Explores codebase for context
+    ├─▶ Analyzes root cause
+    ├─▶ Proposes solution(s) to human
+    │
+    └─▶ Human reviews and approves/modifies
+            │
+            ▼
+    Resolution written to resolution.md
+            │
+            ▼
+Human runs: /implement <identifier> again (from main repo)
+    │
+    ▼
+Next Worker spawns
+    │
+    ├─▶ Reads resolution.md at startup
+    ├─▶ Applies resolution to blocked objective
+    ├─▶ Marks objective back to `in_progress`
+    ├─▶ Deletes blocker.md and resolution.md
+    └─▶ Continues implementation
+```
+
+**Key principle**: Both implementation and resolution are explicit human commands. `/implement` runs from the main repo, `/resolve` runs from the task worktree. The main agent handles resolution directly (no subagent). Nothing runs automatically after BLOCKED - the human decides when to resolve and when to resume.
+
+
+### Blocker File Structure (`blocker.md`)
+
+```markdown
+# Blocker Report
+
+**Objective:** [Description of blocked objective]
+**Created:** [timestamp]
+
+## Problem Description
+
+[Clear description of what's blocking progress]
+
+## What I Tried
+
+1. [Approach 1 and why it didn't work]
+2. [Approach 2 and why it didn't work]
+
+## What I Need
+
+[Specific question or decision needed from human]
+
+## Context
+
+[Relevant code snippets, file locations, error messages]
+
+## Suggested Options (if any)
+
+1. [Option A with pros/cons]
+2. [Option B with pros/cons]
+```
+
+### Resolution File Structure (`resolution.md`)
+
+```markdown
+# Resolution
+
+**For Blocker:** [reference to original blocker]
+**Approved:** [timestamp]
+**Approved By:** [human/resolver]
+
+## Decision
+
+[Clear statement of the chosen approach]
+
+## Implementation Guidance
+
+[Specific steps or guidance for the implementation worker]
+
+## Rationale
+
+[Why this approach was chosen over alternatives]
+```
+
+### Resolution Behavior (Main Agent)
+
+When the main agent executes `/resolve`:
+
+1. **Reads context**: blocker.md, task.json, journal.md
+2. **Explores codebase**: Full access to read files, understand architecture
+3. **Analyzes root cause**: Determines why the worker got stuck
+4. **Proposes solutions**: Offers one or more approaches with trade-offs
+5. **Seeks approval**: Presents proposal to human for approval/modification
+6. **Documents resolution**: Writes approved solution to resolution.md
+
+The main agent does NOT:
+
+- Implement the solution (that's the worker's job)
+- Modify code files
+- Make final decisions without human approval
+
+### Worker Startup with Resolution
+
+When a worker starts and finds `resolution.md`:
+
+1. Read the resolution
+2. Find the `blocked` objective in task.json
+3. Mark it as `in_progress`
+4. Apply the resolution guidance
+5. Delete `blocker.md` and `resolution.md`
+6. Continue normal implementation workflow
 
 ## Functional Requirements
 
@@ -234,7 +450,36 @@ BLOCKED  → Need human decision (blocker field has details)
 - Generates minimal task.json: meta, overview, objectives only
 - Replaces current task.md generation
 
-### 2. Orchestration Script (Python)
+### 2. Implementation Command
+
+Command: `/implement <identifier>`
+Location: `plugin/commands/implement.md`
+
+Triggered explicitly by the human to start or resume task implementation.
+
+**Arguments:**
+- `<identifier>` - Required. Can be:
+  - Task ID: `015`, `42`
+  - Task name: `user-authentication`, `jwt-utils`
+  - Feature name: `001-user-auth`, `user-auth`
+
+**Identifier Resolution:**
+1. Try to match as task ID in `task-system/tasks/<id>/`
+2. Try to match as task name (search task.json files for matching title)
+3. Try to match as feature name in `task-system/features/`
+   - If feature found: list all tasks for that feature, prompt user to select
+   - Show task status (PENDING, IN_PROGRESS, BLOCKED, COMPLETED) to help selection
+
+**Behavior:**
+- Resolves identifier to specific task worktree
+- Validates task context (task.json exists, worktree is valid)
+- Runs the implementation script in background
+- Reports progress and final status to human
+- On BLOCKED: displays blocker summary, suggests running `/resolve`
+
+### 3. Implementation Script (Python)
+
+Location: `plugin/scripts/implement.py`
 
 - Accepts CLI parameters: max_cycles, max_time, model, mcp_config, tools
 - Navigates to task worktree
@@ -245,7 +490,7 @@ BLOCKED  → Need human decision (blocker field has details)
 - Enforces max_cycles and max_time limits
 - Returns final status and summary
 
-### 3. Worker Prompt
+### 4. Worker Prompt
 
 Location: `plugin/instructions/orchestration/worker-prompt.md`
 
@@ -263,8 +508,12 @@ you complete objectives or encounter a blocker.
 1. Read `task.json` to understand objectives and their status
 2. Read `journal.md` to understand what previous sessions accomplished
 3. Read last commits (`git log -5 --oneline`) for context continuity
-4. Run existing tests to verify current state
-5. Select objective to work on:
+4. **Check for `resolution.md`**:
+   - If exists: read it, find the `blocked` objective, apply resolution guidance
+   - Delete `blocker.md` and `resolution.md` after reading
+5. Run existing tests to verify current state
+6. Select objective to work on:
+   - If any objective is `blocked` AND resolution exists: continue that one with resolution guidance
    - If any objective is `in_progress`: continue that one
    - Otherwise: pick based on task state and your context understanding (not array order)
    - Mark selected objective as `in_progress` in task.json
@@ -284,11 +533,19 @@ For your selected objective:
 **Important**: Complete your current objective before starting another. If blocked
 (unclear requirements, external dependency, design question):
 
-1. Commit and push your partial progress
-2. Update journal.md with what you accomplished and where you're stuck
-3. Exit with BLOCKED status
+1. Create `blocker.md` with detailed description:
+   - What you're trying to do
+   - What you tried and why it didn't work
+   - What specific decision or information you need
+   - Suggested options if you have any
+2. Mark the objective as `blocked` in task.json
+3. Update journal.md with context about the blocker
+4. Commit and push all changes
+5. Exit with BLOCKED status
 
-The next worker will read commits and journal to understand progress and continue.
+The main agent will analyze your blocker (via `/resolve`), propose solutions,
+and after human approval, write `resolution.md`. When you (or the next worker)
+resume, you'll find `resolution.md` with the guidance to proceed.
 
 ## Commit & Journal Discipline
 
@@ -374,15 +631,54 @@ Exit conditions:
 - Complete current objective before starting another (no mid-objective switching)
 - Write all tests that describe an objective's requirements before implementing
 - Commit + journal update always together
-- If blocked: commit partial progress, journal what's done and where stuck, exit BLOCKED
-- Next worker reads commits + journal to continue with full context
+- If blocked: create blocker.md, mark objective as `blocked`, journal context, exit BLOCKED
+- Check for resolution.md at startup - it contains guidance for blocked objectives
+- Delete blocker.md and resolution.md after applying resolution
 - Never remove or modify existing tests without explicit approval
 - Leave the codebase in a clean, working state
 - Your exit JSON is validated by schema - ensure it's valid
 
 ````
 
-### 4. Status Communication
+### 5. Resolve Command
+
+Command: `/resolve`
+Location: `plugin/commands/resolve.md`
+
+Triggered explicitly by the human after implementation exits with BLOCKED status. Must be run from within the task's worktree directory.
+
+**Prerequisites:**
+- Human must navigate to the task worktree (`task-system/tasks/{id}/`)
+- Start a new Claude Code session in that directory
+- Run `/resolve` from there
+
+**Inputs (read from current worktree):**
+- `blocker.md` - the worker's detailed blocker report
+- `task.json` - current task state and objectives
+- `journal.md` - execution history and context
+- Full codebase access (worktree contains complete project)
+
+**Behavior:**
+1. Validate running from a task worktree (check for `task-system/task-{id}/` structure)
+2. Validate `blocker.md` exists
+3. Read blocker.md, task.json, journal.md
+4. Explore codebase to understand architecture and constraints
+5. Analyze root cause of the blocker
+6. Propose one or more solutions with trade-offs
+7. Present proposal to human for approval/modification
+8. Write approved solution to `resolution.md`
+
+**Constraints:**
+- Does NOT implement the solution (worker's job)
+- Does NOT modify code files
+- Does NOT make decisions without human approval
+- Does NOT auto-trigger implementation (human runs `/implement` to resume)
+
+**Output:**
+- `resolution.md` written to task directory
+- Summary presented to human
+
+### 6. Status Communication
 
 Worker output is validated against a JSON schema via `--json-schema` flag. No status file needed - script reads structured output directly from stdout.
 
@@ -409,7 +705,7 @@ Worker output is validated against a JSON schema via `--json-schema` flag. No st
 }
 ```
 
-### 5. CLI Integration
+### 7. CLI Integration
 
 Spawn command with schema-validated output:
 
@@ -449,7 +745,7 @@ Optional flags:
 - Phase-based execution → objective-based execution
 - Permission gates → automatic progression
 - Context file references → distilled into task.json by task builder
-- Execution state in task file → managed by orchestration script
+- Execution state in task file → managed by implementation script
 - Journaling subagent + skills → workers write directly to `journal.md`
 
 ### Kept
@@ -475,6 +771,11 @@ Optional flags:
 - [x] Interactive mode: **Deprecated**
 - [x] Context exhaustion detection: **Worker self-awareness via prompt instructions** (worker monitors own context usage and exits proactively)
 - [x] Worker prompt location: **`plugin/instructions/orchestration/worker-prompt.md`**
+- [x] Blocker handling: **File-based (blocker.md/resolution.md) with `blocked` objective status**
+- [x] Blocker resolution: **Main agent handles `/resolve` directly (no subagent), human approves solution**
+- [x] Resumption after blocker: **Human-triggered (no auto-resume)**
+- [x] Command interface: **`/implement <identifier>` from main repo; `/resolve` from task worktree (no identifier needed)**
+- [x] Feature selection: **If feature name provided, prompt user to select task from feature**
 
 ## References
 
