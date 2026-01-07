@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "id": "015",
+    "title": "Implement user authentication",
+    "type": "feature",
+    "priority": "P1",
+    "created": "2026-01-06",
+    "feature": "007"
+  },
+
+  "overview": "Implement JWT-based authentication for the user management feature. Users need secure login/logout with token-based session management. Use 15-minute access tokens with refresh token rotation. All auth endpoints must be rate-limited.",
+
+  "objectives": [
+    {
+      "id": "obj-1",
+      "description": "JWT utility functions that sign and verify tokens",
+      "notes": [
+        "Use 15 min expiry for access tokens",
+        "Include user ID and role in payload",
+        "Use RS256 algorithm with key rotation support"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-2",
+      "description": "Login endpoint that validates credentials and returns tokens",
+      "steps": [
+        "Validate email/password input format",
+        "Check credentials against database",
+        "Generate JWT access and refresh tokens",
+        "Set httpOnly cookie for refresh token"
+      ],
+      "notes": [
+        "Use bcrypt for password comparison",
+        "Rate limit to 5 attempts per minute per IP"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-3",
+      "description": "Logout endpoint that invalidates the session",
+      "status": "pending"
+    },
+    {
+      "id": "obj-4",
+      "description": "Auth middleware that protects routes",
+      "steps": [
+        "Extract token from Authorization header or cookie",
+        "Verify token signature and expiration",
+        "Attach user object to request context",
+        "Handle token refresh if access token expired"
+      ],
+      "notes": [
+        "Return 401 for invalid/expired tokens",
+        "Support both cookie and header-based auth"
+      ],
+      "status": "pending"
+    }
+  ]
+}

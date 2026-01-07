@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "id": "<TASK_ID: 3-digit zero-padded number, e.g., '015'>",
+    "title": "<TASK_TITLE: Human-readable title describing the task>",
+    "type": "<TASK_TYPE: feature | bugfix | refactor | performance | deployment>",
+    "priority": "<PRIORITY: P1 (critical) | P2 (normal) | P3 (low)>",
+    "created": "<CREATED_DATE: ISO date YYYY-MM-DD>",
+    "feature": "<FEATURE_ID: Optional - 3-digit feature ID if task belongs to a feature, omit if standalone>"
+  },
+
+  "overview": "<OVERVIEW: Distilled context from feature/plan/ADRs. Include everything the worker needs to understand the task without reading other files. Should be 2-5 sentences covering: what needs to be built, why it matters, key technical constraints.>",
+
+  "objectives": [
+    {
+      "id": "obj-1",
+      "description": "<DESCRIPTION: Clear statement of what needs to be accomplished>",
+      "steps": [
+        "<STEP_1: Optional - ordered implementation step>",
+        "<STEP_2: Optional - next step>"
+      ],
+      "notes": [
+        "<NOTE_1: Optional - hint, constraint, or context>",
+        "<NOTE_2: Optional - additional note>"
+      ],
+      "status": "pending"
+    }
+  ]
+}

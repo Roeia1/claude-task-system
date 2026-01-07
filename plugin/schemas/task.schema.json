@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/anthropics/claude-task-system/schemas/task.schema.json",
+  "title": "Task Definition",
+  "description": "Schema for task.json - the core state machine for autonomous task execution",
+  "type": "object",
+  "required": ["meta", "overview", "objectives"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "Task metadata",
+      "required": ["id", "title", "type", "priority", "created"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Task ID (e.g., '015')",
+          "pattern": "^[0-9]{3}$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable task title",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "description": "Task type determining execution workflow",
+          "enum": ["feature", "bugfix", "refactor", "performance", "deployment"]
+        },
+        "priority": {
+          "type": "string",
+          "description": "Task priority (P1=critical, P2=normal, P3=low)",
+          "enum": ["P1", "P2", "P3"]
+        },
+        "created": {
+          "type": "string",
+          "description": "ISO date when task was created (YYYY-MM-DD)",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "feature": {
+          "type": "string",
+          "description": "Optional feature ID this task belongs to (e.g., '007')",
+          "pattern": "^[0-9]{3}$"
+        }
+      }
+    },
+    "overview": {
+      "type": "string",
+      "description": "Distilled context from feature/plan/ADRs - everything the worker needs to understand the task",
+      "minLength": 1
+    },
+    "objectives": {
+      "type": "array",
+      "description": "List of objectives to complete for this task",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier within task (e.g., 'obj-1')",
+            "pattern": "^obj-[0-9]+$"
+          },
+          "description": {
+            "type": "string",
+            "description": "What needs to be done",
+            "minLength": 1
+          },
+          "steps": {
+            "type": "array",
+            "description": "Optional ordered implementation steps",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "notes": {
+            "type": "array",
+            "description": "Optional hints, constraints, or context",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Current status of this objective",
+            "enum": ["pending", "in_progress", "blocked", "done"]
+          }
+        }
+      }
+    }
+  }
+}

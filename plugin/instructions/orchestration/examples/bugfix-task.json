@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "id": "023",
+    "title": "Fix race condition in session cleanup",
+    "type": "bugfix",
+    "priority": "P2",
+    "created": "2026-01-07"
+  },
+
+  "overview": "Users report intermittent 500 errors during logout. Investigation shows a race condition where session cleanup runs concurrently with token refresh, causing database constraint violations. The fix requires adding proper locking around session operations.",
+
+  "objectives": [
+    {
+      "id": "obj-1",
+      "description": "Add database-level locking to session operations",
+      "notes": [
+        "Use SELECT FOR UPDATE on session rows",
+        "Keep lock duration minimal to avoid contention"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-2",
+      "description": "Add regression test that reproduces the race condition",
+      "status": "pending"
+    }
+  ]
+}
