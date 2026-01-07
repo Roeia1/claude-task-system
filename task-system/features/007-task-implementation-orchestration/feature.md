@@ -40,7 +40,7 @@ Main Claude Agent
             Script returns ─▶ Main agent reads result
                                   │
                                   ├─▶ FINISH: Report completion
-                                  └─▶ BLOCKED: Report blocker, await human command
+                                  └─▶ BLOCKED: Report blocker (documented in journal.md)
 
 Human navigates to worktree, starts new Claude session
     │
@@ -50,16 +50,16 @@ Human runs: /resolve (only if BLOCKED)
     ▼
 Main Agent (in worktree context)
     │
-    ├─▶ Reads blocker.md, explores codebase
+    ├─▶ Reads blocker from journal.md, explores codebase
     ├─▶ Proposes solution(s)
-    └─▶ Human approves → resolution.md written
+    └─▶ Human approves → resolution appended to journal.md
 
 Human runs: /implement <identifier> (to resume, from main repo)
 ```
 
 **Commands:**
 - `/implement <identifier>` - Start or resume the implementation loop for a task (run from main repo)
-- `/resolve` - Handle a blocker for a task (run from within task worktree)
+- `/resolve` - Handle a blocker for a task (run from within task worktree); reads blocker from journal.md, appends resolution to journal.md
 
 **Identifier formats (for /implement):**
 - Task ID: `015`, `42`
@@ -160,8 +160,7 @@ This allows objectives to be tailored to their domain - UI objectives can have d
 | Blocker at execution level       | Simpler than per-objective blockers                                           |
 | Run all tests                    | No per-objective test tracking needed                                         |
 | Direct journal writes            | No subagent/skills - workers write journal.md directly (simpler, less context)|
-| `blocked` objective status       | Clear state for objectives needing human input; enables resolution workflow   |
-| File-based blocker/resolution    | blocker.md and resolution.md for clear, structured communication              |
+| Journal-based blocker/resolution | Blockers and resolutions in journal.md; single source of truth, natural log   |
 | Main agent handles resolution    | No subagent - main agent executes `/resolve` with full codebase access        |
 | Human-triggered resumption       | No auto-resume; human reviews resolution and triggers next run explicitly     |
 | Flexible identifier resolution   | `/implement` accepts task ID, name, or feature; `/resolve` runs from worktree |
@@ -186,8 +185,8 @@ Task status is derived from filesystem state and objective progress:
 
 ```
 PENDING      → Worktree exists, no journal.md, all objectives pending
-IN_PROGRESS  → journal.md exists, work in progress, no blocker
-BLOCKED      → blocker.md exists, awaiting /resolve
+IN_PROGRESS  → journal.md exists, work in progress
+BLOCKED      → Worker exited with BLOCKED status, unresolved blocker in journal.md
 COMPLETED    → All objectives done, PR merged
 ```
 
@@ -196,7 +195,6 @@ COMPLETED    → All objectives done, PR merged
 ```
 pending      → Not started
 in_progress  → Currently working on
-blocked      → Stuck, needs human input (blocker.md created)
 done         → Completed, tests pass
 ```
 
@@ -236,17 +234,15 @@ BLOCKED  → Need human decision (blocker field has details)
 
 **Acceptance Criteria:**
 
-- [ ] Worker creates `blocker.md` with detailed description when stuck
-- [ ] Worker marks objective as `blocked` in task.json
+- [ ] Worker documents blocker in journal.md with structured format when stuck
 - [ ] Worker exits with BLOCKED status
-- [ ] Implementation exits and reports blocker to human
+- [ ] Implementation script exits and reports blocker to human
 - [ ] Human navigates to worktree, runs `/resolve` (main agent handles directly)
-- [ ] Main agent has full codebase access for resolution
+- [ ] Main agent reads blocker from journal.md, has full codebase access
 - [ ] Main agent proposes solution, human approves/modifies
-- [ ] Resolution written to `resolution.md`
+- [ ] Resolution appended to journal.md with structured format
 - [ ] Human runs `/implement <identifier>` again to resume
-- [ ] Next worker reads resolution.md and continues blocked objective
-- [ ] Journal captures blocker and resolution
+- [ ] Next worker reads journal.md and finds both blocker and resolution
 
 ### Story 3: Progress Preservation
 
@@ -273,10 +269,10 @@ BLOCKED  → Need human decision (blocker field has details)
 - [ ] `/implement <identifier>` accepts task ID, task name, or feature name
 - [ ] `/implement` with feature name prompts user to select task from feature
 - [ ] `/implement` validates task context before running (task.json exists, worktree valid)
-- [ ] `/implement` can resume after BLOCKED (with resolution.md)
+- [ ] `/implement` can resume after BLOCKED (with resolution in journal.md)
 - [ ] `/resolve` validates it's running from a task worktree
 - [ ] `/resolve` executed by main agent directly (no subagent)
-- [ ] `/resolve` only available when blocker.md exists for the task
+- [ ] `/resolve` only available when unresolved blocker exists in journal.md
 - [ ] Neither command auto-triggers the other
 
 ### Story 5: Configurable Execution
@@ -312,16 +308,18 @@ Implementation Script (background)
             ▼
 Implementation Worker (encounters blocker)
     │
-    ├─▶ Creates blocker.md with detailed description
-    ├─▶ Marks objective as `blocked` in task.json
-    ├─▶ Updates journal.md with context
+    ├─▶ Documents blocker in journal.md with structured format:
+    │     - Objective blocked
+    │     - What was attempted
+    │     - What is needed
+    │     - Suggested options (if any)
     ├─▶ Commits and pushes all changes
     └─▶ Exits with BLOCKED status
             │
             ▼
 Script exits, returns to Main Agent
     │
-    └─▶ Reports: "BLOCKED - see blocker.md for details"
+    └─▶ Reports: "BLOCKED - see journal.md for blocker details"
             │
             ▼
 Human navigates to worktree, starts new Claude session
@@ -332,8 +330,9 @@ Human runs: /resolve
     ▼
 Main Agent (in worktree context)
     │
-    ├─▶ Validates worktree and blocker.md exist
-    ├─▶ Reads blocker.md, task.json, journal.md
+    ├─▶ Validates worktree exists
+    ├─▶ Reads journal.md to find unresolved blocker
+    ├─▶ Reads task.json for context
     ├─▶ Explores codebase for context
     ├─▶ Analyzes root cause
     ├─▶ Proposes solution(s) to human
@@ -341,7 +340,7 @@ Main Agent (in worktree context)
     └─▶ Human reviews and approves/modifies
             │
             ▼
-    Resolution written to resolution.md
+    Resolution appended to journal.md with structured format
             │
             ▼
 Human runs: /implement <identifier> again (from main repo)
@@ -349,79 +348,52 @@ Human runs: /implement <identifier> again (from main repo)
     ▼
 Next Worker spawns
     │
-    ├─▶ Reads resolution.md at startup
-    ├─▶ Applies resolution to blocked objective
-    ├─▶ Marks objective back to `in_progress`
-    ├─▶ Deletes blocker.md and resolution.md
+    ├─▶ Reads journal.md at startup
+    ├─▶ Finds blocker and its resolution
+    ├─▶ Applies resolution guidance
     └─▶ Continues implementation
 ```
 
-**Key principle**: Both implementation and resolution are explicit human commands. `/implement` runs from the main repo, `/resolve` runs from the task worktree. The main agent handles resolution directly (no subagent). Nothing runs automatically after BLOCKED - the human decides when to resolve and when to resume.
+**Key principle**: Both implementation and resolution are explicit human commands. `/implement` runs from the main repo, `/resolve` runs from the task worktree. The main agent handles resolution directly (no subagent). Nothing runs automatically after BLOCKED - the human decides when to resolve and when to resume. All blocker/resolution communication happens through journal.md - the single source of truth for execution context.
 
 
-### Blocker File Structure (`blocker.md`)
+### Blocker Entry Structure (in journal.md)
+
+When a worker encounters a blocker, it appends an entry to journal.md:
 
 ```markdown
-# Blocker Report
+## Blocker: [Brief title]
 
-**Objective:** [Description of blocked objective]
-**Created:** [timestamp]
-
-## Problem Description
-
-[Clear description of what's blocking progress]
-
-## What I Tried
-
-1. [Approach 1 and why it didn't work]
-2. [Approach 2 and why it didn't work]
-
-## What I Need
-
-[Specific question or decision needed from human]
-
-## Context
-
-[Relevant code snippets, file locations, error messages]
-
-## Suggested Options (if any)
-
-1. [Option A with pros/cons]
-2. [Option B with pros/cons]
+**Objective**: [Which objective is blocked]
+**What I'm trying to do**: [Description]
+**What I tried**: [Approaches attempted and why they didn't work]
+**What I need**: [Specific decision or information required]
+**Suggested options**: [If you have ideas, list them with pros/cons]
 ```
 
-### Resolution File Structure (`resolution.md`)
+### Resolution Entry Structure (in journal.md)
+
+When `/resolve` completes, the main agent appends to journal.md:
 
 ```markdown
-# Resolution
+## Resolution: [Reference to blocker title]
 
-**For Blocker:** [reference to original blocker]
-**Approved:** [timestamp]
-**Approved By:** [human/resolver]
-
-## Decision
-
-[Clear statement of the chosen approach]
-
-## Implementation Guidance
-
-[Specific steps or guidance for the implementation worker]
-
-## Rationale
-
-[Why this approach was chosen over alternatives]
+**Decision**: [Clear statement of the chosen approach]
+**Implementation guidance**: [Specific steps or guidance for the worker]
+**Rationale**: [Why this approach was chosen over alternatives]
+**Approved**: [timestamp]
 ```
 
 ### Resolution Behavior (Main Agent)
 
 When the main agent executes `/resolve`:
 
-1. **Reads context**: blocker.md, task.json, journal.md
+1. **Reads context**: journal.md (finds unresolved blocker), task.json
 2. **Explores codebase**: Full access to read files, understand architecture
 3. **Analyzes root cause**: Determines why the worker got stuck
 4. **Proposes solutions**: Offers one or more approaches with trade-offs
 5. **Seeks approval**: Presents proposal to human for approval/modification
-6. **Documents resolution**: Writes approved solution to resolution.md
+6. **Documents resolution**: Appends approved solution to journal.md
 
 The main agent does NOT:
 
@@ -429,16 +401,14 @@ The main agent does NOT:
 - Modify code files
 - Make final decisions without human approval
 
-### Worker Startup with Resolution
+### Worker Startup with Blocker Resolution
 
-When a worker starts and finds `resolution.md`:
+When a worker starts and finds a blocker with resolution in journal.md:
 
-1. Read the resolution
-2. Find the `blocked` objective in task.json
-3. Mark it as `in_progress`
-4. Apply the resolution guidance
-5. Delete `blocker.md` and `resolution.md`
-6. Continue normal implementation workflow
+1. Read the journal to understand context
+2. Find the blocker entry and its corresponding resolution
+3. Apply the resolution guidance
+4. Continue normal implementation workflow
 
 ## Functional Requirements
 
@@ -507,13 +477,10 @@ you complete objectives or encounter a blocker.
 
 1. Read `task.json` to understand objectives and their status
 2. Read `journal.md` to understand what previous sessions accomplished
+   - **Check for unresolved blockers** and their resolutions in recent entries
 3. Read last commits (`git log -5 --oneline`) for context continuity
-4. **Check for `resolution.md`**:
-   - If exists: read it, find the `blocked` objective, apply resolution guidance
-   - Delete `blocker.md` and `resolution.md` after reading
-5. Run existing tests to verify current state
-6. Select objective to work on:
-   - If any objective is `blocked` AND resolution exists: continue that one with resolution guidance
+4. Run existing tests to verify current state
+5. Select objective to work on:
    - If any objective is `in_progress`: continue that one
    - Otherwise: pick based on task state and your context understanding (not array order)
    - Mark selected objective as `in_progress` in task.json
@@ -533,19 +500,18 @@ For your selected objective:
 **Important**: Complete your current objective before starting another. If blocked
 (unclear requirements, external dependency, design question):
 
-1. Create `blocker.md` with detailed description:
+1. Document the blocker in journal.md with structured format:
+   - Objective blocked
    - What you're trying to do
    - What you tried and why it didn't work
    - What specific decision or information you need
    - Suggested options if you have any
-2. Mark the objective as `blocked` in task.json
-3. Update journal.md with context about the blocker
-4. Commit and push all changes
-5. Exit with BLOCKED status
+2. Commit and push all changes
+3. Exit with BLOCKED status
 
-The main agent will analyze your blocker (via `/resolve`), propose solutions,
-and after human approval, write `resolution.md`. When you (or the next worker)
-resume, you'll find `resolution.md` with the guidance to proceed.
+The orchestrator will pause spawning. A human will review your blocker, make a
+decision, and append the resolution to journal.md. When the next worker starts,
+it will read the journal and find both the blocker and its resolution.
 
 ## Commit & Journal Discipline
 
@@ -631,9 +597,8 @@ Exit conditions:
 - Complete current objective before starting another (no mid-objective switching)
 - Write all tests that describe an objective's requirements before implementing
 - Commit + journal update always together
-- If blocked: create blocker.md, mark objective as `blocked`, journal context, exit BLOCKED
-- Check for resolution.md at startup - it contains guidance for blocked objectives
-- Delete blocker.md and resolution.md after applying resolution
+- If blocked: document in journal.md with clear structure, commit, exit BLOCKED
+- Check journal.md for unresolved blockers and their resolutions at startup
 - Never remove or modify existing tests without explicit approval
 - Leave the codebase in a clean, working state
 - Your exit JSON is validated by schema - ensure it's valid
@@ -653,20 +618,19 @@ Triggered explicitly by the human after implementation exits with BLOCKED status
 - Run `/resolve` from there
 
 **Inputs (read from current worktree):**
-- `blocker.md` - the worker's detailed blocker report
+- `journal.md` - contains the unresolved blocker entry and execution history
 - `task.json` - current task state and objectives
-- `journal.md` - execution history and context
 - Full codebase access (worktree contains complete project)
 
 **Behavior:**
 1. Validate running from a task worktree (check for `task-system/task-{id}/` structure)
-2. Validate `blocker.md` exists
-3. Read blocker.md, task.json, journal.md
+2. Read journal.md to find the unresolved blocker entry
+3. Read task.json for current objective state
 4. Explore codebase to understand architecture and constraints
 5. Analyze root cause of the blocker
 6. Propose one or more solutions with trade-offs
 7. Present proposal to human for approval/modification
-8. Write approved solution to `resolution.md`
+8. Append approved resolution to `journal.md` with structured format
 
 **Constraints:**
 - Does NOT implement the solution (worker's job)
@@ -675,7 +639,7 @@ Triggered explicitly by the human after implementation exits with BLOCKED status
 - Does NOT auto-trigger implementation (human runs `/implement` to resume)
 
 **Output:**
-- `resolution.md` written to task directory
+- Resolution appended to journal.md
 - Summary presented to human
 
 ### 6. Status Communication
@@ -771,8 +735,8 @@ Optional flags:
 - [x] Interactive mode: **Deprecated**
 - [x] Context exhaustion detection: **Worker self-awareness via prompt instructions** (worker monitors own context usage and exits proactively)
 - [x] Worker prompt location: **`plugin/instructions/orchestration/worker-prompt.md`**
-- [x] Blocker handling: **File-based (blocker.md/resolution.md) with `blocked` objective status**
-- [x] Blocker resolution: **Main agent handles `/resolve` directly (no subagent), human approves solution**
+- [x] Blocker handling: **Journal-based (blockers and resolutions in journal.md)**
+- [x] Blocker resolution: **Main agent handles `/resolve` directly (no subagent), human approves, resolution appended to journal.md**
 - [x] Resumption after blocker: **Human-triggered (no auto-resume)**
 - [x] Command interface: **`/implement <identifier>` from main repo; `/resolve` from task worktree (no identifier needed)**
 - [x] Feature selection: **If feature name provided, prompt user to select task from feature**

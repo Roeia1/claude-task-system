@@ -35,7 +35,7 @@ Build an autonomous task execution system where the main Claude agent orchestrat
 
 4. **Resolve Command** (`plugin/commands/resolve.md`)
    - **Purpose**: Human-assisted blocker resolution
-   - **Responsibilities**: Read blocker context, propose solutions, write resolution.md
+   - **Responsibilities**: Read blocker from journal.md, propose solutions, append resolution to journal.md
    - **Interfaces**: User-facing slash command, runs from worktree context
 
 5. **Task Builder Integration** (existing, modified)
@@ -63,17 +63,17 @@ Build an autonomous task execution system where the main Claude agent orchestrat
 │  Identifier        │                │          │  Main Agent        │
 │  Resolver          │                │          │  (codebase access) │
 ├────────────────────┤                │          ├────────────────────┤
-│ • Task ID lookup   │                │          │ • Read blocker.md  │
-│ • Task name search │                │          │ • Analyze problem  │
+│ • Task ID lookup   │                │          │ • Read journal.md  │
+│ • Task name search │                │          │ • Find blocker     │
 │ • Feature→Task     │                │          │ • Propose solution │
-└─────────┬──────────┘                │          │ • Write resolution │
+└─────────┬──────────┘                │          │ • Append resolution│
           │                           │          └─────────┬──────────┘
           ▼                           │                    │
 ┌────────────────────┐                │                    ▼
 │  implement.py      │                │          ┌────────────────────┐
-│  (background)      │◄───────────────┘          │  resolution.md     │
-├────────────────────┤                           └────────────────────┘
-│ • Build prompts    │
+│  (background)      │◄───────────────┘          │  journal.md        │
+├────────────────────┤                           │  (resolution added)│
+│ • Build prompts    │                           └────────────────────┘
 │ • Spawn workers    │
 │ • Parse JSON out   │
 │ • Enforce limits   │
@@ -86,10 +86,10 @@ Build an autonomous task execution system where the main Claude agent orchestrat
 │  (Worker Instance) │       ├────────────────────┤
 ├────────────────────┤       │ • task.json        │
 │ • Read task state  │       │ • journal.md       │
-│ • Select objective │       │ • blocker.md       │
-│ • Write tests      │       │ • resolution.md    │
-│ • Implement code   │       │ • [project files]  │
-└─────────┬──────────┘       └────────────────────┘
+│ • Select objective │       │ • [project files]  │
+│ • Write tests      │       └────────────────────┘
+│ • Implement code   │
+└─────────┬──────────┘
           │
           ▼
 ┌────────────────────┐
@@ -118,7 +118,7 @@ Build an autonomous task execution system where the main Claude agent orchestrat
    - BLOCKED → exit with blocker details
 10. Main agent receives final status, reports to human
 11. If BLOCKED: human navigates to worktree, runs `/resolve`
-12. Main agent reads context, proposes solution, writes resolution.md
+12. Main agent reads blocker from journal.md, proposes solution, appends resolution to journal.md
 13. Human runs `/implement 015` again to resume
 
 ## Technology Choices
@@ -153,9 +153,7 @@ Build an autonomous task execution system where the main Claude agent orchestrat
 | Implementation script | `plugin/scripts/implement.py` | Python |
 | Worker prompt | `plugin/instructions/orchestration/worker-prompt.md` | Markdown template |
 | Task definition | `task-system/task-{id}/task.json` | JSON |
-| Journal | `task-system/task-{id}/journal.md` | Markdown |
-| Blocker report | `task-system/task-{id}/blocker.md` | Markdown |
-| Resolution | `task-system/task-{id}/resolution.md` | Markdown |
+| Journal | `task-system/task-{id}/journal.md` | Markdown (includes blockers and resolutions) |
 
 ## Data Models
 
@@ -182,7 +180,7 @@ The core task state machine that workers read and update:
       "description": "string (required: what needs to be done)",
       "steps": ["string (optional: ordered implementation steps)"],
       "notes": ["string (optional: hints, constraints, context)"],
-      "status": "enum: pending | in_progress | blocked | done"
+      "status": "enum: pending | in_progress | done"
     }
   ]
 }
@@ -214,7 +212,7 @@ The core task state machine that workers read and update:
 
 ### Entity: journal.md
 
-Append-only log with consistent entry structure. Multiple entries can reference the same objective:
+Append-only log with consistent entry structure. Contains regular progress entries, blocker entries, and resolution entries:
 
 ```markdown
 # Task Journal
@@ -224,7 +222,7 @@ Append-only log with consistent entry structure. Multiple entries can reference 
 ## Entry: [ISO timestamp]
 
 **Objective:** [obj-id] - [description]
-**Status at exit:** [in_progress | done | blocked]
+**Status at exit:** [in_progress | done]
 
 ### What Was Done
 
@@ -238,63 +236,28 @@ Append-only log with consistent entry structure. Multiple entries can reference 
 
 ### Notes
 
-[Context for next session, blockers, or observations]
+[Context for next session or observations]
 
 ---
-```
 
-### Entity: blocker.md
+## Blocker: [Brief title]
 
-```markdown
-# Blocker Report
+**Objective**: [Which objective is blocked]
+**What I'm trying to do**: [Description]
+**What I tried**: [Approaches attempted and why they didn't work]
+**What I need**: [Specific decision or information required]
+**Suggested options**: [If you have ideas, list them with pros/cons]
 
-**Objective ID:** [obj-id]
-**Objective:** [description]
-**Created:** [ISO timestamp]
+---
 
-## Problem Description
+## Resolution: [Reference to blocker title]
 
-[Clear description of what's blocking progress]
+**Decision**: [Clear statement of the chosen approach]
+**Implementation guidance**: [Specific steps or guidance for the worker]
+**Rationale**: [Why this approach was chosen over alternatives]
+**Approved**: [ISO timestamp]
 
-## What I Tried
-
-1. [Approach 1 and why it didn't work]
-2. [Approach 2 and why it didn't work]
-
-## What I Need
-
-[Specific question or decision needed from human]
-
-## Context
-
-[Relevant code snippets, file locations, error messages]
-
-## Suggested Options (if any)
-
-1. [Option A with pros/cons]
-2. [Option B with pros/cons]
-```
-
-### Entity: resolution.md
-
-```markdown
-# Resolution
-
-**For Objective:** [obj-id]
-**Blocker:** [reference to original problem]
-**Approved:** [ISO timestamp]
-
-## Decision
-
-[Clear statement of the chosen approach]
-
-## Implementation Guidance
-
-[Specific steps or guidance for the implementation worker]
-
-## Rationale
-
-[Why this approach was chosen over alternatives]
+---
 ```
 
 ## API Contracts
@@ -321,18 +284,18 @@ Append-only log with consistent entry structure. Multiple entries can reference 
 
 ### Command: `/resolve`
 
-**Purpose:** Analyze blocker and write resolution with human approval
+**Purpose:** Analyze blocker from journal.md and append resolution with human approval
 
 **Arguments:** None (context derived from current directory)
 
 **Prerequisites:**
 - Must run from within task worktree
-- `blocker.md` must exist
+- Unresolved blocker must exist in journal.md
 
 **Error Responses:**
 - Not in worktree: "Must run /resolve from within a task worktree"
-- No blocker.md: "No blocker found. Task is not blocked."
-- Already resolved: "resolution.md already exists. Run /implement to resume."
+- No blocker: "No unresolved blocker found in journal.md. Task is not blocked."
+- Already resolved: "Blocker already has a resolution in journal.md. Run /implement to resume."
 
 ### Script: `implement.py`
 
@@ -403,7 +366,7 @@ optional arguments:
 **Success Criteria:**
 - Commands work end-to-end
 - Identifier resolution handles all formats
-- Resolution workflow produces valid resolution.md
+- Resolution workflow appends valid resolution to journal.md
 
 ### Phase 4: Task Builder Integration
 
