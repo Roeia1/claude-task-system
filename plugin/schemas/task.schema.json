@@ -88,7 +88,7 @@
           "status": {
             "type": "string",
             "description": "Current status of this objective",
-            "enum": ["pending", "in_progress", "blocked", "done"]
+            "enum": ["pending", "in_progress", "done"]
           }
         }
       }
