@@ -2,8 +2,6 @@
   "meta": {
     "id": "023",
     "title": "Fix race condition in session cleanup",
-    "type": "bugfix",
-    "priority": "P2",
     "created": "2026-01-07"
   },
 

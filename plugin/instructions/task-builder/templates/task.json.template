@@ -2,8 +2,6 @@
   "meta": {
     "id": "<TASK_ID: 3-digit zero-padded number, e.g., '015'>",
     "title": "<TASK_TITLE: Human-readable title describing the task>",
-    "type": "<TASK_TYPE: feature | bugfix | refactor | performance | deployment>",
-    "priority": "<PRIORITY: P1 (critical) | P2 (normal) | P3 (low)>",
     "created": "<CREATED_DATE: ISO date YYYY-MM-DD>",
     "feature": "<FEATURE_ID: Optional - 3-digit feature ID if task belongs to a feature, omit if standalone>"
   },
