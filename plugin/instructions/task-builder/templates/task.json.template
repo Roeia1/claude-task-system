@@ -6,7 +6,7 @@
     "feature": "<FEATURE_ID: Optional - 3-digit feature ID if task belongs to a feature, omit if standalone>"
   },
 
-  "overview": "<OVERVIEW: Distilled context from feature/plan/ADRs. Include everything the worker needs to understand the task without reading other files. Should be 2-5 sentences covering: what needs to be built, why it matters, key technical constraints.>",
+  "overview": "<OVERVIEW: Distilled context from feature/plan/ADRs. Include everything the worker needs: what to build, why it matters, key decisions, technical constraints. Be concise but don't omit important information.>",
 
   "objectives": [
     {
