@@ -13,8 +13,8 @@
       "id": "obj-1",
       "description": "<DESCRIPTION: Clear statement of what needs to be accomplished>",
       "steps": [
-        "<STEP_1: Optional - ordered implementation step>",
-        "<STEP_2: Optional - next step>"
+        "<STEP_1: Optional - ordered sequence (user flow, implementation process, backend flow, etc.)>",
+        "<STEP_2: Optional - next step in sequence>"
       ],
       "notes": [
         "<NOTE_1: Optional - hint, constraint, or context>",
