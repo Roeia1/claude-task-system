@@ -3,21 +3,23 @@ Comprehensive test suite for implement.py - the task orchestration script.
 
 Tests cover:
 - CLI argument parsing
-- Task file discovery
-- Prompt building
+- Task file validation (existence checks)
 - Worker output parsing
+- Worker spawning
 - Main loop behavior (integration tests with mocked subprocess)
+
+Design Note: The orchestrator does NOT inject task.json or journal.md content
+into the prompt. Workers read and write these files themselves. The orchestrator
+only validates that task.json exists before spawning workers.
 """
 
 import json
-import os
 import subprocess
-import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Dict, Any, Optional
-from unittest.mock import Mock, patch, MagicMock
+from typing import Dict, Any
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -273,162 +275,112 @@ class TestCLIArgumentParsing:
 
 
 # ============================================================================
-# Task File Discovery Tests
+# Task File Validation Tests
 # ============================================================================
 
-class TestTaskFileDiscovery:
-    """Test task file discovery functionality."""
+class TestTaskFileValidation:
+    """Test task file validation functionality.
 
-    def test_find_task_json_exists(self, task_dir_with_files):
-        """Should find task.json when it exists."""
-        from implement import find_task_files
+    The orchestrator validates that task.json exists before spawning workers.
+    It does NOT read the content - workers read files themselves.
+    """
+
+    def test_validate_task_json_exists(self, task_dir_with_files):
+        """Should return valid result when task.json exists."""
+        from implement import validate_task_files
 
         # Get the worktree root (parent of task-system)
         worktree_root = task_dir_with_files.parent.parent
 
-        result = find_task_files(str(worktree_root))
+        result = validate_task_files(str(worktree_root))
 
-        assert result["task_json"] is not None
-        assert Path(result["task_json"]).exists()
+        assert result["valid"] is True
+        assert result["task_json_path"] is not None
+        assert Path(result["task_json_path"]).exists()
 
-    def test_find_journal_md_exists(self, task_dir_with_files):
-        """Should find journal.md when it exists."""
-        from implement import find_task_files
-
-        worktree_root = task_dir_with_files.parent.parent
-
-        result = find_task_files(str(worktree_root))
-
-        assert result["journal_md"] is not None
-        assert Path(result["journal_md"]).exists()
-
-    def test_find_task_json_missing(self, temp_task_dir):
-        """Should return None for task_json when it doesn't exist."""
-        from implement import find_task_files
-
-        worktree_root = temp_task_dir.parent.parent
-
-        result = find_task_files(str(worktree_root))
-
-        assert result["task_json"] is None
-
-    def test_find_journal_md_missing(self, temp_task_dir, sample_task_json):
-        """Should return None for journal_md when it doesn't exist."""
-        from implement import find_task_files
-
-        # Create task.json but not journal.md
-        task_json_path = temp_task_dir / "task.json"
-        task_json_path.write_text(json.dumps(sample_task_json))
-
-        worktree_root = temp_task_dir.parent.parent
-
-        result = find_task_files(str(worktree_root))
-
-        assert result["task_json"] is not None
-        assert result["journal_md"] is None
-
-    def test_find_task_id_from_folder(self, task_dir_with_files):
+    def test_validate_returns_task_id(self, task_dir_with_files):
         """Should extract task ID from task folder name."""
-        from implement import find_task_files
+        from implement import validate_task_files
 
         worktree_root = task_dir_with_files.parent.parent
 
-        result = find_task_files(str(worktree_root))
+        result = validate_task_files(str(worktree_root))
 
         assert result["task_id"] == "015"
 
-    def test_invalid_task_path(self):
-        """Should handle non-existent task path gracefully."""
-        from implement import find_task_files
+    def test_validate_task_json_missing(self, temp_task_dir):
+        """Should return invalid when task.json doesn't exist."""
+        from implement import validate_task_files
 
-        result = find_task_files("/nonexistent/path/to/task")
+        worktree_root = temp_task_dir.parent.parent
 
-        assert result["task_json"] is None
-        assert result["journal_md"] is None
-        assert result["task_id"] is None
+        result = validate_task_files(str(worktree_root))
+
+        assert result["valid"] is False
+        assert "task.json not found" in result["error"].lower()
+
+    def test_validate_invalid_path(self):
+        """Should handle non-existent path gracefully."""
+        from implement import validate_task_files
+
+        result = validate_task_files("/nonexistent/path/to/task")
+
+        assert result["valid"] is False
+        assert result["error"] is not None
+
+    def test_validate_windows_paths(self, task_dir_with_files):
+        """Should handle Windows-style paths correctly."""
+        from implement import validate_task_files
+
+        worktree_root = task_dir_with_files.parent.parent
+
+        # Convert to Windows-style path
+        windows_path = str(worktree_root).replace("/", "\\")
+
+        result = validate_task_files(windows_path)
+
+        # Should work regardless of path separator
+        assert result is not None
 
 
 # ============================================================================
-# Prompt Building Tests
+# Worker Prompt Loading Tests
 # ============================================================================
 
-class TestPromptBuilding:
-    """Test prompt building functionality."""
+class TestWorkerPromptLoading:
+    """Test worker prompt template loading."""
 
-    def test_build_prompt_combines_all_parts(self, sample_task_json, sample_journal_content, sample_worker_prompt):
-        """Prompt should combine task.json, journal.md, and worker instructions."""
-        from implement import build_prompt
+    def test_load_worker_prompt_returns_string(self, sample_worker_prompt):
+        """Should return worker prompt as string."""
+        from implement import load_worker_prompt
 
-        prompt = build_prompt(
-            task_json=sample_task_json,
-            journal_content=sample_journal_content,
-            worker_instructions=sample_worker_prompt
-        )
+        with patch("builtins.open", create=True) as mock_open:
+            mock_open.return_value.__enter__.return_value.read.return_value = sample_worker_prompt
 
-        # Should contain task information
-        assert "Test Task" in prompt
-        assert "First test objective" in prompt
+            result = load_worker_prompt()
 
-        # Should contain journal content
-        assert "Started implementation" in prompt
+        assert isinstance(result, str)
+        assert len(result) > 0
 
-        # Should contain worker instructions
-        assert "worker agent" in prompt.lower()
+    def test_load_worker_prompt_contains_instructions(self, sample_worker_prompt):
+        """Worker prompt should contain key instructions."""
+        from implement import load_worker_prompt
 
-    def test_build_prompt_with_empty_journal(self, sample_task_json, sample_worker_prompt):
-        """Should handle empty journal gracefully."""
-        from implement import build_prompt
+        with patch("builtins.open", create=True) as mock_open:
+            mock_open.return_value.__enter__.return_value.read.return_value = sample_worker_prompt
 
-        prompt = build_prompt(
-            task_json=sample_task_json,
-            journal_content="",
-            worker_instructions=sample_worker_prompt
-        )
+            result = load_worker_prompt()
 
-        # Should still contain task and worker instructions
-        assert "Test Task" in prompt
-        assert "worker agent" in prompt.lower()
+        assert "task.json" in result.lower()
+        assert "journal" in result.lower()
 
-    def test_build_prompt_with_none_journal(self, sample_task_json, sample_worker_prompt):
-        """Should handle None journal gracefully."""
-        from implement import build_prompt
+    def test_load_worker_prompt_file_not_found(self):
+        """Should raise error if worker prompt file not found."""
+        from implement import load_worker_prompt, WorkerPromptError
 
-        prompt = build_prompt(
-            task_json=sample_task_json,
-            journal_content=None,
-            worker_instructions=sample_worker_prompt
-        )
-
-        # Should still contain task and worker instructions
-        assert "Test Task" in prompt
-        assert "worker agent" in prompt.lower()
-
-    def test_build_prompt_includes_objectives(self, sample_task_json, sample_worker_prompt):
-        """Prompt should include all objectives from task.json."""
-        from implement import build_prompt
-
-        prompt = build_prompt(
-            task_json=sample_task_json,
-            journal_content="",
-            worker_instructions=sample_worker_prompt
-        )
-
-        assert "obj-1" in prompt
-        assert "obj-2" in prompt
-        assert "First test objective" in prompt
-        assert "Second test objective" in prompt
-
-    def test_build_prompt_includes_objective_status(self, sample_task_json, sample_worker_prompt):
-        """Prompt should include objective status."""
-        from implement import build_prompt
-
-        prompt = build_prompt(
-            task_json=sample_task_json,
-            journal_content="",
-            worker_instructions=sample_worker_prompt
-        )
-
-        assert "pending" in prompt.lower()
+        with patch("builtins.open", side_effect=FileNotFoundError("Not found")):
+            with pytest.raises(WorkerPromptError):
+                load_worker_prompt()
 
 
 # ============================================================================
@@ -577,6 +529,28 @@ class TestWorkerOutputParsing:
 
         assert "\u00e9" in result["summary"]
 
+    def test_parse_empty_output(self):
+        """Should raise error for empty output."""
+        from implement import parse_worker_output, WorkerOutputError
+
+        with pytest.raises(WorkerOutputError):
+            parse_worker_output("")
+
+    def test_parse_malformed_json_variants(self):
+        """Should handle various malformed JSON gracefully."""
+        from implement import parse_worker_output, WorkerOutputError
+
+        malformed_outputs = [
+            '{"status": "ONGOING", summary: "missing quotes"}',
+            '{"status": "ONGOING", "summary": }',
+            '{status: ONGOING}',
+            'just plain text',
+        ]
+
+        for output in malformed_outputs:
+            with pytest.raises(WorkerOutputError):
+                parse_worker_output(output)
+
 
 # ============================================================================
 # Worker Spawning Tests
@@ -615,8 +589,8 @@ class TestWorkerSpawning:
         assert "sonnet" in cmd
 
     @patch("subprocess.run")
-    def test_spawn_worker_with_json_schema(self, mock_run):
-        """Should include --json-schema flag."""
+    def test_spawn_worker_with_json_output_format(self, mock_run):
+        """Should include --output-format json flag."""
         from implement import spawn_worker
 
         mock_run.return_value = Mock(
@@ -752,297 +726,9 @@ class TestWorkerSpawning:
 
         assert call_args.kwargs.get("cwd") == "/specific/task/path"
 
-
-# ============================================================================
-# Main Loop Integration Tests
-# ============================================================================
-
-class TestMainLoop:
-    """Integration tests for the main orchestration loop."""
-
-    @patch("implement.spawn_worker")
-    @patch("implement.find_task_files")
-    @patch("implement.load_worker_prompt")
-    def test_loop_exits_on_finish(self, mock_load_prompt, mock_find_files, mock_spawn, sample_task_json):
-        """Loop should exit when worker returns FINISH."""
-        from implement import run_loop, create_argument_parser
-
-        mock_find_files.return_value = {
-            "task_json": "/path/task.json",
-            "journal_md": "/path/journal.md",
-            "task_id": "015"
-        }
-        mock_load_prompt.return_value = "Worker instructions"
-        mock_spawn.return_value = json.dumps({
-            "status": "FINISH",
-            "summary": "All done",
-            "blocker": None
-        })
-
-        # Mock file reading
-        with patch("builtins.open", create=True) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(sample_task_json)
-
-            parser = create_argument_parser()
-            args = parser.parse_args(["/path/to/task"])
-
-            result = run_loop(args)
-
-        assert result["status"] == "FINISH"
-        assert mock_spawn.call_count == 1
-
-    @patch("implement.spawn_worker")
-    @patch("implement.find_task_files")
-    @patch("implement.load_worker_prompt")
-    def test_loop_exits_on_blocked(self, mock_load_prompt, mock_find_files, mock_spawn, sample_task_json):
-        """Loop should exit when worker returns BLOCKED."""
-        from implement import run_loop, create_argument_parser
-
-        mock_find_files.return_value = {
-            "task_json": "/path/task.json",
-            "journal_md": "/path/journal.md",
-            "task_id": "015"
-        }
-        mock_load_prompt.return_value = "Worker instructions"
-        mock_spawn.return_value = json.dumps({
-            "status": "BLOCKED",
-            "summary": "Need help",
-            "blocker": "Missing API key"
-        })
-
-        with patch("builtins.open", create=True) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(sample_task_json)
-
-            parser = create_argument_parser()
-            args = parser.parse_args(["/path/to/task"])
-
-            result = run_loop(args)
-
-        assert result["status"] == "BLOCKED"
-        assert result["blocker"] == "Missing API key"
-        assert mock_spawn.call_count == 1
-
-    @patch("implement.spawn_worker")
-    @patch("implement.find_task_files")
-    @patch("implement.load_worker_prompt")
-    def test_loop_continues_on_ongoing(self, mock_load_prompt, mock_find_files, mock_spawn, sample_task_json):
-        """Loop should respawn worker when status is ONGOING."""
-        from implement import run_loop, create_argument_parser
-
-        mock_find_files.return_value = {
-            "task_json": "/path/task.json",
-            "journal_md": "/path/journal.md",
-            "task_id": "015"
-        }
-        mock_load_prompt.return_value = "Worker instructions"
-
-        # First two calls return ONGOING, third returns FINISH
-        mock_spawn.side_effect = [
-            json.dumps({"status": "ONGOING", "summary": "Progress 1", "blocker": None}),
-            json.dumps({"status": "ONGOING", "summary": "Progress 2", "blocker": None}),
-            json.dumps({"status": "FINISH", "summary": "Done", "blocker": None}),
-        ]
-
-        with patch("builtins.open", create=True) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(sample_task_json)
-
-            parser = create_argument_parser()
-            args = parser.parse_args(["/path/to/task"])
-
-            result = run_loop(args)
-
-        assert result["status"] == "FINISH"
-        assert mock_spawn.call_count == 3
-        assert result["cycles"] == 3
-
-    @patch("implement.spawn_worker")
-    @patch("implement.find_task_files")
-    @patch("implement.load_worker_prompt")
-    def test_loop_respects_max_cycles(self, mock_load_prompt, mock_find_files, mock_spawn, sample_task_json):
-        """Loop should exit with MAX_CYCLES when limit reached."""
-        from implement import run_loop, create_argument_parser
-
-        mock_find_files.return_value = {
-            "task_json": "/path/task.json",
-            "journal_md": "/path/journal.md",
-            "task_id": "015"
-        }
-        mock_load_prompt.return_value = "Worker instructions"
-
-        # Always return ONGOING
-        mock_spawn.return_value = json.dumps({
-            "status": "ONGOING",
-            "summary": "Still working",
-            "blocker": None
-        })
-
-        with patch("builtins.open", create=True) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(sample_task_json)
-
-            parser = create_argument_parser()
-            args = parser.parse_args(["--max-cycles", "3", "/path/to/task"])
-
-            result = run_loop(args)
-
-        assert result["status"] == "MAX_CYCLES"
-        assert result["cycles"] == 3
-        assert mock_spawn.call_count == 3
-
-    @patch("implement.spawn_worker")
-    @patch("implement.find_task_files")
-    @patch("implement.load_worker_prompt")
-    @patch("time.time")
-    def test_loop_respects_max_time(self, mock_time, mock_load_prompt, mock_find_files, mock_spawn, sample_task_json):
-        """Loop should exit with TIMEOUT when time limit exceeded."""
-        from implement import run_loop, create_argument_parser
-
-        mock_find_files.return_value = {
-            "task_json": "/path/task.json",
-            "journal_md": "/path/journal.md",
-            "task_id": "015"
-        }
-        mock_load_prompt.return_value = "Worker instructions"
-
-        # Always return ONGOING
-        mock_spawn.return_value = json.dumps({
-            "status": "ONGOING",
-            "summary": "Still working",
-            "blocker": None
-        })
-
-        # Simulate time passing: start at 0, then 30 min, then 70 min (exceeds 60 min limit)
-        mock_time.side_effect = [0, 1800, 4200]
-
-        with patch("builtins.open", create=True) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(sample_task_json)
-
-            parser = create_argument_parser()
-            args = parser.parse_args(["--max-time", "60", "/path/to/task"])
-
-            result = run_loop(args)
-
-        assert result["status"] == "TIMEOUT"
-
-    @patch("implement.find_task_files")
-    def test_loop_exits_on_missing_task_json(self, mock_find_files):
-        """Loop should exit with error when task.json not found."""
-        from implement import run_loop, create_argument_parser, TaskFileError
-
-        mock_find_files.return_value = {
-            "task_json": None,
-            "journal_md": None,
-            "task_id": None
-        }
-
-        parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
-
-        with pytest.raises(TaskFileError):
-            run_loop(args)
-
-    @patch("implement.spawn_worker")
-    @patch("implement.find_task_files")
-    @patch("implement.load_worker_prompt")
-    def test_loop_includes_elapsed_time_in_output(self, mock_load_prompt, mock_find_files, mock_spawn, sample_task_json):
-        """Output should include elapsed_minutes."""
-        from implement import run_loop, create_argument_parser
-
-        mock_find_files.return_value = {
-            "task_json": "/path/task.json",
-            "journal_md": "/path/journal.md",
-            "task_id": "015"
-        }
-        mock_load_prompt.return_value = "Worker instructions"
-        mock_spawn.return_value = json.dumps({
-            "status": "FINISH",
-            "summary": "Done",
-            "blocker": None
-        })
-
-        with patch("builtins.open", create=True) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(sample_task_json)
-
-            parser = create_argument_parser()
-            args = parser.parse_args(["/path/to/task"])
-
-            result = run_loop(args)
-
-        assert "elapsed_minutes" in result
-        assert isinstance(result["elapsed_minutes"], (int, float))
-
-    @patch("implement.spawn_worker")
-    @patch("implement.find_task_files")
-    @patch("implement.load_worker_prompt")
-    def test_loop_combines_summaries(self, mock_load_prompt, mock_find_files, mock_spawn, sample_task_json):
-        """Final summary should combine all worker summaries."""
-        from implement import run_loop, create_argument_parser
-
-        mock_find_files.return_value = {
-            "task_json": "/path/task.json",
-            "journal_md": "/path/journal.md",
-            "task_id": "015"
-        }
-        mock_load_prompt.return_value = "Worker instructions"
-
-        mock_spawn.side_effect = [
-            json.dumps({"status": "ONGOING", "summary": "Completed objective 1", "blocker": None}),
-            json.dumps({"status": "FINISH", "summary": "Completed objective 2", "blocker": None}),
-        ]
-
-        with patch("builtins.open", create=True) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(sample_task_json)
-
-            parser = create_argument_parser()
-            args = parser.parse_args(["/path/to/task"])
-
-            result = run_loop(args)
-
-        assert "summary" in result
-        # Summary should contain info from both cycles
-        assert "objective" in result["summary"].lower() or len(result["summary"]) > 0
-
-
-# ============================================================================
-# Edge Case Tests
-# ============================================================================
-
-class TestEdgeCases:
-    """Test edge cases and error handling."""
-
-    def test_windows_paths_handled(self, temp_task_dir, sample_task_json):
-        """Should handle Windows-style paths correctly."""
-        from implement import find_task_files
-
-        # Create task.json
-        task_json_path = temp_task_dir / "task.json"
-        task_json_path.write_text(json.dumps(sample_task_json))
-
-        worktree_root = temp_task_dir.parent.parent
-
-        # Convert to Windows-style path
-        windows_path = str(worktree_root).replace("/", "\\")
-
-        result = find_task_files(windows_path)
-
-        # Should still work
-        assert result["task_json"] is not None or result["task_json"] is None  # Path handling works
-
-    def test_empty_task_json(self, temp_task_dir):
-        """Should handle empty task.json gracefully."""
-        from implement import find_task_files
-
-        task_json_path = temp_task_dir / "task.json"
-        task_json_path.write_text("")
-
-        worktree_root = temp_task_dir.parent.parent
-
-        # Should not crash
-        result = find_task_files(str(worktree_root))
-        assert result is not None
-
     @patch("subprocess.run")
-    def test_worker_process_crash(self, mock_run):
-        """Should handle worker process crash gracefully."""
+    def test_spawn_worker_process_crash(self, mock_run):
+        """Should raise WorkerSpawnError on subprocess failure."""
         from implement import spawn_worker, WorkerSpawnError
 
         mock_run.side_effect = subprocess.SubprocessError("Process crashed")
@@ -1057,8 +743,8 @@ class TestEdgeCases:
             )
 
     @patch("subprocess.run")
-    def test_worker_returns_non_zero_exit(self, mock_run):
-        """Should handle non-zero exit code from worker."""
+    def test_spawn_worker_non_zero_exit_returns_output(self, mock_run):
+        """Should return output even with non-zero exit code."""
         from implement import spawn_worker
 
         mock_run.return_value = Mock(
@@ -1077,38 +763,259 @@ class TestEdgeCases:
 
         assert result is not None
 
-    def test_malformed_json_in_worker_output(self):
-        """Should handle malformed JSON with helpful error."""
-        from implement import parse_worker_output, WorkerOutputError
 
-        malformed_outputs = [
-            '{"status": "ONGOING", summary: "missing quotes"}',
-            '{"status": "ONGOING", "summary": }',
-            '{status: ONGOING}',
-            'just plain text',
-            '',
+# ============================================================================
+# Main Loop Integration Tests
+# ============================================================================
+
+class TestMainLoop:
+    """Integration tests for the main orchestration loop."""
+
+    @patch("implement.spawn_worker")
+    @patch("implement.validate_task_files")
+    @patch("implement.load_worker_prompt")
+    def test_loop_exits_on_finish(self, mock_load_prompt, mock_validate, mock_spawn):
+        """Loop should exit when worker returns FINISH."""
+        from implement import run_loop, create_argument_parser
+
+        mock_validate.return_value = {
+            "valid": True,
+            "task_json_path": "/path/task.json",
+            "task_id": "015"
+        }
+        mock_load_prompt.return_value = "Worker instructions"
+        mock_spawn.return_value = json.dumps({
+            "status": "FINISH",
+            "summary": "All done",
+            "blocker": None
+        })
+
+        parser = create_argument_parser()
+        args = parser.parse_args(["/path/to/task"])
+
+        result = run_loop(args)
+
+        assert result["status"] == "FINISH"
+        assert mock_spawn.call_count == 1
+
+    @patch("implement.spawn_worker")
+    @patch("implement.validate_task_files")
+    @patch("implement.load_worker_prompt")
+    def test_loop_exits_on_blocked(self, mock_load_prompt, mock_validate, mock_spawn):
+        """Loop should exit when worker returns BLOCKED."""
+        from implement import run_loop, create_argument_parser
+
+        mock_validate.return_value = {
+            "valid": True,
+            "task_json_path": "/path/task.json",
+            "task_id": "015"
+        }
+        mock_load_prompt.return_value = "Worker instructions"
+        mock_spawn.return_value = json.dumps({
+            "status": "BLOCKED",
+            "summary": "Need help",
+            "blocker": "Missing API key"
+        })
+
+        parser = create_argument_parser()
+        args = parser.parse_args(["/path/to/task"])
+
+        result = run_loop(args)
+
+        assert result["status"] == "BLOCKED"
+        assert result["blocker"] == "Missing API key"
+        assert mock_spawn.call_count == 1
+
+    @patch("implement.spawn_worker")
+    @patch("implement.validate_task_files")
+    @patch("implement.load_worker_prompt")
+    def test_loop_continues_on_ongoing(self, mock_load_prompt, mock_validate, mock_spawn):
+        """Loop should respawn worker when status is ONGOING."""
+        from implement import run_loop, create_argument_parser
+
+        mock_validate.return_value = {
+            "valid": True,
+            "task_json_path": "/path/task.json",
+            "task_id": "015"
+        }
+        mock_load_prompt.return_value = "Worker instructions"
+
+        # First two calls return ONGOING, third returns FINISH
+        mock_spawn.side_effect = [
+            json.dumps({"status": "ONGOING", "summary": "Progress 1", "blocker": None}),
+            json.dumps({"status": "ONGOING", "summary": "Progress 2", "blocker": None}),
+            json.dumps({"status": "FINISH", "summary": "Done", "blocker": None}),
         ]
 
-        for output in malformed_outputs:
-            with pytest.raises(WorkerOutputError):
-                parse_worker_output(output)
+        parser = create_argument_parser()
+        args = parser.parse_args(["/path/to/task"])
 
-    def test_very_long_journal_content(self, sample_task_json, sample_worker_prompt):
-        """Should handle very long journal content."""
-        from implement import build_prompt
+        result = run_loop(args)
 
-        # Create very long journal
-        long_journal = "# Journal\n\n" + ("Entry content " * 10000)
+        assert result["status"] == "FINISH"
+        assert mock_spawn.call_count == 3
+        assert result["cycles"] == 3
 
-        # Should not crash
-        prompt = build_prompt(
-            task_json=sample_task_json,
-            journal_content=long_journal,
-            worker_instructions=sample_worker_prompt
-        )
+    @patch("implement.spawn_worker")
+    @patch("implement.validate_task_files")
+    @patch("implement.load_worker_prompt")
+    def test_loop_respects_max_cycles(self, mock_load_prompt, mock_validate, mock_spawn):
+        """Loop should exit with MAX_CYCLES when limit reached."""
+        from implement import run_loop, create_argument_parser
 
-        assert prompt is not None
-        assert len(prompt) > 0
+        mock_validate.return_value = {
+            "valid": True,
+            "task_json_path": "/path/task.json",
+            "task_id": "015"
+        }
+        mock_load_prompt.return_value = "Worker instructions"
+
+        # Always return ONGOING
+        mock_spawn.return_value = json.dumps({
+            "status": "ONGOING",
+            "summary": "Still working",
+            "blocker": None
+        })
+
+        parser = create_argument_parser()
+        args = parser.parse_args(["--max-cycles", "3", "/path/to/task"])
+
+        result = run_loop(args)
+
+        assert result["status"] == "MAX_CYCLES"
+        assert result["cycles"] == 3
+        assert mock_spawn.call_count == 3
+
+    @patch("implement.spawn_worker")
+    @patch("implement.validate_task_files")
+    @patch("implement.load_worker_prompt")
+    @patch("time.time")
+    def test_loop_respects_max_time(self, mock_time, mock_load_prompt, mock_validate, mock_spawn):
+        """Loop should exit with TIMEOUT when time limit exceeded."""
+        from implement import run_loop, create_argument_parser
+
+        mock_validate.return_value = {
+            "valid": True,
+            "task_json_path": "/path/task.json",
+            "task_id": "015"
+        }
+        mock_load_prompt.return_value = "Worker instructions"
+
+        # Always return ONGOING
+        mock_spawn.return_value = json.dumps({
+            "status": "ONGOING",
+            "summary": "Still working",
+            "blocker": None
+        })
+
+        # Simulate time passing: start at 0, then 30 min, then 70 min (exceeds 60 min limit)
+        mock_time.side_effect = [0, 1800, 4200]
+
+        parser = create_argument_parser()
+        args = parser.parse_args(["--max-time", "60", "/path/to/task"])
+
+        result = run_loop(args)
+
+        assert result["status"] == "TIMEOUT"
+
+    @patch("implement.validate_task_files")
+    def test_loop_exits_on_missing_task_json(self, mock_validate):
+        """Loop should raise error when task.json not found."""
+        from implement import run_loop, create_argument_parser, TaskFileError
+
+        mock_validate.return_value = {
+            "valid": False,
+            "error": "task.json not found"
+        }
+
+        parser = create_argument_parser()
+        args = parser.parse_args(["/path/to/task"])
+
+        with pytest.raises(TaskFileError):
+            run_loop(args)
+
+    @patch("implement.spawn_worker")
+    @patch("implement.validate_task_files")
+    @patch("implement.load_worker_prompt")
+    def test_loop_includes_elapsed_time_in_output(self, mock_load_prompt, mock_validate, mock_spawn):
+        """Output should include elapsed_minutes."""
+        from implement import run_loop, create_argument_parser
+
+        mock_validate.return_value = {
+            "valid": True,
+            "task_json_path": "/path/task.json",
+            "task_id": "015"
+        }
+        mock_load_prompt.return_value = "Worker instructions"
+        mock_spawn.return_value = json.dumps({
+            "status": "FINISH",
+            "summary": "Done",
+            "blocker": None
+        })
+
+        parser = create_argument_parser()
+        args = parser.parse_args(["/path/to/task"])
+
+        result = run_loop(args)
+
+        assert "elapsed_minutes" in result
+        assert isinstance(result["elapsed_minutes"], (int, float))
+
+    @patch("implement.spawn_worker")
+    @patch("implement.validate_task_files")
+    @patch("implement.load_worker_prompt")
+    def test_loop_combines_summaries(self, mock_load_prompt, mock_validate, mock_spawn):
+        """Final summary should combine all worker summaries."""
+        from implement import run_loop, create_argument_parser
+
+        mock_validate.return_value = {
+            "valid": True,
+            "task_json_path": "/path/task.json",
+            "task_id": "015"
+        }
+        mock_load_prompt.return_value = "Worker instructions"
+
+        mock_spawn.side_effect = [
+            json.dumps({"status": "ONGOING", "summary": "Completed objective 1", "blocker": None}),
+            json.dumps({"status": "FINISH", "summary": "Completed objective 2", "blocker": None}),
+        ]
+
+        parser = create_argument_parser()
+        args = parser.parse_args(["/path/to/task"])
+
+        result = run_loop(args)
+
+        assert "summary" in result
+        # Summary should contain info from both cycles
+        assert "objective" in result["summary"].lower() or len(result["summary"]) > 0
+
+    @patch("implement.spawn_worker")
+    @patch("implement.validate_task_files")
+    @patch("implement.load_worker_prompt")
+    def test_loop_passes_worker_prompt_to_spawn(self, mock_load_prompt, mock_validate, mock_spawn):
+        """Loop should pass worker prompt to spawn_worker."""
+        from implement import run_loop, create_argument_parser
+
+        mock_validate.return_value = {
+            "valid": True,
+            "task_json_path": "/path/task.json",
+            "task_id": "015"
+        }
+        mock_load_prompt.return_value = "Worker instructions content"
+        mock_spawn.return_value = json.dumps({
+            "status": "FINISH",
+            "summary": "Done",
+            "blocker": None
+        })
+
+        parser = create_argument_parser()
+        args = parser.parse_args(["/path/to/task"])
+
+        run_loop(args)
+
+        # Verify spawn_worker was called with the worker prompt
+        call_args = mock_spawn.call_args
+        assert "Worker instructions content" in call_args.kwargs.get("prompt", call_args[0][0] if call_args[0] else "")
 
 
 # ============================================================================
