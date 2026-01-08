@@ -240,21 +240,15 @@ def parse_worker_output(output: str) -> Dict[str, Any]:
     if not output or not output.strip():
         raise WorkerOutputError("Worker output is empty")
 
-    # Try to find JSON in the output
-    # First, try to parse the whole thing
-    json_str = output.strip()
-
-    # Try to extract JSON object from the output
-    # Look for pattern { ... } that could be valid JSON
-    json_match = re.search(r'\{[^{}]*\}', output, re.DOTALL)
-
     parsed = None
 
-    # First try parsing the whole output
+    # First try parsing the whole output as JSON
     try:
         parsed = json.loads(output.strip())
     except json.JSONDecodeError:
-        # Try to find and parse embedded JSON
+        # Fallback: try to extract JSON object from surrounding text
+        # Pattern matches simple JSON objects (no nested braces in values)
+        json_match = re.search(r'\{[^{}]*\}', output, re.DOTALL)
         if json_match:
             try:
                 parsed = json.loads(json_match.group())
