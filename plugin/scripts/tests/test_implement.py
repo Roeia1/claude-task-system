@@ -656,6 +656,29 @@ class TestWorkerSpawning:
         assert '"BLOCKED"' in schema_str
 
     @patch("subprocess.run")
+    def test_spawn_worker_skips_permissions(self, mock_run):
+        """Should include --dangerously-skip-permissions flag."""
+        from implement import spawn_worker
+
+        mock_run.return_value = Mock(
+            stdout='{"status": "ONGOING", "summary": "progress", "blocker": null}',
+            returncode=0
+        )
+
+        spawn_worker(
+            prompt="Test prompt",
+            model="sonnet",
+            mcp_config=None,
+            tools=None,
+            working_dir="/path/to/task"
+        )
+
+        call_args = mock_run.call_args
+        cmd = call_args[0][0]
+
+        assert "--dangerously-skip-permissions" in cmd
+
+    @patch("subprocess.run")
     def test_spawn_worker_with_mcp_config(self, mock_run):
         """Should include --mcp-config when provided."""
         from implement import spawn_worker

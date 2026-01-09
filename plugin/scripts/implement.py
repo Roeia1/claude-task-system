@@ -353,7 +353,8 @@ def spawn_worker(
         "claude",
         "-p", prompt,
         "--model", model,
-        "--json-schema", json.dumps(WORKER_OUTPUT_SCHEMA)
+        "--json-schema", json.dumps(WORKER_OUTPUT_SCHEMA),
+        "--dangerously-skip-permissions"
     ]
 
     # Add optional arguments
