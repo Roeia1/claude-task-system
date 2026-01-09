@@ -33,7 +33,7 @@ from typing import Any, Dict, Optional
 
 DEFAULT_MAX_CYCLES = 10
 DEFAULT_MAX_TIME = 60  # minutes
-DEFAULT_MODEL = "sonnet"
+DEFAULT_MODEL = "opus"
 
 # Valid worker exit statuses
 VALID_STATUSES = {"ONGOING", "FINISH", "BLOCKED"}

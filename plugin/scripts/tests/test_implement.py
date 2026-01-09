@@ -199,13 +199,13 @@ class TestCLIArgumentParsing:
         assert args.max_time == 120
 
     def test_model_default(self):
-        """Default model should be 'sonnet'."""
+        """Default model should be 'opus'."""
         from implement import create_argument_parser
 
         parser = create_argument_parser()
         args = parser.parse_args(["/path/to/task"])
 
-        assert args.model == "sonnet"
+        assert args.model == "opus"
 
     def test_model_custom(self):
         """Should accept custom model value."""
