@@ -178,3 +178,31 @@ optional arguments:
 - Script outputs structured JSON result with status, summary, cycles, elapsed_minutes, blocker
 - Script handles missing files gracefully with clear error messages
 - Script works on both Windows and Unix (pathlib-based paths)
+
+## Lessons Learned
+
+### New Risks Discovered
+
+1. **Design ambiguity in task specifications**: The original task.md implied the orchestrator would inject task.json content into worker prompts, but workers need to read AND write these files. This caused a mid-task design pivot.
+   - **Mitigation applied**: Simplified architecture - orchestrator validates only, workers handle file I/O
+   - **Future guidance**: Task specs should explicitly state which component owns file read/write operations
+
+2. **JSON extraction from mixed output**: Even with --output-format json, workers may produce extra text. The regex fallback pattern `\{[^{}]*\}` doesn't handle nested JSON.
+   - **Mitigation applied**: Using --output-format json minimizes this risk; simple fallback handles most cases
+   - **Future enhancement**: Consider using --json-schema for stricter validation
+
+### Patterns That Worked Well
+
+1. **TDD caught the design flaw early**: Writing tests first revealed that content injection was problematic before any implementation was done. This saved significant rework.
+
+2. **Custom exception hierarchy**: TaskFileError, WorkerPromptError, WorkerOutputError, WorkerSpawnError provide clear error categorization and enable specific handling in main().
+
+3. **Section headers in implementation**: Using `# ============` comment blocks improved code navigation and made the 480-line file manageable.
+
+4. **Minimal orchestrator responsibility**: The orchestrator only validates files exist and loads the worker prompt. Workers handle all business logic. This clean separation makes both components easier to test and maintain.
+
+### Approaches to Avoid
+
+1. **Don't assume content injection is better than letting workers read files**: If workers need to modify files, they should read them too. Injecting stale content causes confusion.
+
+2. **Don't over-engineer JSON parsing**: The simple regex fallback handles edge cases well enough. Nested JSON in worker output is unlikely with proper output flags.

@@ -225,3 +225,40 @@ Completed verification of all acceptance criteria and prepared PR for review.
 - PR ready for review
 
 **Next:** Request permission to proceed to Phase 5 (Reflection)
+
+---
+
+### 2026-01-10 - Phase 5 Complete: Task Journey Reviewed
+
+**Phase:** Phase 5: Reflection
+
+Completed reflection on the entire task journey for implement.py orchestration script.
+
+**Key Challenges Encountered:**
+
+1. Design ambiguity about file access ownership - task.md implied orchestrator injects content, but workers need to read/write files. Resolved with mid-task architecture pivot.
+2. JSON parsing robustness - implemented regex fallback for extracting JSON from mixed output.
+
+**Solution Evolution:**
+
+- Started with content injection approach (per original task.md)
+- TDD phase revealed workers must modify files (task.json objectives, journal.md)
+- Pivoted to simpler architecture: orchestrator validates only, workers read files themselves
+- This simplified both tests (fewer mocks) and implementation (no content loading)
+
+**What Worked Well:**
+
+- TDD caught design flaw early (during test writing, not implementation)
+- Custom exception hierarchy (TaskFileError, WorkerPromptError, WorkerOutputError, WorkerSpawnError)
+- Section headers with `# ============` improved 480-line file navigation
+- Minimal orchestrator responsibility enabled clean separation of concerns
+
+**Task File Updated:**
+
+Added "Lessons Learned" section documenting:
+
+- New risks discovered (design ambiguity, JSON extraction edge cases)
+- Patterns that worked well (TDD, exception hierarchy, minimal orchestrator)
+- Approaches to avoid (content injection, over-engineering JSON parsing)
+
+**Next:** Request permission to complete task (proceed to merge and archive)
