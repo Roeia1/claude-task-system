@@ -626,9 +626,9 @@ class TestWorkerSpawning:
         assert "sonnet" in cmd
 
     @patch("subprocess.run")
-    def test_spawn_worker_with_json_output_format(self, mock_run):
-        """Should include --output-format json flag."""
-        from implement import spawn_worker
+    def test_spawn_worker_with_json_schema(self, mock_run):
+        """Should include --json-schema flag with worker output schema."""
+        from implement import spawn_worker, WORKER_OUTPUT_SCHEMA
 
         mock_run.return_value = Mock(
             stdout='{"status": "ONGOING", "summary": "progress", "blocker": null}',
@@ -646,8 +646,14 @@ class TestWorkerSpawning:
         call_args = mock_run.call_args
         cmd = call_args[0][0]
 
-        assert "--output-format" in cmd
-        assert "json" in cmd
+        assert "--json-schema" in cmd
+        # Verify the schema is included as JSON string
+        schema_idx = cmd.index("--json-schema")
+        schema_str = cmd[schema_idx + 1]
+        assert '"status"' in schema_str
+        assert '"ONGOING"' in schema_str
+        assert '"FINISH"' in schema_str
+        assert '"BLOCKED"' in schema_str
 
     @patch("subprocess.run")
     def test_spawn_worker_with_mcp_config(self, mock_run):

@@ -41,6 +41,26 @@ VALID_STATUSES = {"ONGOING", "FINISH", "BLOCKED"}
 # Worker prompt path relative to plugin root
 WORKER_PROMPT_RELATIVE = "instructions/orchestration/worker-prompt.md"
 
+# JSON schema for worker output validation (used with --json-schema flag)
+WORKER_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "status": {
+            "type": "string",
+            "enum": ["ONGOING", "FINISH", "BLOCKED"]
+        },
+        "summary": {
+            "type": "string",
+            "description": "What was accomplished this session"
+        },
+        "blocker": {
+            "type": ["string", "null"],
+            "description": "Brief description if BLOCKED, null otherwise"
+        }
+    },
+    "required": ["status", "summary"]
+}
+
 
 # ============================================================================
 # Custom Exceptions
@@ -328,12 +348,12 @@ def spawn_worker(
     Raises:
         WorkerSpawnError: If the subprocess fails to spawn or crashes.
     """
-    # Build command
+    # Build command with JSON schema for validated output
     cmd = [
         "claude",
         "-p", prompt,
         "--model", model,
-        "--output-format", "json"
+        "--json-schema", json.dumps(WORKER_OUTPUT_SCHEMA)
     ]
 
     # Add optional arguments
