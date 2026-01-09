@@ -267,10 +267,11 @@ def parse_worker_output(output: str) -> Dict[str, Any]:
     """
     Parse and validate worker JSON output.
 
-    Handles cases where there may be extra text before or after the JSON.
+    The output is from claude CLI with --output-format json, which wraps
+    the structured_output in a response envelope.
 
     Args:
-        output: Raw stdout from the worker process
+        output: Raw stdout from the worker process (claude CLI JSON format)
 
     Returns:
         Parsed and validated worker output dict with status, summary, and blocker.
@@ -282,23 +283,24 @@ def parse_worker_output(output: str) -> Dict[str, Any]:
     if not output or not output.strip():
         raise WorkerOutputError("Worker output is empty")
 
-    parsed = None
-
-    # First try parsing the whole output as JSON
+    # Parse the claude CLI JSON response
     try:
-        parsed = json.loads(output.strip())
-    except json.JSONDecodeError:
-        # Fallback: try to extract JSON object from surrounding text
-        # Pattern matches simple JSON objects (no nested braces in values)
-        json_match = re.search(r'\{[^{}]*\}', output, re.DOTALL)
-        if json_match:
-            try:
-                parsed = json.loads(json_match.group())
-            except json.JSONDecodeError:
-                pass
+        cli_response = json.loads(output.strip())
+    except json.JSONDecodeError as e:
+        raise WorkerOutputError(f"Invalid JSON in worker output: {e}")
 
-    if parsed is None:
-        raise WorkerOutputError(f"Invalid JSON in worker output: {output[:100]}...")
+    # Extract structured_output from the CLI response
+    if "structured_output" not in cli_response:
+        # Check if this is an error response
+        if cli_response.get("is_error"):
+            error_msg = cli_response.get("result", "Unknown error")
+            raise WorkerOutputError(f"Worker failed: {error_msg}")
+        raise WorkerOutputError(
+            "Worker output missing structured_output field. "
+            f"Got keys: {list(cli_response.keys())}"
+        )
+
+    parsed = cli_response["structured_output"]
 
     # Validate required fields
     if "status" not in parsed:
@@ -353,6 +355,7 @@ def spawn_worker(
         "claude",
         "-p", prompt,
         "--model", model,
+        "--output-format", "json",
         "--json-schema", json.dumps(WORKER_OUTPUT_SCHEMA),
         "--dangerously-skip-permissions"
     ]
