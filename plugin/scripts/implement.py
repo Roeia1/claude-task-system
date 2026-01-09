@@ -18,6 +18,7 @@ The script continues spawning workers until:
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -37,8 +38,8 @@ DEFAULT_MODEL = "sonnet"
 # Valid worker exit statuses
 VALID_STATUSES = {"ONGOING", "FINISH", "BLOCKED"}
 
-# Worker prompt location relative to this script
-WORKER_PROMPT_PATH = Path(__file__).parent.parent / "instructions" / "orchestration" / "worker-prompt.md"
+# Worker prompt path relative to plugin root
+WORKER_PROMPT_RELATIVE = "instructions/orchestration/worker-prompt.md"
 
 
 # ============================================================================
@@ -198,6 +199,25 @@ def validate_task_files(task_path: str) -> Dict[str, Any]:
 # Worker Prompt Loading
 # ============================================================================
 
+def get_worker_prompt_path() -> Path:
+    """
+    Get the worker prompt path using CLAUDE_PLUGIN_ROOT environment variable.
+
+    Returns:
+        Path to the worker prompt file.
+
+    Raises:
+        WorkerPromptError: If CLAUDE_PLUGIN_ROOT is not set.
+    """
+    plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
+    if not plugin_root:
+        raise WorkerPromptError(
+            "CLAUDE_PLUGIN_ROOT environment variable is not set. "
+            "This script must be run in a Claude Code plugin context."
+        )
+    return Path(plugin_root) / WORKER_PROMPT_RELATIVE
+
+
 def load_worker_prompt() -> str:
     """
     Load the worker prompt template.
@@ -206,13 +226,15 @@ def load_worker_prompt() -> str:
         The worker prompt content as a string.
 
     Raises:
-        WorkerPromptError: If the prompt file cannot be found or read.
+        WorkerPromptError: If CLAUDE_PLUGIN_ROOT is not set or the prompt file
+                          cannot be found or read.
     """
+    prompt_path = get_worker_prompt_path()
     try:
-        with open(WORKER_PROMPT_PATH, "r", encoding="utf-8") as f:
+        with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        raise WorkerPromptError(f"Worker prompt not found at {WORKER_PROMPT_PATH}")
+        raise WorkerPromptError(f"Worker prompt not found at {prompt_path}")
     except IOError as e:
         raise WorkerPromptError(f"Failed to read worker prompt: {e}")
 

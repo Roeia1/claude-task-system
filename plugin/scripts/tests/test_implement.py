@@ -350,14 +350,39 @@ class TestTaskFileValidation:
 class TestWorkerPromptLoading:
     """Test worker prompt template loading."""
 
+    def test_get_worker_prompt_path_uses_env_var(self):
+        """Should use CLAUDE_PLUGIN_ROOT environment variable."""
+        from implement import get_worker_prompt_path
+
+        with patch.dict("os.environ", {"CLAUDE_PLUGIN_ROOT": "/path/to/plugin"}):
+            result = get_worker_prompt_path()
+
+        assert str(result) == "/path/to/plugin/instructions/orchestration/worker-prompt.md"
+
+    def test_get_worker_prompt_path_missing_env_var(self):
+        """Should raise error if CLAUDE_PLUGIN_ROOT not set."""
+        from implement import get_worker_prompt_path, WorkerPromptError
+
+        with patch.dict("os.environ", {}, clear=True):
+            # Ensure CLAUDE_PLUGIN_ROOT is not in environment
+            import os
+            if "CLAUDE_PLUGIN_ROOT" in os.environ:
+                del os.environ["CLAUDE_PLUGIN_ROOT"]
+
+            with pytest.raises(WorkerPromptError) as exc_info:
+                get_worker_prompt_path()
+
+            assert "CLAUDE_PLUGIN_ROOT" in str(exc_info.value)
+
     def test_load_worker_prompt_returns_string(self, sample_worker_prompt):
         """Should return worker prompt as string."""
         from implement import load_worker_prompt
 
-        with patch("builtins.open", create=True) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = sample_worker_prompt
+        with patch.dict("os.environ", {"CLAUDE_PLUGIN_ROOT": "/path/to/plugin"}):
+            with patch("builtins.open", create=True) as mock_open:
+                mock_open.return_value.__enter__.return_value.read.return_value = sample_worker_prompt
 
-            result = load_worker_prompt()
+                result = load_worker_prompt()
 
         assert isinstance(result, str)
         assert len(result) > 0
@@ -366,10 +391,11 @@ class TestWorkerPromptLoading:
         """Worker prompt should contain key instructions."""
         from implement import load_worker_prompt
 
-        with patch("builtins.open", create=True) as mock_open:
-            mock_open.return_value.__enter__.return_value.read.return_value = sample_worker_prompt
+        with patch.dict("os.environ", {"CLAUDE_PLUGIN_ROOT": "/path/to/plugin"}):
+            with patch("builtins.open", create=True) as mock_open:
+                mock_open.return_value.__enter__.return_value.read.return_value = sample_worker_prompt
 
-            result = load_worker_prompt()
+                result = load_worker_prompt()
 
         assert "task.json" in result.lower()
         assert "journal" in result.lower()
@@ -378,9 +404,20 @@ class TestWorkerPromptLoading:
         """Should raise error if worker prompt file not found."""
         from implement import load_worker_prompt, WorkerPromptError
 
-        with patch("builtins.open", side_effect=FileNotFoundError("Not found")):
-            with pytest.raises(WorkerPromptError):
+        with patch.dict("os.environ", {"CLAUDE_PLUGIN_ROOT": "/path/to/plugin"}):
+            with patch("builtins.open", side_effect=FileNotFoundError("Not found")):
+                with pytest.raises(WorkerPromptError):
+                    load_worker_prompt()
+
+    def test_load_worker_prompt_missing_env_var(self):
+        """Should raise error if CLAUDE_PLUGIN_ROOT not set."""
+        from implement import load_worker_prompt, WorkerPromptError
+
+        with patch.dict("os.environ", {}, clear=True):
+            with pytest.raises(WorkerPromptError) as exc_info:
                 load_worker_prompt()
+
+            assert "CLAUDE_PLUGIN_ROOT" in str(exc_info.value)
 
 
 # ============================================================================
