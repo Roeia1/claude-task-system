@@ -21,7 +21,7 @@
         "Follow the pattern from existing commands like init.md and task-list.md",
         "Use descriptive frontmatter that will appear in command listings"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-2",
@@ -35,7 +35,7 @@
         "Keep it minimal - this is a demonstration skill",
         "The output message should confirm the skill executed successfully"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-3",
@@ -49,7 +49,7 @@
         "Manual testing is sufficient for this simple feature",
         "Check that no errors occur during skill activation"
       ],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

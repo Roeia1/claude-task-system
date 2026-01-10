@@ -27,7 +27,8 @@
     "./commands/feature-definition.md",
     "./commands/feature-planning.md",
     "./commands/architecture-decisions.md",
-    "./commands/task-generation.md"
+    "./commands/task-generation.md",
+    "./commands/dummy-test.md"
   ],
   "skills": "./skills/",
   "agents": [
