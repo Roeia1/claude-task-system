@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-01-10
+
+### Changed
+
+- **implement**: Use `--plugin-root` argument instead of environment variable for plugin path resolution
+- **implement**: Replace `nohup` with Bash tool's `run_in_background` for worker spawning
+- **context-detection**: Use `$TASK_CONTEXT` environment variable for consistent context detection across skills
+
+### Fixed
+
+- **plugin-manifest**: Remove duplicate hooks reference that caused "Duplicate hooks file detected" error on plugin load
+
 ## [1.4.0] - 2026-01-10
 
 ### Added
