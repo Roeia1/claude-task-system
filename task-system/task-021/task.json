@@ -1,0 +1,55 @@
+{
+  "meta": {
+    "id": "021",
+    "title": "Create Dummy Test Command and Skill",
+    "created": "2026-01-10",
+    "feature": "008"
+  },
+
+  "overview": "Create a minimal /dummy-test slash command and its corresponding skill to demonstrate the plugin command/skill pattern. The command will be defined in plugin/commands/dummy-test.md and will activate a skill in plugin/instructions/dummy-test/INSTRUCTIONS.md. When invoked, the skill outputs a simple test message confirming it works. This serves as a reference implementation for creating new commands and skills in the plugin system. The implementation must follow existing patterns from other commands like /init and /task-list.",
+
+  "objectives": [
+    {
+      "id": "obj-1",
+      "description": "Create the dummy-test command file at plugin/commands/dummy-test.md",
+      "steps": [
+        "Create the command file with YAML frontmatter containing description",
+        "Add command documentation explaining what it does",
+        "Reference the dummy-test skill for execution"
+      ],
+      "notes": [
+        "Follow the pattern from existing commands like init.md and task-list.md",
+        "Use descriptive frontmatter that will appear in command listings"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-2",
+      "description": "Create the dummy-test skill directory and INSTRUCTIONS.md",
+      "steps": [
+        "Create directory plugin/instructions/dummy-test/",
+        "Create INSTRUCTIONS.md with simple execution instructions",
+        "Instructions should output a test confirmation message"
+      ],
+      "notes": [
+        "Keep it minimal - this is a demonstration skill",
+        "The output message should confirm the skill executed successfully"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-3",
+      "description": "Verify the command and skill integrate correctly",
+      "steps": [
+        "Document how to test the command manually",
+        "Ensure command appears in available commands",
+        "Confirm skill can be activated via command"
+      ],
+      "notes": [
+        "Manual testing is sufficient for this simple feature",
+        "Check that no errors occur during skill activation"
+      ],
+      "status": "pending"
+    }
+  ]
+}
