@@ -32,3 +32,29 @@ Key understanding:
 
 **Next:** Begin Phase 1: Write tests for task.json generation following TDD workflow
 
+### 2026-01-10 03:45 - Task Completed
+
+Updated task-builder to generate task.json instead of task.md.
+
+**Files Modified:**
+- `plugin/agents/task-builder.md` - Updated agent description to reference task.json
+- `plugin/instructions/task-builder/INSTRUCTIONS.md` - Updated skill description
+- `plugin/instructions/task-builder/step-instructions/02-content-gen.md` - Rewrote for task.json generation with:
+  - Field mapping table for template fields
+  - Context distillation guidelines for overview
+  - Objectives extraction guidelines from plan.md
+  - Validation checklist
+  - Quality standards (DO/DO NOT)
+- `plugin/instructions/task-builder/step-instructions/03-finalize.md` - References task.json in commit and PR body
+- `plugin/skills/task-builder/SKILL.md` - Updated description
+
+**Key Decisions:**
+- Content-gen references the template file rather than duplicating JSON structure
+- Distillation guidelines emphasize self-contained overview (workers don't read feature/plan)
+- Template intentionally omits type/priority per user decision (type derived from branch name)
+- Deprecated task.md references in other files (task-list, task-merge, etc.) left unchanged as they're part of the old flow
+
+**Commit:** 5342cab - feat(task-019): modify task-builder to generate task.json
+
+All objectives completed. Task ready for merge.
+

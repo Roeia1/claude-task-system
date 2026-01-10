@@ -26,23 +26,23 @@ P1 - This is a foundational requirement for the new orchestration system. Withou
 
 ## Objectives
 
-- [ ] Update task-builder agent to generate task.json instead of task.md
-- [ ] Create context distillation logic that extracts and condenses feature/plan/ADR content into overview
-- [ ] Generate properly structured objectives from plan.md technical approach sections
-- [ ] Ensure generated task.json is self-contained (worker never reads source feature files)
-- [ ] Update all files that reference task.md to use task.json where appropriate
+- [x] Update task-builder agent to generate task.json instead of task.md
+- [x] Create context distillation logic that extracts and condenses feature/plan/ADR content into overview
+- [x] Generate properly structured objectives from plan.md technical approach sections
+- [x] Ensure generated task.json is self-contained (worker never reads source feature files)
+- [x] Update all files that reference task.md to use task.json where appropriate
 
 ## Sub-tasks
 
-1. [ ] Read and understand the task.json schema from task 014's output (1-2 hours)
-2. [ ] Modify `plugin/agents/task-builder.md` to output task.json instead of task.md (2-3 hours)
-3. [ ] Update `plugin/skills/task-builder/SKILL.md` to reflect the new task.json generation process (1-2 hours)
-4. [ ] Create content generation logic that distills feature.md requirements into the `overview` field (2-3 hours)
-5. [ ] Create objective extraction logic that converts plan.md technical steps into structured objectives (2-3 hours)
-6. [ ] Update `plugin/instructions/task-builder/templates/` to include task.json template (1 hour)
-7. [ ] Update `plugin/instructions/task-builder/step-instructions/02-content-gen.md` for task.json generation (1-2 hours)
-8. [ ] Search for and update all references to task.md in the codebase that should point to task.json (1-2 hours)
-9. [ ] Test task.json generation with a sample feature/plan combination (1 hour)
+1. [x] Read and understand the task.json schema from task 014's output
+2. [x] Modify `plugin/agents/task-builder.md` to output task.json instead of task.md
+3. [x] Update `plugin/skills/task-builder/SKILL.md` to reflect the new task.json generation process
+4. [x] Create content generation logic that distills feature.md requirements into the `overview` field
+5. [x] Create objective extraction logic that converts plan.md technical steps into structured objectives
+6. [x] Update `plugin/instructions/task-builder/templates/` to include task.json template (already done in task 014)
+7. [x] Update `plugin/instructions/task-builder/step-instructions/02-content-gen.md` for task.json generation
+8. [x] Update task-builder related references to task.md to use task.json
+9. [x] Update `plugin/instructions/task-builder/step-instructions/03-finalize.md` for task.json
 
 ## Technical Approach
 
