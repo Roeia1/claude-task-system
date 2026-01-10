@@ -26,25 +26,25 @@ P1 - Critical path for blocker resolution workflow; without this command, blocke
 
 ## Objectives
 
-- [ ] Command file created at `plugin/commands/resolve.md` with proper trigger and skill invocation
-- [ ] Skill file created at `plugin/skills/resolve/SKILL.md` with skill definition and metadata
-- [ ] Instructions file created at `plugin/instructions/resolve/INSTRUCTIONS.md` with complete resolution workflow
-- [ ] Worktree context validation implemented (detects task ID from current directory)
-- [ ] Blocker.md reading and analysis workflow documented
-- [ ] Solution proposal workflow with human approval step defined
-- [ ] Resolution.md writing with proper template structure implemented
-- [ ] Error handling for all edge cases (not in worktree, no blocker.md, already resolved)
+- [x] Command file created at `plugin/commands/resolve.md` with proper trigger and skill invocation
+- [x] ~~Skill file created at `plugin/skills/resolve/SKILL.md`~~ (SKILL.md files deprecated; command pattern used)
+- [x] Instructions file created at `plugin/instructions/resolve/INSTRUCTIONS.md` with complete resolution workflow
+- [x] Worktree context validation implemented (uses detect-context.sh for task ID detection)
+- [x] Blocker reading from journal.md and analysis workflow documented (per feature.md design)
+- [x] Solution proposal workflow with human approval step defined
+- [x] Resolution appended to journal.md with proper template structure (per feature.md design)
+- [x] Error handling for all edge cases (not in worktree, no blocker, already resolved)
 
 ## Sub-tasks
 
-1. [ ] Create `plugin/commands/resolve.md` - Define the slash command entry point with description and skill trigger (1 hour)
-2. [ ] Create `plugin/skills/resolve/SKILL.md` - Define skill metadata, activation rules, and base directory reference (1 hour)
-3. [ ] Create `plugin/instructions/resolve/INSTRUCTIONS.md` - Complete resolution workflow with all steps (2 hours)
-4. [ ] Implement worktree context detection - Logic to identify task ID from current working directory path (1 hour)
-5. [ ] Implement blocker.md reading and analysis - Read and parse blocker file structure (1 hour)
-6. [ ] Implement solution proposal workflow - Multi-step process to analyze, propose, and seek approval (2 hours)
-7. [ ] Implement resolution.md writing - Template and writing logic for approved resolutions (1 hour)
-8. [ ] Add comprehensive error handling - Handle all edge cases with clear error messages (1 hour)
+1. [x] Create `plugin/commands/resolve.md` - Define the slash command entry point
+2. [x] ~~Create `plugin/skills/resolve/SKILL.md`~~ - Skipped (SKILL.md files deprecated)
+3. [x] Create `plugin/instructions/resolve/INSTRUCTIONS.md` - Complete resolution workflow with all steps
+4. [x] Implement worktree context detection - Uses detect-context.sh for task ID detection
+5. [x] Implement blocker reading from journal.md - Parse blocker sections per feature.md format
+6. [x] Implement solution proposal workflow - Multi-step analysis, proposal, and approval process
+7. [x] Implement resolution writing to journal.md - Append resolution per feature.md template
+8. [x] Add comprehensive error handling - Handle all edge cases with clear error messages
 
 ## Technical Approach
 
@@ -149,13 +149,13 @@ P1 - Critical path for blocker resolution workflow; without this command, blocke
 
 ## Acceptance Criteria
 
-- `/resolve` command can be invoked from within a task worktree
-- Command correctly detects when it's NOT in a task worktree and provides clear error message
-- Command reads blocker.md and presents problem summary to user
-- Command explores codebase to understand context (using standard Claude tools)
-- Command proposes one or more solutions with trade-offs
-- Command waits for explicit human approval before writing resolution
-- resolution.md is written in correct format matching the template
-- Error handling covers all documented edge cases with helpful messages
-- Command does NOT modify code files (that's the worker's job)
-- Command does NOT make decisions without human approval
+- [x] `/resolve` command can be invoked from within a task worktree
+- [x] Command correctly detects when it's NOT in a task worktree and provides clear error message
+- [x] Command reads blocker from journal.md and presents problem summary to user
+- [x] Command explores codebase to understand context (using standard Claude tools)
+- [x] Command proposes one or more solutions with trade-offs
+- [x] Command waits for explicit human approval before writing resolution
+- [x] Resolution is appended to journal.md in correct format matching the template
+- [x] Error handling covers all documented edge cases with helpful messages
+- [x] Command does NOT modify code files (that's the worker's job)
+- [x] Command does NOT make decisions without human approval
