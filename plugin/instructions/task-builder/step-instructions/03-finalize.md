@@ -1,6 +1,6 @@
 # Step 3: Finalize
 
-Commit the task.md, push to remote, and create a draft PR.
+Commit the task.json, push to remote, and create a draft PR.
 
 ## Input Context
 
@@ -42,7 +42,7 @@ gh pr create \
   --title "Task {task_id}: {task_title}" \
   --body "## Task Definition
 
-See: task-system/task-{task_id}/task.md
+See: task-system/task-{task_id}/task.json
 
 ## Feature Context
 

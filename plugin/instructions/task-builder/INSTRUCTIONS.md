@@ -1,6 +1,6 @@
 # Task Builder Skill
 
-Builds a complete task: git branch, worktree, task.md content, commit, push, and draft PR.
+Builds a complete task: git branch, worktree, task.json content, commit, push, and draft PR.
 
 ## Input Parameters
 
