@@ -186,7 +186,51 @@ Use `list tasks` to see current task status.
 # Creates local worktree from existing remote branch
 ```
 
-### Task Execution Workflow
+### Autonomous Task Implementation
+
+The `/implement` command provides autonomous, multi-session task execution:
+
+```bash
+# From MAIN REPO: Start autonomous implementation
+/implement 015
+/implement "User Login System"    # By task name
+/implement 007-user-auth          # By feature (lists tasks for selection)
+
+# The orchestrator:
+# 1. Resolves identifier to task worktree
+# 2. Spawns worker Claude instances in a loop
+# 3. Workers read task.json and journal.md for context
+# 4. Each worker completes objectives until:
+#    - FINISH: All objectives complete
+#    - BLOCKED: Human decision needed
+#    - TIMEOUT: Max time exceeded (default 60 min)
+#    - MAX_CYCLES: Max spawns reached (default 10)
+```
+
+**When a worker gets BLOCKED:**
+
+```bash
+# 1. Worker exits with BLOCKED status
+# 2. Blocker is documented in journal.md
+# 3. User runs /resolve from task worktree:
+
+cd task-system/tasks/016
+/resolve
+
+# 4. /resolve analyzes the blocker
+# 5. Proposes solutions with pros/cons
+# 6. Human approves a resolution
+# 7. Resolution appended to journal.md
+# 8. Resume with /implement to continue
+```
+
+**Identifier Resolution Priority:**
+
+1. **Task ID** - Direct lookup (e.g., "015", "15", "0015")
+2. **Task Name** - Search task.json meta.title (case-insensitive, partial match)
+3. **Feature Name** - Lists associated tasks for selection (e.g., "007-user-auth")
+
+### Task Execution Workflow (Manual)
 
 Tasks are created with worktree + branch + PR upfront. The workflow:
 
@@ -361,7 +405,40 @@ Negative: [tradeoffs]
 
 ## Task File Structure
 
-Each task in `task-system/task-###/task.md` (inside worktree) contains:
+### task.json (New Format)
+
+Tasks now use `task.json` for structured, machine-readable task definitions:
+
+```json
+{
+  "meta": {
+    "id": "015",
+    "title": "User Login System",
+    "created": "2026-01-08",
+    "feature": "007"  // Optional: links to feature
+  },
+  "overview": "Context from feature definition and technical plan...",
+  "objectives": [
+    {
+      "id": "obj-1",
+      "description": "Create login endpoint with JWT authentication",
+      "steps": ["Define route", "Add controller", "Connect auth service"],
+      "notes": ["Use existing auth patterns"],
+      "status": "pending"  // pending | in_progress | done
+    }
+  ]
+}
+```
+
+**Benefits of task.json:**
+- Machine-readable for autonomous orchestration
+- Structured objectives with trackable status
+- Clear separation of metadata and implementation details
+- Enables `/implement` command to work autonomously
+
+### task.md (Legacy Format)
+
+Older tasks may still use `task.md` format with markdown structure:
 
 - **Feature Context**: Links to feature definition and plan
 - **Overview**: What needs to be accomplished and why
@@ -410,3 +487,66 @@ When user signals review ("I made a review", "Check PR comments"):
 - **Task Archiving**: Completed tasks are archived to `task-system/archive/` before PR merge (as part of task-merge)
 - **Automatic Cleanup**: When in TMUX, cleanup is automatic after merge (spawns new pane at main repo). Without TMUX, manual cleanup instructions are provided. See [Automatic Cleanup (TMUX)](#automatic-cleanup-tmux) for details.
 - **Auto-Navigation**: When in TMUX, starting a task from the wrong location opens a new pane with Claude in the correct worktree (original pane is closed). Without TMUX, manual navigation instructions are provided.
+
+## Migration Notes
+
+### Migrating from task.md to task.json
+
+The task system now supports autonomous implementation via `/implement`, which requires the structured `task.json` format.
+
+**What Changed:**
+
+| Aspect | Old (task.md) | New (task.json) |
+|--------|---------------|-----------------|
+| Format | Markdown with sections | JSON with structured schema |
+| Objectives | Checkbox list in markdown | Array with id, description, steps, status |
+| Execution | Phase-based with manual permission gates | Objective-based with autonomous progression |
+| Human input | Required for each phase transition | Only required when worker is BLOCKED |
+| Status tracking | Implicit via journal entries | Explicit status field per objective |
+
+**Migrating Existing Tasks:**
+
+1. **Tasks in progress**: Continue using manual workflow with task.md - no migration needed
+2. **New tasks**: Will automatically use task.json format
+3. **Optional conversion**: To use `/implement` on existing task.md tasks:
+
+```bash
+# 1. Create task.json in the task folder alongside task.md
+# 2. Convert content to JSON structure:
+{
+  "meta": {
+    "id": "[from task folder name]",
+    "title": "[from task.md title]",
+    "created": "[today's date]",
+    "feature": "[if linked to feature]"
+  },
+  "overview": "[combine Feature Context + Overview sections]",
+  "objectives": [
+    {
+      "id": "obj-1",
+      "description": "[from Objectives section]",
+      "steps": ["[from Sub-tasks section]"],
+      "notes": ["[from Technical Approach]"],
+      "status": "pending"
+    }
+  ]
+}
+# 3. Mark completed objectives as "done"
+# 4. Use /implement to continue
+```
+
+**Compatibility:**
+
+- `task.md` still works for manual workflow with `start task`
+- `/implement` requires `task.json` to be present
+- Both files can coexist in the same task folder
+- The `/resolve` command works with either format (uses journal.md)
+
+**When to Use Each:**
+
+| Use Case | Recommended Approach |
+|----------|---------------------|
+| Simple tasks (1-2 objectives) | Manual workflow with task.md |
+| Complex tasks (3+ objectives) | Autonomous with task.json + /implement |
+| Tasks needing frequent human guidance | Manual workflow with task.md |
+| Tasks with clear, independent objectives | Autonomous with task.json + /implement |
