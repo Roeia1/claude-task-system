@@ -1,0 +1,16 @@
+{
+  "description": "Session initialization for claude-task-system plugin",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-init.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
