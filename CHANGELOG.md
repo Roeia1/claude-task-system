@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-01-10
+
+### Added
+
+- **implement-command**: New `/implement` command for autonomous task execution
+  - Orchestrator spawns worker Claude instances in a loop
+  - Workers complete objectives incrementally from `task.json`
+  - Exit statuses: FINISH (done), BLOCKED (needs human), TIMEOUT
+  - Supports identifier resolution by task ID, name, or feature
+- **resolve-command**: New `/resolve` command to handle blocked workers
+  - Analyzes blocker context from `journal.md`
+  - Proposes solutions with pros/cons
+  - Documents resolution for continuation
+- **task-json-schema**: Structured `task.json` format for machine-readable task definitions
+  - Replaces markdown-based `task.md` for autonomous execution
+  - Objectives with id, description, steps, notes, and status tracking
+  - Meta section with task ID, title, creation date, and feature link
+- **worker-prompts**: Worker prompt templates for autonomous execution
+- **identifier-resolution**: Utilities to find tasks by ID, name, or feature name
+- **implement-script**: `implement.py` Python orchestration script
+
+### Changed
+
+- **task-builder**: Now generates `task.json` format instead of `task.md`
+- **hooks-structure**: Plugin hooks moved to separate `hooks.json` file
+
+### Removed
+
+- **tmux-infrastructure**: TMUX session management replaced by autonomous worker model
+- **task-start-skill**: Replaced by `/implement` command
+- **journaling-subagent**: Simplified to direct `journal.md` writes by workers
+- **deprecated-skill-files**: Cleaned up old SKILL.md files
+
 ## [1.3.1] - 2026-01-03
 
 ### Fixed
