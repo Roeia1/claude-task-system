@@ -244,8 +244,7 @@ Tasks with worktrees and PRs:
 
 Next steps:
 1. Use "list tasks" to see all tasks
-2. cd task-system/tasks/015 && claude
-3. Say "start task 015" to begin workflow
+2. Use "/implement 015" to begin autonomous execution
 
 Recommended execution order:
 1. Tasks 015-016 (Setup, sequential)
@@ -295,5 +294,5 @@ Your choice: [1/2]
 After task generation:
 
 - Use `list tasks` to see all generated tasks
-- Use `start task NNN` to begin execution on a specific task
+- Use `/implement NNN` to begin autonomous execution on a specific task
 - Tasks are ready to be worked on in parallel (different machines/sessions)

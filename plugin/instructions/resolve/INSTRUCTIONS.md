@@ -10,40 +10,47 @@ Analyzes a blocker from journal.md, proposes solutions, and appends the approved
 
 ## Step 1: Validate Worktree Context
 
-Run the context detection script to verify we're in a task worktree:
+Use the `$TASK_CONTEXT` and `$CURRENT_TASK_ID` environment variables set by the session-init hook:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/instructions/task-start/scripts/detect-context.sh
+if [ "$TASK_CONTEXT" = "worktree" ] && [ -n "$CURRENT_TASK_ID" ]; then
+    TASK_ID="$CURRENT_TASK_ID"
+    # Continue to Step 2
+else
+    # Not in worktree - show error
+fi
 ```
 
-**Parse JSON output** and check `status`:
+**Fallback** (if environment variables not set):
+```bash
+# Look for task-system/task-NNN folder
+TASK_ID=$(ls task-system/ 2>/dev/null | grep "^task-" | sed 's/task-//' | head -1)
+if [ -z "$TASK_ID" ]; then
+    # Not in a worktree
+fi
+```
 
-- If `status: "error"` with `error_type: "not_in_worktree"`:
-  ```
-  ===============================================================
-  Cannot Run /resolve From Main Repository
-  ===============================================================
+**If not in a worktree:**
+```
+===============================================================
+Cannot Run /resolve From Main Repository
+===============================================================
 
-  The /resolve command must be run from within a task worktree.
+The /resolve command must be run from within a task worktree.
 
-  To resolve a blocked task:
-  1. Navigate to the task worktree: cd task-system/tasks/NNN
-  2. Start a new Claude session
-  3. Run: /resolve
+To resolve a blocked task:
+1. Navigate to the task worktree: cd task-system/tasks/NNN
+2. Start a new Claude session
+3. Run: /resolve
 
-  Use "list tasks" to see blocked tasks and their locations.
-  ===============================================================
-  ```
-  **STOP** - do not continue
+Use "list tasks" to see blocked tasks and their locations.
+===============================================================
+```
+**STOP** - do not continue
 
-- If `status: "error"` with other error types:
-  - Display the error message
-  - **STOP** - do not continue
-
-- If `status: "ok"`:
-  - Store `task_id` as `$TASK_ID`
-  - Store `worktree_path` as `$WORKTREE_PATH`
-  - Continue to Step 2
+**If in worktree:**
+- Store task ID as `$TASK_ID`
+- Continue to Step 2
 
 ## Step 2: Read Task Context
 

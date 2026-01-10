@@ -27,7 +27,7 @@ fi
 git worktree list | grep -E "task-system/tasks/$TASK_ID\s"
 ```
 
-**If worktree exists**: Display error and suggest using `start task $TASK_ID` instead.
+**If worktree exists**: Display error and suggest using `/implement $TASK_ID` instead.
 
 ### Step 3: Find Remote Branch
 
@@ -72,15 +72,12 @@ Branch: $LOCAL_BRANCH
 Worktree: task-system/tasks/$TASK_ID/
 
 ---------------------------------------------------------------
-NEXT STEP: Open a new Claude session in the worktree
+NEXT STEP: Continue implementation
 ---------------------------------------------------------------
 
-1. Open a new terminal
-2. cd task-system/tasks/$TASK_ID
-3. Start Claude Code (e.g., `claude`)
-4. Say "start task $TASK_ID" to continue the workflow
+Use: /implement $TASK_ID
 
-This session will now STOP.
+This will resume autonomous execution of the task.
 ===============================================================
 ```
 
@@ -90,7 +87,7 @@ This session will now STOP.
 
 | Error | Message |
 |-------|---------|
-| Worktree exists | "Task $TASK_ID already has a local worktree. Use 'start task $TASK_ID' instead" |
+| Worktree exists | "Task $TASK_ID already has a local worktree. Use '/implement $TASK_ID' instead" |
 | No remote branch | "No remote branch found for task $TASK_ID. Use 'list tasks' to see available tasks" |
 | Fetch failed | "Failed to fetch from remote. Check your network connection" |
 | Worktree creation failed | "Failed to create worktree. Check git status and try again" |

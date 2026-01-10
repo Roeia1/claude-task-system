@@ -104,8 +104,8 @@ task-system/
 # 3. Generate executable tasks
 > generate tasks
 
-# 4. Start working (in task worktree)
-> start task 001
+# 4. Implement tasks autonomously
+> /implement 001
 ```
 
 ---
@@ -173,20 +173,16 @@ Claude proposes tasks for your review. After approval:
 
 ### Task Execution
 
-Each task follows a type-specific workflow with **mandatory phases**:
+Tasks are executed autonomously using the `/implement` command:
 
 ```
-> start task 001
+> /implement 001
 ```
 
-**Feature Workflow** (TDD-driven):
-1. **Test Creation** - Write failing tests first
-2. **Implementation** - Code to pass tests
-3. **Refactor** - Improve quality, maintain coverage
-4. **Verification** - Confirm acceptance criteria
-5. **Reflection** - Document learnings
-
-Other workflows: `bugfix`, `refactor`, `performance`, `deployment`
+The orchestrator spawns worker Claude instances that complete objectives incrementally. Workers exit with:
+- **FINISH** - All objectives complete
+- **BLOCKED** - Needs human decision (use `/resolve` to unblock)
+- **TIMEOUT** - Max time exceeded
 
 ---
 
@@ -212,11 +208,11 @@ ADRs capture:
 
 ### Continuous Journaling
 
-A dedicated journaling subagent documents throughout execution:
-- Phase transitions and milestones
+Workers document progress throughout execution:
+- Objectives completed and their outcomes
 - Technical decisions and their reasoning
-- Blockers and how they were resolved
-- Learnings and insights
+- Blockers and resolutions
+- Key learnings and insights
 
 **Output**: `journal.md` alongside each task
 
@@ -258,31 +254,6 @@ Continue tasks from any machine:
 
 Creates local worktree from the remote branch and picks up where you left off.
 
-### TMUX Integration (Auto-Navigation & Cleanup)
-
-When running inside TMUX, the task system provides seamless navigation and cleanup:
-
-**Auto-Navigation**: Start a task from anywhere—Claude automatically navigates to the correct worktree:
-
-```bash
-# From main repo or wrong worktree
-> start task 015
-# → Spawns Claude in task-system/tasks/015/ automatically
-# → No manual cd required
-```
-
-**Automatic Cleanup**: After merging a PR, cleanup happens automatically:
-
-```bash
-# After task completion in worktree
-> # Grant completion permission
-# → PR merged
-# → "Spawn cleanup pane? [Y/n]"
-# → New TMUX pane handles worktree removal
-```
-
-Without TMUX, manual instructions are provided for both operations.
-
 ---
 
 ## Commands Reference
@@ -296,9 +267,10 @@ All non-internal skills are available as both skills (natural language) and slas
 | `/task-system:feature-planning [feature-id]` | Design technical implementation plan |
 | `/task-system:task-generation [feature-id]` | Generate executable tasks from plan |
 | `/task-system:task-list` | Show all tasks with status |
-| `/task-system:task-start [task-id]` | Begin task execution workflow |
-| `/task-system:task-resume [task-id]` | Continue remote task locally |
+| `/implement [task-id]` | Execute task autonomously |
+| `/resolve` | Analyze and resolve blockers |
 | `/task-system:task-cleanup [task-id]` | Remove worktree after PR merge |
+| `/task-system:task-resume [task-id]` | Continue remote task locally |
 | `/task-system:architecture-decisions [topic]` | Document architectural decisions |
 
 ## Skills Reference
@@ -310,10 +282,11 @@ Skills can be invoked via natural language. Most are also available as slash com
 | Feature Definition | "define feature [description]" | Create feature requirements document |
 | Feature Planning | "plan feature" | Design technical implementation |
 | Task Generation | "generate tasks" | Break feature into executable tasks |
-| Task Start | "start task [id]" | Begin task execution workflow |
+| Implement | `/implement [id]` | Execute task autonomously |
+| Resolve | `/resolve` | Analyze and resolve blockers |
 | Task List | "list tasks" | Show all tasks with status |
-| Task Resume | "resume task [id]" | Continue remote task locally |
 | Task Cleanup | "cleanup task [id]" | Remove worktree after PR merge |
+| Task Resume | "resume task [id]" | Continue remote task locally |
 | Architecture Decisions | "create ADR for [topic]" | Document architectural decisions |
 
 ---
@@ -331,37 +304,24 @@ Skills can be invoked via natural language. Most are also available as slash com
 > generate tasks
 # Review proposed tasks, approve
 
-# Session 2: Execute task (in worktree)
-$ cd task-system/tasks/001
-$ claude
-> start task 001
-# Complete TDD workflow with phase gates
-# Grant completion permission -> PR merged
-
-# Session 3: Cleanup (from main repo)
-$ cd ../../../  # Back to main repo
-$ claude
-> cleanup task 001
-# Worktree removed, task fully completed
+# Session 2: Execute tasks autonomously
+> /implement 001
+# Workers complete objectives, document in journal.md
+# If blocked, use /resolve to provide resolution
+# When complete, PR is ready for review and merge
 ```
 
-### Bug Fix
+### Handling Blockers
 
 ```bash
-> start task 005  # Task type: bugfix
+# Worker exits with BLOCKED status
+> /resolve
+# Analyze blocker from journal.md
+# Review proposed solutions
+# Approve resolution
 
-# Phase 1: Investigation
-# - Reproduce the bug
-# - Identify root cause
-
-# Phase 2: Test Creation
-# - Write test that captures the bug
-
-# Phase 3: Fix
-# - Apply minimal fix
-# - Validate edge cases
-
-# Phase 4-5: Verification & Reflection
+# Continue implementation
+> /implement 001
 ```
 
 ### Recording an ADR During Development
@@ -434,28 +394,25 @@ plugin/
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin manifest
 ├── agents/
-│   ├── journaling.md         # Documents decisions throughout
-│   ├── task-builder.md       # Creates tasks in parallel
-│   └── task-completer.md     # Handles PR merge (cleanup done separately)
-├── commands/                  # Slash commands (9 total)
+│   └── task-builder.md       # Creates tasks in parallel
+├── commands/                  # Slash commands
 │   ├── init.md               # /task-system:init
+│   ├── implement.md          # /implement
+│   ├── resolve.md            # /resolve
 │   ├── task-list.md          # /task-system:task-list
-│   ├── task-start.md         # /task-system:task-start
 │   └── ...                   # (all reference instructions/)
 ├── instructions/              # Centralized instruction content
-│   ├── task-start/
-│   │   ├── INSTRUCTIONS.md
-│   │   └── workflows/
+│   ├── implement/
+│   │   └── INSTRUCTIONS.md
+│   ├── resolve/
+│   │   └── INSTRUCTIONS.md
 │   ├── feature-definition/
 │   │   ├── INSTRUCTIONS.md
 │   │   └── templates/
-│   └── ...                   # (12 instruction directories)
-├── scripts/
-│   └── claude-spawn.sh       # Spawn Claude in different directory (TMUX)
+│   └── ...
 ├── skills/                    # Thin wrappers (reference instructions/)
 │   ├── feature-definition/SKILL.md
-│   ├── task-start/SKILL.md
-│   └── ...                   # (12 skill wrappers)
+│   └── ...
 └── hooks/
     └── session-init.sh       # Session startup
 ```
@@ -467,7 +424,6 @@ plugin/
 - [Claude Code CLI](https://github.com/anthropics/claude-code) installed
 - Git repository initialized
 - GitHub CLI (`gh`) for PR operations
-- TMUX (optional, enables auto-navigation and automatic cleanup)
 
 ---
 

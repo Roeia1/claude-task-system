@@ -20,7 +20,8 @@
   "commands": [
     "./commands/init.md",
     "./commands/task-list.md",
-    "./commands/task-start.md",
+    "./commands/implement.md",
+    "./commands/resolve.md",
     "./commands/task-cleanup.md",
     "./commands/task-resume.md",
     "./commands/feature-definition.md",
@@ -30,9 +31,7 @@
   ],
   "skills": "./skills/",
   "agents": [
-    "./agents/journaling.md",
-    "./agents/task-builder.md",
-    "./agents/task-completer.md"
+    "./agents/task-builder.md"
   ],
   "hooks": {
     "SessionStart": [

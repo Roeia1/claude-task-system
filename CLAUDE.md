@@ -22,10 +22,10 @@ This is the **Claude Task System** - a structured development workflow that comb
    - Generate task breakdown for approval
 
 3. **Task Execution Phase**
-   - Each task type follows a specialized workflow (feature, bugfix, refactor, performance, deployment)
-   - Each phase requires explicit permission to proceed
+   - Tasks executed autonomously via `/implement` command
+   - Workers complete objectives incrementally
    - Tests written before implementation (non-negotiable)
-   - Journaling subagent documents decisions and learnings throughout
+   - Progress documented in journal.md throughout execution
 
 ### Directory Structure
 
@@ -70,22 +70,18 @@ plugin/                         # Plugin source code
 ├── .claude-plugin/
 │   └── plugin.json            # Plugin manifest
 ├── agents/                     # Subagent definitions
-│   ├── journaling.md
-│   ├── task-builder.md
-│   └── task-completer.md
+│   └── task-builder.md
 ├── commands/                   # Slash commands
 │   ├── init.md                # Initialize task-system structure
 │   ├── adr.md                 # Architecture decision records
 │   └── ...
 ├── scripts/                    # Utility scripts
-│   └── claude-spawn.sh        # Spawn Claude in different directory via tmux
 └── skills/                     # Skills for task execution
     ├── feature-definition/
     │   ├── SKILL.md
     │   └── templates/         # Skill-specific templates
-    ├── task-start/
-    │   ├── SKILL.md
-    │   └── workflows/         # Type-specific execution workflows
+    ├── implement/                 # Autonomous task implementation
+    │   └── INSTRUCTIONS.md
     ├── task-list/             # Dynamic task list generation
     ├── task-resume/           # Resume remote tasks locally
     └── ...
@@ -230,82 +226,25 @@ cd task-system/tasks/016
 2. **Task Name** - Search task.json meta.title (case-insensitive, partial match)
 3. **Feature Name** - Lists associated tasks for selection (e.g., "007-user-auth")
 
-### Task Execution Workflow (Manual)
-
-Tasks are created with worktree + branch + PR upfront. The workflow:
-
-```bash
-# From MAIN REPO (with TMUX): Auto-navigation
-# Say "start task 015"
-# -> System spawns Claude in new pane at the correct worktree
-# -> Original pane is closed, new pane starts with "start task 015"
-# -> No manual navigation needed
-
-# From MAIN REPO (without TMUX): Manual navigation
-# Say "start task 015"
-# -> Shows instructions to cd into task-system/tasks/015/
-# -> User navigates manually and restarts Claude session
-
-# From WORKTREE: Execute workflow
-# cd task-system/tasks/015
-# Start Claude session
-# Say "start task 015" to begin workflow
-
-# From WORKTREE: Complete, merge, and cleanup
-# Grant permission after final phase
-# -> Task-completer archives files and merges PR
-# -> Prompts: "Spawn cleanup pane at main repo? [Y/n]"
-# -> If in TMUX and confirmed: spawns new pane, runs cleanup automatically
-# -> If not in TMUX or declined: shows manual cleanup instructions
-```
-
-### Automatic Cleanup (TMUX)
-
-When completing a task from within a worktree, the system can automatically handle cleanup:
-
-**Why TMUX is needed**: The cleanup process must remove the worktree directory, but the agent session is running inside that directory. TMUX allows spawning a new pane at the main repository to perform cleanup safely.
-
-**Flow when in TMUX**:
-1. Task-completer merges PR successfully
-2. Prompts: "Spawn cleanup pane at main repo? [Y/n]"
-3. On confirm: spawns new TMUX pane at main repo root
-4. New pane runs `cleanup task NNN` automatically
-5. Original pane is automatically closed
-
-**Fallback when not in TMUX**:
-```bash
-# Manual cleanup instructions are displayed:
-# 1. Navigate to main repo: cd /path/to/main/repo
-# 2. Start a new Claude session
-# 3. Say: "cleanup task 015"
-```
-
 ## Critical Execution Rules
 
-### Workflow Discipline
+### Autonomous Execution
 
-Each task type follows a specialized workflow defined in `plugin/skills/task-start/workflows/`. All workflows share common principles but are tailored to their domain:
+Tasks are executed autonomously using the `/implement` command. The orchestrator spawns worker Claude instances that:
 
-- **Feature**: Test-driven development flow. Write failing tests first, implement to pass them, refactor for quality, then verify and reflect.
+1. Read task.json for objectives and current status
+2. Complete objectives incrementally
+3. Document progress in journal.md
+4. Exit with status: FINISH (all done), BLOCKED (needs human decision), or TIMEOUT
 
-- **Bugfix**: Investigation-first flow. Reproduce and understand the bug, write a test that captures it, apply minimal fix, validate edge cases, then verify and reflect.
-
-- **Refactor**: Safety-net flow. Analyze code and plan changes, add tests to protect existing behavior, make incremental changes, validate quality improvements, then verify and reflect.
-
-- **Performance**: Measurement-driven flow. Establish baselines and identify bottlenecks, create benchmark tests, apply optimizations incrementally, validate targets are met, then verify and reflect.
-
-- **Deployment**: Operational flow with additional phases for infrastructure concerns. See `deployment-workflow.md` for details.
-
-All workflows end with **Verification** (check acceptance criteria), **Reflection** (document learnings), and **Merge** (task-completer handles PR merge and cleanup). In TMUX, cleanup is automatic; otherwise, manual instructions are provided.
+When a worker gets BLOCKED, use `/resolve` to analyze and provide a resolution, then continue with `/implement`.
 
 ### Non-Negotiable Rules
 
 - **Test-Driven Development**: Tests must be written before implementation
-- **Phase Progression**: Each phase requires explicit user permission to proceed
 - **No Test Modification**: After tests are written, they can only be changed with explicit user approval
-- **Continuous Journaling**: Invoke journaling subagent throughout to document decisions and insights
-- **Commit Discipline**: Commit and push at the end of each phase and at logical milestones
-- **Sequential Execution**: Complete phases in order, no skipping
+- **Continuous Journaling**: Document decisions and insights in journal.md throughout execution
+- **Commit Discipline**: Commit and push at logical milestones
 - **ADR Documentation**: Create ADRs for all significant architectural decisions
 
 ### Git Commit Format
@@ -320,16 +259,6 @@ git commit -m "docs(task-XXX): final verification and polish"
 # Always commit and push together
 git add . && git commit -m "..." && git push
 ```
-
-### Task Types and Workflows
-
-Each task type follows a specialized workflow (in `plugin/skills/task-start/workflows/`):
-
-- **feature**: New functionality or capabilities
-- **bugfix**: Error corrections and fixes
-- **refactor**: Code improvements without behavior changes
-- **performance**: Optimization and efficiency improvements
-- **deployment**: Infrastructure and deployment tasks
 
 ## Key Patterns
 
@@ -452,27 +381,24 @@ Older tasks may still use `task.md` format with markdown structure:
 - **Resources & Links**: Relevant documentation
 - **Acceptance Criteria**: Testable success conditions
 
-## Journaling with Subagent
+## Journaling
 
-All journaling is handled through the **journaling subagent** (`plugin/agents/journaling.md`), which validates content quality, formats entries consistently, and maintains journal structure.
-
-**Complete journaling guidance**: See [Journaling Guidelines](plugin/skills/task-start/journaling-guidelines.md) for:
-- When to invoke the journaling subagent
-- What content to prepare
-- How to invoke with proper parameters
-- Quality standards and examples
+Workers document their progress in `journal.md` within each task folder. Journal entries capture:
+- Objectives completed and their outcomes
+- Blockers encountered and resolutions
+- Technical decisions and their reasoning
+- Key learnings and insights
 
 ## PR Review Protocol
 
 When user signals review ("I made a review", "Check PR comments"):
 
-1. Immediately pause current phase
-2. Read PR comments using GitHub CLI
-3. For each comment:
+1. Read PR comments using GitHub CLI
+2. For each comment:
    - Clear instruction → Apply changes, commit with reference, resolve
    - Ambiguous → Reply with questions, leave unresolved
-4. Invoke journaling subagent to document PR response
-5. Use format: `fix(task-XXX): address PR feedback - [description] (resolves comment #N)`
+3. Document response in journal.md
+4. Use format: `fix(task-XXX): address PR feedback - [description] (resolves comment #N)`
 
 ## Important Notes
 
@@ -482,11 +408,9 @@ When user signals review ("I made a review", "Check PR comments"):
 - **Document Decisions**: Use ADRs to capture architectural reasoning
 - **Maintain Traceability**: Tasks link to features, features link to ADRs
 - **Keep Complexity Minimal**: Only add what's directly needed
-- **Trust the Discipline**: The phased workflow prevents costly mistakes
 - **Dynamic Status**: No TASK-LIST.md - status derived from filesystem and git state
 - **Task Archiving**: Completed tasks are archived to `task-system/archive/` before PR merge (as part of task-merge)
-- **Automatic Cleanup**: When in TMUX, cleanup is automatic after merge (spawns new pane at main repo). Without TMUX, manual cleanup instructions are provided. See [Automatic Cleanup (TMUX)](#automatic-cleanup-tmux) for details.
-- **Auto-Navigation**: When in TMUX, starting a task from the wrong location opens a new pane with Claude in the correct worktree (original pane is closed). Without TMUX, manual navigation instructions are provided.
+- **Autonomous Execution**: Use `/implement` for autonomous task execution, `/resolve` when blocked
 
 ## Migration Notes
 
@@ -537,16 +461,6 @@ The task system now supports autonomous implementation via `/implement`, which r
 
 **Compatibility:**
 
-- `task.md` still works for manual workflow with `start task`
 - `/implement` requires `task.json` to be present
-- Both files can coexist in the same task folder
-- The `/resolve` command works with either format (uses journal.md)
-
-**When to Use Each:**
-
-| Use Case | Recommended Approach |
-|----------|---------------------|
-| Simple tasks (1-2 objectives) | Manual workflow with task.md |
-| Complex tasks (3+ objectives) | Autonomous with task.json + /implement |
-| Tasks needing frequent human guidance | Manual workflow with task.md |
-| Tasks with clear, independent objectives | Autonomous with task.json + /implement |
+- The `/resolve` command works with task.json (uses journal.md for context)
+- Legacy `task.md` files are preserved in archives for historical reference

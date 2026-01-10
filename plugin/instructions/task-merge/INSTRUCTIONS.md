@@ -1,6 +1,6 @@
 # Task Merge Skill
 
-When activated, archive task files and merge the PR. Must be run from within the task's worktree. Worktree cleanup is handled separately from the main repo.
+When activated, archive task files and merge the PR. Must be run from within the task's worktree.
 
 ## File Locations
 
@@ -112,7 +112,7 @@ This ensures:
 1. **Display PR information** for final confirmation
 2. **Merge**: `gh pr merge --squash --delete-branch`
 3. **Confirm merge successful**
-4. **Display success and cleanup instructions**:
+4. **Display success**:
    ```
    ===============================================================
    Task $TASK_ID Merged Successfully!
@@ -122,15 +122,9 @@ This ensures:
    - PR merged to main branch
    - Task branch deleted from remote
 
-   ---------------------------------------------------------------
-   NEXT STEP: Clean up the worktree from the main repository
-   ---------------------------------------------------------------
-
-   1. Navigate to main repo: cd $MAIN_REPO
-   2. Start a new Claude session
-   3. Say: "cleanup task $TASK_ID"
-
-   (Or manually: git worktree remove task-system/tasks/$TASK_ID --force)
+   To remove the worktree (optional):
+   cd $MAIN_REPO
+   git worktree remove task-system/tasks/$TASK_ID --force
    ===============================================================
    ```
 
@@ -149,5 +143,5 @@ After successful merge:
 - Task files archived to `task-system/archive/NNN/`
 - PR is merged to main branch
 - Task branch is deleted from remote
-- Worktree still exists (user must run cleanup from main repo)
+- Worktree can be manually removed with `git worktree remove`
 - Task will show as COMPLETED in `list tasks` (PR merged)

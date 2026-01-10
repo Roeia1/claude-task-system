@@ -1,6 +1,6 @@
 ---
 name: task-merge
-description: "Internal skill - ONLY activated by task-completer subagent. Handles archive and PR merge, but NOT worktree removal."
+description: "Internal skill - handles task archival and PR merge after task completion."
 ---
 
 # Task Merge Skill
