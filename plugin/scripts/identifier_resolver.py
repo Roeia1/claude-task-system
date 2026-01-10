@@ -22,7 +22,61 @@ Usage:
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+def _find_task_folder(worktree_path: Path) -> Optional[Path]:
+    """
+    Find the task-NNN folder within a task worktree.
+
+    Args:
+        worktree_path: Path to the task worktree
+
+    Returns:
+        Path to task-NNN folder if found, None otherwise
+    """
+    task_system_dir = worktree_path / "task-system"
+    if not task_system_dir.exists():
+        return None
+
+    task_folders = list(task_system_dir.glob("task-*"))
+    return task_folders[0] if task_folders else None
+
+
+def _load_task_json(worktree_path: Path) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """
+    Load and parse task.json from a task worktree.
+
+    Args:
+        worktree_path: Path to the task worktree
+
+    Returns:
+        Tuple of (task_data dict, error message) - one will be None
+    """
+    task_folder = _find_task_folder(worktree_path)
+    if not task_folder:
+        return None, "No task folder found"
+
+    task_json_path = task_folder / "task.json"
+    if not task_json_path.exists():
+        return None, f"task.json not found at {task_json_path}"
+
+    try:
+        with open(task_json_path, "r", encoding="utf-8") as f:
+            return json.load(f), None
+    except json.JSONDecodeError as e:
+        return None, f"Invalid JSON: {e}"
+    except IOError as e:
+        return None, f"IO error: {e}"
+
+
+def _get_task_id_from_folder(task_folder: Path) -> str:
+    """Extract task ID from task folder name (e.g., 'task-015' -> '015')."""
+    return task_folder.name.replace("task-", "")
 
 
 # ============================================================================
@@ -133,29 +187,21 @@ def resolve_task_name(identifier: str, project_root: Path) -> Dict[str, Any]:
             continue
 
         task_id = task_dir.name
+        task_data, _ = _load_task_json(task_dir)
 
-        # Find task.json in the task-system/task-{id} folder within worktree
-        task_json_path = task_dir / "task-system" / f"task-{task_id}" / "task.json"
-
-        if not task_json_path.exists():
+        if task_data is None:
             continue
 
-        try:
-            with open(task_json_path, "r", encoding="utf-8") as f:
-                task_data = json.load(f)
+        title = task_data.get("meta", {}).get("title", "")
+        title_normalized = title.lower().replace("-", " ").replace("_", " ")
 
-            title = task_data.get("meta", {}).get("title", "")
-            title_normalized = title.lower().replace("-", " ").replace("_", " ")
-
-            # Check for match (exact or partial)
-            if search_term in title_normalized or title_normalized in search_term:
-                matches.append({
-                    "task_id": task_id,
-                    "title": title,
-                    "worktree_path": str(task_dir)
-                })
-        except (json.JSONDecodeError, IOError):
-            continue
+        # Check for match (exact or partial)
+        if search_term in title_normalized or title_normalized in search_term:
+            matches.append({
+                "task_id": task_id,
+                "title": title,
+                "worktree_path": str(task_dir)
+            })
 
     if len(matches) == 1:
         return {
@@ -247,25 +293,19 @@ def resolve_feature_name(identifier: str, project_root: Path) -> Dict[str, Any]:
                 continue
 
             task_id = task_dir.name
-            task_json_path = task_dir / "task-system" / f"task-{task_id}" / "task.json"
+            task_data, _ = _load_task_json(task_dir)
 
-            if not task_json_path.exists():
+            if task_data is None:
                 continue
 
-            try:
-                with open(task_json_path, "r", encoding="utf-8") as f:
-                    task_data = json.load(f)
+            task_feature = task_data.get("meta", {}).get("feature", "")
 
-                task_feature = task_data.get("meta", {}).get("feature", "")
-
-                if task_feature == feature_id:
-                    tasks.append({
-                        "task_id": task_id,
-                        "title": task_data.get("meta", {}).get("title", "Unknown"),
-                        "worktree_path": str(task_dir)
-                    })
-            except (json.JSONDecodeError, IOError):
-                continue
+            if task_feature == feature_id:
+                tasks.append({
+                    "task_id": task_id,
+                    "title": task_data.get("meta", {}).get("title", "Unknown"),
+                    "worktree_path": str(task_dir)
+                })
 
     # Build response
     message = None
@@ -338,19 +378,17 @@ def validate_task_json(worktree_path: str) -> Dict[str, Any]:
     """
     path = Path(worktree_path)
 
-    # Look for task-system/task-NNN folder
-    task_system_dir = path / "task-system"
-    if not task_system_dir.exists():
-        return {
-            "valid": False,
-            "task_json_path": None,
-            "task_id": None,
-            "error": f"task-system directory not found in {worktree_path}"
-        }
-
-    # Find task-NNN folder
-    task_folders = list(task_system_dir.glob("task-*"))
-    if not task_folders:
+    # Find task folder using helper
+    task_folder = _find_task_folder(path)
+    if task_folder is None:
+        task_system_dir = path / "task-system"
+        if not task_system_dir.exists():
+            return {
+                "valid": False,
+                "task_json_path": None,
+                "task_id": None,
+                "error": f"task-system directory not found in {worktree_path}"
+            }
         return {
             "valid": False,
             "task_json_path": None,
@@ -358,37 +396,34 @@ def validate_task_json(worktree_path: str) -> Dict[str, Any]:
             "error": "No task-NNN folder found in task-system directory"
         }
 
-    task_folder = task_folders[0]
-    task_id = task_folder.name.replace("task-", "")
-
-    # Check for task.json
+    task_id = _get_task_id_from_folder(task_folder)
     task_json_path = task_folder / "task.json"
-    if not task_json_path.exists():
-        return {
-            "valid": False,
-            "task_json_path": None,
-            "task_id": task_id,
-            "error": f"task.json not found in {task_folder}"
-        }
 
-    # Validate JSON
-    try:
-        with open(task_json_path, "r", encoding="utf-8") as f:
-            json.load(f)
-    except json.JSONDecodeError as e:
-        return {
-            "valid": False,
-            "task_json_path": str(task_json_path),
-            "task_id": task_id,
-            "error": f"Invalid JSON in task.json: {e}"
-        }
-    except IOError as e:
-        return {
-            "valid": False,
-            "task_json_path": str(task_json_path),
-            "task_id": task_id,
-            "error": f"Failed to read task.json: {e}"
-        }
+    # Load and validate JSON using helper
+    task_data, error = _load_task_json(path)
+    if error:
+        # Determine specific error type for appropriate response
+        if "not found" in error.lower():
+            return {
+                "valid": False,
+                "task_json_path": None,
+                "task_id": task_id,
+                "error": f"task.json not found in {task_folder}"
+            }
+        elif "invalid json" in error.lower():
+            return {
+                "valid": False,
+                "task_json_path": str(task_json_path),
+                "task_id": task_id,
+                "error": f"Invalid JSON in task.json: {error}"
+            }
+        else:
+            return {
+                "valid": False,
+                "task_json_path": str(task_json_path),
+                "task_id": task_id,
+                "error": f"Failed to read task.json: {error}"
+            }
 
     return {
         "valid": True,
@@ -420,24 +455,16 @@ def check_blocked_status(worktree_path: str) -> Dict[str, Any]:
     """
     path = Path(worktree_path)
 
-    # Find journal.md
-    task_system_dir = path / "task-system"
-    if not task_system_dir.exists():
+    # Find journal.md using helper
+    task_folder = _find_task_folder(path)
+    if task_folder is None:
         return {
             "blocked": False,
             "blocker_title": None,
             "error": None
         }
 
-    task_folders = list(task_system_dir.glob("task-*"))
-    if not task_folders:
-        return {
-            "blocked": False,
-            "blocker_title": None,
-            "error": None
-        }
-
-    journal_path = task_folders[0] / "journal.md"
+    journal_path = task_folder / "journal.md"
     if not journal_path.exists():
         return {
             "blocked": False,
@@ -605,21 +632,14 @@ def list_available_tasks(project_root: Path) -> List[Dict[str, Any]]:
 
         task_id = task_dir.name
 
-        # Find task.json
-        task_json_path = task_dir / "task-system" / f"task-{task_id}" / "task.json"
-        journal_path = task_dir / "task-system" / f"task-{task_id}" / "journal.md"
+        # Load task metadata using helper
+        task_data, _ = _load_task_json(task_dir)
+        title = task_data.get("meta", {}).get("title", "Unknown") if task_data else "Unknown"
 
-        title = "Unknown"
-        if task_json_path.exists():
-            try:
-                with open(task_json_path, "r", encoding="utf-8") as f:
-                    task_data = json.load(f)
-                title = task_data.get("meta", {}).get("title", "Unknown")
-            except (json.JSONDecodeError, IOError):
-                pass
-
-        # Determine status
-        status = "in_progress" if journal_path.exists() else "pending"
+        # Determine status by checking for journal.md
+        task_folder = _find_task_folder(task_dir)
+        journal_exists = task_folder and (task_folder / "journal.md").exists()
+        status = "in_progress" if journal_exists else "pending"
 
         tasks.append({
             "task_id": task_id,
