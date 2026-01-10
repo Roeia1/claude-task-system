@@ -14,16 +14,38 @@ This skill must be run **from within the task's worktree**, not from the main re
 
 ## Process
 
-### Step 1: Verify Worktree Location and Detect Task
+### Step 0: Verify Context
 
-1. **Check current directory** is a worktree (`.git` is a file, not directory)
-2. **Auto-detect task ID** from `task-system/task-NNN` folder (source of truth):
+**Check the `$TASK_CONTEXT` environment variable set by the session-init hook:**
+
+```bash
+if [ "$TASK_CONTEXT" != "worktree" ]; then
+    echo "ERROR: /task-merge must be run from within a task worktree, not from the main repository."
+    echo ""
+    echo "Navigate to a task worktree first:"
+    echo "  cd task-system/tasks/<TASK_ID>"
+    echo ""
+    echo "Then run /task-merge again."
+    exit 1
+fi
+
+echo "Context verified: Working in task $CURRENT_TASK_ID worktree"
+```
+
+**If `$TASK_CONTEXT` is not "worktree":**
+- Display the error message above
+- **STOP** - do not continue
+
+**If `$TASK_CONTEXT` is "worktree":** Continue to Step 1. The `$CURRENT_TASK_ID` is available for use.
+
+### Step 1: Detect Task and Capture Paths
+
+1. **Use task ID from Step 0** or auto-detect from `task-system/task-NNN` folder:
    ```bash
-   TASK_ID=$(ls -d task-system/task-[0-9]* 2>/dev/null | head -1 | grep -oP 'task-system/task-\K\d+')
+   TASK_ID=${CURRENT_TASK_ID:-$(ls -d task-system/task-[0-9]* 2>/dev/null | head -1 | grep -oP 'task-system/task-\K\d+')}
    ```
-3. **If no task folder found**: Error "No task-system/task-NNN folder found"
-4. **If in main repo**: Error with instructions to run from worktree
-5. **Capture main repo path** for final message:
+2. **If no task folder found**: Error "No task-system/task-NNN folder found"
+3. **Capture main repo path** for final message:
    ```bash
    MAIN_REPO=$(dirname "$(git rev-parse --git-common-dir)")
    ```
@@ -130,7 +152,6 @@ This ensures:
 
 ## Error Handling
 
-- **Not in worktree**: Error with instructions to run from worktree
 - **No task folder**: Error "No task-system/task-NNN folder found in worktree"
 - **No journal.md**: Warning that task may not have been properly started
 - **PR not ready**: Show which checks/reviews are blocking

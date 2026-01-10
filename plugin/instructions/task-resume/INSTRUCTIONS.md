@@ -2,7 +2,31 @@
 
 Creates a local worktree from an existing remote task branch, allowing work to continue on a task started elsewhere.
 
+## Prerequisites
+
+- Must be run from the main repository (not from within a task worktree)
+
 ## Process
+
+### Step 0: Verify Context
+
+**Check the `$TASK_CONTEXT` environment variable set by the session-init hook:**
+
+```bash
+if [ "$TASK_CONTEXT" = "worktree" ]; then
+    echo "ERROR: /task-resume must be run from the main repository, not from within a task worktree."
+    echo "Current task: $CURRENT_TASK_ID"
+    echo ""
+    echo "Please navigate to the main repository and run /task-resume again."
+    exit 1
+fi
+```
+
+**If `$TASK_CONTEXT` is "worktree":**
+- Display the error message above
+- **STOP** - do not continue
+
+**If `$TASK_CONTEXT` is "main" or unset:** Continue to Step 1.
 
 ### Step 1: Get Task ID
 
@@ -105,7 +129,6 @@ This will resume autonomous execution of the task.
 
 ## Notes
 
-- **Main repo only**: This skill should be run from the main repository, not from within another worktree
 - **Remote branch required**: The task must exist as a branch on the remote (typically with an open PR)
 - **After resume**: Open a new Claude session in the worktree to continue work
 - **Status preservation**: If `journal.md` exists in the remote branch, the task will show as IN_PROGRESS after resume

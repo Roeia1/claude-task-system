@@ -18,6 +18,26 @@ When activated, generate executable tasks from feature planning artifacts. Each 
 
 ## Process
 
+### Step 0: Verify Context
+
+**Check the `$TASK_CONTEXT` environment variable set by the session-init hook:**
+
+```bash
+if [ "$TASK_CONTEXT" = "worktree" ]; then
+    echo "ERROR: /task-generation must be run from the main repository, not from within a task worktree."
+    echo "Current task: $CURRENT_TASK_ID"
+    echo ""
+    echo "Please navigate to the main repository and run /task-generation again."
+    exit 1
+fi
+```
+
+**If `$TASK_CONTEXT` is "worktree":**
+- Display the error message above
+- **STOP** - do not continue
+
+**If `$TASK_CONTEXT` is "main" or unset:** Continue to Phase 1.
+
 ### Phase 1: Analysis and Planning
 
 1. **Detect and validate feature** (current directory or prompt for selection)

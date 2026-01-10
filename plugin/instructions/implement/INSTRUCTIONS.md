@@ -8,6 +8,26 @@ Starts autonomous task implementation by resolving an identifier to a task workt
 - The task must have a worktree created (via `task-generation` skill)
 - The task must have a valid `task.json` file
 
+## Step 0: Verify Context
+
+**Check the `$TASK_CONTEXT` environment variable set by the session-init hook:**
+
+```bash
+if [ "$TASK_CONTEXT" = "worktree" ]; then
+    echo "ERROR: /implement must be run from the main repository, not from within a task worktree."
+    echo "Current task: $CURRENT_TASK_ID"
+    echo ""
+    echo "Please navigate to the main repository and run /implement again."
+    exit 1
+fi
+```
+
+**If `$TASK_CONTEXT` is "worktree":**
+- Display the error message above
+- **STOP** - do not continue
+
+**If `$TASK_CONTEXT` is "main" or unset:** Continue to Step 1.
+
 ## Step 1: Parse Arguments
 
 **Extract the identifier from the user's command.**

@@ -9,19 +9,39 @@ When activated, handles cleanup for a completed task by removing the worktree.
 
 ## Process
 
+### Step 0: Verify Context
+
+**Check the `$TASK_CONTEXT` environment variable set by the session-init hook:**
+
+```bash
+if [ "$TASK_CONTEXT" = "worktree" ]; then
+    echo "ERROR: /task-cleanup must be run from the main repository, not from within a task worktree."
+    echo "Current task: $CURRENT_TASK_ID"
+    echo ""
+    echo "Please navigate to the main repository and run /task-cleanup again."
+    exit 1
+fi
+```
+
+**If `$TASK_CONTEXT` is "worktree":**
+- Display the error message above
+- **STOP** - do not continue
+
+**If `$TASK_CONTEXT` is "main" or unset:** Continue to Step 1.
+
 ### Step 1: Extract Task ID
 
 1. **Get task ID from user prompt** (e.g., "cleanup task 015" -> TASK_ID=015)
 2. **Normalize task ID** to match folder naming (preserve leading zeros if present)
 3. **If no task ID provided**: Ask user to specify the task ID
 
-### Step 2: Verify Worktree Exists
+### Step 2: Check Target Task Worktree
 
-1. **Check worktree directory exists**:
+1. **Check if the task's worktree directory exists**:
    ```bash
    WORKTREE_PATH="task-system/tasks/$TASK_ID"
    if [ ! -d "$WORKTREE_PATH" ]; then
-       # No worktree found
+       # No worktree found for target task
    fi
    ```
 2. **If no worktree found**:
@@ -90,4 +110,3 @@ Task $TASK_ID is now fully completed.
 
 - Safe to run multiple times (idempotent - reports already cleaned if no worktree)
 - Does not touch archived files - only removes the worktree
-- Must be run from the main repository
