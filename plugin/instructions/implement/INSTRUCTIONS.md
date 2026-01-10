@@ -119,43 +119,7 @@ python3 -c "import json; json.load(open('$TASK_JSON'))" 2>&1
 - Display clear error message with file path
 - **STOP** - do not continue
 
-## Step 5: Check Blocked Status
-
-Check if the task has an unresolved blocker:
-
-```bash
-JOURNAL="$WORKTREE_PATH/task-system/task-$TASK_ID/journal.md"
-if [ -f "$JOURNAL" ]; then
-    # Check for unresolved blocker (Blocker without Resolution)
-    HAS_BLOCKER=$(grep -c "^## Blocker:" "$JOURNAL" 2>/dev/null || echo "0")
-    HAS_RESOLUTION=$(grep -c "^## Resolution:" "$JOURNAL" 2>/dev/null || echo "0")
-
-    if [ "$HAS_BLOCKER" -gt "$HAS_RESOLUTION" ]; then
-        BLOCKED=true
-        BLOCKER_TITLE=$(grep "^## Blocker:" "$JOURNAL" | tail -1 | sed 's/## Blocker: //')
-    fi
-fi
-```
-
-**If task is blocked:**
-```
-===============================================================
-Task $TASK_ID is BLOCKED
-===============================================================
-
-Blocker: $BLOCKER_TITLE
-
-To resolve:
-1. Navigate to the worktree: cd $WORKTREE_PATH
-2. Start a new Claude session
-3. Run /resolve to address the blocker
-
-After resolving, run /implement $TASK_ID again.
-===============================================================
-```
-- **STOP** - do not continue
-
-## Step 6: Spawn Implementation Script
+## Step 5: Spawn Implementation Script
 
 All validation passed. Spawn the implementation script in the background:
 
@@ -199,7 +163,7 @@ The script will exit with one of these statuses:
 ===============================================================
 ```
 
-## Step 7: Wait for Completion (Optional)
+## Step 6: Wait for Completion (Optional)
 
 If the user wants to wait for completion:
 
@@ -222,7 +186,6 @@ RESULT=$(cat /tmp/implement-$TASK_ID.log | tail -50)
 | Worktree missing | "Task $TASK_ID worktree not found. Run 'resume task $TASK_ID' first." |
 | task.json missing | "task.json not found in task $TASK_ID" |
 | Invalid JSON | "task.json contains invalid JSON: $ERROR_DETAILS" |
-| Task blocked | "Task $TASK_ID is BLOCKED. Navigate to worktree and run /resolve." |
 | Script spawn failed | "Failed to spawn implementation script: $ERROR" |
 
 ---
