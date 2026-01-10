@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "id": "<TASK_ID: 3-digit zero-padded number, e.g., '015'>",
+    "title": "<TASK_TITLE: Human-readable title describing the task>",
+    "created": "<CREATED_DATE: ISO date YYYY-MM-DD>",
+    "feature": "<FEATURE_ID: Optional - 3-digit feature ID if task belongs to a feature, omit if standalone>"
+  },
+
+  "overview": "<OVERVIEW: Distilled context from feature/plan/ADRs. Include everything the worker needs: what to build, why it matters, key decisions, technical constraints. Be concise but don't omit important information.>",
+
+  "objectives": [
+    {
+      "id": "obj-1",
+      "description": "<DESCRIPTION: Clear statement of what needs to be accomplished>",
+      "steps": [
+        "<STEP_1: Optional - ordered sequence (user flow, implementation process, backend flow, etc.)>",
+        "<STEP_2: Optional - next step in sequence>"
+      ],
+      "notes": [
+        "<NOTE_1: Optional - hint, constraint, or context>",
+        "<NOTE_2: Optional - additional note>"
+      ],
+      "status": "pending"
+    }
+  ]
+}
