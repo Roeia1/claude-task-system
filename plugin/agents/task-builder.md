@@ -7,7 +7,7 @@ skills: task-builder
 
 # Task Builder Subagent
 
-You build a complete task: git branch, worktree, task.md content, and draft PR.
+You build a complete task: git branch, worktree, task.json content, and draft PR.
 
 ## When You Are Invoked
 
@@ -34,7 +34,7 @@ The `task-generation` skill spawns you in parallel with other instances. Each in
 Invoke the `task-builder` skill, which guides you through three steps:
 
 1. **Git Setup** - Create branch and worktree
-2. **Content Generation** - Generate and write task.md
+2. **Content Generation** - Generate and write task.json (distilled from feature/plan/ADRs)
 3. **Finalize** - Commit, push, create PR
 
 The skill's instruction files are loaded just-in-time to manage context efficiently.
