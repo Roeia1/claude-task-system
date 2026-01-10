@@ -139,24 +139,20 @@ python3 -c "import json; json.load(open('$TASK_JSON'))" 2>&1
 - Display clear error message with file path
 - **STOP** - do not continue
 
-## Step 5: Spawn Implementation Script
+## Step 5: Run Implementation Script
 
-All validation passed. Spawn the implementation script in the background:
+All validation passed. Run the implementation script using the Bash tool with `run_in_background: true`:
 
 ```bash
-# Build command
-IMPLEMENT_SCRIPT="${CLAUDE_PLUGIN_ROOT}/scripts/implement.py"
-
-# Spawn in background with nohup
-nohup python3 "$IMPLEMENT_SCRIPT" "$WORKTREE_PATH" \
+CLAUDE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT}" python3 -u "${CLAUDE_PLUGIN_ROOT}/scripts/implement.py" "$WORKTREE_PATH" \
     --max-cycles 10 \
     --max-time 60 \
-    --model opus \
-    > /tmp/implement-$TASK_ID.log 2>&1 &
-
-SCRIPT_PID=$!
-echo "Implementation script started with PID: $SCRIPT_PID"
+    --model opus
 ```
+
+**Important:** Use these Bash tool parameters:
+- `run_in_background: true` - runs the script as a background task
+- `timeout: 3600000` - 60 minute timeout (matches --max-time)
 
 **Display starting message:**
 ```
@@ -166,13 +162,14 @@ Starting Autonomous Implementation
 
 Task: $TASK_ID
 Worktree: $WORKTREE_PATH
-Script PID: $SCRIPT_PID
+Task ID: $TASK_ID_FROM_BASH_TOOL
 
 The implementation script is now running in the background.
 Workers will implement objectives following TDD practices.
 
 Monitor progress:
-  tail -f /tmp/implement-$TASK_ID.log
+  - Check journal: Read $WORKTREE_PATH/task-system/task-$TASK_ID/journal.md
+  - Check status: Use TaskOutput tool with task_id="$TASK_ID_FROM_BASH_TOOL"
 
 The script will exit with one of these statuses:
   FINISH     - All objectives completed successfully
@@ -183,17 +180,22 @@ The script will exit with one of these statuses:
 ===============================================================
 ```
 
-## Step 6: Wait for Completion (Optional)
+## Step 6: Monitor and Report Completion
 
-If the user wants to wait for completion:
+Use the `TaskOutput` tool to check on the background task:
 
-```bash
-# Wait for script and capture output
-wait $SCRIPT_PID
-RESULT=$(cat /tmp/implement-$TASK_ID.log | tail -50)
+```
+TaskOutput(task_id="$TASK_ID_FROM_BASH_TOOL", block=false, timeout=5000)
 ```
 
-**Parse final status from output and report to user.**
+- Use `block: false` to check status without waiting
+- Use `block: true` to wait for completion
+
+**When complete, parse the JSON output and report to user:**
+- `status`: FINISH, BLOCKED, TIMEOUT, MAX_CYCLES, or ERROR
+- `summary`: What was accomplished
+- `cycles`: Number of worker spawns
+- `blocker`: Description if BLOCKED (null otherwise)
 
 ---
 
