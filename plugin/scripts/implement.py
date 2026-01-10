@@ -7,7 +7,7 @@ task objectives. Workers read task.json and journal.md themselves - the
 orchestrator only validates files exist and provides the worker prompt.
 
 Usage:
-    python implement.py /path/to/task/worktree [options]
+    python implement.py /path/to/task/worktree --plugin-root /path/to/plugin [options]
 
 The script continues spawning workers until:
     - FINISH: All objectives completed
@@ -18,8 +18,6 @@ The script continues spawning workers until:
 
 import argparse
 import json
-import os
-import re
 import subprocess
 import sys
 import time
@@ -136,6 +134,13 @@ def create_argument_parser() -> argparse.ArgumentParser:
         help="Comma-separated allowed tools"
     )
 
+    parser.add_argument(
+        "--plugin-root",
+        dest="plugin_root",
+        required=True,
+        help="Path to the plugin root directory (required)"
+    )
+
     return parser
 
 
@@ -219,37 +224,33 @@ def validate_task_files(task_path: str) -> Dict[str, Any]:
 # Worker Prompt Loading
 # ============================================================================
 
-def get_worker_prompt_path() -> Path:
+def get_worker_prompt_path(plugin_root: str) -> Path:
     """
-    Get the worker prompt path using CLAUDE_PLUGIN_ROOT environment variable.
+    Get the worker prompt path using the provided plugin root.
+
+    Args:
+        plugin_root: Path to the plugin root directory.
 
     Returns:
         Path to the worker prompt file.
-
-    Raises:
-        WorkerPromptError: If CLAUDE_PLUGIN_ROOT is not set.
     """
-    plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
-    if not plugin_root:
-        raise WorkerPromptError(
-            "CLAUDE_PLUGIN_ROOT environment variable is not set. "
-            "This script must be run in a Claude Code plugin context."
-        )
     return Path(plugin_root) / WORKER_PROMPT_RELATIVE
 
 
-def load_worker_prompt() -> str:
+def load_worker_prompt(plugin_root: str) -> str:
     """
     Load the worker prompt template.
+
+    Args:
+        plugin_root: Path to the plugin root directory.
 
     Returns:
         The worker prompt content as a string.
 
     Raises:
-        WorkerPromptError: If CLAUDE_PLUGIN_ROOT is not set or the prompt file
-                          cannot be found or read.
+        WorkerPromptError: If the prompt file cannot be found or read.
     """
-    prompt_path = get_worker_prompt_path()
+    prompt_path = get_worker_prompt_path(plugin_root)
     try:
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
@@ -409,7 +410,7 @@ def run_loop(args: argparse.Namespace) -> Dict[str, Any]:
         raise TaskFileError(validation["error"])
 
     # Load worker prompt
-    worker_prompt = load_worker_prompt()
+    worker_prompt = load_worker_prompt(args.plugin_root)
 
     # Initialize loop state
     start_time = time.time()

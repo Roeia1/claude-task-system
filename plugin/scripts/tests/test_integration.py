@@ -298,7 +298,7 @@ class TestHappyPathIntegration:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_015_happy_path)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_015_happy_path)])
 
         result = run_loop(args)
 
@@ -335,7 +335,7 @@ class TestHappyPathIntegration:
         ]
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_015_happy_path)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_015_happy_path)])
 
         result = run_loop(args)
 
@@ -363,7 +363,7 @@ class TestHappyPathIntegration:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_015_with_journal)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_015_with_journal)])
 
         result = run_loop(args)
 
@@ -397,7 +397,7 @@ class TestBlockerFlowIntegration:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_016_blocker_scenario)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_016_blocker_scenario)])
 
         result = run_loop(args)
 
@@ -441,7 +441,7 @@ class TestBlockerFlowIntegration:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_016_resolved)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_016_resolved)])
 
         result = run_loop(args)
 
@@ -541,7 +541,7 @@ class TestErrorHandlingIntegration:
         task_folder.mkdir(parents=True)
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_root)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_root)])
 
         with pytest.raises(TaskFileError) as exc_info:
             run_loop(args)
@@ -559,7 +559,7 @@ class TestErrorHandlingIntegration:
         (task_folder / "task.json").write_text("{ invalid json }")
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_root)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_root)])
 
         # Note: Current implementation only checks for file existence
         # If we need to validate JSON structure, this test documents that need
@@ -582,7 +582,7 @@ class TestErrorHandlingIntegration:
         mock_spawn.return_value = "not valid json at all"
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_015_happy_path)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_015_happy_path)])
 
         with pytest.raises(WorkerOutputError):
             run_loop(args)
@@ -602,7 +602,7 @@ class TestErrorHandlingIntegration:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_015_happy_path)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_015_happy_path)])
 
         with pytest.raises(WorkerOutputError) as exc_info:
             run_loop(args)
@@ -635,7 +635,7 @@ class TestConfigurationIntegration:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args(["--max-cycles", "3", str(task_015_happy_path)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "--max-cycles", "3", str(task_015_happy_path)])
 
         result = run_loop(args)
 
@@ -664,7 +664,7 @@ class TestConfigurationIntegration:
         mock_time.side_effect = [0, 300, 3900]
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_015_happy_path)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_015_happy_path)])
 
         result = run_loop(args)
 
@@ -717,7 +717,7 @@ class TestEndToEndWorkflow:
         ]
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_015_happy_path)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_015_happy_path)])
 
         result = run_loop(args)
 
@@ -752,7 +752,7 @@ class TestEndToEndWorkflow:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args([str(task_016_blocker_scenario)])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", str(task_016_blocker_scenario)])
 
         result1 = run_loop(args)
         assert result1["status"] == "BLOCKED"

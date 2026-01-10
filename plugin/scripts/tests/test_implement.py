@@ -153,21 +153,40 @@ class TestCLIArgumentParsing:
         with pytest.raises(SystemExit):
             parser.parse_args([])
 
+    def test_plugin_root_required(self):
+        """Script should require --plugin-root argument."""
+        from implement import create_argument_parser
+
+        parser = create_argument_parser()
+
+        # Should raise SystemExit when --plugin-root is missing
+        with pytest.raises(SystemExit):
+            parser.parse_args(["/path/to/task"])
+
     def test_task_path_accepted(self):
         """Script should accept task_path as positional argument."""
         from implement import create_argument_parser
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         assert args.task_path == "/path/to/task"
+
+    def test_plugin_root_accepted(self):
+        """Script should accept --plugin-root argument."""
+        from implement import create_argument_parser
+
+        parser = create_argument_parser()
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
+
+        assert args.plugin_root == "/path/to/plugin"
 
     def test_max_cycles_default(self):
         """Default max_cycles should be 10."""
         from implement import create_argument_parser
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         assert args.max_cycles == 10
 
@@ -176,7 +195,7 @@ class TestCLIArgumentParsing:
         from implement import create_argument_parser
 
         parser = create_argument_parser()
-        args = parser.parse_args(["--max-cycles", "5", "/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "--max-cycles", "5", "/path/to/task"])
 
         assert args.max_cycles == 5
 
@@ -185,7 +204,7 @@ class TestCLIArgumentParsing:
         from implement import create_argument_parser
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         assert args.max_time == 60
 
@@ -194,7 +213,7 @@ class TestCLIArgumentParsing:
         from implement import create_argument_parser
 
         parser = create_argument_parser()
-        args = parser.parse_args(["--max-time", "120", "/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "--max-time", "120", "/path/to/task"])
 
         assert args.max_time == 120
 
@@ -203,7 +222,7 @@ class TestCLIArgumentParsing:
         from implement import create_argument_parser
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         assert args.model == "opus"
 
@@ -212,7 +231,7 @@ class TestCLIArgumentParsing:
         from implement import create_argument_parser
 
         parser = create_argument_parser()
-        args = parser.parse_args(["--model", "opus", "/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "--model", "opus", "/path/to/task"])
 
         assert args.model == "opus"
 
@@ -221,7 +240,7 @@ class TestCLIArgumentParsing:
         from implement import create_argument_parser
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         assert args.mcp_config is None
 
@@ -230,7 +249,7 @@ class TestCLIArgumentParsing:
         from implement import create_argument_parser
 
         parser = create_argument_parser()
-        args = parser.parse_args(["--mcp-config", "/path/to/mcp.json", "/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "--mcp-config", "/path/to/mcp.json", "/path/to/task"])
 
         assert args.mcp_config == "/path/to/mcp.json"
 
@@ -239,7 +258,7 @@ class TestCLIArgumentParsing:
         from implement import create_argument_parser
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         assert args.tools is None
 
@@ -248,7 +267,7 @@ class TestCLIArgumentParsing:
         from implement import create_argument_parser
 
         parser = create_argument_parser()
-        args = parser.parse_args(["--tools", "Read,Write,Bash", "/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "--tools", "Read,Write,Bash", "/path/to/task"])
 
         assert args.tools == "Read,Write,Bash"
 
@@ -258,6 +277,7 @@ class TestCLIArgumentParsing:
 
         parser = create_argument_parser()
         args = parser.parse_args([
+            "--plugin-root", "/path/to/plugin",
             "--max-cycles", "15",
             "--max-time", "90",
             "--model", "haiku",
@@ -267,6 +287,7 @@ class TestCLIArgumentParsing:
         ])
 
         assert args.task_path == "/path/to/my/task"
+        assert args.plugin_root == "/path/to/plugin"
         assert args.max_cycles == 15
         assert args.max_time == 90
         assert args.model == "haiku"
@@ -350,39 +371,31 @@ class TestTaskFileValidation:
 class TestWorkerPromptLoading:
     """Test worker prompt template loading."""
 
-    def test_get_worker_prompt_path_uses_env_var(self):
-        """Should use CLAUDE_PLUGIN_ROOT environment variable."""
+    def test_get_worker_prompt_path_uses_plugin_root_arg(self):
+        """Should use plugin_root argument to construct path."""
         from implement import get_worker_prompt_path
 
-        with patch.dict("os.environ", {"CLAUDE_PLUGIN_ROOT": "/path/to/plugin"}):
-            result = get_worker_prompt_path()
+        result = get_worker_prompt_path("/path/to/plugin")
 
         assert str(result) == "/path/to/plugin/instructions/orchestration/worker-prompt.md"
 
-    def test_get_worker_prompt_path_missing_env_var(self):
-        """Should raise error if CLAUDE_PLUGIN_ROOT not set."""
-        from implement import get_worker_prompt_path, WorkerPromptError
+    def test_get_worker_prompt_path_handles_trailing_slash(self):
+        """Should handle plugin_root with trailing slash."""
+        from implement import get_worker_prompt_path
 
-        with patch.dict("os.environ", {}, clear=True):
-            # Ensure CLAUDE_PLUGIN_ROOT is not in environment
-            import os
-            if "CLAUDE_PLUGIN_ROOT" in os.environ:
-                del os.environ["CLAUDE_PLUGIN_ROOT"]
+        result = get_worker_prompt_path("/path/to/plugin/")
 
-            with pytest.raises(WorkerPromptError) as exc_info:
-                get_worker_prompt_path()
-
-            assert "CLAUDE_PLUGIN_ROOT" in str(exc_info.value)
+        # Path should be normalized
+        assert "instructions/orchestration/worker-prompt.md" in str(result)
 
     def test_load_worker_prompt_returns_string(self, sample_worker_prompt):
         """Should return worker prompt as string."""
         from implement import load_worker_prompt
 
-        with patch.dict("os.environ", {"CLAUDE_PLUGIN_ROOT": "/path/to/plugin"}):
-            with patch("builtins.open", create=True) as mock_open:
-                mock_open.return_value.__enter__.return_value.read.return_value = sample_worker_prompt
+        with patch("builtins.open", create=True) as mock_open:
+            mock_open.return_value.__enter__.return_value.read.return_value = sample_worker_prompt
 
-                result = load_worker_prompt()
+            result = load_worker_prompt("/path/to/plugin")
 
         assert isinstance(result, str)
         assert len(result) > 0
@@ -391,11 +404,10 @@ class TestWorkerPromptLoading:
         """Worker prompt should contain key instructions."""
         from implement import load_worker_prompt
 
-        with patch.dict("os.environ", {"CLAUDE_PLUGIN_ROOT": "/path/to/plugin"}):
-            with patch("builtins.open", create=True) as mock_open:
-                mock_open.return_value.__enter__.return_value.read.return_value = sample_worker_prompt
+        with patch("builtins.open", create=True) as mock_open:
+            mock_open.return_value.__enter__.return_value.read.return_value = sample_worker_prompt
 
-                result = load_worker_prompt()
+            result = load_worker_prompt("/path/to/plugin")
 
         assert "task.json" in result.lower()
         assert "journal" in result.lower()
@@ -404,20 +416,9 @@ class TestWorkerPromptLoading:
         """Should raise error if worker prompt file not found."""
         from implement import load_worker_prompt, WorkerPromptError
 
-        with patch.dict("os.environ", {"CLAUDE_PLUGIN_ROOT": "/path/to/plugin"}):
-            with patch("builtins.open", side_effect=FileNotFoundError("Not found")):
-                with pytest.raises(WorkerPromptError):
-                    load_worker_prompt()
-
-    def test_load_worker_prompt_missing_env_var(self):
-        """Should raise error if CLAUDE_PLUGIN_ROOT not set."""
-        from implement import load_worker_prompt, WorkerPromptError
-
-        with patch.dict("os.environ", {}, clear=True):
-            with pytest.raises(WorkerPromptError) as exc_info:
-                load_worker_prompt()
-
-            assert "CLAUDE_PLUGIN_ROOT" in str(exc_info.value)
+        with patch("builtins.open", side_effect=FileNotFoundError("Not found")):
+            with pytest.raises(WorkerPromptError):
+                load_worker_prompt("/path/to/plugin")
 
 
 # ============================================================================
@@ -917,7 +918,7 @@ class TestMainLoop:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         result = run_loop(args)
 
@@ -946,7 +947,7 @@ class TestMainLoop:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         result = run_loop(args)
 
@@ -976,7 +977,7 @@ class TestMainLoop:
         ]
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         result = run_loop(args)
 
@@ -1008,7 +1009,7 @@ class TestMainLoop:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args(["--max-cycles", "3", "/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "--max-cycles", "3", "/path/to/task"])
 
         result = run_loop(args)
 
@@ -1044,7 +1045,7 @@ class TestMainLoop:
         mock_time.side_effect = [0, 1800, 4200]
 
         parser = create_argument_parser()
-        args = parser.parse_args(["--max-time", "60", "/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "--max-time", "60", "/path/to/task"])
 
         result = run_loop(args)
 
@@ -1061,7 +1062,7 @@ class TestMainLoop:
         }
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         with pytest.raises(TaskFileError):
             run_loop(args)
@@ -1088,7 +1089,7 @@ class TestMainLoop:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         result = run_loop(args)
 
@@ -1115,7 +1116,7 @@ class TestMainLoop:
         ]
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         result = run_loop(args)
 
@@ -1145,13 +1146,42 @@ class TestMainLoop:
         })
 
         parser = create_argument_parser()
-        args = parser.parse_args(["/path/to/task"])
+        args = parser.parse_args(["--plugin-root", "/path/to/plugin", "/path/to/task"])
 
         run_loop(args)
 
         # Verify spawn_worker was called with the worker prompt
         call_args = mock_spawn.call_args
         assert "Worker instructions content" in call_args.kwargs.get("prompt", call_args[0][0] if call_args[0] else "")
+
+    @patch("implement.spawn_worker")
+    @patch("implement.validate_task_files")
+    @patch("implement.load_worker_prompt")
+    def test_loop_passes_plugin_root_to_load_prompt(self, mock_load_prompt, mock_validate, mock_spawn):
+        """Loop should pass plugin_root to load_worker_prompt."""
+        from implement import run_loop, create_argument_parser
+
+        mock_validate.return_value = {
+            "valid": True,
+            "task_json_path": "/path/task.json",
+            "task_id": "015"
+        }
+        mock_load_prompt.return_value = "Worker instructions"
+        mock_spawn.return_value = json.dumps({
+            "structured_output": {
+                "status": "FINISH",
+                "summary": "Done",
+                "blocker": None
+            }
+        })
+
+        parser = create_argument_parser()
+        args = parser.parse_args(["--plugin-root", "/custom/plugin/path", "/path/to/task"])
+
+        run_loop(args)
+
+        # Verify load_worker_prompt was called with the plugin_root
+        mock_load_prompt.assert_called_once_with("/custom/plugin/path")
 
 
 # ============================================================================

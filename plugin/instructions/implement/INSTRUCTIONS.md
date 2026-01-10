@@ -144,7 +144,8 @@ python3 -c "import json; json.load(open('$TASK_JSON'))" 2>&1
 All validation passed. Run the implementation script using the Bash tool with `run_in_background: true`:
 
 ```bash
-CLAUDE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT}" python3 -u "${CLAUDE_PLUGIN_ROOT}/scripts/implement.py" "$WORKTREE_PATH" \
+python3 -u "${CLAUDE_PLUGIN_ROOT}/scripts/implement.py" "$WORKTREE_PATH" \
+    --plugin-root "${CLAUDE_PLUGIN_ROOT}" \
     --max-cycles 10 \
     --max-time 60 \
     --model opus
