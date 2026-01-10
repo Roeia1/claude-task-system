@@ -28,23 +28,23 @@ P1 - Foundation for the /implement command; other commands depend on identifier 
 
 ## Objectives
 
-- [ ] Task ID lookup utility that finds worktrees by numeric ID
-- [ ] Task name search utility that searches task.json files for matching titles
-- [ ] Feature name to task list mapping utility
-- [ ] User selection prompt for feature-to-task resolution
-- [ ] Unified resolver function that handles all identifier formats
+- [x] Task ID lookup utility that finds worktrees by numeric ID
+- [x] Task name search utility that searches task.json files for matching titles
+- [x] Feature name to task list mapping utility
+- [x] User selection prompt for feature-to-task resolution (handled by /implement INSTRUCTIONS)
+- [x] Unified resolver function that handles all identifier formats
 
 ## Sub-tasks
 
-1. [ ] Create `plugin/scripts/resolve_identifier.py` module structure with CLI interface
-2. [ ] Implement `resolve_task_id()` function to find task worktrees by ID
-3. [ ] Implement `resolve_task_name()` function to search task.json files by title
-4. [ ] Implement `get_tasks_for_feature()` function to list tasks belonging to a feature
-5. [ ] Implement task status detection (PENDING, IN_PROGRESS, BLOCKED, COMPLETED)
-6. [ ] Implement `prompt_task_selection()` function for interactive feature-to-task selection
-7. [ ] Implement main `resolve_identifier()` function that orchestrates resolution
-8. [ ] Add error handling with clear, actionable error messages
-9. [ ] Add cross-platform path handling (Windows/Unix compatibility)
+1. [x] Create `plugin/scripts/identifier_resolver.py` module structure with CLI interface
+2. [x] Implement `resolve_task_id()` function to find task worktrees by ID
+3. [x] Implement `resolve_task_name()` function to search task.json files by title
+4. [x] Implement `resolve_feature_name()` function to list tasks belonging to a feature
+5. [x] Implement task status detection (PENDING, IN_PROGRESS, BLOCKED, COMPLETED)
+6. [x] User selection prompt handled by /implement INSTRUCTIONS.md (not Python module)
+7. [x] Implement main `resolve_identifier()` function that orchestrates resolution
+8. [x] Add error handling with clear, actionable error messages
+9. [x] Add cross-platform path handling (uses pathlib throughout)
 
 ## Technical Approach
 
