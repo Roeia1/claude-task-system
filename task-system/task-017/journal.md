@@ -80,3 +80,24 @@ Successfully implemented the /resolve command for human-assisted blocker resolut
 
 ---
 
+### 2026-01-10 03:20 - Task Completion
+
+**Status**: COMPLETED
+
+**Summary of Achievements:**
+- Created `/resolve` command for human-assisted blocker resolution
+- Implemented complete 8-step resolution workflow in INSTRUCTIONS.md
+- Integrated with existing detect-context.sh for worktree validation
+- Followed established command.md + INSTRUCTIONS.md pattern
+
+**Files Delivered:**
+- `plugin/commands/resolve.md` - Command entry point
+- `plugin/instructions/resolve/INSTRUCTIONS.md` - Resolution workflow
+
+**Quality Impact:**
+- Enables human-in-the-loop blocker resolution for autonomous task execution
+- Maintains consistency with /implement command pattern
+- Documents decisions in journal.md as single source of truth
+
+---
+
