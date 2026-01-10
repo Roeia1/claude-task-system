@@ -32,6 +32,5 @@
   "skills": "./skills/",
   "agents": [
     "./agents/task-builder.md"
-  ],
-  "hooks": "./hooks/hooks.json"
+  ]
 }
