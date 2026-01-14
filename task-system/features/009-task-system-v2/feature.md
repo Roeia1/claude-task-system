@@ -45,18 +45,25 @@ The current task system conflates planning and execution concerns. Features and 
 - **Worktrees for code only**: Worktrees contain code branches, no task file duplication
 - **Claude hooks for scope**: Hooks enforce agent stays within assigned story's files
 
-## Commands
+## Skills
 
-| Command | Arguments | Description |
-|---------|-----------|-------------|
-| `/claude-task-system:init` | - | Initialize `.claude-tasks/` structure |
-| `/claude-task-system:epic` | `<name>` | Create new epic |
-| `/claude-task-system:spec` | `[epic-slug]` | Create spec for epic (auto-detects context) |
-| `/claude-task-system:stories` | `[epic-slug]` | Generate stories from spec |
-| `/claude-task-system:story` | `<story-slug>` | Show story details and status |
-| `/claude-task-system:list` | `[epics\|stories\|all]` | List epics, stories, or both |
-| `/claude-task-system:implement` | `<story-slug>` | Execute story autonomously |
-| `/claude-task-system:resolve` | `[story-slug]` | Resolve blocked story |
+All functionality is provided as **Skills** (not slash commands). Skills support visibility controls and can be invoked manually via `/skill-name` or automatically by Claude when contextually relevant.
+
+| Skill | Arguments | Description | Visibility |
+|-------|-----------|-------------|------------|
+| `init` | - | Initialize `.claude-tasks/` structure | user-invocable |
+| `epic` | `<description>` | Create new epic | user-invocable |
+| `spec` | `<epic-slug>` | Create spec for epic | user-invocable |
+| `stories` | `[epic-slug]` | Generate stories from spec | user-invocable |
+| `story` | `<story-slug>` | Show story details and status | user-invocable |
+| `list` | `[epics\|stories\|all]` | List epics, stories, or both | user-invocable |
+| `implement` | `<story-slug>` | Execute story autonomously | user-invocable |
+| `resolve` | `[story-slug]` | Resolve blocked story | user-invocable |
+
+**Skill visibility options:**
+- `user-invocable: true` (default) - Appears in slash menu, can be invoked via `/skill-name`
+- `user-invocable: false` - Hidden from menu, Claude can still invoke via Skill tool
+- `disable-model-invocation: true` - Blocks programmatic invocation via Skill tool
 
 **Argument conventions:**
 - `<required>` - Must be provided
@@ -82,7 +89,7 @@ The current task system conflates planning and execution concerns. Features and 
 **So that** I can establish clear success criteria before diving into implementation
 
 **Acceptance Criteria:**
-- [ ] Can create an epic with `/claude-task-system:epic <name>`
+- [ ] Can create an epic with `/epic <description>` skill
 - [ ] Epic.md contains: Overview, Goals, Success Metrics, Scope (in/out), NFRs
 - [ ] Stored in `.claude-tasks/epics/<slug>/epic.md`
 - [ ] No implementation details in epic (enforced by template guidance)
@@ -94,8 +101,8 @@ The current task system conflates planning and execution concerns. Features and 
 **So that** I document architecture decisions before breaking down into stories
 
 **Acceptance Criteria:**
-- [ ] Can create spec with `/claude-task-system:spec` (auto-detects epic context)
-- [ ] Can specify epic explicitly: `/claude-task-system:spec <epic-slug>`
+- [ ] Can create spec with `/spec <epic-slug>` skill
+- [ ] Uses identifier_resolver.py for epic resolution (slug-based matching)
 - [ ] Spec.md contains: Architecture Overview, Key Decisions (ADR-style), Data Models, Interface Contracts, Tech Stack, Open Questions
 - [ ] Key decisions include Choice/Rationale/Alternatives format
 - [ ] Interface contracts define APIs between stories
@@ -107,8 +114,8 @@ The current task system conflates planning and execution concerns. Features and 
 **So that** work can proceed in parallel with clear boundaries
 
 **Acceptance Criteria:**
-- [ ] Can generate stories with `/claude-task-system:stories` (auto-detects epic)
-- [ ] Can specify epic explicitly: `/claude-task-system:stories <epic-slug>`
+- [ ] Can generate stories with `/stories` skill (auto-detects epic)
+- [ ] Can specify epic explicitly: `/stories <epic-slug>`
 - [ ] Each story is a self-contained JSON file
 - [ ] Stories include: id, title, status, context, interface (inputs/outputs), acceptance_criteria, tasks
 - [ ] Stories reference no parent documents (epic/spec)
@@ -133,11 +140,11 @@ The current task system conflates planning and execution concerns. Features and 
 **So that** agents can work autonomously within story boundaries
 
 **Acceptance Criteria:**
-- [ ] `/claude-task-system:implement <story-slug>` spawns agent with story context
+- [ ] `/implement <story-slug>` skill spawns agent with story context
 - [ ] Agent works in worktree but reads/writes task files from canonical location
 - [ ] Agent tracks progress by updating task status in story.json
 - [ ] Journal.md captures execution log in canonical location
-- [ ] BLOCKED status triggers `/claude-task-system:resolve` flow
+- [ ] BLOCKED status triggers `/resolve` skill flow
 - [ ] Story completion updates story status to "done"
 
 ### Story 6: Scope Enforcement via Hooks
@@ -150,7 +157,7 @@ The current task system conflates planning and execution concerns. Features and 
 - [ ] Claude hook blocks writes to other stories' task files
 - [ ] Hook provides clear error message identifying scope violation
 - [ ] Hook allows full codebase access (only task files restricted)
-- [ ] Hook configuration is automatic when `/claude-task-system:implement` starts
+- [ ] Scope enforcement passed via `--settings` flag when spawning workers
 
 ## Functional Requirements
 
@@ -164,9 +171,10 @@ The current task system conflates planning and execution concerns. Features and 
 8. The system shall validate story.json schema on creation
 9. The system shall use git worktrees for code branch isolation
 10. Task files (story.json, journal.md) shall live in canonical location (`epics/`), not in worktrees
-11. The system shall use Claude hooks to enforce story scope during execution
-12. The system shall migrate `/implement` to work with story.json format
-13. The system shall archive completed stories to `.claude-tasks/archive/`
+11. The system shall use skill-scoped Claude hooks to enforce story scope during execution
+12. The system shall provide all functionality as Skills (not slash commands)
+13. The system shall migrate `/implement` skill to work with story.json format
+14. The system shall archive completed stories to `.claude-tasks/archive/`
 
 ## Non-Functional Requirements
 
@@ -179,7 +187,8 @@ The current task system conflates planning and execution concerns. Features and 
 - Clear separation between plugin code and user artifacts
 
 ### Usability
-- Commands use consistent plugin namespace: `/claude-task-system:<command>`
+- Skills use consistent plugin namespace: `/claude-task-system:<skill>` or just `/<skill>` when unambiguous
+- Skills are invocable via `/skill-name` or automatically discovered by Claude based on context
 - Error messages should guide users to correct usage
 - Story.json should be human-readable and editable
 
@@ -201,9 +210,9 @@ The current task system conflates planning and execution concerns. Features and 
 
 ## Dependencies
 
-- **Existing plugin infrastructure**: Commands, skills, agents
+- **Plugin skills infrastructure**: SKILL.md format, skill frontmatter, skill-scoped hooks, `!` bash execution
 - **Git worktrees**: For code branch isolation
-- **Claude hooks**: For scope enforcement during execution
+- **Skill-scoped Claude hooks**: For scope enforcement during execution (defined in SKILL.md frontmatter)
 - **GitHub CLI**: PR creation for stories
 
 ## Open Questions
@@ -215,6 +224,8 @@ The current task system conflates planning and execution concerns. Features and 
 - Current task.json schema: `plugin/instructions/task-generation/templates/task-template.json`
 - Current implement workflow: `plugin/instructions/implement/`
 - User-provided architecture brief: Inline in feature request
+- Claude Code Skills documentation: https://code.claude.com/docs/en/skills.md
+- Claude Code Slash Commands documentation: https://code.claude.com/docs/en/slash-commands.md
 
 ---
 
