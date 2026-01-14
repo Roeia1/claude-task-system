@@ -45,30 +45,65 @@ The current task system conflates planning and execution concerns. Features and 
 - **Worktrees for code only**: Worktrees contain code branches, no task file duplication
 - **Claude hooks for scope**: Hooks enforce agent stays within assigned story's files
 
-## Skills
+## Commands and Skills
 
-All functionality is provided as **Skills** (not slash commands). Skills support visibility controls and can be invoked manually via `/skill-name` or automatically by Claude when contextually relevant.
+The system uses a **two-layer architecture**:
+- **Commands** (user-facing): Accept arguments via `$ARGUMENTS`, run scripts with `!` prefix, then invoke internal skills via the `Skill` tool
+- **Skills** (internal): Receive context from commands, do the actual work, marked `user-invocable: false`
 
-| Skill | Arguments | Description | Visibility |
-|-------|-----------|-------------|------------|
-| `init` | - | Initialize `.claude-tasks/` structure | user-invocable |
-| `epic` | `<description>` | Create new epic | user-invocable |
-| `spec` | `<epic-slug>` | Create spec for epic | user-invocable |
-| `stories` | `[epic-slug]` | Generate stories from spec | user-invocable |
-| `story` | `<story-slug>` | Show story details and status | user-invocable |
-| `list` | `[epics\|stories\|all]` | List epics, stories, or both | user-invocable |
-| `implement` | `<story-slug>` | Execute story autonomously | user-invocable |
-| `resolve` | `[story-slug]` | Resolve blocked story | user-invocable |
+This separation is necessary because **Skills don't support argument placeholders** (`$ARGUMENTS`, `$1`, `$2`) - only Commands do.
 
-**Skill visibility options:**
-- `user-invocable: true` (default) - Appears in slash menu, can be invoked via `/skill-name`
-- `user-invocable: false` - Hidden from menu, Claude can still invoke via Skill tool
-- `disable-model-invocation: true` - Blocks programmatic invocation via Skill tool
+### Commands (User-Facing)
+
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| `/init` | - | Initialize `.claude-tasks/` structure |
+| `/create-epic` | `<description>` | Create new epic |
+| `/create-spec` | `<epic-slug>` | Create spec for epic |
+| `/generate-stories` | `[epic-slug]` | Generate stories from spec |
+| `/show-story` | `<story-slug>` | Show story details and status |
+| `/list` | `[epics\|stories\|all]` | List epics, stories, or both |
+| `/implement` | `<story-slug>` | Execute story autonomously |
+| `/resolve` | `[story-slug]` | Resolve blocked story |
 
 **Argument conventions:**
 - `<required>` - Must be provided
 - `[optional]` - Can be omitted (auto-detected or defaults applied)
 - `[a|b|c]` - Choose one option
+
+### Skills (Internal)
+
+| Skill | Invoked By | Purpose |
+|-------|------------|---------|
+| `create-epic` | `/create-epic` command | Generate epic.md from context |
+| `create-spec` | `/create-spec` command | Generate spec.md from resolved epic |
+| `generate-stories` | `/generate-stories` command | Create story.json files from spec |
+| `show-story` | `/show-story` command | Display story details |
+| `list-status` | `/list` command | Format and display status |
+| `execute-story` | `/implement` command | Orchestrate story implementation |
+| `resolve-blocker` | `/resolve` command | Analyze and resolve blockers |
+
+All skills are marked `user-invocable: false` (hidden from slash menu) since they receive context from their associated commands.
+
+### How Commands Invoke Skills
+
+```markdown
+# Example: /create-spec command
+
+---
+allowed-tools: Bash(python:*), Skill(create-spec)
+argument-hint: <epic-slug>
+description: Create a technical specification for an epic
+---
+
+## Epic Resolution
+
+!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --type epic --project-root "$(pwd)"`
+
+## Instructions
+
+The resolution result above is now in context. Use the Skill tool to invoke `create-spec` which will use this context to create the specification.
+```
 
 ## Hierarchy Mapping (Current → New)
 
@@ -89,7 +124,8 @@ All functionality is provided as **Skills** (not slash commands). Skills support
 **So that** I can establish clear success criteria before diving into implementation
 
 **Acceptance Criteria:**
-- [ ] Can create an epic with `/epic <description>` skill
+- [ ] Can create an epic with `/create-epic <description>` command
+- [ ] Command runs scripts, then invokes `create-epic` skill via Skill tool
 - [ ] Epic.md contains: Overview, Goals, Success Metrics, Scope (in/out), NFRs
 - [ ] Stored in `.claude-tasks/epics/<slug>/epic.md`
 - [ ] No implementation details in epic (enforced by template guidance)
@@ -101,8 +137,9 @@ All functionality is provided as **Skills** (not slash commands). Skills support
 **So that** I document architecture decisions before breaking down into stories
 
 **Acceptance Criteria:**
-- [ ] Can create spec with `/spec <epic-slug>` skill
-- [ ] Uses identifier_resolver.py for epic resolution (slug-based matching)
+- [ ] Can create spec with `/create-spec <epic-slug>` command
+- [ ] Command uses identifier_resolver.py for epic resolution (slug-based matching)
+- [ ] Command invokes `create-spec` skill with resolution context
 - [ ] Spec.md contains: Architecture Overview, Key Decisions (ADR-style), Data Models, Interface Contracts, Tech Stack, Open Questions
 - [ ] Key decisions include Choice/Rationale/Alternatives format
 - [ ] Interface contracts define APIs between stories
@@ -114,8 +151,9 @@ All functionality is provided as **Skills** (not slash commands). Skills support
 **So that** work can proceed in parallel with clear boundaries
 
 **Acceptance Criteria:**
-- [ ] Can generate stories with `/stories` skill (auto-detects epic)
-- [ ] Can specify epic explicitly: `/stories <epic-slug>`
+- [ ] Can generate stories with `/generate-stories` command (auto-detects epic)
+- [ ] Can specify epic explicitly: `/generate-stories <epic-slug>`
+- [ ] Command invokes `generate-stories` skill with resolution context
 - [ ] Each story is a self-contained JSON file
 - [ ] Stories include: id, title, status, context, interface (inputs/outputs), acceptance_criteria, tasks
 - [ ] Stories reference no parent documents (epic/spec)
@@ -136,15 +174,15 @@ All functionality is provided as **Skills** (not slash commands). Skills support
 ### Story 5: Story Execution Workflow
 
 **As a** developer
-**I want** to execute stories using the existing `/implement` pattern
+**I want** to execute stories using the `/implement` command
 **So that** agents can work autonomously within story boundaries
 
 **Acceptance Criteria:**
-- [ ] `/implement <story-slug>` skill spawns agent with story context
+- [ ] `/implement <story-slug>` command resolves story, then invokes `execute-story` skill
 - [ ] Agent works in worktree but reads/writes task files from canonical location
 - [ ] Agent tracks progress by updating task status in story.json
 - [ ] Journal.md captures execution log in canonical location
-- [ ] BLOCKED status triggers `/resolve` skill flow
+- [ ] BLOCKED status triggers `/resolve` command flow
 - [ ] Story completion updates story status to "done"
 
 ### Story 6: Scope Enforcement via Hooks
@@ -172,9 +210,10 @@ All functionality is provided as **Skills** (not slash commands). Skills support
 9. The system shall use git worktrees for code branch isolation
 10. Task files (story.json, journal.md) shall live in canonical location (`epics/`), not in worktrees
 11. The system shall use skill-scoped Claude hooks to enforce story scope during execution
-12. The system shall provide all functionality as Skills (not slash commands)
-13. The system shall migrate `/implement` skill to work with story.json format
-14. The system shall archive completed stories to `.claude-tasks/archive/`
+12. The system shall use a two-layer architecture: Commands (user-facing, accept arguments) invoke Skills (internal, no arguments) via the Skill tool
+13. Commands shall run scripts with `!` prefix to gather context before invoking skills
+14. The system shall migrate `/implement` command to work with story.json format
+15. The system shall archive completed stories to `.claude-tasks/archive/`
 
 ## Non-Functional Requirements
 
@@ -187,8 +226,9 @@ All functionality is provided as **Skills** (not slash commands). Skills support
 - Clear separation between plugin code and user artifacts
 
 ### Usability
-- Skills use consistent plugin namespace: `/claude-task-system:<skill>` or just `/<skill>` when unambiguous
-- Skills are invocable via `/skill-name` or automatically discovered by Claude based on context
+- Commands use consistent plugin namespace: `/claude-task-system:<command>` or just `/<command>` when unambiguous
+- Commands are invocable via `/command-name` with arguments
+- Skills are internal and invoked by commands via the Skill tool
 - Error messages should guide users to correct usage
 - Story.json should be human-readable and editable
 
@@ -210,7 +250,9 @@ All functionality is provided as **Skills** (not slash commands). Skills support
 
 ## Dependencies
 
-- **Plugin skills infrastructure**: SKILL.md format, skill frontmatter, skill-scoped hooks, `!` bash execution
+- **Plugin commands infrastructure**: Command .md format, `$ARGUMENTS` placeholders, `!` bash execution, `argument-hint` frontmatter
+- **Plugin skills infrastructure**: SKILL.md format, skill frontmatter, `user-invocable` visibility control
+- **Skill tool**: For commands to invoke internal skills programmatically
 - **Git worktrees**: For code branch isolation
 - **Skill-scoped Claude hooks**: For scope enforcement during execution (defined in SKILL.md frontmatter)
 - **GitHub CLI**: PR creation for stories
