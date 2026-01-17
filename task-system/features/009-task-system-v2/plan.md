@@ -272,12 +272,27 @@ print(story['tasks'])     # List of task dicts
 print(story.content)      # The markdown body
 ```
 
+**Front matter schema:**
+
+| Field | Type | Values | Description |
+|-------|------|--------|-------------|
+| `id` | string | slug format | Unique story identifier |
+| `title` | string | - | Human-readable title |
+| `status` | enum | `ready`, `in-progress`, `review`, `done` | Story status |
+| `epic` | string | slug format | Parent epic identifier |
+| `blocked_by` | string[] | story slugs | Stories that must complete first |
+| `blocks` | string[] | story slugs | Stories waiting on this one |
+| `tasks` | object[] | - | List of task objects |
+| `tasks[].id` | string | e.g., `t1`, `t2` | Task identifier within story |
+| `tasks[].title` | string | - | Task title |
+| `tasks[].status` | enum | `pending`, `in-progress`, `done` | Task status |
+
 **Template:**
 ```markdown
 ---
 id: user-login
 title: Implement User Login Flow
-status: ready
+status: ready                        # ready | in-progress | review | done
 epic: auth-system
 blocked_by:
   - auth-api
@@ -286,7 +301,7 @@ blocks:
 tasks:
   - id: t1
     title: Create login form component
-    status: pending
+    status: pending                  # pending | in-progress | done
   - id: t2
     title: Add form validation
     status: pending
