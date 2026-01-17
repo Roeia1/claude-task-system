@@ -1239,7 +1239,7 @@ settings = {
     "hooks": {
         "PreToolUse": [
             {
-                "matcher": "Write|Edit",
+                "matcher": "Read|Write|Edit",
                 "hooks": [
                     {
                         "type": "command",
@@ -1267,7 +1267,7 @@ subprocess.run([
 
 ```bash
 #!/bin/bash
-# Validates that file writes are within allowed story scope
+# Validates that file operations (Read/Write/Edit) are within allowed story scope
 # Receives epic_slug and story_slug as command-line arguments
 
 EPIC_SLUG="$1"
@@ -1293,14 +1293,18 @@ fi
 if [[ "$FILE_PATH" == *".claude-tasks/epics/"*"/stories/"* ]]; then
     # Check if it's the allowed story path
     if [[ "$FILE_PATH" != *"$ALLOWED_PATH"* ]]; then
-        echo "BLOCKED: Cannot modify files outside current story scope"
-        echo "Allowed: $ALLOWED_PATH"
-        echo "Attempted: $FILE_PATH"
-        exit 1
+        # Return JSON with decision: block for informative hook response
+        cat <<EOF
+{
+  "decision": "block",
+  "reason": "Cannot access files outside current story scope. Allowed path: $ALLOWED_PATH, Attempted: $FILE_PATH"
+}
+EOF
+        exit 0
     fi
 fi
 
-# Allow all other writes (code files, etc.)
+# Allow all other file operations (code files, etc.)
 exit 0
 ```
 
@@ -1387,15 +1391,7 @@ python implement.py <epic_slug> <story_slug> [options]
 ## Open Questions
 
 - [x] ~~How to pass CURRENT_STORY_SLUG to hook scripts?~~ **Resolved**: Pass epic_slug and story_slug as command-line arguments to scope_validator.sh via `--settings` flag when spawning `claude -p`
-- [ ] Should scope enforcement also block Read operations or just Write/Edit? **Recommendation**: Write/Edit only - agents should be able to read any file for context
-
-## Architecture Decisions
-
-**ADRs to create**:
-- ADR 001: Canonical task file location (epics/ vs worktrees)
-- ADR 002: Scope enforcement mechanism (worker dynamic hooks via --settings)
-- ADR 003: Story identification (slugs vs numeric IDs)
-- ADR 004: Two-layer architecture (Commands + Skills) - why commands handle arguments and skills handle logic
+- [x] ~~Should scope enforcement also block Read operations or just Write/Edit?~~ **Resolved**: Block Read/Write/Edit - scope enforcement applies to all file operations on story files
 
 ## Future Considerations
 
