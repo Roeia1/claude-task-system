@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-01-17
+
+### Changed
+
+- **environment-variables**: Rename `CLAUDE_SPAWN_DIR` to `CLAUDE_PROJECT_DIR` for clarity
+- **session-init-hook**: Export `CLAUDE_PLUGIN_ROOT` environment variable in session initialization
+
 ## [1.4.1] - 2026-01-10
 
 ### Changed
