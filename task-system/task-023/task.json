@@ -1,0 +1,111 @@
+{
+  "meta": {
+    "id": "023",
+    "title": "Phase 2 - Epic and Story Creation Commands",
+    "created": "2026-01-17",
+    "feature": "009"
+  },
+
+  "overview": "Implement the epic creation and story generation commands for the Task System V2 architecture. This phase enables users to create unified epic documents (containing both vision and architecture) via /create-epic and break them down into executable stories via /generate-stories. The system uses a two-layer architecture: commands accept arguments and gather context, then invoke internal skills via the Skill tool. Epics are stored as markdown files in .claude-tasks/epics/<slug>/epic.md with a unified structure (vision above ---, architecture below). Stories are self-contained markdown files with YAML front matter in .claude-tasks/epics/<slug>/stories/<story-slug>/story.md. Each story gets a git worktree and draft PR created via create_worktree.sh. This task depends on Task 022 (Foundation Infrastructure) which establishes the init command, identifier_resolver.py, and directory structure.",
+
+  "objectives": [
+    {
+      "id": "obj-1",
+      "description": "Create the /create-epic command that accepts a description argument and invokes the create-epic skill",
+      "steps": [
+        "Create plugin/commands/create-epic.md with frontmatter (argument-hint: <description>, allowed-tools: Skill(create-epic), AskUserQuestion)",
+        "Include $ARGUMENTS placeholder for the epic description",
+        "Add instruction to invoke create-epic skill via Skill tool"
+      ],
+      "notes": [
+        "Commands accept arguments via $ARGUMENTS, skills do not",
+        "The command is the user-facing entry point - skill is internal"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-2",
+      "description": "Create the create-epic skill with SKILL.md and epic template that guides AI-assisted epic creation",
+      "steps": [
+        "Create plugin/skills/create-epic/SKILL.md with user-invocable: false",
+        "Create plugin/skills/create-epic/templates/epic-template.md with unified structure",
+        "Define slug generation logic in SKILL.md instructions",
+        "Design AI-assisted dialog flow for clarifying vision and architecture sections"
+      ],
+      "notes": [
+        "Epic template has two sections: Vision (Overview, Goals, Success Metrics, Scope, NFRs) and Architecture (Technical Approach, Key Decisions, Data Models, Interface Contracts, Tech Stack)",
+        "Skill reads description from conversation context (passed by command)",
+        "AI should ask clarifying questions to fill in ambiguous parts"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-3",
+      "description": "Create the /generate-stories command that resolves an epic and invokes the generate-stories skill",
+      "steps": [
+        "Create plugin/commands/generate-stories.md with frontmatter (argument-hint: [epic-slug], allowed-tools: Bash(python:*), Skill(generate-stories), AskUserQuestion)",
+        "Include bash execution to run identifier_resolver.py with --type epic flag",
+        "Add logic to handle resolved, multiple matches, and error cases",
+        "Invoke generate-stories skill via Skill tool when epic is resolved"
+      ],
+      "notes": [
+        "Uses identifier_resolver.py from Task 022 with --type epic flag",
+        "If multiple matches, use AskUserQuestion to disambiguate",
+        "Epic argument is optional - if empty, resolver will list all epics"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-4",
+      "description": "Create the generate-stories skill with SKILL.md, story template, and worktree creation script",
+      "steps": [
+        "Create plugin/skills/generate-stories/SKILL.md with user-invocable: false",
+        "Create plugin/skills/generate-stories/templates/story-template.md with YAML front matter schema",
+        "Define story breakdown generation logic in SKILL.md",
+        "Create plugin/skills/generate-stories/scripts/create_worktree.sh for git setup"
+      ],
+      "notes": [
+        "Story template uses YAML front matter (id, title, status, epic, tasks array)",
+        "Story markdown body has sections: Context, Interface (Inputs/Outputs), Acceptance Criteria, Tasks (with Guidance, References, Avoid, Done when)",
+        "Skill instructs Claude to read epic.md and generate appropriate story breakdown",
+        "For each story, script creates: git branch, worktree in .claude-tasks/worktrees/, draft PR"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-5",
+      "description": "Implement the create_worktree.sh script for git branch, worktree, and PR creation",
+      "steps": [
+        "Create plugin/skills/generate-stories/scripts/create_worktree.sh",
+        "Accept epic-slug and story-slug as arguments",
+        "Create git branch named story-<epic-slug>-<story-slug>",
+        "Create worktree in .claude-tasks/worktrees/<epic-slug>/<story-slug>/",
+        "Create draft PR using gh pr create with appropriate title and body"
+      ],
+      "notes": [
+        "Script must check CLAUDE_PROJECT_DIR environment variable is set",
+        "Use git worktree add for isolated story development",
+        "PR title format: 'Story: <epic-slug>/<story-slug>'",
+        "Script should output JSON with worktree_path and pr_url on success"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-6",
+      "description": "Test the complete epic creation and story generation workflow",
+      "steps": [
+        "Verify /create-epic command accepts description and invokes skill",
+        "Verify create-epic skill creates epic.md with unified structure",
+        "Verify /generate-stories command resolves epic and invokes skill",
+        "Verify generate-stories skill creates story.md files with correct format",
+        "Verify create_worktree.sh creates branches, worktrees, and PRs"
+      ],
+      "notes": [
+        "Integration testing should use a test project directory",
+        "Verify YAML front matter is valid and parseable",
+        "Check that worktrees are in .gitignore path"
+      ],
+      "status": "pending"
+    }
+  ]
+}
