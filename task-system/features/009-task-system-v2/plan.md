@@ -1293,17 +1293,9 @@ fi
 if [[ "$FILE_PATH" == *".claude-tasks/epics/"*"/stories/"* ]]; then
     # Check if it's the allowed story path
     if [[ "$FILE_PATH" != *"$ALLOWED_PATH"* ]]; then
-        # Return JSON with hookSpecificOutput for PreToolUse denial
-        cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "Cannot access files outside current story scope. Allowed path: $ALLOWED_PATH, Attempted: $FILE_PATH"
-  }
-}
-EOF
-        exit 0
+        # Exit code 2 blocks the tool call and shows stderr to Claude
+        echo "Scope violation: Cannot access files outside current story. Allowed: $ALLOWED_PATH, Attempted: $FILE_PATH" >&2
+        exit 2
     fi
 fi
 
