@@ -1,5 +1,5 @@
 ---
-id: {{STORY_ID}}
+slug: {{STORY_SLUG}}
 title: {{STORY_TITLE}}
 status: ready
 epic: {{EPIC_SLUG}}

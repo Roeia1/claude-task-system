@@ -1,12 +1,14 @@
 ---
 name: init
 description: Initialize .claude-tasks/ directory structure
-user-invocable: false
+user-invocable: true
 ---
 
 # Initialize Task System
 
-The initialization script has already run (via the command). Report the results to the user:
+!`python3 ${CLAUDE_PLUGIN_ROOT}/skills/init/scripts/init_structure.py "$CLAUDE_PROJECT_DIR"`
+
+The initialization script has run. Report the results to the user:
 
 - Created `.claude-tasks/epics/` - Directory for epic definitions
 - Created `.claude-tasks/archive/` - Archive for completed stories

@@ -22,107 +22,12 @@ Output:
 
 import argparse
 import json
-import os
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-
-# ============================================================================
-# YAML Front Matter Parsing (simplified, no external dependencies)
-# ============================================================================
-
-def parse_yaml_front_matter(content: str) -> tuple[Dict[str, Any], str]:
-    """
-    Parse YAML front matter from markdown content.
-
-    Expects format:
-    ---
-    key: value
-    ---
-    markdown content
-
-    Returns (metadata_dict, body_content)
-    """
-    if not content.startswith("---"):
-        return {}, content
-
-    # Find the closing ---
-    lines = content.split("\n")
-    end_index = None
-    for i, line in enumerate(lines[1:], start=1):
-        if line.strip() == "---":
-            end_index = i
-            break
-
-    if end_index is None:
-        return {}, content
-
-    # Parse YAML manually (simple key: value format)
-    yaml_lines = lines[1:end_index]
-    metadata = {}
-    current_key = None
-    current_list = None
-
-    for line in yaml_lines:
-        # Skip empty lines
-        if not line.strip():
-            continue
-
-        # Check for list item
-        if line.startswith("  - "):
-            if current_list is not None:
-                # Parse list item as potential dict
-                item_content = line[4:].strip()
-                if current_list is not None:
-                    current_list.append(parse_yaml_inline(item_content))
-            continue
-
-        # Check for nested key in list item
-        if line.startswith("    ") and current_list is not None:
-            key_match = re.match(r'^\s+(\w+):\s*(.*)$', line)
-            if key_match and current_list:
-                key, value = key_match.groups()
-                if isinstance(current_list[-1], dict):
-                    current_list[-1][key] = value.strip()
-            continue
-
-        # Normal key: value
-        match = re.match(r'^(\w+):\s*(.*)$', line)
-        if match:
-            key, value = match.groups()
-            current_key = key
-
-            # Check if this starts a list
-            if not value.strip():
-                current_list = []
-                metadata[key] = current_list
-            else:
-                current_list = None
-                metadata[key] = value.strip()
-
-    body = "\n".join(lines[end_index + 1:])
-    return metadata, body
-
-
-def parse_yaml_inline(content: str) -> Any:
-    """Parse inline YAML value."""
-    if content.startswith("{"):
-        # Try to parse as inline dict
-        try:
-            # Very simple inline dict parsing
-            content = content.strip("{}")
-            parts = content.split(",")
-            result = {}
-            for part in parts:
-                if ":" in part:
-                    k, v = part.split(":", 1)
-                    result[k.strip()] = v.strip().strip('"\'')
-            return result
-        except Exception:
-            return content
-    return content
+import frontmatter
 
 
 def extract_context(body: str, max_length: int = 300) -> str:
@@ -217,13 +122,13 @@ def resolve_epic(query: str, project_root: Path) -> Dict[str, Any]:
 
 def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
     """
-    Resolve an identifier as a story id or title.
+    Resolve an identifier as a story slug or title.
 
     Story resolution reads YAML front matter from story.md files
-    to match on id and title fields.
+    to match on slug and title fields.
 
     Args:
-        query: The identifier to resolve (potential story id or title)
+        query: The identifier to resolve (potential story slug or title)
         project_root: Path to the project root
 
     Returns:
@@ -264,22 +169,24 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
 
             try:
                 content = story_md.read_text(encoding="utf-8")
-                metadata, body = parse_yaml_front_matter(content)
+                post = frontmatter.loads(content)
+                metadata = post.metadata
+                body = post.content
 
-                story_id = metadata.get("id", story_dir.name)
+                story_slug = metadata.get("slug", story_dir.name)
                 title = metadata.get("title", "")
                 status = metadata.get("status", "")
 
                 # Normalize for matching
-                id_normalized = story_id.lower().replace("-", " ").replace("_", " ")
+                slug_normalized = story_slug.lower().replace("-", " ").replace("_", " ")
                 title_normalized = title.lower().replace("-", " ").replace("_", " ")
 
-                # Exact match on id
-                if id_normalized == query_normalized:
+                # Exact match on slug
+                if slug_normalized == query_normalized:
                     return {
                         "resolved": True,
                         "story": {
-                            "id": story_id,
+                            "slug": story_slug,
                             "title": title,
                             "status": status,
                             "context": extract_context(body),
@@ -288,12 +195,12 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
                     }
 
                 # Fuzzy match
-                if (query_normalized in id_normalized or
-                    id_normalized in query_normalized or
+                if (query_normalized in slug_normalized or
+                    slug_normalized in query_normalized or
                     query_normalized in title_normalized or
                     title_normalized in query_normalized):
                     matches.append({
-                        "id": story_id,
+                        "slug": story_slug,
                         "title": title,
                         "status": status,
                         "context": extract_context(body),
@@ -332,7 +239,7 @@ def main():
     )
     parser.add_argument(
         "query",
-        help="The identifier to resolve (epic slug, story id, or story title)"
+        help="The identifier to resolve (epic slug, story slug, or story title)"
     )
     parser.add_argument(
         "--type",
