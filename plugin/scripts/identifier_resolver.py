@@ -6,17 +6,35 @@ This module resolves flexible identifiers (task ID, task name, feature name)
 to a specific task worktree path. Used by the /implement command before
 spawning implement.py.
 
-Resolution Priority:
+Supports two types:
+- task (default): V1 task resolution (task-system/tasks/)
+- story: V2 story resolution (.claude-tasks/epics/<epic>/stories/)
+- epic: V2 epic resolution (.claude-tasks/epics/)
+
+Resolution Priority (tasks):
 1. Task ID - direct path lookup in task-system/tasks/{id}/
 2. Task name - search task.json meta.title fields
 3. Feature name - lookup feature, list associated tasks
 
+Resolution Priority (epics):
+1. Exact slug match
+2. Partial slug match (substring)
+
+Resolution Priority (stories):
+1. Exact id match
+2. Fuzzy match on id/title
+
 Usage:
     from identifier_resolver import resolve_identifier
 
+    # V1 tasks (default)
     result = resolve_identifier("015", project_root)
-    if result["resolved"]:
-        worktree_path = result["worktree_path"]
+
+    # V2 epics
+    result = resolve_identifier("auth-system", project_root, type="epic")
+
+    # V2 stories
+    result = resolve_identifier("user-login", project_root, type="story")
 """
 
 import json
@@ -601,6 +619,320 @@ def resolve_identifier(identifier: str, project_root: Path) -> Dict[str, Any]:
 
 
 # ============================================================================
+# V2 Epic Resolution
+# ============================================================================
+
+def resolve_epic(identifier: str, project_root: Path) -> Dict[str, Any]:
+    """
+    Resolve an identifier to an epic slug.
+
+    Resolution uses folder slug matching only (no file reading required).
+    Priority:
+    1. Exact slug match
+    2. Partial match (substring in either direction)
+
+    Args:
+        identifier: The identifier to resolve (epic slug or partial)
+        project_root: Path to the project root directory
+
+    Returns:
+        Dict with:
+            - resolved: bool indicating if unique epic was found
+            - epic: dict with slug if resolved
+            - epics: list of matching epics if multiple matches
+            - error: error message if not found
+    """
+    project_root = Path(project_root)
+    epics_dir = project_root / ".claude-tasks" / "epics"
+
+    if not epics_dir.exists():
+        return {
+            "resolved": False,
+            "epic": None,
+            "epics": [],
+            "error": "No .claude-tasks/epics directory found. Run /init first."
+        }
+
+    # Normalize search term
+    search_term = identifier.lower().strip()
+
+    # If empty identifier, list all epics
+    if not search_term:
+        all_epics = []
+        for epic_dir in sorted(epics_dir.iterdir()):
+            if epic_dir.is_dir():
+                all_epics.append({"slug": epic_dir.name})
+
+        if len(all_epics) == 0:
+            return {
+                "resolved": False,
+                "epic": None,
+                "epics": [],
+                "error": "No epics found. Use /create-epic to create one."
+            }
+        elif len(all_epics) == 1:
+            return {
+                "resolved": True,
+                "epic": all_epics[0],
+                "epics": all_epics,
+                "error": None
+            }
+        else:
+            return {
+                "resolved": False,
+                "epic": None,
+                "epics": all_epics,
+                "error": None
+            }
+
+    matches = []
+
+    for epic_dir in epics_dir.iterdir():
+        if not epic_dir.is_dir():
+            continue
+
+        slug = epic_dir.name
+        slug_lower = slug.lower()
+
+        # Exact match - immediate return
+        if slug_lower == search_term:
+            return {
+                "resolved": True,
+                "epic": {"slug": slug},
+                "epics": [{"slug": slug}],
+                "error": None
+            }
+
+        # Partial match (substring in either direction)
+        if search_term in slug_lower or slug_lower in search_term:
+            matches.append({"slug": slug})
+
+    if len(matches) == 1:
+        return {
+            "resolved": True,
+            "epic": matches[0],
+            "epics": matches,
+            "error": None
+        }
+    elif len(matches) > 1:
+        return {
+            "resolved": False,
+            "epic": None,
+            "epics": matches,
+            "error": None
+        }
+    else:
+        return {
+            "resolved": False,
+            "epic": None,
+            "epics": [],
+            "error": f"No epic found matching '{identifier}'"
+        }
+
+
+# ============================================================================
+# V2 Story Resolution
+# ============================================================================
+
+def _parse_story_frontmatter(story_path: Path) -> Optional[Dict[str, Any]]:
+    """
+    Parse YAML front matter from a story.md file.
+
+    Args:
+        story_path: Path to the story.md file
+
+    Returns:
+        Dict with front matter fields, or None if parsing fails
+    """
+    try:
+        with open(story_path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except IOError:
+        return None
+
+    # Check for YAML front matter (--- delimited)
+    if not content.startswith("---"):
+        return None
+
+    # Find the closing ---
+    end_idx = content.find("---", 3)
+    if end_idx == -1:
+        return None
+
+    front_matter = content[3:end_idx].strip()
+
+    # Parse YAML manually (simple key: value pairs)
+    # For full YAML support, use python-frontmatter or PyYAML
+    result = {}
+    current_key = None
+
+    for line in front_matter.split("\n"):
+        line = line.rstrip()
+        if not line:
+            continue
+
+        # Handle list items (for tasks array)
+        if line.startswith("  - "):
+            if current_key and current_key not in result:
+                result[current_key] = []
+            if isinstance(result.get(current_key), list):
+                # Parse task item
+                item_content = line[4:].strip()
+                if ":" in item_content:
+                    key, val = item_content.split(":", 1)
+                    if result[current_key] and isinstance(result[current_key][-1], dict):
+                        result[current_key][-1][key.strip()] = val.strip()
+                    else:
+                        result[current_key].append({key.strip(): val.strip()})
+                else:
+                    result[current_key].append(item_content)
+        elif line.startswith("    "):
+            # Nested property under list item
+            if current_key and isinstance(result.get(current_key), list) and result[current_key]:
+                item_content = line.strip()
+                if ":" in item_content:
+                    key, val = item_content.split(":", 1)
+                    if isinstance(result[current_key][-1], dict):
+                        result[current_key][-1][key.strip()] = val.strip()
+        elif ":" in line:
+            key, val = line.split(":", 1)
+            current_key = key.strip()
+            val = val.strip()
+            if val:
+                result[current_key] = val
+            else:
+                result[current_key] = []
+
+    # Extract context (first 300 chars of body after front matter)
+    body_start = end_idx + 3
+    body = content[body_start:].strip()
+    result["_context"] = body[:300] if body else ""
+
+    return result
+
+
+def resolve_story(identifier: str, project_root: Path) -> Dict[str, Any]:
+    """
+    Resolve an identifier to a story.
+
+    Resolution priority:
+    1. Exact match on story id
+    2. Fuzzy match (substring) on id or title
+
+    Args:
+        identifier: The identifier to resolve (story id or partial)
+        project_root: Path to the project root directory
+
+    Returns:
+        Dict with:
+            - resolved: bool indicating if unique story was found
+            - story: dict with story details if resolved
+            - stories: list of matching stories if multiple matches
+            - error: error message if not found
+    """
+    project_root = Path(project_root)
+    epics_dir = project_root / ".claude-tasks" / "epics"
+
+    if not epics_dir.exists():
+        return {
+            "resolved": False,
+            "story": None,
+            "stories": [],
+            "error": "No .claude-tasks/epics directory found. Run /init first."
+        }
+
+    # Normalize search term
+    search_term = identifier.lower().replace("-", " ").replace("_", " ").strip()
+
+    matches = []
+
+    # Search all epics for stories
+    for epic_dir in epics_dir.iterdir():
+        if not epic_dir.is_dir():
+            continue
+
+        epic_slug = epic_dir.name
+        stories_dir = epic_dir / "stories"
+
+        if not stories_dir.exists():
+            continue
+
+        for story_dir in stories_dir.iterdir():
+            if not story_dir.is_dir():
+                continue
+
+            story_md = story_dir / "story.md"
+            if not story_md.exists():
+                continue
+
+            frontmatter = _parse_story_frontmatter(story_md)
+            if not frontmatter:
+                continue
+
+            story_id = frontmatter.get("id", story_dir.name)
+            title = frontmatter.get("title", "")
+            status = frontmatter.get("status", "ready")
+            context = frontmatter.get("_context", "")
+
+            # Normalize for comparison
+            id_normalized = story_id.lower().replace("-", " ").replace("_", " ")
+            title_normalized = title.lower().replace("-", " ").replace("_", " ")
+
+            # Check for exact match
+            is_exact = id_normalized == search_term
+
+            # Check for partial match
+            is_partial = (
+                search_term in id_normalized or
+                id_normalized in search_term or
+                search_term in title_normalized or
+                title_normalized in search_term
+            )
+
+            if is_exact or is_partial:
+                story_data = {
+                    "id": story_id,
+                    "title": title,
+                    "status": status,
+                    "context": context[:300],
+                    "epic_slug": epic_slug
+                }
+
+                if is_exact:
+                    # Exact match - return immediately
+                    return {
+                        "resolved": True,
+                        "story": story_data,
+                        "stories": [story_data],
+                        "error": None
+                    }
+
+                matches.append(story_data)
+
+    if len(matches) == 1:
+        return {
+            "resolved": True,
+            "story": matches[0],
+            "stories": matches,
+            "error": None
+        }
+    elif len(matches) > 1:
+        return {
+            "resolved": False,
+            "story": None,
+            "stories": matches,
+            "error": None
+        }
+    else:
+        return {
+            "resolved": False,
+            "story": None,
+            "stories": [],
+            "error": f"No story found matching '{identifier}'"
+        }
+
+
+# ============================================================================
 # Available Tasks Listing
 # ============================================================================
 
@@ -659,13 +991,23 @@ def main():
     """CLI entry point for testing."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Resolve task identifiers")
-    parser.add_argument("identifier", help="Task ID, name, or feature name")
+    parser = argparse.ArgumentParser(description="Resolve task/epic/story identifiers")
+    parser.add_argument("identifier", nargs="?", default="", help="Task ID, name, epic slug, or story id")
+    parser.add_argument("--type", choices=["task", "epic", "story"], default="task",
+                       help="Type of identifier to resolve (default: task)")
     parser.add_argument("--project-root", default=".", help="Project root directory")
 
     args = parser.parse_args()
 
-    result = resolve_identifier(args.identifier, Path(args.project_root))
+    project_root = Path(args.project_root)
+
+    if args.type == "epic":
+        result = resolve_epic(args.identifier, project_root)
+    elif args.type == "story":
+        result = resolve_story(args.identifier, project_root)
+    else:
+        result = resolve_identifier(args.identifier, project_root)
+
     print(json.dumps(result, indent=2))
 
 

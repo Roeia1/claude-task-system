@@ -21,7 +21,7 @@
         "Commands accept arguments via $ARGUMENTS, skills do not",
         "The command is the user-facing entry point - skill is internal"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-2",
@@ -37,7 +37,7 @@
         "Skill reads description from conversation context (passed by command)",
         "AI should ask clarifying questions to fill in ambiguous parts"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-3",
@@ -53,7 +53,7 @@
         "If multiple matches, use AskUserQuestion to disambiguate",
         "Epic argument is optional - if empty, resolver will list all epics"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-4",
@@ -70,7 +70,7 @@
         "Skill instructs Claude to read epic.md and generate appropriate story breakdown",
         "For each story, script creates: git branch, worktree in .claude-tasks/worktrees/, draft PR"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-5",
@@ -88,7 +88,7 @@
         "PR title format: 'Story: <epic-slug>/<story-slug>'",
         "Script should output JSON with worktree_path and pr_url on success"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-6",
@@ -105,7 +105,7 @@
         "Verify YAML front matter is valid and parseable",
         "Check that worktrees are in .gitignore path"
       ],
-      "status": "pending"
+      "status": "in_progress"
     }
   ]
 }
