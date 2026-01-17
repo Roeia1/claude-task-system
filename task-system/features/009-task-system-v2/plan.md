@@ -70,8 +70,6 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 | `/create-epic` | `create-epic` | Create epic.md from description |
 | `/create-spec` | `create-spec` | Create spec.md for epic |
 | `/generate-stories` | `generate-stories` | Generate story.md files from spec |
-| `/show-story` | `show-story` | Display story details |
-| `/list` | `list-status` | Display epic/story status |
 | `/implement` | `execute-story` | Orchestrate story implementation |
 | `/resolve` | `resolve-blocker` | Resolve blocked stories |
 
@@ -97,22 +95,12 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
    - **Skill**: `generate-stories` (receives resolved epic from context)
    - **Files**: `commands/generate-stories.md`, `skills/generate-stories/SKILL.md`, `skills/generate-stories/templates/story-template.md`, `skills/generate-stories/scripts/create_worktree.sh`
 
-5. **Story Viewer**
-   - **Command**: `/show-story <story-slug>` (resolves story)
-   - **Skill**: `show-story` (receives resolved story from context)
-   - **Files**: `commands/show-story.md`, `skills/show-story/SKILL.md`
-
-6. **List Manager**
-   - **Command**: `/list [epics|stories|all]` (runs list script)
-   - **Skill**: `list-status` (formats output from script)
-   - **Files**: `commands/list.md`, `skills/list-status/SKILL.md`, `skills/list-status/scripts/list_stories.py`
-
-7. **Story Executor**
+5. **Story Executor**
    - **Command**: `/implement <story-slug>` (resolves story)
    - **Skill**: `execute-story` (orchestrates implementation with hooks)
    - **Files**: `commands/implement.md`, `skills/execute-story/SKILL.md`, `skills/execute-story/scripts/implement.py`, `skills/execute-story/worker-prompt.md`, `skills/execute-story/scripts/scope_validator.sh`
 
-8. **Blocker Resolver**
+6. **Blocker Resolver**
    - **Command**: `/resolve [story-slug]` (resolves story)
    - **Skill**: `resolve-blocker` (analyzes and resolves blockers)
    - **Files**: `commands/resolve.md`, `skills/resolve-blocker/SKILL.md`
@@ -123,7 +111,7 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                          User Invokes Commands                               │
 ├─────────┬─────────────┬─────────────┬─────────────────┬──────────┬──────────┤
-│ /init   │/create-epic │/create-spec │/generate-stories│/implement│ /list    │
+│ /init   │/create-epic │/create-spec │/generate-stories│/implement│ /resolve │
 └────┬────┴──────┬──────┴──────┬──────┴────────┬────────┴────┬─────┴────┬─────┘
      │           │             │               │             │          │
      │      $ARGUMENTS    $ARGUMENTS      $ARGUMENTS    $ARGUMENTS  $ARGUMENTS
@@ -139,10 +127,10 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         plugin/skills/ (user-invocable: false)               │
 ├─────────┬─────────────┬─────────────┬─────────────────┬──────────┬──────────┤
-│  init/  │create-epic/ │create-spec/ │generate-stories/│execute-  │list-     │
-│SKILL.md │SKILL.md     │SKILL.md     │SKILL.md         │story/    │status/   │
+│  init/  │create-epic/ │create-spec/ │generate-stories/│execute-  │resolve-  │
+│SKILL.md │SKILL.md     │SKILL.md     │SKILL.md         │story/    │blocker/  │
 │scripts/ │templates/   │templates/   │templates/       │SKILL.md  │SKILL.md  │
-│         │             │             │scripts/         │scripts/  │scripts/  │
+│         │             │             │scripts/         │scripts/  │          │
 └────┬────┴──────┬──────┴──────┬──────┴────────┬────────┴────┬─────┴────┬─────┘
      │           │             │               │             │          │
      └───────────┴─────────────┴───────┬───────┴─────────────┴──────────┘
@@ -392,8 +380,6 @@ tasks:
 3. Implement story.md generation from spec
 4. Create git worktree for each story via script
 5. Create PR for each story branch via script
-6. Create `/show-story` command and `show-story` skill
-
 **Success Criteria**: Can generate stories with worktrees and PRs via commands
 
 ### Phase 4: Execution & Scope Enforcement
@@ -406,15 +392,7 @@ tasks:
 
 **Success Criteria**: Can execute stories autonomously via `/implement` command
 
-### Phase 5: List & Status
-
-1. Create `/list` command and `list-status` skill with list_stories.py
-2. Implement status derivation from filesystem/git in script
-3. Add formatting logic in skill
-
-**Success Criteria**: `/list` command shows accurate status for all epics and stories
-
-### Phase 6: Resolve & Cleanup
+### Phase 5: Resolve & Cleanup
 
 1. Create `/resolve` command and `resolve-blocker` skill
 2. Update archive workflow for story completion
@@ -580,7 +558,7 @@ No match (error):
 
 When `identifier_resolver.py` returns multiple matches, **commands** use `AskUserQuestion` to disambiguate before invoking the skill:
 
-For stories (in `/implement`, `/show-story`, `/resolve` commands):
+For stories (in `/implement`, `/resolve` commands):
 ```
 question: "Which story do you want to implement?"
 header: "Story"
@@ -614,8 +592,6 @@ plugin/
 │   ├── create-epic.md               # /create-epic <desc> - invokes create-epic skill
 │   ├── create-spec.md               # /create-spec <slug> - resolves epic, invokes create-spec skill
 │   ├── generate-stories.md          # /generate-stories [slug] - resolves epic, invokes generate-stories skill
-│   ├── show-story.md                # /show-story <slug> - resolves story, invokes show-story skill
-│   ├── list.md                      # /list [filter] - runs script, invokes list-status skill
 │   ├── implement.md                 # /implement <slug> - resolves story, invokes execute-story skill
 │   └── resolve.md                   # /resolve [slug] - resolves story, invokes resolve-blocker skill
 ├── skills/                          # Internal skills (user-invocable: false)
@@ -637,12 +613,6 @@ plugin/
 │   │   │   └── story-template.md    # Story markdown template
 │   │   └── scripts/
 │   │       └── create_worktree.sh   # Worktree + PR creation
-│   ├── show-story/
-│   │   └── SKILL.md                 # Story display logic
-│   ├── list-status/
-│   │   ├── SKILL.md                 # List formatting logic
-│   │   └── scripts/
-│   │       └── list_stories.py      # Status derivation script
 │   ├── execute-story/
 │   │   ├── SKILL.md                 # Orchestration logic (with hooks)
 │   │   ├── worker-prompt.md         # Worker agent instructions
@@ -767,8 +737,7 @@ Based on the resolution above:
      - options: [{label: "<slug>"}]
    - After selection, use Skill tool to invoke `create-spec`
 
-3. **If resolved=false with error**: Display error and suggest `/list`
-```
+3. **If resolved=false with error**: Display error message
 
 #### /generate-stories Command
 
@@ -797,62 +766,7 @@ Based on the resolution above:
 
 2. **If resolved=false with epics array**: Use AskUserQuestion to disambiguate, then invoke skill
 
-3. **If resolved=false with error**: Display error and suggest `/list`
-```
-
-#### /show-story Command
-
-**File**: `commands/show-story.md`
-
-```yaml
----
-argument-hint: <story-slug>
-description: Show story details and status
-allowed-tools: Bash(python:*), Skill(show-story), AskUserQuestion
----
-
-# Show Story
-
-**User input**: $ARGUMENTS
-
-## Story Resolution
-
-!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --project-root "$CLAUDE_PROJECT_DIR"`
-
-## Instructions
-
-Based on the resolution above:
-
-1. **If resolved=true**: Use the Skill tool to invoke `show-story`
-
-2. **If resolved=false with stories array**: Use AskUserQuestion to disambiguate, then invoke skill
-
-3. **If resolved=false with error**: Display error and suggest `/list`
-```
-
-#### /list Command
-
-**File**: `commands/list.md`
-
-```yaml
----
-argument-hint: [epics|stories|all]
-description: List epics and stories with their status
-allowed-tools: Bash(python:*), Skill(list-status)
----
-
-# List Epics and Stories
-
-**Filter**: $ARGUMENTS (default: all)
-
-## Get Status
-
-!`python ${CLAUDE_PLUGIN_ROOT}/skills/list-status/scripts/list_stories.py "$CLAUDE_PROJECT_DIR" "$ARGUMENTS"`
-
-## Instructions
-
-Use the Skill tool to invoke `list-status` to format and display the results.
-```
+3. **If resolved=false with error**: Display error message
 
 #### /implement Command
 
@@ -881,8 +795,7 @@ Based on the resolution above:
 
 2. **If resolved=false with stories array**: Use AskUserQuestion to disambiguate, then invoke skill
 
-3. **If resolved=false with error**: Display error and suggest `/list`
-```
+3. **If resolved=false with error**: Display error message
 
 #### /resolve Command
 
@@ -911,8 +824,7 @@ Based on the resolution above:
 
 2. **If resolved=false with stories array**: Use AskUserQuestion to disambiguate, then invoke skill
 
-3. **If resolved=false with error**: Display error and suggest `/list`
-```
+3. **If resolved=false with error**: Display error message
 
 ### Skill Specifications
 
@@ -1017,51 +929,6 @@ The resolved epic is in the conversation context (passed from the command).
    - Create `stories/<slug>/story.md`
    - Run: `bash ${CLAUDE_PLUGIN_ROOT}/skills/generate-stories/scripts/create_worktree.sh <epic-slug> <story-slug>`
 6. Report created stories with their PR links
-```
-
-#### show-story Skill
-
-**File**: `skills/show-story/SKILL.md`
-
-```yaml
----
-name: show-story
-description: Display story details from resolved story context
-user-invocable: false
-allowed-tools: Read
----
-
-# Show Story Details
-
-The resolved story is in the conversation context (passed from the command).
-
-## Instructions
-
-Display the story's details including:
-- Title and status
-- Context and acceptance criteria
-- Task progress
-- Journal entries (if any)
-```
-
-#### list-status Skill
-
-**File**: `skills/list-status/SKILL.md`
-
-```yaml
----
-name: list-status
-description: Format and display epic/story status
-user-invocable: false
----
-
-# List Status
-
-The list output is in the conversation context (from the command's script execution).
-
-## Instructions
-
-Format and display the output in a readable format, grouped by epic.
 ```
 
 #### execute-story Skill

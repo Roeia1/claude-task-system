@@ -61,8 +61,6 @@ This separation is necessary because **Skills don't support argument placeholder
 | `/create-epic` | `<description>` | Create new epic |
 | `/create-spec` | `<epic-slug>` | Create spec for epic |
 | `/generate-stories` | `[epic-slug]` | Generate stories from spec |
-| `/show-story` | `<story-slug>` | Show story details and status |
-| `/list` | `[epics\|stories\|all]` | List epics, stories, or both |
 | `/implement` | `<story-slug>` | Execute story autonomously |
 | `/resolve` | `[story-slug]` | Resolve blocked story |
 
@@ -78,8 +76,6 @@ This separation is necessary because **Skills don't support argument placeholder
 | `create-epic` | `/create-epic` command | Generate epic.md from context |
 | `create-spec` | `/create-spec` command | Generate spec.md from resolved epic |
 | `generate-stories` | `/generate-stories` command | Create story.md files from spec |
-| `show-story` | `/show-story` command | Display story details |
-| `list-status` | `/list` command | Format and display status |
 | `execute-story` | `/implement` command | Orchestrate story implementation |
 | `resolve-blocker` | `/resolve` command | Analyze and resolve blockers |
 
