@@ -253,6 +253,7 @@ The resolution result above is now in context. Use the Skill tool to invoke `cre
 
 - **Plugin commands infrastructure**: Command .md format, `$ARGUMENTS` placeholders, `!` bash execution, `argument-hint` frontmatter
 - **Plugin skills infrastructure**: SKILL.md format, skill frontmatter, `user-invocable` visibility control
+- **Environment variables**: `CLAUDE_PLUGIN_ROOT` (plugin installation path) and `CLAUDE_PROJECT_DIR` (user's project root) are available in all Bash tool invocations
 - **Skill tool**: For commands to invoke internal skills programmatically
 - **Git worktrees**: For code branch isolation
 - **Dynamic Claude hooks**: For scope enforcement during worker execution (passed via --settings flag)

@@ -32,7 +32,7 @@ Restructure the claude-task-system plugin to use a 4-level hierarchy (Epic → S
 User: /create-spec auth-system
 
 1. Command `create-spec.md` receives "auth-system" via $ARGUMENTS
-2. Command runs: !`python identifier_resolver.py "auth-system" --type epic`
+2. Command runs: !`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "auth-system" --type epic --project-root "$CLAUDE_PROJECT_DIR"`
 3. Resolution result is injected into context
 4. Command instructs: "Use the Skill tool to invoke create-spec"
 5. Skill `create-spec` reads context, creates spec.md
@@ -462,6 +462,7 @@ tasks:
 ### Internal Dependencies
 - **Plugin commands infrastructure**: Command .md format, `$ARGUMENTS`, `argument-hint`, `!` bash execution
 - **Plugin skills infrastructure**: SKILL.md format, skill frontmatter, `user-invocable`
+- **Environment variables**: `CLAUDE_PLUGIN_ROOT` (plugin installation path) and `CLAUDE_PROJECT_DIR` (user's project root) are available in all Bash tool invocations
 - **Skill tool**: For commands to invoke internal skills programmatically
 - **implement.py**: Orchestration script (to be created in `skills/execute-story/scripts/`)
 - **worker-prompt.md**: Worker instructions (to be created in `skills/execute-story/`)
@@ -1091,14 +1092,59 @@ The resolved story is in the conversation context (passed from the command).
 
 ## Instructions
 
-1. Extract epic_slug and story id from resolution context
+1. Extract epic_slug and story_slug from resolution context
 2. Compute paths:
-   - story_md: `.claude-tasks/epics/<epic_slug>/stories/<id>/story.md`
-   - journal_md: `.claude-tasks/epics/<epic_slug>/stories/<id>/journal.md`
-   - worktree: `.claude-tasks/worktrees/<epic_slug>/<id>/`
-3. Spawn orchestrator: `python ${CLAUDE_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py ...`
-4. Worker instructions: [worker-prompt.md](worker-prompt.md)
+   - worktree: `$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/<epic_slug>/<story_slug>/`
+   - story_md (inside worktree): `<worktree>/.claude-tasks/epics/<epic_slug>/stories/<story_slug>/story.md`
+   - journal_md (inside worktree): `<worktree>/.claude-tasks/epics/<epic_slug>/stories/<story_slug>/journal.md`
+3. Validate worktree and story.md exist
+4. Spawn orchestrator: `python ${CLAUDE_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py <epic_slug> <story_slug>`
+5. Worker instructions: [worker-prompt.md](worker-prompt.md)
 ```
+
+### Worker Prompt Template
+
+**File**: `skills/execute-story/worker-prompt.md`
+
+The worker prompt is a template that receives context variables prepended by implement.py:
+
+```markdown
+WORKTREE_ROOT=<path to worktree>
+CLAUDE_PLUGIN_ROOT=<plugin installation path>
+CLAUDE_PROJECT_DIR=<user's project root>
+EPIC_SLUG=<epic slug>
+STORY_SLUG=<story slug>
+
+# Task Worker Instructions
+
+You are a worker agent executing a story. Your files are located at:
+
+- **Story**: `$WORKTREE_ROOT/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/story.md`
+- **Journal**: `$WORKTREE_ROOT/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/journal.md`
+
+## Session Startup
+
+1. **Read story.md** to understand tasks and their current status
+2. **Read journal.md** to understand what previous sessions accomplished
+3. **Run `git log -5 --oneline`** for code context continuity
+4. **Select a task** to work on (continue `in-progress` or pick next `pending`)
+
+## Implementation Workflow
+
+For your selected task, follow the guidance in story.md:
+- Read the **Guidance** section for implementation approach
+- Check **References** for relevant files
+- Avoid patterns listed in **Avoid**
+- Verify completion using **Done when** criteria
+
+... (TDD workflow, commit discipline, exit protocol as in V1)
+```
+
+**Key points:**
+- Worker runs with `cwd` set to worktree root
+- All file paths reference the worktree's copy of `.claude-tasks/`
+- Worker commits/pushes to sync changes to the story branch
+- Changes merge to main repo when PR is merged
 
 #### resolve-blocker Skill
 
@@ -1166,6 +1212,29 @@ When the orchestrator (implement.py) spawns worker agents, it passes scope enfor
 
 ```python
 # In skills/execute-story/scripts/implement.py
+import os
+import json
+import subprocess
+
+plugin_root = os.environ["CLAUDE_PLUGIN_ROOT"]
+project_dir = os.environ["CLAUDE_PROJECT_DIR"]
+worktree_root = f"{project_dir}/.claude-tasks/worktrees/{epic_slug}/{story_slug}"
+
+# Load worker prompt template
+with open(f"{plugin_root}/skills/execute-story/worker-prompt.md") as f:
+    worker_prompt_template = f.read()
+
+# Build prompt with context variables prepended
+prompt = f"""WORKTREE_ROOT={worktree_root}
+CLAUDE_PLUGIN_ROOT={plugin_root}
+CLAUDE_PROJECT_DIR={project_dir}
+EPIC_SLUG={epic_slug}
+STORY_SLUG={story_slug}
+
+{worker_prompt_template}
+"""
+
+# Scope enforcement hooks
 settings = {
     "hooks": {
         "PreToolUse": [
@@ -1174,7 +1243,7 @@ settings = {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": f"{plugin_root}/skills/execute-story/scripts/scope_validator.sh {epic_slug} {story_id}"
+                        "command": f"{plugin_root}/skills/execute-story/scripts/scope_validator.sh {epic_slug} {story_slug}"
                     }
                 ]
             }
@@ -1183,10 +1252,13 @@ settings = {
 }
 
 subprocess.run([
-    "claude", "-p",
+    "claude", "-p", prompt,
     "--settings", json.dumps(settings),
-    # ... other args
-])
+    "--model", model,
+    "--output-format", "json",
+    "--json-schema", json.dumps(WORKER_OUTPUT_SCHEMA),
+    "--dangerously-skip-permissions"
+], cwd=worktree_root)
 ```
 
 ### scope_validator.sh
@@ -1196,17 +1268,17 @@ subprocess.run([
 ```bash
 #!/bin/bash
 # Validates that file writes are within allowed story scope
-# Receives epic_slug and story_id as command-line arguments
+# Receives epic_slug and story_slug as command-line arguments
 
 EPIC_SLUG="$1"
-STORY_ID="$2"
+STORY_SLUG="$2"
 
-if [[ -z "$EPIC_SLUG" || -z "$STORY_ID" ]]; then
+if [[ -z "$EPIC_SLUG" || -z "$STORY_SLUG" ]]; then
     # No scope defined, allow all writes
     exit 0
 fi
 
-ALLOWED_PATH=".claude-tasks/epics/$EPIC_SLUG/stories/$STORY_ID/"
+ALLOWED_PATH=".claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/"
 
 # Hook receives tool input as JSON on stdin
 INPUT=$(cat)
@@ -1239,9 +1311,82 @@ exit 0
 3. **No global state**: No hooks.json or .active-story files needed
 4. **Parallel-safe**: Multiple workers with different scopes can run concurrently
 
+## implement.py Specification
+
+**File**: `skills/execute-story/scripts/implement.py`
+
+The orchestration script that spawns worker Claude instances in a loop.
+
+### Arguments
+
+```bash
+python implement.py <epic_slug> <story_slug> [options]
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `epic_slug` | Yes | Epic identifier |
+| `story_slug` | Yes | Story identifier |
+| `--max-cycles` | No | Max worker spawns (default: 10) |
+| `--max-time` | No | Max execution time in minutes (default: 60) |
+| `--model` | No | Model for workers (default: opus) |
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `CLAUDE_PLUGIN_ROOT` | Plugin installation path (required) |
+| `CLAUDE_PROJECT_DIR` | User's project root (required) |
+
+### Algorithm
+
+```
+1. Read CLAUDE_PLUGIN_ROOT and CLAUDE_PROJECT_DIR from environment
+2. Compute worktree path: $CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/<epic>/<story>/
+3. Validate:
+   - Worktree directory exists
+   - story.md exists at worktree/.claude-tasks/epics/<epic>/stories/<story>/story.md
+4. Load worker prompt template from $CLAUDE_PLUGIN_ROOT/skills/execute-story/worker-prompt.md
+5. Build prompt with context variables prepended:
+   WORKTREE_ROOT=<worktree path>
+   CLAUDE_PLUGIN_ROOT=<plugin root>
+   CLAUDE_PROJECT_DIR=<project dir>
+   EPIC_SLUG=<epic>
+   STORY_SLUG=<story>
+
+   <worker prompt template>
+6. Build scope enforcement settings (--settings JSON)
+7. Loop until FINISH, BLOCKED, TIMEOUT, or MAX_CYCLES:
+   a. Spawn worker: claude -p <prompt> --settings <hooks> --model <model> --output-format json --json-schema <schema> --dangerously-skip-permissions
+   b. Parse worker output (status, summary, blocker)
+   c. If ONGOING: continue loop
+   d. If FINISH/BLOCKED: exit loop
+8. Output final result as JSON
+```
+
+### Worker Output Schema
+
+```json
+{
+  "status": "ONGOING" | "FINISH" | "BLOCKED",
+  "summary": "string - what was accomplished",
+  "blocker": null | "string - description if BLOCKED"
+}
+```
+
+### Exit Statuses
+
+| Status | Description |
+|--------|-------------|
+| `FINISH` | All tasks completed successfully |
+| `BLOCKED` | Human decision needed (blocker documented in journal.md) |
+| `TIMEOUT` | Max time exceeded |
+| `MAX_CYCLES` | Max worker spawns reached |
+| `ERROR` | Validation or spawn failure |
+
 ## Open Questions
 
-- [x] ~~How to pass CURRENT_STORY_SLUG to hook scripts?~~ **Resolved**: Pass epic_slug and story_id as command-line arguments to scope_validator.sh via `--settings` flag when spawning `claude -p`
+- [x] ~~How to pass CURRENT_STORY_SLUG to hook scripts?~~ **Resolved**: Pass epic_slug and story_slug as command-line arguments to scope_validator.sh via `--settings` flag when spawning `claude -p`
 - [ ] Should scope enforcement also block Read operations or just Write/Edit? **Recommendation**: Write/Edit only - agents should be able to read any file for context
 
 ## Architecture Decisions
