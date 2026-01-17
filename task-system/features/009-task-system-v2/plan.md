@@ -254,20 +254,41 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 
 ### Entity: Story (story.md)
 
+Stories use YAML front matter compatible with the `python-frontmatter` package (and similar libraries like `PyYAML`).
+
+**Parsing example:**
+```python
+import frontmatter
+
+with open('story.md') as f:
+    story = frontmatter.load(f)
+
+# Access metadata
+print(story['id'])        # "user-login"
+print(story['status'])    # "ready"
+print(story['tasks'])     # List of task dicts
+
+# Access markdown content
+print(story.content)      # The markdown body
+```
+
+**Template:**
 ```markdown
 ---
-id: <story-slug>
-title: <descriptive title>
-status: ready | in-progress | review | done
-epic: <epic-slug>
-blocked_by: [<story-slug>]
-blocks: [<story-slug>]
+id: user-login
+title: Implement User Login Flow
+status: ready
+epic: auth-system
+blocked_by:
+  - auth-api
+blocks:
+  - user-dashboard
 tasks:
   - id: t1
-    title: <task title>
-    status: pending | in-progress | done
+    title: Create login form component
+    status: pending
   - id: t2
-    title: <task title>
+    title: Add form validation
     status: pending
 ---
 
