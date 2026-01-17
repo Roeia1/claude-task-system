@@ -172,7 +172,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001', '002'],
         tasksWithoutJournal: [],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -191,7 +191,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: [],
         tasksWithoutJournal: ['003', '004', '005'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -210,7 +210,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001', '003'],
         tasksWithoutJournal: ['002'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -230,7 +230,7 @@ describe('task-status --counts', () => {
         tasksWithoutJournal: [],
         malformedTasks: ['bad1', 'bad2'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -248,7 +248,7 @@ describe('task-status --counts', () => {
   describe('edge cases - empty and missing directories', () => {
     test('should return 0/0/0 when task-system/tasks/ does not exist', () => {
       const mockDir = createMockTaskSystem({ noTasksDir: true });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -264,7 +264,7 @@ describe('task-status --counts', () => {
 
     test('should return 0/0/0 when task-system/tasks/ is empty', () => {
       const mockDir = createMockTaskSystem({ emptyTasksDir: true });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -278,12 +278,12 @@ describe('task-status --counts', () => {
       }
     });
 
-    test('should handle gracefully when CLAUDE_SPAWN_DIR is not set', () => {
+    test('should handle gracefully when CLAUDE_PROJECT_DIR is not set', () => {
       const envFile = createTempEnvFile('export TASK_CONTEXT="main"');
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-spawn-dir-'));
 
       try {
-        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile, CLAUDE_SPAWN_DIR: undefined }, tmpDir);
+        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile, CLAUDE_PROJECT_DIR: undefined }, tmpDir);
         expect(result.exitCode).toBe(0);
         // Should output zeros or graceful fallback
         expect(result.stdout).toMatch(/I:0.*P:0.*R:0/);
@@ -307,7 +307,7 @@ describe('task-status --counts', () => {
       const tasksDir = path.join(localDir, 'task-system', 'tasks');
       fs.mkdirSync(tasksDir, { recursive: true });
 
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${localDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${localDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, localDir);
@@ -337,7 +337,7 @@ describe('task-status --counts', () => {
       fs.writeFileSync(path.join(task001, 'task.md'), '# Task 001');
       fs.writeFileSync(path.join(task001, 'journal.md'), '# Journal');
 
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${localDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${localDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, localDir);
@@ -363,7 +363,7 @@ describe('task-status --counts', () => {
       const tasksDir = path.join(localDir, 'task-system', 'tasks');
       fs.mkdirSync(tasksDir, { recursive: true });
 
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${localDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${localDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, localDir);
@@ -389,7 +389,7 @@ describe('task-status --counts', () => {
       const tasksDir = path.join(tmpDir, 'task-system', 'tasks');
       fs.mkdirSync(tasksDir, { recursive: true });
 
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, tmpDir);
@@ -407,7 +407,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, mockDir);
@@ -429,7 +429,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001', '002'],
         tasksWithoutJournal: ['003'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -449,7 +449,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002', '003'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -466,7 +466,7 @@ describe('task-status --counts', () => {
 
     test('should format all zeros gracefully when no tasks exist', () => {
       const mockDir = createMockTaskSystem({ emptyTasksDir: true });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         // Unicode version
@@ -496,7 +496,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: manyInProgress,
         tasksWithoutJournal: manyPending,
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -516,7 +516,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -539,7 +539,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: [],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--origin', '--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -558,7 +558,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -580,7 +580,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001', '002', '003'],
         tasksWithoutJournal: ['004', '005'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const start = process.hrtime.bigint();
@@ -621,7 +621,7 @@ describe('task-status --counts', () => {
       fs.mkdirSync(pendingDir, { recursive: true });
       fs.writeFileSync(path.join(pendingDir, 'task.md'), '# Task 003');
 
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${localDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${localDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, localDir);
@@ -642,7 +642,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001', '002', '003'],
         tasksWithoutJournal: ['004'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -659,7 +659,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002', '003', '004', '005'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -686,7 +686,7 @@ describe('task-status --counts', () => {
       fs.writeFileSync(path.join(task001, 'task.md'), '# Task 001');
       fs.writeFileSync(path.join(task001, 'journal.md'), '# Journal');
 
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${localDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${localDir}"`);
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, localDir);
@@ -704,7 +704,7 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002'],
       });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         // Default (icons)
@@ -727,7 +727,7 @@ describe('task-status --counts', () => {
 
     test('no crashes or errors when task-system directory is missing', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-task-system-'));
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`);
 
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -742,7 +742,7 @@ describe('task-status --counts', () => {
 
     test('no crashes or errors when task-system directory is empty', () => {
       const mockDir = createMockTaskSystem({ emptyTasksDir: true });
-      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(`export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${mockDir}"`);
 
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });

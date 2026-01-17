@@ -167,7 +167,7 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
         ]
       });
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         // All three sections: origin -> task -> counts (2 separators expected)
@@ -238,7 +238,7 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
         ]
       });
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -258,7 +258,7 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
         ]
       });
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -302,7 +302,7 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
         ]
       });
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--origin', '--task'], { CLAUDE_ENV_FILE: envFile });
@@ -336,7 +336,7 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
         ]
       });
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--task', '--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -371,7 +371,7 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
         ]
       });
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript([], { CLAUDE_ENV_FILE: envFile });
@@ -410,7 +410,7 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
         ]
       });
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--origin', '--task'], { CLAUDE_ENV_FILE: envFile });
@@ -439,7 +439,7 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
         ]
       });
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--origin', '--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -478,7 +478,7 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
         ]
       });
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--task', '--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -510,7 +510,7 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
         ]
       });
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--no-icons', '--origin', '--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -549,10 +549,10 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
           }
         ]
       });
-      // When in worktree, CLAUDE_SPAWN_DIR should point to the worktree root, not main repo
+      // When in worktree, CLAUDE_PROJECT_DIR should point to the worktree root, not main repo
       const worktreeDir = path.join(tmpDir, 'task-system', 'tasks', '042');
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${worktreeDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${worktreeDir}"`
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -592,7 +592,7 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
         ]
       });
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });

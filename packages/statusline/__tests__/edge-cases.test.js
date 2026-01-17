@@ -75,7 +75,7 @@ describe('Edge Cases: Missing Directories and Files', () => {
     test('should exit 0 and output minimal fallback when task-system does not exist', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-task-system-'));
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript([], { CLAUDE_ENV_FILE: envFile });
@@ -94,7 +94,7 @@ describe('Edge Cases: Missing Directories and Files', () => {
     test('should handle --counts gracefully when task-system is missing', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-task-system-'));
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -113,7 +113,7 @@ describe('Edge Cases: Missing Directories and Files', () => {
     test('should handle --task gracefully when task-system is missing', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-task-system-'));
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -134,7 +134,7 @@ describe('Edge Cases: Missing Directories and Files', () => {
     test('should handle empty tasks/ directory', () => {
       const tmpDir = createTempTaskSystem();
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -151,7 +151,7 @@ describe('Edge Cases: Missing Directories and Files', () => {
     test('should handle empty features/ directory', () => {
       const tmpDir = createTempTaskSystem();
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -196,8 +196,8 @@ describe('Edge Cases: Missing Directories and Files', () => {
     });
   });
 
-  describe('Missing CLAUDE_SPAWN_DIR', () => {
-    test('should handle missing CLAUDE_SPAWN_DIR gracefully', () => {
+  describe('Missing CLAUDE_PROJECT_DIR', () => {
+    test('should handle missing CLAUDE_PROJECT_DIR gracefully', () => {
       const envFile = createTempEnvFile('export TASK_CONTEXT="main"');
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -212,9 +212,9 @@ describe('Edge Cases: Missing Directories and Files', () => {
       }
     });
 
-    test('should handle CLAUDE_SPAWN_DIR set but pointing to non-existent directory', () => {
+    test('should handle CLAUDE_PROJECT_DIR set but pointing to non-existent directory', () => {
       const envFile = createTempEnvFile(
-        'export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="/nonexistent/directory"'
+        'export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="/nonexistent/directory"'
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -242,7 +242,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(taskFolder, 'task.md'), malformedTaskMd);
 
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -267,7 +267,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(taskFolder, 'task.md'), '');
 
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -291,10 +291,10 @@ describe('Edge Cases: Malformed Files', () => {
       const taskMd = '# Task 042: Test Task\n\n**Type:** feature\n';
       fs.writeFileSync(path.join(taskFolder, 'task.md'), taskMd);
 
-      // When in worktree, CLAUDE_SPAWN_DIR should point to worktree root
+      // When in worktree, CLAUDE_PROJECT_DIR should point to worktree root
       const worktreeDir = taskDir;
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${worktreeDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${worktreeDir}"`
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -322,7 +322,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(featureDir, 'feature.md'), malformedFeatureMd);
 
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -345,7 +345,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(featureDir, 'feature.md'), '');
 
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -368,7 +368,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(featureDir, 'feature.md'), featureMd);
 
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -393,7 +393,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.mkdirSync(badTaskDir, { recursive: true });
 
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -416,7 +416,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(tasksDir, 'README.md'), '# Tasks\n');
 
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -436,7 +436,7 @@ describe('Edge Cases: Git Repository Issues', () => {
     test('should handle directory that is not a git repository', () => {
       const tmpDir = createTempTaskSystem();
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -461,7 +461,7 @@ describe('Edge Cases: Git Repository Issues', () => {
       execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
 
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -487,7 +487,7 @@ describe('Edge Cases: Special Characters and Encoding', () => {
       fs.mkdirSync(weirdTaskDir, { recursive: true });
 
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -510,7 +510,7 @@ describe('Edge Cases: Special Characters and Encoding', () => {
       fs.writeFileSync(path.join(weirdFeatureDir, 'feature.md'), '# Test\n\n**Status:** In Progress\n');
 
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="main"\nexport CLAUDE_SPAWN_DIR="${tmpDir}"`
+        `export TASK_CONTEXT="main"\nexport CLAUDE_PROJECT_DIR="${tmpDir}"`
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -543,10 +543,10 @@ describe('Edge Cases: Special Characters and Encoding', () => {
       fs.mkdirSync(featureDir, { recursive: true });
       fs.writeFileSync(path.join(featureDir, 'feature.md'), '# Feature: Test\n\n**Status:** In Progress\n');
 
-      // When in worktree, CLAUDE_SPAWN_DIR should point to worktree root
+      // When in worktree, CLAUDE_PROJECT_DIR should point to worktree root
       const worktreeDir = taskDir;
       const envFile = createTempEnvFile(
-        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_SPAWN_DIR="${worktreeDir}"`
+        `export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport CLAUDE_PROJECT_DIR="${worktreeDir}"`
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });

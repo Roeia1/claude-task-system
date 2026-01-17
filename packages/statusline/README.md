@@ -198,7 +198,7 @@ The script reads context from `CLAUDE_ENV_FILE` or directly from environment:
 | `CLAUDE_ENV_FILE` | Path to file containing environment variables |
 | `TASK_CONTEXT` | `"main"` or `"worktree"` |
 | `CURRENT_TASK_ID` | Current task ID (e.g., `"042"`) |
-| `CLAUDE_SPAWN_DIR` | Directory to scan for task-system structure |
+| `CLAUDE_PROJECT_DIR` | Directory to scan for task-system structure |
 
 **Auto-detection:** If variables aren't set, the script auto-detects context by scanning for `task-system/task-NNN/` directories.
 
