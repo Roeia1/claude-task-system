@@ -1289,12 +1289,16 @@ if [[ -z "$FILE_PATH" ]]; then
     exit 0
 fi
 
-# Check if path is in .claude-tasks/epics/*/stories/
+# Block access to archive folder
+if [[ "$FILE_PATH" == *".claude-tasks/archive/"* ]]; then
+    echo "Scope violation: Cannot access .claude-tasks/archive/ - this folder contains completed stories and should not be modified. Attempted: $FILE_PATH" >&2
+    exit 2
+fi
+
+# Block access to other epics/stories (not the current one)
 if [[ "$FILE_PATH" == *".claude-tasks/epics/"*"/stories/"* ]]; then
-    # Check if it's the allowed story path
     if [[ "$FILE_PATH" != *"$ALLOWED_PATH"* ]]; then
-        # Exit code 2 blocks the tool call and shows stderr to Claude
-        echo "Scope violation: Cannot access files outside current story. Allowed: $ALLOWED_PATH, Attempted: $FILE_PATH" >&2
+        echo "Scope violation: Cannot access other stories in .claude-tasks/epics/. You are scoped to: $ALLOWED_PATH. Attempted: $FILE_PATH" >&2
         exit 2
     fi
 fi
