@@ -98,7 +98,7 @@ description: Create a technical specification for an epic
 
 ## Epic Resolution
 
-!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --type epic --project-root "$(pwd)"`
+!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --type epic --project-root "$CLAUDE_PROJECT_DIR"`
 
 ## Instructions
 
@@ -210,7 +210,7 @@ The resolution result above is now in context. Use the Skill tool to invoke `cre
 8. The system shall validate story.md front matter schema on creation
 9. The system shall use git worktrees for code branch isolation
 10. Task files (story.md, journal.md) shall live in canonical location (`epics/`), not in worktrees
-11. The system shall use skill-scoped Claude hooks to enforce story scope during execution
+11. The system shall use dynamic Claude hooks (via --settings flag) to enforce story scope during worker execution
 12. The system shall use a two-layer architecture: Commands (user-facing, accept arguments) invoke Skills (internal, no arguments) via the Skill tool
 13. Commands shall run scripts with `!` prefix to gather context before invoking skills
 14. The system shall migrate `/implement` command to work with story.md format
@@ -255,12 +255,12 @@ The resolution result above is now in context. Use the Skill tool to invoke `cre
 - **Plugin skills infrastructure**: SKILL.md format, skill frontmatter, `user-invocable` visibility control
 - **Skill tool**: For commands to invoke internal skills programmatically
 - **Git worktrees**: For code branch isolation
-- **Skill-scoped Claude hooks**: For scope enforcement during execution (defined in SKILL.md frontmatter)
+- **Dynamic Claude hooks**: For scope enforcement during worker execution (passed via --settings flag)
 - **GitHub CLI**: PR creation for stories
 
 ## Open Questions
 
-- [ ] How to handle stories that span multiple epics (if at all)?
+- [x] ~~How to handle stories that span multiple epics (if at all)?~~ **Resolved**: Stories do not span multiple epics. Each story belongs to exactly one epic (1:N relationship). Cross-epic coordination should be handled at the epic level, not story level.
 
 ## References
 

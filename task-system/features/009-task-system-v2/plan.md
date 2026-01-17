@@ -158,7 +158,7 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
                                        v
                           ┌────────────────────────┐
                           │   Scope Enforcer       │
-                          │   (Skill-scoped hooks) │
+                          │   (Dynamic worker hooks)│
                           └────────────────────────┘
 ```
 
@@ -172,7 +172,7 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 4. For each story, git worktree created in `.claude-tasks/worktrees/`
 5. User invokes `/implement <story>` → command resolves story, invokes `execute-story` skill → orchestrator spawns workers
 6. Workers read story.md, write to journal.md (canonical location)
-7. Scope enforcer (skill-scoped hooks) blocks writes to other stories' files
+7. Scope enforcer (dynamic worker hooks via --settings) blocks writes to other stories' files
 8. On completion, story archived to `.claude-tasks/archive/`
 
 ## Technology Choices
@@ -410,7 +410,7 @@ tasks:
 
 1. Create `/implement` command and `execute-story` skill
 2. Add implement.py, worker-prompt.md, scope_validator.sh to skill
-3. Implement skill-scoped hooks in SKILL.md frontmatter
+3. Implement dynamic worker hooks via --settings flag in implement.py
 4. Update orchestrator for story.md format
 5. Update worker prompt for task-based execution
 
@@ -461,7 +461,7 @@ tasks:
 
 ### Internal Dependencies
 - **Plugin commands infrastructure**: Command .md format, `$ARGUMENTS`, `argument-hint`, `!` bash execution
-- **Plugin skills infrastructure**: SKILL.md format, skill frontmatter, `user-invocable`, skill-scoped hooks
+- **Plugin skills infrastructure**: SKILL.md format, skill frontmatter, `user-invocable`
 - **Skill tool**: For commands to invoke internal skills programmatically
 - **implement.py**: Orchestration script (to be created in `skills/execute-story/scripts/`)
 - **worker-prompt.md**: Worker instructions (to be created in `skills/execute-story/`)
@@ -484,11 +484,11 @@ The `/implement`, `/create-spec`, and `/generate-stories` **commands** use `iden
 **Input**:
 ```bash
 # For stories (default)
-python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "<query>" --project-root "$(pwd)"
-python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "<query>" --type story --project-root "$(pwd)"
+python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "<query>" --project-root "$CLAUDE_PROJECT_DIR"
+python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "<query>" --type story --project-root "$CLAUDE_PROJECT_DIR"
 
 # For epics
-python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "<query>" --type epic --project-root "$(pwd)"
+python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "<query>" --type epic --project-root "$CLAUDE_PROJECT_DIR"
 ```
 
 **Flags**:
@@ -718,7 +718,7 @@ allowed-tools: Bash(bash:*), Skill(init)
 
 # Initialize Task System
 
-!`bash ${CLAUDE_PLUGIN_ROOT}/skills/init/scripts/init_structure.sh "$(pwd)"`
+!`bash ${CLAUDE_PLUGIN_ROOT}/skills/init/scripts/init_structure.sh "$CLAUDE_PROJECT_DIR"`
 
 The initialization script has run. Use the Skill tool to invoke `init` to report results to the user.
 ```
@@ -761,7 +761,7 @@ allowed-tools: Bash(python:*), Skill(create-spec), AskUserQuestion
 
 ## Epic Resolution
 
-!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --type epic --project-root "$(pwd)"`
+!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --type epic --project-root "$CLAUDE_PROJECT_DIR"`
 
 ## Instructions
 
@@ -796,7 +796,7 @@ allowed-tools: Bash(python:*), Skill(generate-stories), AskUserQuestion
 
 ## Epic Resolution
 
-!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --type epic --project-root "$(pwd)"`
+!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --type epic --project-root "$CLAUDE_PROJECT_DIR"`
 
 ## Instructions
 
@@ -826,7 +826,7 @@ allowed-tools: Bash(python:*), Skill(show-story), AskUserQuestion
 
 ## Story Resolution
 
-!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --project-root "$(pwd)"`
+!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --project-root "$CLAUDE_PROJECT_DIR"`
 
 ## Instructions
 
@@ -856,7 +856,7 @@ allowed-tools: Bash(python:*), Skill(list-status)
 
 ## Get Status
 
-!`python ${CLAUDE_PLUGIN_ROOT}/skills/list-status/scripts/list_stories.py "$(pwd)" "$ARGUMENTS"`
+!`python ${CLAUDE_PLUGIN_ROOT}/skills/list-status/scripts/list_stories.py "$CLAUDE_PROJECT_DIR" "$ARGUMENTS"`
 
 ## Instructions
 
@@ -880,7 +880,7 @@ allowed-tools: Bash(python:*), Skill(execute-story), AskUserQuestion
 
 ## Story Resolution
 
-!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --project-root "$(pwd)"`
+!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --project-root "$CLAUDE_PROJECT_DIR"`
 
 ## Instructions
 
@@ -910,7 +910,7 @@ allowed-tools: Bash(python:*), Skill(resolve-blocker), AskUserQuestion
 
 ## Story Resolution
 
-!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --project-root "$(pwd)"`
+!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --project-root "$CLAUDE_PROJECT_DIR"`
 
 ## Instructions
 
@@ -1083,12 +1083,6 @@ name: execute-story
 description: Orchestrate autonomous story implementation
 user-invocable: false
 allowed-tools: Bash(python:*), Task(*)
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: "${CLAUDE_PLUGIN_ROOT}/skills/execute-story/scripts/scope_validator.sh"
 ---
 
 # Execute Story
@@ -1164,27 +1158,7 @@ For Task System V2, all skills are marked `user-invocable: false` because:
 
 ## Scope Enforcement
 
-Scope enforcement uses two mechanisms:
-
-1. **Skill-scoped hooks**: The `execute-story` skill defines hooks in its SKILL.md frontmatter
-2. **Worker --settings flag**: When spawning worker agents, implement.py passes scope hooks dynamically
-
-### Skill-Scoped Hooks (SKILL.md)
-
-Hooks defined in a skill's frontmatter are scoped to that skill's execution and automatically cleaned up when the skill finishes:
-
-```yaml
-# In skills/execute-story/SKILL.md
----
-name: execute-story
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: "${CLAUDE_PLUGIN_ROOT}/skills/execute-story/scripts/scope_validator.sh $EPIC_SLUG $STORY_ID"
----
-```
+Scope enforcement uses **worker dynamic hooks** passed via the `--settings` flag when spawning worker agents. This approach ensures each worker has its own scope context without requiring skill-level hook definitions.
 
 ### Worker Dynamic Hooks (--settings)
 
@@ -1258,10 +1232,10 @@ fi
 exit 0
 ```
 
-### Benefits of Skill-Scoped Hooks
+### Benefits of Dynamic Worker Hooks
 
-1. **Self-contained**: Hooks live with the skill that uses them
-2. **Auto-cleanup**: Hooks are removed when skill finishes
+1. **Per-worker scope**: Each worker receives its own scope via `--settings`
+2. **Auto-cleanup**: Hooks are scoped to the worker process
 3. **No global state**: No hooks.json or .active-story files needed
 4. **Parallel-safe**: Multiple workers with different scopes can run concurrently
 
@@ -1274,7 +1248,7 @@ exit 0
 
 **ADRs to create**:
 - ADR 001: Canonical task file location (epics/ vs worktrees)
-- ADR 002: Scope enforcement mechanism (skill-scoped hooks vs global hooks.json)
+- ADR 002: Scope enforcement mechanism (worker dynamic hooks via --settings)
 - ADR 003: Story identification (slugs vs numeric IDs)
 - ADR 004: Two-layer architecture (Commands + Skills) - why commands handle arguments and skills handle logic
 
