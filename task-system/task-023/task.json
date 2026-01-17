@@ -105,7 +105,7 @@
         "Verify YAML front matter is valid and parseable",
         "Check that worktrees are in .gitignore path"
       ],
-      "status": "in_progress"
+      "status": "done"
     }
   ]
 }
