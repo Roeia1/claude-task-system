@@ -1,30 +1,10 @@
 ---
-description: Initialize the task-system directory structure in a project
+description: Initialize .claude-tasks/ directory structure
+allowed-tools: Bash(bash:*), Skill(init)
 ---
 
 # Initialize Task System
 
-Creates the `task-system/` directory structure for tracking features, tasks, and ADRs.
+!`bash ${CLAUDE_PLUGIN_ROOT}/skills/init/scripts/init_structure.sh "$CLAUDE_PROJECT_DIR"`
 
-## Process
-
-1. Create directories:
-   - `task-system/features/`
-   - `task-system/tasks/`
-   - `task-system/adrs/`
-   - `task-system/archive/`
-
-2. Add gitignore pattern for task worktrees:
-   - Check if `.gitignore` exists at project root
-   - If the pattern `task-system/tasks/*/` is not already present, append:
-     ```
-     # Claude Task System - Task worktrees (each task folder is a git worktree)
-     task-system/tasks/*/
-     ```
-
-3. Confirm to user: "Task system initialized. You can now say 'define feature [name]' to start."
-
-## Notes
-
-- **Task worktrees**: Each task gets its own worktree in `task-system/tasks/NNN/`
-- **Use `list tasks`**: To see all tasks and their status
+The initialization script has run. Use the Skill tool to invoke `init` to report results to the user.
