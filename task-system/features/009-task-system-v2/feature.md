@@ -27,12 +27,12 @@ The current task system conflates planning and execution concerns. Features and 
 │       ├── spec.md                  # Architecture decisions, interfaces
 │       └── stories/
 │           └── <story-slug>/
-│               ├── story.json       # Self-contained story + tasks
+│               ├── story.md         # Self-contained story + tasks (front matter + markdown)
 │               └── journal.md       # Execution log (canonical location)
 ├── archive/                         # Completed stories
 │   └── <epic-slug>/
 │       └── <story-slug>/
-│           ├── story.json
+│           ├── story.md
 │           └── journal.md
 └── worktrees/                       # Git worktrees (gitignored)
     └── <epic-slug>/
@@ -41,7 +41,7 @@ The current task system conflates planning and execution concerns. Features and 
 ```
 
 **Key design decisions:**
-- **Canonical task files**: story.json and journal.md live in `epics/` (tracked), not in worktrees
+- **Canonical task files**: story.md and journal.md live in `epics/` (tracked), not in worktrees
 - **Worktrees for code only**: Worktrees contain code branches, no task file duplication
 - **Claude hooks for scope**: Hooks enforce agent stays within assigned story's files
 
@@ -77,7 +77,7 @@ This separation is necessary because **Skills don't support argument placeholder
 |-------|------------|---------|
 | `create-epic` | `/create-epic` command | Generate epic.md from context |
 | `create-spec` | `/create-spec` command | Generate spec.md from resolved epic |
-| `generate-stories` | `/generate-stories` command | Create story.json files from spec |
+| `generate-stories` | `/generate-stories` command | Create story.md files from spec |
 | `show-story` | `/show-story` command | Display story details |
 | `list-status` | `/list` command | Format and display status |
 | `execute-story` | `/implement` command | Orchestrate story implementation |
@@ -112,7 +112,7 @@ The resolution result above is now in context. Use the Skill tool to invoke `cre
 | `task-system/features/NNN/` | `.claude-tasks/epics/<slug>/` |
 | `feature.md` | `epic.md` |
 | `plan.md` | `spec.md` |
-| `task.json` (objectives) | `story.json` (tasks) |
+| `task.json` (objectives) | `story.md` (tasks in front matter) |
 | Objectives | Tasks (with richer fields) |
 
 ## User Stories
@@ -154,8 +154,9 @@ The resolution result above is now in context. Use the Skill tool to invoke `cre
 - [ ] Can generate stories with `/generate-stories` command (auto-detects epic)
 - [ ] Can specify epic explicitly: `/generate-stories <epic-slug>`
 - [ ] Command invokes `generate-stories` skill with resolution context
-- [ ] Each story is a self-contained JSON file
-- [ ] Stories include: id, title, status, context, interface (inputs/outputs), acceptance_criteria, tasks
+- [ ] Each story is a self-contained markdown file with YAML front matter
+- [ ] Front matter includes: id, title, status, epic, tasks (id, title, status)
+- [ ] Markdown body includes: context, interface (inputs/outputs), acceptance_criteria, task details
 - [ ] Stories reference no parent documents (epic/spec)
 - [ ] Dependencies between stories are explicit (blocked_by/blocks)
 
@@ -169,7 +170,7 @@ The resolution result above is now in context. Use the Skill tool to invoke `cre
 - [ ] Tasks include: guidance (how to implement), references (files to check), avoid (anti-patterns), done_when (verification)
 - [ ] Task dependencies within story are trackable
 - [ ] Status progression: pending → in-progress → done
-- [ ] Agent can determine next task from story.json alone
+- [ ] Agent can determine next task from story.md alone
 
 ### Story 5: Story Execution Workflow
 
@@ -180,7 +181,7 @@ The resolution result above is now in context. Use the Skill tool to invoke `cre
 **Acceptance Criteria:**
 - [ ] `/implement <story-slug>` command resolves story, then invokes `execute-story` skill
 - [ ] Agent works in worktree but reads/writes task files from canonical location
-- [ ] Agent tracks progress by updating task status in story.json
+- [ ] Agent tracks progress by updating task status in story.md front matter
 - [ ] Journal.md captures execution log in canonical location
 - [ ] BLOCKED status triggers `/resolve` command flow
 - [ ] Story completion updates story status to "done"
@@ -201,18 +202,18 @@ The resolution result above is now in context. Use the Skill tool to invoke `cre
 
 1. The system shall store all artifacts under `.claude-tasks/` directory
 2. The system shall use slug-based naming for epics and stories (no numeric prefixes)
-3. Stories shall be fully self-contained JSON files (`story.json` in each story directory)
+3. Stories shall be fully self-contained markdown files with YAML front matter (`story.md` in each story directory)
 4. Stories shall never reference epic.md or spec.md content
 5. Stories shall use descriptive slugs for IDs (e.g., `user-login`, `auth-api`)
 6. The system shall support story-level dependencies (blocked_by/blocks)
 7. The system shall support task-level dependencies within stories
-8. The system shall validate story.json schema on creation
+8. The system shall validate story.md front matter schema on creation
 9. The system shall use git worktrees for code branch isolation
-10. Task files (story.json, journal.md) shall live in canonical location (`epics/`), not in worktrees
+10. Task files (story.md, journal.md) shall live in canonical location (`epics/`), not in worktrees
 11. The system shall use skill-scoped Claude hooks to enforce story scope during execution
 12. The system shall use a two-layer architecture: Commands (user-facing, accept arguments) invoke Skills (internal, no arguments) via the Skill tool
 13. Commands shall run scripts with `!` prefix to gather context before invoking skills
-14. The system shall migrate `/implement` command to work with story.json format
+14. The system shall migrate `/implement` command to work with story.md format
 15. The system shall archive completed stories to `.claude-tasks/archive/`
 
 ## Non-Functional Requirements
@@ -222,7 +223,7 @@ The resolution result above is now in context. Use the Skill tool to invoke `cre
 - Story validation should be instant (<100ms)
 
 ### Maintainability
-- JSON schema should be versioned for future evolution
+- Front matter schema should be versioned for future evolution
 - Clear separation between plugin code and user artifacts
 
 ### Usability
@@ -230,7 +231,7 @@ The resolution result above is now in context. Use the Skill tool to invoke `cre
 - Commands are invocable via `/command-name` with arguments
 - Skills are internal and invoked by commands via the Skill tool
 - Error messages should guide users to correct usage
-- Story.json should be human-readable and editable
+- Story.md should be human-readable and editable (markdown with YAML front matter)
 
 ## Out of Scope
 

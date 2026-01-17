@@ -69,7 +69,7 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 | `/init` | `init` | Initialize `.claude-tasks/` structure |
 | `/create-epic` | `create-epic` | Create epic.md from description |
 | `/create-spec` | `create-spec` | Create spec.md for epic |
-| `/generate-stories` | `generate-stories` | Generate story.json files from spec |
+| `/generate-stories` | `generate-stories` | Generate story.md files from spec |
 | `/show-story` | `show-story` | Display story details |
 | `/list` | `list-status` | Display epic/story status |
 | `/implement` | `execute-story` | Orchestrate story implementation |
@@ -95,7 +95,7 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 4. **Story Generator**
    - **Command**: `/generate-stories [epic-slug]` (resolves epic)
    - **Skill**: `generate-stories` (receives resolved epic from context)
-   - **Files**: `commands/generate-stories.md`, `skills/generate-stories/SKILL.md`, `skills/generate-stories/templates/story-template.json`, `skills/generate-stories/scripts/create_worktree.sh`
+   - **Files**: `commands/generate-stories.md`, `skills/generate-stories/SKILL.md`, `skills/generate-stories/templates/story-template.md`, `skills/generate-stories/scripts/create_worktree.sh`
 
 5. **Story Viewer**
    - **Command**: `/show-story <story-slug>` (resolves story)
@@ -168,10 +168,10 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 
 1. User invokes `/create-epic <name>` → command passes to `create-epic` skill → epic.md created in `.claude-tasks/epics/<slug>/`
 2. User invokes `/create-spec <slug>` → command resolves epic, invokes `create-spec` skill → spec.md created alongside epic.md
-3. User invokes `/generate-stories` → command resolves epic, invokes `generate-stories` skill → story.json files created in `stories/<slug>/`
+3. User invokes `/generate-stories` → command resolves epic, invokes `generate-stories` skill → story.md files created in `stories/<slug>/`
 4. For each story, git worktree created in `.claude-tasks/worktrees/`
 5. User invokes `/implement <story>` → command resolves story, invokes `execute-story` skill → orchestrator spawns workers
-6. Workers read story.json, write to journal.md (canonical location)
+6. Workers read story.md, write to journal.md (canonical location)
 7. Scope enforcer (skill-scoped hooks) blocks writes to other stories' files
 8. On completion, story archived to `.claude-tasks/archive/`
 
@@ -252,44 +252,69 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 - Question 1
 ```
 
-### Entity: Story (story.json)
+### Entity: Story (story.md)
 
-```json
-{
-  "id": "<story-slug>",
-  "title": "<descriptive title>",
-  "status": "ready | in-progress | review | done",
-  "context": "<self-contained description>",
-  "interface": {
-    "inputs": ["<dependencies>"],
-    "outputs": ["<what this produces>"]
-  },
-  "acceptance_criteria": [
-    "<verifiable condition>"
-  ],
-  "dependencies": {
-    "blocked_by": ["<story-slug>"],
-    "blocks": ["<story-slug>"]
-  },
-  "tasks": [
-    {
-      "id": "t1",
-      "title": "<task title>",
-      "status": "pending | in-progress | done",
-      "guidance": ["<implementation detail>"],
-      "references": ["<file path>"],
-      "avoid": ["<anti-pattern>"],
-      "done_when": ["<verification>"],
-      "blocked_by": ["t0"]
-    }
-  ]
-}
+```markdown
+---
+id: <story-slug>
+title: <descriptive title>
+status: ready | in-progress | review | done
+epic: <epic-slug>
+blocked_by: [<story-slug>]
+blocks: [<story-slug>]
+tasks:
+  - id: t1
+    title: <task title>
+    status: pending | in-progress | done
+  - id: t2
+    title: <task title>
+    status: pending
+---
+
+## Context
+
+<self-contained description - what this story accomplishes and why>
+
+## Interface
+
+### Inputs
+- <dependencies>
+
+### Outputs
+- <what this produces>
+
+## Acceptance Criteria
+
+- [ ] <verifiable condition>
+- [ ] <another condition>
+
+## Tasks
+
+### t1: <task title>
+
+**Guidance:**
+- <implementation detail>
+
+**References:**
+- <file path>
+
+**Avoid:**
+- <anti-pattern>
+
+**Done when:**
+- <verification>
+
+**Blocked by:** t0
+
+### t2: <task title>
+
+...
 ```
 
 **Relationships**:
-- Story belongs to Epic (via directory structure)
-- Story has many Tasks (embedded)
-- Stories can depend on other Stories (blocked_by/blocks)
+- Story belongs to Epic (via `epic` field in front matter and directory structure)
+- Story has many Tasks (listed in front matter for status, detailed in body)
+- Stories can depend on other Stories (blocked_by/blocks in front matter)
 - Tasks can depend on other Tasks within same story
 
 ### Entity: Journal (journal.md)
@@ -321,7 +346,7 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 2. Create `plugin/scripts/` for shared scripts (identifier_resolver.py)
 3. Create `/init` command and `init` skill with init_structure.sh
 4. Update .gitignore for worktrees path
-5. Create JSON schema for story.json validation
+5. Create front matter schema documentation for story.md validation
 
 **Success Criteria**: `/init` command creates valid `.claude-tasks/` directory structure
 
@@ -337,8 +362,8 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 ### Phase 3: Story Generation
 
 1. Create `/generate-stories` command and `generate-stories` skill
-2. Add story-template.json and create_worktree.sh to skill
-3. Implement story.json generation from spec
+2. Add story-template.md and create_worktree.sh to skill
+3. Implement story.md generation from spec
 4. Create git worktree for each story via script
 5. Create PR for each story branch via script
 6. Create `/show-story` command and `show-story` skill
@@ -350,7 +375,7 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 1. Create `/implement` command and `execute-story` skill
 2. Add implement.py, worker-prompt.md, scope_validator.sh to skill
 3. Implement skill-scoped hooks in SKILL.md frontmatter
-4. Update orchestrator for story.json format
+4. Update orchestrator for story.md format
 5. Update worker prompt for task-based execution
 
 **Success Criteria**: Can execute stories autonomously via `/implement` command
@@ -522,7 +547,7 @@ No match (error):
 - Story context field truncated to 300 characters max
 - No paths in output - command computes paths from `epic_slug` + `id`
 - Returns JSON with `error` field on no match (exit 0, not throw)
-- Only supports V2 story.json format (no V1 task.json support)
+- Only supports V2 story.md format (no V1 task.json support)
 
 ### Multiple Match Handling
 
@@ -582,7 +607,7 @@ plugin/
 │   ├── generate-stories/
 │   │   ├── SKILL.md                 # Story generation logic
 │   │   ├── templates/
-│   │   │   └── story-template.json  # Story JSON template
+│   │   │   └── story-template.md    # Story markdown template
 │   │   └── scripts/
 │   │       └── create_worktree.sh   # Worktree + PR creation
 │   ├── show-story/
@@ -623,12 +648,12 @@ project/
 │   │       ├── spec.md
 │   │       └── stories/
 │   │           └── <story-slug>/
-│   │               ├── story.json
+│   │               ├── story.md
 │   │               └── journal.md
 │   ├── archive/
 │   │   └── <epic-slug>/
 │   │       └── <story-slug>/
-│   │           ├── story.json
+│   │           ├── story.md
 │   │           └── journal.md
 │   └── worktrees/           # gitignored
 │       └── <epic-slug>/
@@ -959,10 +984,10 @@ The resolved epic is in the conversation context (passed from the command).
 
 1. Extract epic_slug from resolution context
 2. Read epic.md and spec.md
-3. Read the template: [story-template.json](templates/story-template.json)
+3. Read the template: [story-template.md](templates/story-template.md)
 4. Generate story breakdown (AI-assisted)
 5. For each story:
-   - Create `stories/<slug>/story.json`
+   - Create `stories/<slug>/story.md`
    - Run: `bash ${CLAUDE_PLUGIN_ROOT}/skills/generate-stories/scripts/create_worktree.sh <epic-slug> <story-slug>`
 6. Report created stories with their PR links
 ```
@@ -1038,7 +1063,7 @@ The resolved story is in the conversation context (passed from the command).
 
 1. Extract epic_slug and story id from resolution context
 2. Compute paths:
-   - story_json: `.claude-tasks/epics/<epic_slug>/stories/<id>/story.json`
+   - story_md: `.claude-tasks/epics/<epic_slug>/stories/<id>/story.md`
    - journal_md: `.claude-tasks/epics/<epic_slug>/stories/<id>/journal.md`
    - worktree: `.claude-tasks/worktrees/<epic_slug>/<id>/`
 3. Spawn orchestrator: `python ${CLAUDE_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py ...`
