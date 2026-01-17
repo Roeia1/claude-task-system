@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-Restructure the claude-task-system plugin to use a 4-level hierarchy (Epic → Spec → Stories → Tasks) with a new `.claude-tasks/` directory structure. Stories become self-contained JSON files with embedded tasks, canonical file locations replace worktree duplication, and Claude hooks enforce story scope during execution.
+Restructure the claude-task-system plugin to use a 3-level hierarchy (Epic → Stories → Tasks) with a new `.claude-tasks/` directory structure. Epics contain both vision and architecture in a unified document, stories are self-contained markdown files with embedded tasks, canonical file locations replace worktree duplication, and Claude hooks enforce story scope during execution.
 
 ## Technical Approach
 
@@ -29,13 +29,14 @@ Restructure the claude-task-system plugin to use a 4-level hierarchy (Epic → S
 ### Flow Example
 
 ```
-User: /create-spec auth-system
+User: /create-epic "user authentication system"
 
-1. Command `create-spec.md` receives "auth-system" via $ARGUMENTS
-2. Command runs: !`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "auth-system" --type epic --project-root "$CLAUDE_PROJECT_DIR"`
-3. Resolution result is injected into context
-4. Command instructs: "Use the Skill tool to invoke create-spec"
-5. Skill `create-spec` reads context, creates spec.md
+1. Command `create-epic.md` receives "user authentication system" via $ARGUMENTS
+2. Command instructs: "Use the Skill tool to invoke create-epic"
+3. Skill `create-epic`:
+   - Generates slug from description
+   - Engages in dialog with user to clarify vision and architecture
+   - Creates epic.md with unified structure (vision + architecture)
 ```
 
 **Key benefits**:
@@ -67,9 +68,8 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 | Command | Skill | Purpose |
 |---------|-------|---------|
 | `/init` | `init` | Initialize `.claude-tasks/` structure |
-| `/create-epic` | `create-epic` | Create epic.md from description |
-| `/create-spec` | `create-spec` | Create spec.md for epic |
-| `/generate-stories` | `generate-stories` | Generate story.md files from spec |
+| `/create-epic` | `create-epic` | Create epic.md with vision and architecture |
+| `/generate-stories` | `generate-stories` | Generate story.md files from epic |
 | `/implement` | `execute-story` | Orchestrate story implementation |
 | `/resolve` | `resolve-blocker` | Resolve blocked stories |
 
@@ -85,22 +85,17 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
    - **Skill**: `create-epic` (receives description from command context)
    - **Files**: `commands/create-epic.md`, `skills/create-epic/SKILL.md`, `skills/create-epic/templates/epic-template.md`
 
-3. **Spec Manager**
-   - **Command**: `/create-spec <epic-slug>` (resolves epic)
-   - **Skill**: `create-spec` (receives resolved epic from context)
-   - **Files**: `commands/create-spec.md`, `skills/create-spec/SKILL.md`, `skills/create-spec/templates/spec-template.md`
-
-4. **Story Generator**
+3. **Story Generator**
    - **Command**: `/generate-stories [epic-slug]` (resolves epic)
    - **Skill**: `generate-stories` (receives resolved epic from context)
    - **Files**: `commands/generate-stories.md`, `skills/generate-stories/SKILL.md`, `skills/generate-stories/templates/story-template.md`, `skills/generate-stories/scripts/create_worktree.sh`
 
-5. **Story Executor**
+4. **Story Executor**
    - **Command**: `/implement <story-slug>` (resolves story)
    - **Skill**: `execute-story` (orchestrates implementation with hooks)
    - **Files**: `commands/implement.md`, `skills/execute-story/SKILL.md`, `skills/execute-story/scripts/implement.py`, `skills/execute-story/worker-prompt.md`, `skills/execute-story/scripts/scope_validator.sh`
 
-6. **Blocker Resolver**
+5. **Blocker Resolver**
    - **Command**: `/resolve [story-slug]` (resolves story)
    - **Skill**: `resolve-blocker` (analyzes and resolves blockers)
    - **Files**: `commands/resolve.md`, `skills/resolve-blocker/SKILL.md`
@@ -108,42 +103,42 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 ### Component Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          User Invokes Commands                               │
-├─────────┬─────────────┬─────────────┬─────────────────┬──────────┬──────────┤
-│ /init   │/create-epic │/create-spec │/generate-stories│/implement│ /resolve │
-└────┬────┴──────┬──────┴──────┬──────┴────────┬────────┴────┬─────┴────┬─────┘
-     │           │             │               │             │          │
-     │      $ARGUMENTS    $ARGUMENTS      $ARGUMENTS    $ARGUMENTS  $ARGUMENTS
-     │           │             │               │             │          │
-     v           v             v               v             v          v
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         plugin/commands/                                     │
-│  (Run scripts with ! prefix, then invoke Skill tool)                        │
-└────┬────┴──────┬──────┴──────┬──────┴────────┬────────┴────┬─────┴────┬─────┘
-     │           │             │               │             │          │
-     │     Skill tool    Skill tool      Skill tool    Skill tool  Skill tool
-     v           v             v               v             v          v
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         plugin/skills/ (user-invocable: false)               │
-├─────────┬─────────────┬─────────────┬─────────────────┬──────────┬──────────┤
-│  init/  │create-epic/ │create-spec/ │generate-stories/│execute-  │resolve-  │
-│SKILL.md │SKILL.md     │SKILL.md     │SKILL.md         │story/    │blocker/  │
-│scripts/ │templates/   │templates/   │templates/       │SKILL.md  │SKILL.md  │
-│         │             │             │scripts/         │scripts/  │          │
-└────┬────┴──────┬──────┴──────┬──────┴────────┬────────┴────┬─────┴────┬─────┘
-     │           │             │               │             │          │
-     └───────────┴─────────────┴───────┬───────┴─────────────┴──────────┘
-                                       │
-                                       v
+┌─────────────────────────────────────────────────────────────────────┐
+│                      User Invokes Commands                           │
+├─────────┬─────────────┬─────────────────┬──────────┬────────────────┤
+│ /init   │/create-epic │/generate-stories│/implement│    /resolve    │
+└────┬────┴──────┬──────┴────────┬────────┴────┬─────┴────────┬───────┘
+     │           │               │             │              │
+     │      $ARGUMENTS      $ARGUMENTS    $ARGUMENTS     $ARGUMENTS
+     │           │               │             │              │
+     v           v               v             v              v
+┌─────────────────────────────────────────────────────────────────────┐
+│                       plugin/commands/                               │
+│  (Run scripts with ! prefix, then invoke Skill tool)                │
+└────┬────┴──────┬──────┴────────┬────────┴────┬─────┴────────┬───────┘
+     │           │               │             │              │
+     │     Skill tool      Skill tool    Skill tool     Skill tool
+     v           v               v             v              v
+┌─────────────────────────────────────────────────────────────────────┐
+│                   plugin/skills/ (user-invocable: false)             │
+├─────────┬─────────────┬─────────────────┬──────────┬────────────────┤
+│  init/  │create-epic/ │generate-stories/│execute-  │ resolve-       │
+│SKILL.md │SKILL.md     │SKILL.md         │story/    │ blocker/       │
+│scripts/ │templates/   │templates/       │SKILL.md  │ SKILL.md       │
+│         │             │scripts/         │scripts/  │                │
+└────┬────┴──────┬──────┴────────┬────────┴────┬─────┴────────┬───────┘
+     │           │               │             │              │
+     └───────────┴───────────────┴──────┬──────┴──────────────┘
+                                        │
+                                        v
                           ┌────────────────────────┐
                           │   .claude-tasks/       │
                           │   ├── epics/           │
                           │   ├── archive/         │
                           │   └── worktrees/       │
                           └────────────────────────┘
-                                       │
-                                       v
+                                        │
+                                        v
                           ┌────────────────────────┐
                           │   Scope Enforcer       │
                           │   (Dynamic worker hooks)│
@@ -152,16 +147,15 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 
 ### Data Flow
 
-**Epic → Spec → Stories → Execution:**
+**Epic → Stories → Execution:**
 
-1. User invokes `/create-epic <name>` → command passes to `create-epic` skill → epic.md created in `.claude-tasks/epics/<slug>/`
-2. User invokes `/create-spec <slug>` → command resolves epic, invokes `create-spec` skill → spec.md created alongside epic.md
-3. User invokes `/generate-stories` → command resolves epic, invokes `generate-stories` skill → story.md files created in `stories/<slug>/`
-4. For each story, git worktree created in `.claude-tasks/worktrees/`
-5. User invokes `/implement <story>` → command resolves story, invokes `execute-story` skill → orchestrator spawns workers
-6. Workers read story.md, write to journal.md (canonical location)
-7. Scope enforcer (dynamic worker hooks via --settings) blocks writes to other stories' files
-8. On completion, story archived to `.claude-tasks/archive/`
+1. User invokes `/create-epic <description>` → command passes to `create-epic` skill → AI engages user in dialog → epic.md created in `.claude-tasks/epics/<slug>/` with vision and architecture
+2. User invokes `/generate-stories` → command resolves epic, invokes `generate-stories` skill → story.md files created in `stories/<slug>/`
+3. For each story, git worktree created in `.claude-tasks/worktrees/`
+4. User invokes `/implement <story>` → command resolves story, invokes `execute-story` skill → orchestrator spawns workers
+5. Workers read story.md, write to journal.md (canonical location)
+6. Scope enforcer (dynamic worker hooks via --settings) blocks writes to other stories' files
+7. On completion, story archived to `.claude-tasks/archive/`
 
 ## Technology Choices
 
@@ -189,11 +183,13 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 
 ### Entity: Epic (epic.md)
 
+The epic is a unified document containing both vision (WHAT) and architecture (HOW). This allows users to iterate on a single file during the planning phase.
+
 ```markdown
 # <Epic Title>
 
 ## Overview
-<description>
+<what this epic accomplishes and why>
 
 ## Goals
 - Goal 1
@@ -211,15 +207,11 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 
 ## Non-Functional Requirements
 - NFR 1
-```
 
-### Entity: Spec (spec.md)
+---
 
-```markdown
-# <Epic Title> - Technical Spec
-
-## Architecture Overview
-<high-level approach>
+## Technical Approach
+<high-level architecture and approach>
 
 ## Key Decisions
 ### <Decision Title>
@@ -228,7 +220,7 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 - **Alternatives Considered**: <options>
 
 ## Data Models
-<schemas>
+<schemas and data structures>
 
 ## Interface Contracts
 <APIs between stories>
@@ -239,6 +231,12 @@ The system uses a **two-layer architecture**: Commands (user-facing) invoke Skil
 ## Open Questions
 - Question 1
 ```
+
+**Key aspects:**
+- Single file for iterative planning with user
+- Clear separation between vision (above ---) and architecture (below ---)
+- AI assists with clarifying ambiguities in both sections
+- Must be finalized before generating stories
 
 ### Entity: Story (story.md)
 
@@ -364,22 +362,23 @@ tasks:
 
 **Success Criteria**: `/init` command creates valid `.claude-tasks/` directory structure
 
-### Phase 2: Epic & Spec (Commands + Skills)
+### Phase 2: Epic Creation (Commands + Skills)
 
 1. Create `/create-epic` command and `create-epic` skill with epic-template.md
-2. Create `/create-spec` command and `create-spec` skill with spec-template.md
-3. Create shared `identifier_resolver.py` in `plugin/scripts/`
-4. Implement epic slug generation in skill instructions
+2. Create shared `identifier_resolver.py` in `plugin/scripts/`
+3. Implement epic slug generation in skill instructions
+4. Design AI-assisted dialog flow for vision and architecture sections
 
-**Success Criteria**: Can create epic and spec documents via commands
+**Success Criteria**: Can create unified epic.md documents via command
 
 ### Phase 3: Story Generation
 
 1. Create `/generate-stories` command and `generate-stories` skill
 2. Add story-template.md and create_worktree.sh to skill
-3. Implement story.md generation from spec
+3. Implement story.md generation from epic
 4. Create git worktree for each story via script
 5. Create PR for each story branch via script
+
 **Success Criteria**: Can generate stories with worktrees and PRs via commands
 
 ### Phase 4: Execution & Scope Enforcement
@@ -568,9 +567,9 @@ options: [
 ]
 ```
 
-For epics (in `/create-spec`, `/generate-stories` commands):
+For epics (in `/generate-stories` command):
 ```
-question: "Which epic do you want to create a spec for?"
+question: "Which epic do you want to generate stories for?"
 header: "Epic"
 multiSelect: false
 options: [
@@ -590,7 +589,6 @@ plugin/
 ├── commands/                        # User-facing commands (accept arguments)
 │   ├── init.md                      # /init - no args, invokes init skill
 │   ├── create-epic.md               # /create-epic <desc> - invokes create-epic skill
-│   ├── create-spec.md               # /create-spec <slug> - resolves epic, invokes create-spec skill
 │   ├── generate-stories.md          # /generate-stories [slug] - resolves epic, invokes generate-stories skill
 │   ├── implement.md                 # /implement <slug> - resolves story, invokes execute-story skill
 │   └── resolve.md                   # /resolve [slug] - resolves story, invokes resolve-blocker skill
@@ -600,13 +598,9 @@ plugin/
 │   │   └── scripts/
 │   │       └── init_structure.sh    # Directory creation script
 │   ├── create-epic/
-│   │   ├── SKILL.md                 # Epic creation logic
+│   │   ├── SKILL.md                 # Epic creation logic (vision + architecture)
 │   │   └── templates/
-│   │       └── epic-template.md     # Epic markdown template
-│   ├── create-spec/
-│   │   ├── SKILL.md                 # Spec creation logic
-│   │   └── templates/
-│   │       └── spec-template.md     # Spec markdown template
+│   │       └── epic-template.md     # Unified epic markdown template
 │   ├── generate-stories/
 │   │   ├── SKILL.md                 # Story generation logic
 │   │   ├── templates/
@@ -641,8 +635,7 @@ project/
 ├── .claude-tasks/
 │   ├── epics/
 │   │   └── <epic-slug>/
-│   │       ├── epic.md
-│   │       ├── spec.md
+│   │       ├── epic.md              # Unified: vision + architecture
 │   │       └── stories/
 │   │           └── <story-slug>/
 │   │               ├── story.md
@@ -691,8 +684,8 @@ The initialization script has run. Use the Skill tool to invoke `init` to report
 ```yaml
 ---
 argument-hint: <description>
-description: Create a new epic document
-allowed-tools: Skill(create-epic)
+description: Create a new epic document (vision + architecture)
+allowed-tools: Skill(create-epic), AskUserQuestion
 ---
 
 # Create Epic
@@ -702,42 +695,9 @@ allowed-tools: Skill(create-epic)
 Use the Skill tool to invoke `create-epic`. The skill will:
 1. Generate a slug from the description
 2. Create the epic directory
-3. Generate epic.md using the template
+3. Engage in dialog with user to clarify vision and architecture
+4. Generate epic.md with unified structure
 ```
-
-#### /create-spec Command
-
-**File**: `commands/create-spec.md`
-
-```yaml
----
-argument-hint: <epic-slug>
-description: Create a technical specification for an epic
-allowed-tools: Bash(python:*), Skill(create-spec), AskUserQuestion
----
-
-# Create Technical Spec
-
-**User input**: $ARGUMENTS
-
-## Epic Resolution
-
-!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --type epic --project-root "$CLAUDE_PROJECT_DIR"`
-
-## Instructions
-
-Based on the resolution above:
-
-1. **If resolved=true**: Use the Skill tool to invoke `create-spec`
-
-2. **If resolved=false with epics array**: Multiple matches found
-   - Use AskUserQuestion to let user choose:
-     - question: "Which epic do you want to create a spec for?"
-     - header: "Epic"
-     - options: [{label: "<slug>"}]
-   - After selection, use Skill tool to invoke `create-spec`
-
-3. **If resolved=false with error**: Display error message
 
 #### /generate-stories Command
 
@@ -746,7 +706,7 @@ Based on the resolution above:
 ```yaml
 ---
 argument-hint: [epic-slug]
-description: Generate stories from a technical spec
+description: Generate stories from an epic
 allowed-tools: Bash(python:*), Skill(generate-stories), AskUserQuestion
 ---
 
@@ -767,6 +727,7 @@ Based on the resolution above:
 2. **If resolved=false with epics array**: Use AskUserQuestion to disambiguate, then invoke skill
 
 3. **If resolved=false with error**: Display error message
+```
 
 #### /implement Command
 
@@ -857,7 +818,7 @@ The initialization script has already run (via the command). Report the results 
 ```yaml
 ---
 name: create-epic
-description: Create a new epic document from description in context
+description: Create a new epic document with vision and architecture
 user-invocable: false
 allowed-tools: Read, Write, AskUserQuestion
 ---
@@ -872,35 +833,11 @@ The epic description is in the conversation context (passed from the command).
 2. Generate slug from description (AI-assisted for meaningful slug)
 3. Create `.claude-tasks/epics/<slug>/`
 4. Read the template: [epic-template.md](templates/epic-template.md)
-5. Generate epic.md with AI assistance, clarifying ambiguities with user
-6. Save epic.md
-```
-
-#### create-spec Skill
-
-**File**: `skills/create-spec/SKILL.md`
-
-```yaml
----
-name: create-spec
-description: Create a technical specification for a resolved epic
-user-invocable: false
-allowed-tools: Read, Write, AskUserQuestion
----
-
-# Create Technical Spec
-
-The resolved epic is in the conversation context (passed from the command).
-
-## Instructions
-
-1. Extract epic_slug from resolution context
-2. Compute path: `.claude-tasks/epics/<epic_slug>/`
-3. Read epic.md
-4. Read the template: [spec-template.md](templates/spec-template.md)
-5. Generate spec.md with 7-phase planning process
-6. Create ADRs for significant decisions
-7. Save spec.md
+5. Engage user in dialog to clarify:
+   - Vision: goals, success metrics, scope
+   - Architecture: technical approach, key decisions, data models
+6. Generate unified epic.md with both sections
+7. Save epic.md
 ```
 
 #### generate-stories Skill
@@ -910,7 +847,7 @@ The resolved epic is in the conversation context (passed from the command).
 ```yaml
 ---
 name: generate-stories
-description: Generate stories from a resolved epic's spec
+description: Generate stories from a resolved epic
 user-invocable: false
 allowed-tools: Bash(git:*), Bash(gh:*), Read, Write, AskUserQuestion
 ---
@@ -922,7 +859,7 @@ The resolved epic is in the conversation context (passed from the command).
 ## Instructions
 
 1. Extract epic_slug from resolution context
-2. Read epic.md and spec.md
+2. Read epic.md (contains both vision and architecture)
 3. Read the template: [story-template.md](templates/story-template.md)
 4. Generate story breakdown (AI-assisted)
 5. For each story:
@@ -1048,7 +985,7 @@ Skills support visibility controls via SKILL.md frontmatter:
 ### Task System V2 Visibility Strategy
 
 For Task System V2, all skills are marked `user-invocable: false` because:
-- **Commands are user-facing**: Users invoke `/create-epic`, `/create-spec`, etc.
+- **Commands are user-facing**: Users invoke `/create-epic`, `/generate-stories`, etc.
 - **Skills are internal**: Commands invoke skills via the Skill tool
 - **Skills receive context from commands**: They don't accept arguments directly
 
