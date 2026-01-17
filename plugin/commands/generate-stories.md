@@ -24,12 +24,6 @@ Based on the resolution above:
 
 The epic was found. Use the Skill tool to invoke `generate-stories`.
 
-The skill will:
-1. Read the epic.md file
-2. Generate story breakdown
-3. Create story.md files in the epic's stories/ directory
-4. Create git worktrees and draft PRs for each story
-
 ### If resolved=false with epics array
 
 Multiple epics match. Use AskUserQuestion to disambiguate:
