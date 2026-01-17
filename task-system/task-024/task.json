@@ -22,7 +22,7 @@
         "identifier_resolver_v2.py already exists from task 022",
         "Must use $ARGUMENTS and $CLAUDE_PROJECT_DIR placeholders"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-2",
@@ -37,7 +37,7 @@
         "Skill receives resolved story context from /implement command",
         "Must validate worktree and story.md exist before spawning orchestrator"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-3",
@@ -59,7 +59,7 @@
         "Worker output schema: {status, summary, blocker}",
         "Exit with appropriate status codes for orchestrator tracking"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-4",
@@ -78,7 +78,7 @@
         "Worker operates entirely within worktree context",
         "Must reference paths using $WORKTREE_ROOT prefix"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-5",
@@ -98,7 +98,7 @@
         "Error messages must explain what path was attempted and what the allowed scope is",
         "Use python3 for JSON parsing from stdin"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-6",
@@ -112,7 +112,7 @@
         "Optional argument - may need to detect current context if not provided",
         "Similar structure to /implement command"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "obj-7",
@@ -129,7 +129,7 @@
         "Skill provides human-in-the-loop for BLOCKED worker status",
         "Resolution must be documented before worker can continue"
       ],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
