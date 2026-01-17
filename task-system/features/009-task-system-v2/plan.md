@@ -280,8 +280,6 @@ print(story.content)      # The markdown body
 | `title` | string | - | Human-readable title |
 | `status` | enum | `ready`, `in-progress`, `review`, `done` | Story status |
 | `epic` | string | slug format | Parent epic identifier |
-| `blocked_by` | string[] | story slugs | Stories that must complete first |
-| `blocks` | string[] | story slugs | Stories waiting on this one |
 | `tasks` | object[] | - | List of task objects |
 | `tasks[].id` | string | e.g., `t1`, `t2` | Task identifier within story |
 | `tasks[].title` | string | - | Task title |
@@ -294,10 +292,6 @@ id: user-login
 title: Implement User Login Flow
 status: ready                        # ready | in-progress | review | done
 epic: auth-system
-blocked_by:
-  - auth-api
-blocks:
-  - user-dashboard
 tasks:
   - id: t1
     title: Create login form component
@@ -340,8 +334,6 @@ tasks:
 **Done when:**
 - <verification>
 
-**Blocked by:** t0
-
 ### t2: <task title>
 
 ...
@@ -350,8 +342,6 @@ tasks:
 **Relationships**:
 - Story belongs to Epic (via `epic` field in front matter and directory structure)
 - Story has many Tasks (listed in front matter for status, detailed in body)
-- Stories can depend on other Stories (blocked_by/blocks in front matter)
-- Tasks can depend on other Tasks within same story
 
 ### Entity: Journal (journal.md)
 
@@ -1386,19 +1376,3 @@ python implement.py <epic_slug> <story_slug> [options]
 | `TIMEOUT` | Max time exceeded |
 | `MAX_CYCLES` | Max worker spawns reached |
 | `ERROR` | Validation or spawn failure |
-
-## Open Questions
-
-- [x] ~~How to pass CURRENT_STORY_SLUG to hook scripts?~~ **Resolved**: Pass epic_slug and story_slug as command-line arguments to scope_validator.sh via `--settings` flag when spawning `claude -p`
-- [x] ~~Should scope enforcement also block Read operations or just Write/Edit?~~ **Resolved**: Block Read/Write/Edit - scope enforcement applies to all file operations on story files
-
-## Future Considerations
-
-- Story templates for common patterns (API endpoint, UI component, etc.)
-- Cross-epic story dependencies (if needed)
-- Story metrics and analytics
-- Integration with external issue trackers
-
----
-
-**Note**: This document describes HOW to build the feature. Review and approve before generating stories.
