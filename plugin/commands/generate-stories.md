@@ -13,7 +13,7 @@ allowed-tools: Bash(python:*), Skill(generate-stories), AskUserQuestion
 Run the identifier resolver to find the epic:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver.py "$ARGUMENTS" --type epic --project-root "$CLAUDE_PROJECT_DIR"
+python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$ARGUMENTS" --type epic --project-root "$CLAUDE_PROJECT_DIR"
 ```
 
 ## Instructions

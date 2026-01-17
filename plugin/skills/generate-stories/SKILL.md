@@ -2,7 +2,7 @@
 name: generate-stories
 description: Generate stories from a resolved epic
 user-invocable: false
-allowed-tools: Bash(git:*), Bash(gh:*), Bash(bash:*), Read, Write, AskUserQuestion
+allowed-tools: Bash(python:*), Read, Write, AskUserQuestion, Skill(generate-story)
 ---
 
 # Generate Stories Skill
@@ -27,10 +27,6 @@ Read the epic file:
 $CLAUDE_PROJECT_DIR/.claude-tasks/epics/<slug>/epic.md
 ```
 
-The epic contains:
-- **Vision section** (above `---`): Overview, Goals, Success Metrics, Scope, NFRs
-- **Architecture section** (below `---`): Technical Approach, Key Decisions, Data Models, Interface Contracts, Tech Stack
-
 ### 3. Read Story Template
 
 Read the template from: `${CLAUDE_PLUGIN_ROOT}/skills/generate-stories/templates/story-template.md`
@@ -42,7 +38,6 @@ Analyze the epic and generate a story breakdown:
 1. **Identify logical story boundaries**:
    - Each story should be independently deployable
    - Stories should have clear inputs and outputs
-   - Stories should be completable in 1-3 days of work
 
 2. **Generate story structure**:
    - Meaningful, unique slug for each story
@@ -81,75 +76,61 @@ Would you like to:
 
 Use AskUserQuestion to get approval.
 
-### 6. Create Story Files
+### 6. Create Each Story
 
-For each approved story:
+For each approved story, use the Skill tool to invoke `generate-story` with the following context:
+- `epic_slug`: The epic slug
+- `story_slug`: The story's slug
+- `story_content`: The complete story.md content with YAML front matter:
 
-1. Create the story directory:
-   ```
-   $CLAUDE_PROJECT_DIR/.claude-tasks/epics/<epic-slug>/stories/<story-slug>/
-   ```
+```yaml
+---
+id: <story-slug>
+title: <story title>
+status: ready
+epic: <epic-slug>
+tasks:
+  - id: t1
+    title: <task title>
+    status: pending
+  - id: t2
+    title: <task title>
+    status: pending
+---
 
-2. Generate story.md with YAML front matter:
-   ```yaml
-   ---
-   id: <story-slug>
-   title: <story title>
-   status: ready
-   epic: <epic-slug>
-   tasks:
-     - id: t1
-       title: <task title>
-       status: pending
-     - id: t2
-       title: <task title>
-       status: pending
-   ---
+## Context
+<self-contained description>
 
-   ## Context
-   <self-contained description>
+## Interface
+### Inputs
+- <dependencies>
 
-   ## Interface
-   ### Inputs
-   - <dependencies>
+### Outputs
+- <what this produces>
 
-   ### Outputs
-   - <what this produces>
+## Acceptance Criteria
+- [ ] <verifiable condition>
+- [ ] <another condition>
 
-   ## Acceptance Criteria
-   - [ ] <verifiable condition>
-   - [ ] <another condition>
+## Tasks
 
-   ## Tasks
+### t1: <task title>
+**Guidance:**
+- <implementation detail>
 
-   ### t1: <task title>
-   **Guidance:**
-   - <implementation detail>
+**References:**
+- <file path>
 
-   **References:**
-   - <file path>
+**Avoid:**
+- <anti-pattern>
 
-   **Avoid:**
-   - <anti-pattern>
-
-   **Done when:**
-   - <verification>
-   ```
-
-### 7. Create Git Infrastructure
-
-For each story, run the create_worktree.sh script:
-
-```bash
-bash ${CLAUDE_PLUGIN_ROOT}/skills/generate-stories/scripts/create_worktree.sh "<epic-slug>" "<story-slug>"
+**Done when:**
+- <verification>
 ```
 
-The script will:
-- Create a git branch: `story-<epic-slug>-<story-slug>`
-- Create a worktree in `.claude-tasks/worktrees/<epic-slug>/<story-slug>/`
-- Create a draft PR with appropriate title
+The `generate-story` skill will create the story directory, write the story.md file, and set up git infrastructure (branch, worktree, draft PR).
 
-### 8. Report Completion
+### 7. Report Completion
 
 ```
 Stories created for epic: <slug>
