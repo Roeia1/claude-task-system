@@ -2,7 +2,7 @@
 name: generate-stories
 description: Generate stories from a resolved epic
 user-invocable: false
-allowed-tools: Bash(python:*), Read, Write, AskUserQuestion, Skill(generate-story)
+allowed-tools: Bash(python:*), Read, Write, AskUserQuestion, Task
 ---
 
 # Generate Stories Skill
@@ -27,28 +27,27 @@ Read the epic file:
 $CLAUDE_PROJECT_DIR/.claude-tasks/epics/<slug>/epic.md
 ```
 
-### 3. Read Story Template
+### 3. Create Epic Overview
 
-Read the template from: `${CLAUDE_PLUGIN_ROOT}/skills/generate-stories/templates/story-template.md`
+Distill the epic into a concise overview containing:
+- Goals and objectives
+- Key constraints and requirements
+- Technical context (if any)
 
-### 4. AI-Assisted Story Breakdown
+This overview will be passed to each story-builder agent.
 
-Analyze the epic and generate a story breakdown:
+### 4. Generate Story OUTLINES Only
 
-1. **Identify logical story boundaries**:
-   - Each story should be independently deployable
-   - Stories should have clear inputs and outputs
+Analyze the epic and generate **outlines only** (not full content):
 
-2. **Generate story structure**:
-   - Meaningful, unique slug for each story
-   - Clear title describing the deliverable
-   - Self-contained context (no external dependencies to understand)
-   - Specific acceptance criteria
-   - Task breakdown with guidance
+For each story, create an outline with:
+- `slug`: Meaningful, unique identifier
+- `title`: Clear title describing the deliverable
+- `description`: One-line scope description
+- `acceptance_criteria`: Summary of what "done" looks like
+- `depends_on`: List of sibling story slugs (if any)
 
-3. **Define story dependencies** (if any):
-   - Which stories must complete before others
-   - What interfaces stories expect from each other
+**Do NOT generate full story content here.** That happens in Phase 2.
 
 ### 5. Present Story Breakdown for Approval
 
@@ -59,8 +58,8 @@ Display the proposed stories to the user:
 
 ### Story 1: <story-slug>
 **Title**: <title>
-**Context**: <brief description>
-**Tasks**: <number> tasks
+**Description**: <one-line description>
+**Acceptance**: <summary>
 **Depends on**: <dependencies or "none">
 
 ### Story 2: <story-slug>
@@ -76,61 +75,47 @@ Would you like to:
 
 Use AskUserQuestion to get approval.
 
-### 6. Create Each Story
+### 6. Spawn Story Builder Agents
 
-For each approved story, use the Skill tool to invoke `generate-story` with the following context:
-- `epic_slug`: The epic slug
-- `story_slug`: The story's slug
-- `story_content`: The complete story.md content with YAML front matter:
+For each approved story, use the **Task tool** to spawn a `story-builder` agent.
 
-```yaml
----
-id: <story-slug>
-title: <story title>
-status: ready
-epic: <epic-slug>
-tasks:
-  - id: t1
-    title: <task title>
-    status: pending
-  - id: t2
-    title: <task title>
-    status: pending
----
+**Critical**: Use the Task tool (not Skill tool) to ensure isolated context.
 
-## Context
-<self-contained description>
+For each story, spawn with this prompt:
 
-## Interface
-### Inputs
-- <dependencies>
+```
+Create story for epic "<epic_slug>".
 
-### Outputs
-- <what this produces>
+## Parameters
 
-## Acceptance Criteria
-- [ ] <verifiable condition>
-- [ ] <another condition>
+epic_slug: <epic_slug>
+story_slug: <story_slug>
 
-## Tasks
+epic_overview: |
+  <distilled epic overview from step 3>
 
-### t1: <task title>
-**Guidance:**
-- <implementation detail>
+story_outline: |
+  title: <title>
+  description: <description>
+  acceptance_criteria:
+    - <criterion 1>
+    - <criterion 2>
+  depends_on: [<dependencies>]
 
-**References:**
-- <file path>
+sibling_stories:
+  <other-slug-1>: <one-line description>
+  <other-slug-2>: <one-line description>
 
-**Avoid:**
-- <anti-pattern>
-
-**Done when:**
-- <verification>
+Invoke the generate-story skill with these parameters.
 ```
 
-The `generate-story` skill will create the story directory, write the story.md file, and set up git infrastructure (branch, worktree, draft PR).
+**Spawn agents in parallel** for independent stories. For stories with dependencies, you may spawn sequentially or note the dependency.
 
-### 7. Report Completion
+### 7. Collect Results
+
+Wait for all story-builder agents to complete. Collect their results.
+
+### 8. Report Completion
 
 ```
 Stories created for epic: <slug>
@@ -147,7 +132,7 @@ Next steps:
 - Run /implement <story-slug> to start implementation
 ```
 
-## Story Generation Guidelines
+## Story Outline Guidelines
 
 ### Good Story Boundaries
 
@@ -161,30 +146,18 @@ Next steps:
 - "Add button" (too small, unless that's genuinely the scope)
 - "Refactor and add tests" (multiple unrelated concerns)
 
-### Task Granularity
+### Outline Granularity
 
-Each task should be:
-- Completable in 1-4 hours
-- Have clear "done when" criteria
-- Include specific guidance for implementation
-- Reference relevant files
+Each story outline should:
+- Be completable in a reasonable scope
+- Have clear acceptance criteria
+- Not overlap with sibling stories
 
-### Front Matter Status Values
+### Why Two Phases?
 
-Story status:
-- `ready`: Created, ready for implementation
-- `in-progress`: Implementation started
-- `review`: Implementation complete, awaiting review
-- `done`: Merged and complete
+Phase 1 (outlines) happens in this skill's context - you have full visibility to ensure stories don't overlap.
 
-Task status:
-- `pending`: Not started
-- `in-progress`: Currently being worked on
-- `done`: Complete
-
-## Notes
-
-- Stories are self-contained - they should be understandable without reading the epic
-- Each story gets its own git worktree for isolated development
-- The draft PR allows tracking progress and enables code review
-- Story status is tracked in the YAML front matter
+Phase 2 (full content) happens in isolated agent contexts - each agent only sees its own story outline plus sibling titles. This:
+- Prevents context bloat
+- Ensures clear boundaries
+- Allows parallel generation

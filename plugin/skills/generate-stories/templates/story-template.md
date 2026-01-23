@@ -16,6 +16,15 @@ tasks:
 
 <Self-contained description of what this story accomplishes and why. Include enough context that a developer can understand this story without reading the epic.>
 
+## Scope Boundaries
+
+**In scope:**
+- <What this story covers>
+- <Specific functionality included>
+
+**Out of scope (handled by other stories):**
+- <sibling-slug>: <Why it's not in this story>
+
 ## Interface
 
 ### Inputs
