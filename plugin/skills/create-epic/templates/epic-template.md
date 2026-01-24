@@ -1,71 +1,80 @@
-# {{EPIC_TITLE}}
+# <Epic Title>
 
 ## Overview
 
-{{OVERVIEW}}
+<What this epic accomplishes and why it matters>
 
 ## Goals
 
-- {{GOAL_1}}
-- {{GOAL_2}}
-- {{GOAL_3}}
+- <Goal 1>
+- <Goal 2>
+- <Goal 3>
 
 ## Success Metrics
 
-- {{METRIC_1}}
-- {{METRIC_2}}
+- <Measurable outcome 1>
+- <Measurable outcome 2>
 
 ## Scope
 
 ### In Scope
 
-- {{IN_SCOPE_1}}
-- {{IN_SCOPE_2}}
+- <What is included>
+- <Feature boundary 1>
 
 ### Out of Scope
 
-- {{OUT_OF_SCOPE_1}}
-- {{OUT_OF_SCOPE_2}}
+- <What is explicitly excluded>
+- <Deferred item 1>
 
 ## Non-Functional Requirements
 
-- {{NFR_1}}
-- {{NFR_2}}
-
----
+- <Performance requirement>
+- <Security requirement>
+- <Usability requirement>
 
 ## Technical Approach
 
-{{TECHNICAL_APPROACH}}
+<High-level architecture and implementation strategy>
 
 ## Key Decisions
 
-### {{DECISION_1_TITLE}}
+### <Decision Title 1>
 
-- **Choice**: {{DECISION_1_CHOICE}}
-- **Rationale**: {{DECISION_1_RATIONALE}}
-- **Alternatives Considered**: {{DECISION_1_ALTERNATIVES}}
+- **Choice**: <What was decided>
+- **Rationale**: <Why this choice>
+- **Alternatives Considered**: <Other options evaluated>
 
-### {{DECISION_2_TITLE}}
+### <Decision Title 2>
 
-- **Choice**: {{DECISION_2_CHOICE}}
-- **Rationale**: {{DECISION_2_RATIONALE}}
-- **Alternatives Considered**: {{DECISION_2_ALTERNATIVES}}
+- **Choice**: <What was decided>
+- **Rationale**: <Why this choice>
+- **Alternatives Considered**: <Other options evaluated>
 
 ## Data Models
 
-{{DATA_MODELS}}
+<Schemas, data structures, or entity definitions>
+
+```
+<schema or model definition>
+```
 
 ## Interface Contracts
 
-{{INTERFACE_CONTRACTS}}
+<APIs, contracts, or interfaces between stories/components>
+
+### <Interface Name>
+
+- **Endpoint/Method**: <signature>
+- **Input**: <parameters>
+- **Output**: <return value>
 
 ## Tech Stack
 
-- {{TECH_STACK_1}}
-- {{TECH_STACK_2}}
+- <Technology 1>: <purpose>
+- <Technology 2>: <purpose>
 
 ## Open Questions
 
-- {{OPEN_QUESTION_1}}
-- {{OPEN_QUESTION_2}}
+- <Unresolved question 1>
+- <Unresolved question 2>

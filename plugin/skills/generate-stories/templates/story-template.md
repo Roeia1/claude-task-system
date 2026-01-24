@@ -1,67 +1,78 @@
 ---
-slug: {{STORY_SLUG}}
-title: {{STORY_TITLE}}
+id: <story-slug>
+title: <Story Title>
 status: ready
-epic: {{EPIC_SLUG}}
+epic: <epic-slug>
 tasks:
   - id: t1
-    title: {{TASK_1_TITLE}}
+    title: <Task 1 Title>
     status: pending
   - id: t2
-    title: {{TASK_2_TITLE}}
+    title: <Task 2 Title>
     status: pending
 ---
 
 ## Context
 
-{{STORY_CONTEXT}}
+<Self-contained description of what this story accomplishes and why. Include enough context that a developer can understand this story without reading the epic.>
+
+## Scope Boundaries
+
+**In scope:**
+- <What this story covers>
+- <Specific functionality included>
+
+**Out of scope:**
+- <What is explicitly excluded from this story>
 
 ## Interface
 
 ### Inputs
 
-- {{INPUT_1}}
-- {{INPUT_2}}
+- <Dependency 1: what this story requires from other stories or systems>
+- <Dependency 2>
 
 ### Outputs
 
-- {{OUTPUT_1}}
-- {{OUTPUT_2}}
+- <Output 1: what this story produces for other stories or systems>
+- <Output 2>
 
 ## Acceptance Criteria
 
-- [ ] {{ACCEPTANCE_CRITERIA_1}}
-- [ ] {{ACCEPTANCE_CRITERIA_2}}
-- [ ] {{ACCEPTANCE_CRITERIA_3}}
+- [ ] <Verifiable condition 1>
+- [ ] <Verifiable condition 2>
+- [ ] <Verifiable condition 3>
 
 ## Tasks
 
-### t1: {{TASK_1_TITLE}}
+### t1: <Task 1 Title>
 
 **Guidance:**
-- {{TASK_1_GUIDANCE_1}}
-- {{TASK_1_GUIDANCE_2}}
+- <Implementation approach or pattern to follow>
+- <Specific technique or library to use>
 
 **References:**
-- {{TASK_1_REFERENCE_1}}
+- <Relevant file path or documentation>
+- <Example to follow>
 
 **Avoid:**
-- {{TASK_1_AVOID_1}}
+- <Anti-pattern or approach to avoid>
+- <Common mistake>
 
 **Done when:**
-- {{TASK_1_DONE_WHEN}}
+- <Specific verification that task is complete>
+- <Test or behavior to confirm>
 
-### t2: {{TASK_2_TITLE}}
+### t2: <Task 2 Title>
 
 **Guidance:**
-- {{TASK_2_GUIDANCE_1}}
-- {{TASK_2_GUIDANCE_2}}
+- <Implementation detail>
 
 **References:**
-- {{TASK_2_REFERENCE_1}}
+- <File path>
 
 **Avoid:**
-- {{TASK_2_AVOID_1}}
+- <Anti-pattern>
 
 **Done when:**
-- {{TASK_2_DONE_WHEN}}
+- <Verification>
