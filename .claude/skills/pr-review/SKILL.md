@@ -137,21 +137,25 @@ Addressed feedback from @<reviewer>:
 Please re-review when ready."
 ```
 
-### 8. Request Re-review
+### 8. Dismiss Changes Requested Reviews
 
-Check if the PR has `CHANGES_REQUESTED` status:
+Find reviews with `CHANGES_REQUESTED` state and dismiss them:
 
 ```bash
-gh pr view --json reviewDecision
+# Get CHANGES_REQUESTED review IDs
+gh api repos/OWNER/REPO/pulls/PR_NUMBER/reviews --jq '.[] | select(.state == "CHANGES_REQUESTED") | .id'
+
+# Dismiss each review
+gh api -X PUT repos/OWNER/REPO/pulls/PR_NUMBER/reviews/REVIEW_ID/dismissals -f message="Addressed in recent commits"
 ```
 
-If `reviewDecision` is `CHANGES_REQUESTED`, request a re-review from reviewers who requested changes:
+Then request a re-review:
 
 ```bash
 gh pr edit --add-reviewer <reviewer-username>
 ```
 
-This clears the "Changes requested" status and notifies the reviewer.
+This clears the "Changes requested" status and creates a pending review request.
 
 ### 9. Report Completion
 
