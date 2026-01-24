@@ -84,3 +84,103 @@ All objectives completed. The implementation follows the specification from feat
 
 ### Session Complete
 All 6 objectives completed and committed.
+
+---
+
+## Session: 2026-01-18 (PR Review Round 1)
+
+### Feedback Addressed (commit 26253c2)
+PR review feedback required significant changes:
+
+1. **Command files simplified**: Removed skill explanations from create-epic.md and generate-stories.md commands - skills should be self-documenting
+2. **Switched to identifier_resolver_v2.py**: Use the V2 resolver from task-022 instead of modifying the legacy identifier_resolver.py
+3. **Shell to Python conversion**: Converted create_worktree.sh to create_worktree.py for consistency with other scripts
+4. **Removed file explanations**: Skills shouldn't explain what files do - just do the work
+5. **Created generate-story skill**: Added separate skill using `context:fork` for individual story creation to prevent context bloat
+
+### Architecture Decision: Story Generation Isolation
+The generate-stories skill now works in two phases:
+- Phase 1: Create lightweight story outlines (titles + descriptions only)
+- Phase 2: Fork context for each story, allowing isolated full generation
+
+---
+
+## Session: 2026-01-18 (Story Builder Agent Experiment)
+
+### Commit 4dda413
+Experimented with a story-builder agent approach:
+- Phase 1: generate-stories creates outlines only
+- Phase 2: Spawn story-builder agents via Task tool with isolated context
+- Each agent receives only epic overview + its story outline + sibling titles
+
+### Commit 4241de9 (Refinement)
+Simplified back to using Skill with `context:fork`:
+- Removed story-builder agent (unnecessary complexity)
+- Fork pattern is simpler and preserves full epic context
+- No information loss from epic distillation
+
+---
+
+## Session: 2026-01-19 (PR Review Round 2)
+
+### Feedback Addressed (commit 80e68c3)
+- Removed "Important" comment and fork explanations from skills
+- Removed "Do NOT generate" section
+- Simplified generate-story skill to only receive story_title (forked context has the rest)
+- Removed template content duplicated in skill (use template file reference)
+- Removed redundant "Why Fork?" section
+
+---
+
+## Session: 2026-01-20 (Architecture Change: Commands → User-Invocable Skills)
+
+### Commits 5eef2b7, 04ae97c, d64f2da, 4add4a8
+Major refactoring to eliminate command → skill indirection:
+
+1. **Deleted command files**: Removed plugin/commands/create-epic.md and plugin/commands/generate-stories.md
+2. **Made skills user-invocable**: Added `user-invocable: true` to both skills
+3. **Added disable-model-invocation**: Prevent model from auto-invoking these skills
+4. **$ARGUMENTS → $0**: Use $0 for specific argument access
+5. **Pre-bash pattern**: Added `!`` prefix in generate-stories to run identifier resolver before skill instructions
+6. **Updated plugin.json**: Removed command references
+
+This follows the pattern established in other skills where user-invocable skills replace commands.
+
+---
+
+## Session: 2026-01-21 (PR Review Round 3)
+
+### Commit 42b7c9b
+- Simplified slug generation instructions - Claude already knows how to create URL-friendly slugs
+
+### Commit b1ae03f
+Feedback addressed:
+1. **CLAUDE_PROJECT_DIR**: Use env var in epic path check
+2. **Template simplification**: Removed `---` separator from epic template
+3. **Branch naming**: Changed from `story-<epic>-<story>` to `story-<slug>-epic-<epic>`
+4. **Story template**: Simplified out of scope section
+5. **Guidelines inline**: Moved story breakdown guidelines inline to step 3
+
+---
+
+## Session: 2026-01-22 (Final Polish)
+
+### Commit 9d5fbdd
+- Use `${CLAUDE_PROJECT_DIR}` braced syntax consistently (matches `${CLAUDE_PLUGIN_ROOT}` pattern)
+
+---
+
+## Summary of Changes from Initial Implementation
+
+The PR review process led to significant architectural evolution:
+
+| Original | Final |
+|----------|-------|
+| Commands invoke Skills via Skill tool | User-invocable skills directly (no commands) |
+| Shell script for worktree creation | Python script (create_worktree.py) |
+| Modified legacy identifier_resolver.py | Uses identifier_resolver_v2.py |
+| Full story content in single context | Two-phase with context:fork |
+| Verbose skill instructions | Minimal, trust Claude's knowledge |
+| Epic template with `---` separator | Single unified document |
+
+All objectives remain complete. Implementation refined through 4 rounds of PR review.
