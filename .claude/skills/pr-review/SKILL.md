@@ -22,7 +22,7 @@ If no PR found, report error and stop.
 
 ### 2. Fetch Unresolved Comments
 
-Use GraphQL to get review threads with resolved status:
+Use GraphQL to get both inline review threads AND review body comments:
 
 ```bash
 gh api graphql -f query='
@@ -42,6 +42,14 @@ gh api graphql -f query='
           }
         }
       }
+      reviews(first: 20) {
+        nodes {
+          id
+          state
+          body
+          author { login }
+        }
+      }
     }
   }
 }'
@@ -49,14 +57,22 @@ gh api graphql -f query='
 
 Replace OWNER, REPO, and PR_NUMBER with actual values from step 1.
 
-Filter for `isResolved: false` threads only.
+Filter for:
+- `reviewThreads` with `isResolved: false`
+- `reviews` with non-empty `body` (these are review summary comments)
 
 ### 3. Display Comments Summary
 
 Show the user what needs to be addressed:
 
 ```
-## Unresolved PR Comments (X total)
+## Review Body Comments (if any)
+
+### Review by <author>
+**State**: CHANGES_REQUESTED
+**Feedback**: <review body>
+
+## Unresolved Inline Comments (X total)
 
 ### Comment 1
 **File**: path/to/file.ts:42
@@ -65,6 +81,8 @@ Show the user what needs to be addressed:
 ### Comment 2
 ...
 ```
+
+Review body comments are general feedback not tied to specific lines. Address them based on intent.
 
 ### 4. Address Each Comment
 
@@ -122,3 +140,4 @@ All threads resolved.
 - If a comment requires clarification, reply to it instead of resolving
 - Group related changes into a single commit when possible
 - Always push after committing so the PR updates
+- Review body comments cannot be "resolved" like threads - they're addressed by your changes and the reviewer will re-review
