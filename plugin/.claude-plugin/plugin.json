@@ -27,9 +27,7 @@
     "./commands/feature-definition.md",
     "./commands/feature-planning.md",
     "./commands/architecture-decisions.md",
-    "./commands/task-generation.md",
-    "./commands/create-epic.md",
-    "./commands/generate-stories.md"
+    "./commands/task-generation.md"
   ],
   "skills": "./skills/",
   "agents": [
