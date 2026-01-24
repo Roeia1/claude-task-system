@@ -122,7 +122,24 @@ mutation {
 
 Each `tN:` is an alias allowing multiple mutations in one request.
 
-### 7. Report Completion
+### 7. Acknowledge Review Body Comments
+
+If there were review body comments (non-empty `body` in reviews), add a PR comment summarizing what was addressed:
+
+```bash
+gh pr comment --body "## Review Feedback Addressed
+
+Addressed feedback from @<reviewer>:
+
+- <summary of what was done>
+- <another change>
+
+Please re-review when ready."
+```
+
+This provides visible acknowledgment since review body comments can't be "resolved" programmatically.
+
+### 8. Report Completion
 
 ```
 ## PR Review Complete
@@ -140,4 +157,4 @@ All threads resolved.
 - If a comment requires clarification, reply to it instead of resolving
 - Group related changes into a single commit when possible
 - Always push after committing so the PR updates
-- Review body comments cannot be "resolved" like threads - they're addressed by your changes and the reviewer will re-review
+- Review body comments cannot be "resolved" like threads - add a PR comment to acknowledge them
