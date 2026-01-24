@@ -32,7 +32,7 @@ Convert the description to a URL-friendly slug (e.g., "User Authentication Syste
 
 ### 3. Check for Existing Epic
 
-Check if `.claude-tasks/epics/<slug>/` already exists.
+Check if `$CLAUDE_PROJECT_DIR/.claude-tasks/epics/<slug>/` already exists.
 
 If it exists, use AskUserQuestion to ask:
 ```
@@ -62,7 +62,7 @@ Read the template from: `${CLAUDE_PLUGIN_ROOT}/skills/create-epic/templates/epic
 
 Engage the user in a structured dialog to build the epic. Start by analyzing the description and generating initial content, then ask clarifying questions.
 
-#### Vision Section (Above ---)
+#### Vision Section
 For each section, generate initial content and ask clarifying questions:
 
 1. **Overview**: Draft based on description, ask if it captures the intent
@@ -73,7 +73,7 @@ For each section, generate initial content and ask clarifying questions:
    - Out of Scope: What's explicitly excluded
 5. **Non-Functional Requirements**: Performance, security, usability constraints
 
-#### Architecture Section (Below ---)
+#### Architecture Section
 For technical planning:
 
 1. **Technical Approach**: High-level architecture decisions
@@ -139,6 +139,5 @@ Do these goals capture your intent? Would you like to modify or add any?
 ## Notes
 
 - Epics contain both vision (WHAT) and architecture (HOW) in a unified document
-- The `---` separator divides vision from architecture sections
 - Stories will be generated from the epic using `/generate-stories`
 - Slug must be unique within `.claude-tasks/epics/`

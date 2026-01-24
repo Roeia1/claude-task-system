@@ -40,13 +40,29 @@ $CLAUDE_PROJECT_DIR/.claude-tasks/epics/<slug>/epic.md
 
 ### 3. Generate Story Breakdown (Titles + Descriptions Only)
 
-Analyze the epic and generate a **lightweight breakdown**:
+Analyze the epic and generate a **lightweight breakdown**.
+
+#### Story Breakdown Guidelines
+
+Each story should represent a **logical implementation boundary** - a cohesive piece of work that can be broken down into atomic tasks. Stories are not atomic tasks themselves.
+
+**Good story boundaries** have:
+- Clear separation of concerns from other stories
+- A cohesive deliverable (component, endpoint, feature)
+- Enough scope to contain multiple implementation tasks
+
+**Examples:**
+- "Login form component" (UI + validation + state management)
+- "Password reset API endpoint" (route + controller + email service)
+- "Session token management" (generation + validation + refresh)
+
+**Avoid:**
+- Too broad: "Authentication" (should be multiple stories)
+- Too small: "Add button" (this is a task, not a story)
 
 For each story, identify:
 - `title`: Clear title describing the deliverable
 - `description`: 1-2 sentence scope description
-
-Focus on identifying logical story boundaries and ensuring stories don't overlap.
 
 ### 4. Present Story Breakdown for Approval
 
@@ -103,16 +119,3 @@ Next steps:
 - Run /implement <story-slug> to start implementation
 ```
 
-## Story Breakdown Guidelines
-
-### Good Story Boundaries
-
-**Good** (clear boundaries):
-- "Login form component"
-- "Password reset API endpoint"
-- "Session token management"
-
-**Bad** (too vague or too large):
-- "Authentication" (too broad)
-- "Add button" (too small)
-- "Refactor and add tests" (multiple concerns)

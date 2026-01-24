@@ -33,8 +33,6 @@
 - <Security requirement>
 - <Usability requirement>
 
----
-
 ## Technical Approach
 
 <High-level architecture and implementation strategy>

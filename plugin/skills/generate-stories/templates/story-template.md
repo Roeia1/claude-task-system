@@ -22,8 +22,8 @@ tasks:
 - <What this story covers>
 - <Specific functionality included>
 
-**Out of scope (handled by other stories):**
-- <sibling-slug>: <Why it's not in this story>
+**Out of scope:**
+- <What is explicitly excluded from this story>
 
 ## Interface
 

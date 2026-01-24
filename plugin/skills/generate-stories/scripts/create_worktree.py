@@ -67,7 +67,7 @@ def main():
     project_path = Path(project_dir)
 
     # Paths
-    branch_name = f"story-{epic_slug}-{story_slug}"
+    branch_name = f"story-{story_slug}-epic-{epic_slug}"
     worktree_dir = project_path / ".claude-tasks" / "worktrees" / epic_slug / story_slug
     story_file = project_path / ".claude-tasks" / "epics" / epic_slug / "stories" / story_slug / "story.md"
 
