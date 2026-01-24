@@ -137,9 +137,23 @@ Addressed feedback from @<reviewer>:
 Please re-review when ready."
 ```
 
-This provides visible acknowledgment since review body comments can't be "resolved" programmatically.
+### 8. Request Re-review
 
-### 8. Report Completion
+Check if the PR has `CHANGES_REQUESTED` status:
+
+```bash
+gh pr view --json reviewDecision
+```
+
+If `reviewDecision` is `CHANGES_REQUESTED`, request a re-review from reviewers who requested changes:
+
+```bash
+gh pr edit --add-reviewer <reviewer-username>
+```
+
+This clears the "Changes requested" status and notifies the reviewer.
+
+### 9. Report Completion
 
 ```
 ## PR Review Complete
@@ -158,3 +172,4 @@ All threads resolved.
 - Group related changes into a single commit when possible
 - Always push after committing so the PR updates
 - Review body comments cannot be "resolved" like threads - add a PR comment to acknowledge them
+- After addressing CHANGES_REQUESTED reviews, request a re-review to clear the status
