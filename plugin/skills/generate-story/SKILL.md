@@ -42,14 +42,14 @@ The story should be **self-contained** - understandable without reading the epic
 
 Create the story directory:
 ```
-$CLAUDE_PROJECT_DIR/.claude-tasks/epics/<epic_slug>/stories/<generated-slug>/
+${CLAUDE_PROJECT_DIR}/.claude-tasks/epics/<epic_slug>/stories/<generated-slug>/
 ```
 
 ### 5. Write Story File
 
 Write the generated content to:
 ```
-$CLAUDE_PROJECT_DIR/.claude-tasks/epics/<epic_slug>/stories/<generated-slug>/story.md
+${CLAUDE_PROJECT_DIR}/.claude-tasks/epics/<epic_slug>/stories/<generated-slug>/story.md
 ```
 
 ### 6. Create Git Infrastructure

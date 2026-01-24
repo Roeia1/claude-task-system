@@ -32,7 +32,7 @@ Convert the description to a URL-friendly slug (e.g., "User Authentication Syste
 
 ### 3. Check for Existing Epic
 
-Check if `$CLAUDE_PROJECT_DIR/.claude-tasks/epics/<slug>/` already exists.
+Check if `${CLAUDE_PROJECT_DIR}/.claude-tasks/epics/<slug>/` already exists.
 
 If it exists, use AskUserQuestion to ask:
 ```
@@ -51,7 +51,7 @@ options:
 
 Create the epic directory:
 ```bash
-mkdir -p $CLAUDE_PROJECT_DIR/.claude-tasks/epics/<slug>/stories
+mkdir -p ${CLAUDE_PROJECT_DIR}/.claude-tasks/epics/<slug>/stories
 ```
 
 ### 5. Read Epic Template
@@ -91,7 +91,7 @@ Use the template structure to create the epic.md content. Fill in all sections b
 
 Write the content to:
 ```
-$CLAUDE_PROJECT_DIR/.claude-tasks/epics/<slug>/epic.md
+${CLAUDE_PROJECT_DIR}/.claude-tasks/epics/<slug>/epic.md
 ```
 
 ### 9. Report Completion
