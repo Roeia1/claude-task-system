@@ -28,14 +28,7 @@ Example: /create-epic "User authentication with OAuth"
 
 ### 2. Generate Epic Slug
 
-Convert the description to a URL-friendly slug:
-- Convert to lowercase
-- Replace spaces with hyphens
-- Remove special characters (keep only alphanumeric and hyphens)
-- Limit to 50 characters
-- Trim trailing hyphens
-
-Example: "User Authentication System" → "user-authentication-system"
+Convert the description to a URL-friendly slug (e.g., "User Authentication System" → "user-authentication-system").
 
 ### 3. Check for Existing Epic
 
