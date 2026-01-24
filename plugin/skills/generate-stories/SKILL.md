@@ -9,19 +9,13 @@ allowed-tools: Bash(python:*), Read, AskUserQuestion, Skill(generate-story)
 
 # Generate Stories Skill
 
-**User input**: $ARGUMENTS
+!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type epic --project-root "$CLAUDE_PROJECT_DIR"`
 
 ## Process
 
-### 1. Resolve Epic
+### 1. Check Resolution Result
 
-Run the identifier resolver to find the epic:
-
-```bash
-python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$ARGUMENTS" --type epic --project-root "$CLAUDE_PROJECT_DIR"
-```
-
-Handle the result:
+The identifier resolver ran above. Handle the result:
 
 - **If resolved=true**: Continue to step 2 with the resolved epic slug
 - **If resolved=false with epics array**: Use AskUserQuestion to disambiguate:

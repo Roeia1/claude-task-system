@@ -9,15 +9,15 @@ allowed-tools: Read, Write, Bash(mkdir:*), AskUserQuestion
 
 # Create Epic Skill
 
-**Epic description**: $ARGUMENTS
+**Epic description**: $0
 
 ## Process
 
 ### 1. Extract Epic Description
 
-The epic description is provided via `$ARGUMENTS`.
+The epic description is provided via `$0` above.
 
-If no description is provided (empty arguments), report an error:
+If no description is provided (empty), report an error:
 ```
 Error: No epic description provided.
 
