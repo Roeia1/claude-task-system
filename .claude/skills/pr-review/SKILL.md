@@ -91,16 +91,18 @@ git push
 
 ### 6. Resolve Comment Threads
 
-For each addressed comment, resolve the thread:
+Resolve all addressed threads in a single batched GraphQL mutation using aliases:
 
 ```bash
 gh api graphql -f query='
 mutation {
-  resolveReviewThread(input: {threadId: "THREAD_ID"}) {
-    thread { isResolved }
-  }
+  t1: resolveReviewThread(input: {threadId: "THREAD_ID_1"}) { thread { isResolved } }
+  t2: resolveReviewThread(input: {threadId: "THREAD_ID_2"}) { thread { isResolved } }
+  ...
 }'
 ```
+
+Each `tN:` is an alias allowing multiple mutations in one request.
 
 ### 7. Report Completion
 
