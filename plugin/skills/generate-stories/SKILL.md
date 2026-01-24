@@ -1,24 +1,40 @@
 ---
 name: generate-stories
-description: Generate stories from a resolved epic
-user-invocable: false
+description: Generate stories from an epic
+argument-hint: "[epic-slug]"
+user-invocable: true
 allowed-tools: Bash(python:*), Read, AskUserQuestion, Skill(generate-story)
 ---
 
 # Generate Stories Skill
 
-The resolved epic is in the conversation context (passed from the command).
+**User input**: $ARGUMENTS
 
 ## Process
 
-### 1. Extract Epic Information
+### 1. Resolve Epic
 
-Look for the epic slug in the conversation context. The `/generate-stories` command resolves the epic and passes the result.
+Run the identifier resolver to find the epic:
 
-If no epic slug is found, report an error:
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$ARGUMENTS" --type epic --project-root "$CLAUDE_PROJECT_DIR"
 ```
-Error: No epic information in context. This skill should be invoked by the /generate-stories command.
-```
+
+Handle the result:
+
+- **If resolved=true**: Continue to step 2 with the resolved epic slug
+- **If resolved=false with epics array**: Use AskUserQuestion to disambiguate:
+  ```
+  question: "Which epic do you want to generate stories for?"
+  header: "Epic"
+  multiSelect: false
+  options: [
+    {label: "<slug>", description: "Epic: <slug>"}
+    ...for each epic in the epics array
+  ]
+  ```
+  After selection, continue with the selected epic slug.
+- **If resolved=false with error**: Display the error. Suggest using `/create-epic` first.
 
 ### 2. Read Epic Document
 

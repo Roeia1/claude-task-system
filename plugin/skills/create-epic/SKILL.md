@@ -1,25 +1,26 @@
 ---
 name: create-epic
 description: Create a new epic document with vision and architecture sections
-user-invocable: false
+argument-hint: "<description>"
+user-invocable: true
 allowed-tools: Read, Write, Bash(mkdir:*), AskUserQuestion
 ---
 
 # Create Epic Skill
 
-The epic description is in the conversation context (passed from the command via `$ARGUMENTS`).
+**Epic description**: $ARGUMENTS
 
 ## Process
 
 ### 1. Extract Epic Description
 
-Look for the epic description in the conversation context. The `/create-epic` command passes it as `$ARGUMENTS`.
+The epic description is provided via `$ARGUMENTS`.
 
-If no description is provided, report an error:
+If no description is provided (empty arguments), report an error:
 ```
 Error: No epic description provided.
 
-Please use: /create-epic <description>
+Usage: /create-epic <description>
 
 Example: /create-epic "User authentication with OAuth"
 ```
