@@ -3,24 +3,21 @@
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
 [![Version](https://img.shields.io/badge/version-1.4.2-blue)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Skills](https://img.shields.io/badge/skills-12-green)](https://github.com/Roeia1/claude-task-system)
-[![Agents](https://img.shields.io/badge/agents-3-orange)](https://github.com/Roeia1/claude-task-system)
+[![Skills](https://img.shields.io/badge/skills-6-green)](https://github.com/Roeia1/claude-task-system)
 
-> Transform feature ideas into shipped code through structured planning, test-driven development, and documented decisions.
+> Transform epic ideas into shipped code through structured planning, autonomous execution, and continuous journaling.
 
-A complete development lifecycle from feature ideation through planning, task breakdown, and rigorous execution. Every phase requires human review. Tests come first. Decisions are documented. Nothing gets lost.
+A complete development lifecycle from epic ideation through story breakdown and rigorous implementation. Epics define the vision. Stories deliver the value. Workers execute autonomously. Everything is documented.
 
 ```mermaid
 flowchart LR
-    A[📝 Define] -->|WHAT| B[🏗️ Plan]
-    B -->|HOW| C[📋 Generate]
-    C -->|BREAKDOWN| D[⚡ Execute]
-    D -->|TDD| E((✅))
+    A[📝 Epic] -->|VISION| B[📋 Stories]
+    B -->|BREAKDOWN| C[⚡ Implement]
+    C -->|TDD| D((✅))
 
-    A -.- A1[feature.md]
-    B -.- B1[plan.md]
-    C -.- C1[tasks/]
-    D -.- D1[journal.md]
+    A -.- A1[epic.md]
+    B -.- B1[story.md]
+    C -.- C1[journal.md]
 ```
 
 ## Table of Contents
@@ -28,7 +25,7 @@ flowchart LR
 - [Quick Start](#quick-start)
 - [How It Works](#how-it-works)
 - [Key Features](#key-features)
-- [Commands & Skills Reference](#commands-reference)
+- [Skills Reference](#skills-reference)
 - [Workflow Examples](#workflow-examples)
 - [Directory Structure](#directory-structure)
 - [Non-Negotiable Rules](#non-negotiable-rules)
@@ -79,108 +76,89 @@ cd your-project
 claude
 
 # Initialize the task system
-> /task-system:init
+> /init
 ```
 
-This creates the `task-system/` directory structure:
+This creates the `.claude-tasks/` directory structure:
 
 ```
-task-system/
-├── features/     # Feature definitions and technical plans
-├── tasks/        # Git worktrees for parallel task execution
-├── archive/      # Completed task archives
-└── adrs/         # Architecture Decision Records
+.claude-tasks/
+├── epics/        # Epic definitions and stories
+├── archive/      # Completed story archives
+└── worktrees/    # Git worktrees for story isolation (gitignored)
 ```
 
-### Your First Feature
+### Your First Epic
 
 ```bash
-# 1. Define what to build
-> define feature user authentication with OAuth
+# 1. Create an epic (vision + architecture)
+> /create-epic user authentication with OAuth
 
-# 2. Create the technical plan
-> plan feature
+# 2. Generate stories from the epic
+> /generate-stories user-auth
 
-# 3. Generate executable tasks
-> generate tasks
+# 3. Implement a story autonomously
+> /implement login-flow
 
-# 4. Implement tasks autonomously
-> /implement 001
+# 4. If blocked, resolve and continue
+> /resolve login-flow
+> /implement login-flow
 ```
 
 ---
 
 ## How It Works
 
-### Three-Phase Development Lifecycle
+### Epic/Story Development Lifecycle
 
 | Phase | Focus | Output |
 |-------|-------|--------|
-| **Feature Definition** | WHAT to build | `feature.md` - Requirements, user stories, acceptance criteria |
-| **Technical Planning** | HOW to build | `plan.md` - Architecture, tech choices, implementation strategy |
-| **Task Execution** | DO the work | Tested, documented, reviewed code |
+| **Epic Creation** | WHAT + HOW | `epic.md` - Vision, goals, architecture, success criteria |
+| **Story Generation** | BREAKDOWN | `story.md` - Self-contained stories with tasks and guidance |
+| **Story Execution** | DO the work | Tested, documented, reviewed code |
 
-### Feature Definition
+### Epic Creation
 
 Tell Claude what you want to build in natural language:
 
 ```
-> define feature real-time notifications for order updates
+> /create-epic real-time notifications for order updates
 ```
 
 Claude will:
-- Generate user stories and acceptance criteria
-- Identify functional and non-functional requirements
-- Flag ambiguities with `[NEEDS CLARIFICATION: ...]` markers
-- Iterate with you until requirements are crystal clear
+- Define the vision and goals
+- Identify key requirements and success criteria
+- Design high-level architecture
+- Iterate with you until the epic is clear
 
-**Output**: `task-system/features/001-real-time-notifications/feature.md`
+**Output**: `.claude-tasks/epics/order-notifications/epic.md`
 
-### Technical Planning
+### Story Generation
 
-Once requirements are defined:
-
-```
-> plan feature
-```
-
-Claude designs the implementation through 7 phases:
-1. High-level architecture & components
-2. Technology selection (with ADRs for major decisions)
-3. Data modeling
-4. API design
-5. Implementation strategy
-6. Testing strategy
-7. Risk assessment
-
-**Output**: `task-system/features/001-real-time-notifications/plan.md`
-
-### Task Generation
-
-Break down the plan into executable tasks:
+Once the epic is defined:
 
 ```
-> generate tasks
+> /generate-stories order-notifications
 ```
 
-Claude proposes tasks for your review. After approval:
-- Creates git branch + worktree for each task
-- Generates comprehensive `task.md` files
+Claude breaks down the epic into implementable stories:
+- Each story is self-contained with clear tasks
+- Stories include implementation guidance and patterns
+- Creates git branch + worktree for each story
 - Opens draft PRs automatically
-- Links everything back to the feature
 
-**Output**: Multiple task worktrees in `task-system/tasks/`
+**Output**: Multiple stories in `.claude-tasks/epics/order-notifications/stories/`
 
-### Task Execution
+### Story Execution
 
-Tasks are executed autonomously using the `/implement` command:
+Stories are executed autonomously using the `/implement` command:
 
 ```
-> /implement 001
+> /implement websocket-setup
 ```
 
-The orchestrator spawns worker Claude instances that complete objectives incrementally. Workers exit with:
-- **FINISH** - All objectives complete
+The orchestrator spawns worker Claude instances that complete tasks incrementally. Workers exit with:
+- **FINISH** - All tasks complete
 - **BLOCKED** - Needs human decision (use `/resolve` to unblock)
 - **TIMEOUT** - Max time exceeded
 
@@ -192,44 +170,31 @@ The orchestrator spawns worker Claude instances that complete objectives increme
 
 Tests are written **before** implementation. After test creation, they can only be modified with explicit user approval. This isn't optional—it's enforced.
 
-### Architecture Decision Records
-
-Document every significant technical choice:
-
-```
-> create ADR for WebSocket vs Server-Sent Events
-```
-
-ADRs capture:
-- Problem statement and context
-- Options considered with pros/cons
-- Decision rationale
-- Consequences (positive and negative)
-
 ### Continuous Journaling
 
 Workers document progress throughout execution:
-- Objectives completed and their outcomes
+- Tasks completed and their outcomes
 - Technical decisions and their reasoning
 - Blockers and resolutions
 - Key learnings and insights
 
-**Output**: `journal.md` alongside each task
+**Output**: `journal.md` alongside each story
 
 ### Parallel Execution with Git Worktrees
 
-Work on multiple tasks simultaneously:
+Work on multiple stories simultaneously:
 
 ```
-task-system/tasks/
-├── 001/    # Full project checkout for task 001
-├── 002/    # Full project checkout for task 002
-└── 003/    # Full project checkout for task 003
+.claude-tasks/worktrees/
+└── order-notifications/
+    ├── websocket-setup/    # Full project checkout
+    ├── event-handlers/     # Full project checkout
+    └── ui-components/      # Full project checkout
 ```
 
 Each worktree is isolated. Commit, push, and test independently.
 
-### Dynamic Task Status
+### Dynamic Story Status
 
 No manual status updates. Status is derived from filesystem and git state:
 
@@ -237,101 +202,64 @@ No manual status updates. Status is derived from filesystem and git state:
 |--------|--------|
 | `PENDING` | Worktree exists, no `journal.md` |
 | `IN_PROGRESS` | Worktree exists, `journal.md` present |
+| `BLOCKED` | IN_PROGRESS with unresolved blocker in journal |
 | `REMOTE` | Open PR, no local worktree |
 | `COMPLETED` | PR merged, files archived |
 
-```
-> list tasks
-```
-
-### Resume Work Anywhere
-
-Continue tasks from any machine:
-
-```
-> resume task 017
-```
-
-Creates local worktree from the remote branch and picks up where you left off.
-
 ---
-
-## Commands Reference
-
-All non-internal skills are available as both skills (natural language) and slash commands:
-
-| Command | Description |
-|---------|-------------|
-| `/task-system:init` | Initialize task-system directory structure |
-| `/task-system:feature-definition [description]` | Create feature requirements document |
-| `/task-system:feature-planning [feature-id]` | Design technical implementation plan |
-| `/task-system:task-generation [feature-id]` | Generate executable tasks from plan |
-| `/task-system:task-list` | Show all tasks with status |
-| `/implement [task-id]` | Execute task autonomously |
-| `/resolve` | Analyze and resolve blockers |
-| `/task-system:task-cleanup [task-id]` | Remove worktree after PR merge |
-| `/task-system:task-resume [task-id]` | Continue remote task locally |
-| `/task-system:architecture-decisions [topic]` | Document architectural decisions |
 
 ## Skills Reference
 
-Skills can be invoked via natural language. Most are also available as slash commands (see Commands Reference above).
+All functionality is accessed through skills (slash commands):
 
-| Skill | Activation | Description |
-|-------|------------|-------------|
-| Feature Definition | "define feature [description]" | Create feature requirements document |
-| Feature Planning | "plan feature" | Design technical implementation |
-| Task Generation | "generate tasks" | Break feature into executable tasks |
-| Implement | `/implement [id]` | Execute task autonomously |
-| Resolve | `/resolve` | Analyze and resolve blockers |
-| Task List | "list tasks" | Show all tasks with status |
-| Task Cleanup | "cleanup task [id]" | Remove worktree after PR merge |
-| Task Resume | "resume task [id]" | Continue remote task locally |
-| Architecture Decisions | "create ADR for [topic]" | Document architectural decisions |
+| Skill | Command | Description |
+|-------|---------|-------------|
+| Initialize | `/init` | Create `.claude-tasks/` directory structure |
+| Create Epic | `/create-epic [description]` | Define epic with vision and architecture |
+| Generate Stories | `/generate-stories [epic-slug]` | Break epic into implementable stories |
+| Implement | `/implement [story-slug]` | Execute story autonomously |
+| Resolve | `/resolve [story-slug]` | Analyze and resolve blockers |
+
+### Internal Skills
+
+| Skill | Description |
+|-------|-------------|
+| Generate Story | Creates a single story (used by generate-stories) |
 
 ---
 
 ## Workflow Examples
 
-### Complete Feature Development
+### Complete Epic Development
 
 ```bash
-# Session 1: Define and plan
-> define feature shopping cart with guest checkout
-# Review and clarify requirements
-> plan feature
-# Review and approve technical design
-> generate tasks
-# Review proposed tasks, approve
+# Session 1: Create epic and generate stories
+> /create-epic shopping cart with guest checkout
+# Review and refine the epic vision and architecture
+> /generate-stories shopping-cart
+# Review proposed stories, approve
 
-# Session 2: Execute tasks autonomously
-> /implement 001
-# Workers complete objectives, document in journal.md
+# Session 2: Execute stories autonomously
+> /implement cart-api
+# Workers complete tasks, document in journal.md
 # If blocked, use /resolve to provide resolution
 # When complete, PR is ready for review and merge
+
+> /implement checkout-flow
+# Continue with next story
 ```
 
 ### Handling Blockers
 
 ```bash
 # Worker exits with BLOCKED status
-> /resolve
+> /resolve cart-api
 # Analyze blocker from journal.md
 # Review proposed solutions
 # Approve resolution
 
 # Continue implementation
-> /implement 001
-```
-
-### Recording an ADR During Development
-
-```bash
-# While working on a task
-> create ADR for choosing PostgreSQL over MongoDB
-
-# ADR created and linked to current feature
-# Documented: task-system/features/001-auth/adr/001-postgres-choice.md
+> /implement cart-api
 ```
 
 ---
@@ -340,26 +268,25 @@ Skills can be invoked via natural language. Most are also available as slash com
 
 ```
 your-project/
-└── task-system/
-    ├── features/
-    │   └── 001-feature-name/
-    │       ├── feature.md      # What to build
-    │       ├── plan.md         # How to build
-    │       ├── tasks.md        # Task reference
-    │       └── adr/            # Feature-specific ADRs
-    │           └── 001-decision.md
-    ├── tasks/                   # Git worktrees (gitignored)
-    │   └── 001/                # Full project checkout
-    │       └── task-system/
-    │           └── task-001/
-    │               ├── task.md     # Task definition
-    │               └── journal.md  # Execution log
-    ├── archive/                 # Completed tasks (tracked)
-    │   └── 001/
-    │       ├── task.md
-    │       └── journal.md
-    └── adrs/                    # Global ADRs
-        └── 001-decision.md
+└── .claude-tasks/
+    ├── epics/
+    │   └── shopping-cart/
+    │       ├── epic.md              # Vision, goals, architecture
+    │       └── stories/
+    │           ├── cart-api/
+    │           │   ├── story.md     # Story definition and tasks
+    │           │   └── journal.md   # Execution log
+    │           └── checkout-flow/
+    │               ├── story.md
+    │               └── journal.md
+    ├── archive/                      # Completed stories (tracked)
+    │   └── shopping-cart/
+    │       └── cart-api/
+    │           ├── story.md
+    │           └── journal.md
+    └── worktrees/                    # Git worktrees (gitignored)
+        └── shopping-cart/
+            └── cart-api/             # Full project checkout
 ```
 
 ---
@@ -367,22 +294,19 @@ your-project/
 ## Non-Negotiable Rules
 
 1. **Test-Driven Development** - Tests before implementation, always
-2. **Phase Gates** - Explicit permission required to proceed between phases
-3. **No Test Tampering** - Tests locked after creation without approval
-4. **Continuous Journaling** - Every decision documented
-5. **Commit Discipline** - Commit and push at phase boundaries
-6. **Sequential Phases** - No skipping, no shortcuts
+2. **No Test Tampering** - Tests locked after creation without approval
+3. **Continuous Journaling** - Every decision documented
+4. **Commit Discipline** - Commit and push at logical milestones
 
 ---
 
 ## Git Commit Convention
 
 ```bash
-# Phase-based commits
-git commit -m "test(task-001): add auth endpoint test suite"
-git commit -m "feat(task-001): implement JWT authentication"
-git commit -m "refactor(task-001): extract token validation"
-git commit -m "docs(task-001): verification complete"
+# Story-based commits
+git commit -m "test(cart-api): add shopping cart endpoint tests"
+git commit -m "feat(cart-api): implement add-to-cart functionality"
+git commit -m "fix(cart-api): handle empty cart edge case"
 ```
 
 ---
@@ -393,28 +317,19 @@ git commit -m "docs(task-001): verification complete"
 plugin/
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin manifest
-├── agents/
-│   └── task-builder.md       # Creates tasks in parallel
-├── commands/                  # Slash commands
-│   ├── init.md               # /task-system:init
-│   ├── implement.md          # /implement
-│   ├── resolve.md            # /resolve
-│   ├── task-list.md          # /task-system:task-list
-│   └── ...                   # (all reference instructions/)
-├── instructions/              # Centralized instruction content
-│   ├── implement/
-│   │   └── INSTRUCTIONS.md
-│   ├── resolve/
-│   │   └── INSTRUCTIONS.md
-│   ├── feature-definition/
-│   │   ├── INSTRUCTIONS.md
-│   │   └── templates/
-│   └── ...
-├── skills/                    # Thin wrappers (reference instructions/)
-│   ├── feature-definition/SKILL.md
-│   └── ...
-└── hooks/
-    └── session-init.sh       # Session startup
+├── skills/                    # Core skills
+│   ├── init/                 # /init - Initialize structure
+│   ├── create-epic/          # /create-epic - Define epics
+│   ├── generate-stories/     # /generate-stories - Break down epics
+│   ├── generate-story/       # Internal - Create single story
+│   ├── execute-story/        # /implement - Autonomous execution
+│   └── resolve-blocker/      # /resolve - Handle blockers
+├── scripts/
+│   └── identifier_resolver_v2.py
+├── hooks/
+│   └── session-init.sh       # Session startup & context detection
+└── docs/
+    └── ENVIRONMENT.md        # Environment variable reference
 ```
 
 ---
