@@ -303,10 +303,10 @@ def build_scope_settings(
         Settings dict with hooks configuration
     """
     skill_root = get_skill_root(plugin_root)
-    validator_path = skill_root / "scripts" / "scope_validator.sh"
+    validator_path = skill_root / "scripts" / "scope_validator.py"
 
-    # Build the hook command
-    hook_command = f"bash {validator_path} {epic_slug} {story_slug}"
+    # Build the hook command - env vars are already set by the worker environment
+    hook_command = f"python3 {validator_path}"
 
     return {
         "hooks": {

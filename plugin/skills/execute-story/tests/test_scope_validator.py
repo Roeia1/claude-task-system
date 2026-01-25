@@ -1,5 +1,5 @@
 """
-Test suite for scope_validator.sh - the story isolation hook.
+Test suite for scope_validator.py - the story isolation hook.
 
 Tests cover:
 - Archive access blocking
@@ -9,8 +9,8 @@ Tests cover:
 """
 
 import json
+import os
 import subprocess
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -19,7 +19,7 @@ import pytest
 # Helper to run the validator script
 def run_validator(epic_slug: str, story_slug: str, tool_input: dict) -> tuple[int, str, str]:
     """
-    Run scope_validator.sh and return (exit_code, stdout, stderr).
+    Run scope_validator.py and return (exit_code, stdout, stderr).
 
     Args:
         epic_slug: The allowed epic slug
@@ -29,13 +29,18 @@ def run_validator(epic_slug: str, story_slug: str, tool_input: dict) -> tuple[in
     Returns:
         Tuple of (exit_code, stdout, stderr)
     """
-    script_path = Path(__file__).parent.parent / "scripts" / "scope_validator.sh"
+    script_path = Path(__file__).parent.parent / "scripts" / "scope_validator.py"
+
+    env = os.environ.copy()
+    env["EPIC_SLUG"] = epic_slug
+    env["STORY_SLUG"] = story_slug
 
     result = subprocess.run(
-        ["bash", str(script_path), epic_slug, story_slug],
+        ["python3", str(script_path)],
         input=json.dumps(tool_input),
         capture_output=True,
-        text=True
+        text=True,
+        env=env
     )
 
     return result.returncode, result.stdout, result.stderr
@@ -180,16 +185,21 @@ class TestEdgeCases:
         )
         assert exit_code == 0
 
-    def test_requires_arguments(self):
-        """Requires epic_slug and story_slug arguments."""
-        script_path = Path(__file__).parent.parent / "scripts" / "scope_validator.sh"
+    def test_requires_environment_variables(self):
+        """Requires EPIC_SLUG and STORY_SLUG environment variables."""
+        script_path = Path(__file__).parent.parent / "scripts" / "scope_validator.py"
 
-        # Missing both arguments
+        # Missing environment variables
+        env = os.environ.copy()
+        env.pop("EPIC_SLUG", None)
+        env.pop("STORY_SLUG", None)
+
         result = subprocess.run(
-            ["bash", str(script_path)],
+            ["python3", str(script_path)],
             input="{}",
             capture_output=True,
-            text=True
+            text=True,
+            env=env
         )
         assert result.returncode == 2
 

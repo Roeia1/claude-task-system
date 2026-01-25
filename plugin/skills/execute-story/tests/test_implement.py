@@ -101,7 +101,7 @@ def temp_skill_root(temp_project):
 
     scripts_dir = skill_root / "scripts"
     scripts_dir.mkdir(parents=True)
-    (scripts_dir / "scope_validator.sh").write_text("#!/bin/bash\nexit 0")
+    (scripts_dir / "scope_validator.py").write_text("#!/usr/bin/env python3\nimport sys\nsys.exit(0)")
 
     return temp_project / "plugin"
 
