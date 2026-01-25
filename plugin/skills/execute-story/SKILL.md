@@ -47,11 +47,26 @@ Story files are located at:
 - `$WORKTREE_PATH/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/story.md` - Story definition
 - `$WORKTREE_PATH/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/journal.md` - Execution journal
 
-### 3. Validate Worktree Exists
+### 3. Validate Before Execution
 
-Check that the worktree directory exists:
+<!--
+VALIDATION ARCHITECTURE NOTE:
+Validations are consolidated here in SKILL.md, which is the ONLY validation point.
+The implement.py script does NOT duplicate these checks - it trusts that SKILL.md
+has already validated before the script is called.
+
+Validation flow:
+1. identifier_resolver_v2.py - Resolves story slug to epic/story (Step 1)
+2. SKILL.md - Validates worktree and story.md exist (THIS STEP)
+3. scope_validator.py - Runtime file access enforcement (during worker execution)
+
+The session-init.sh hook only detects context and sets env vars, not validation.
+-->
+
+Check that the worktree and story.md exist:
 
 ```bash
+# Check worktree exists
 test -d "$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/$EPIC_SLUG/$STORY_SLUG" && echo "WORKTREE_EXISTS" || echo "WORKTREE_MISSING"
 ```
 
@@ -67,15 +82,12 @@ To create the worktree, use: /task-resume <story-slug>
 ```
 **STOP** - do not continue
 
-### 4. Validate story.md Exists
-
-Check that story.md exists in the worktree. Read the file:
-
 ```bash
-cat $WORKTREE_PATH/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/story.md
+# Check story.md exists
+test -f "$WORKTREE_PATH/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/story.md" && echo "STORY_EXISTS" || echo "STORY_MISSING"
 ```
 
-**If file not found:**
+**If STORY_MISSING:**
 ```
 story.md not found in worktree.
 
@@ -86,7 +98,7 @@ This may indicate an incomplete story setup.
 ```
 **STOP** - do not continue
 
-### 5. Run Implementation Orchestrator
+### 4. Run Implementation Orchestrator
 
 All validation passed. Run the implementation script using Bash with `run_in_background: true`:
 
