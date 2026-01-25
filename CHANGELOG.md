@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-01-25
+
+### Added
+
+- **V2 Epic/Story workflow**: Complete new architecture replacing V1 task system
+  - `/init` - Initialize `.claude-tasks/` directory structure
+  - `/create-epic` - Define epics with vision, goals, and architecture
+  - `/generate-stories` - Break epics into implementable stories with worktrees
+  - `/implement` - Autonomous story execution with worker spawning
+  - `/resolve` - Analyze and resolve blocked stories
+
+### Changed
+
+- **Directory structure**: Now uses `.claude-tasks/` instead of `task-system/`
+  - `epics/` - Epic definitions with nested stories
+  - `archive/` - Completed story archives
+  - `worktrees/` - Git worktrees for story isolation
+- **README**: Completely rewritten for V2 epic/story workflow
+
+### Removed
+
+- **V1 task workflow**: All V1 components removed (breaking change)
+  - Commands: feature-definition, feature-planning, task-generation, task-list, task-cleanup, task-resume, architecture-decisions
+  - Skills: task-builder, task-merge, task-cleanup
+  - Agents: task-builder
+  - Instructions: All V1 instruction directories
+- **ADR functionality**: Architecture decision records removed (decisions now captured in epic.md)
+
 ## [1.4.2] - 2026-01-17
 
 ### Changed

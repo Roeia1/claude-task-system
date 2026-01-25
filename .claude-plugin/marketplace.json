@@ -7,8 +7,8 @@
   "plugins": [
     {
       "name": "claude-task-system",
-      "description": "Structured task workflow with feature planning, journaling, and architecture decision records",
-      "version": "1.4.2",
+      "description": "Structured epic/story workflow with autonomous execution and journaling",
+      "version": "2.0.0",
       "source": "./plugin",
       "author": {
         "name": "Roei Avrahami",
@@ -16,11 +16,10 @@
       },
       "license": "MIT",
       "keywords": [
-        "task-management",
+        "epic-management",
+        "story-workflow",
         "tdd",
-        "feature-planning",
-        "workflow",
-        "architecture-decisions",
+        "autonomous-execution",
         "journaling"
       ],
       "homepage": "https://github.com/Roeia1/claude-task-system",
