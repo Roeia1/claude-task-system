@@ -6,7 +6,7 @@ Usage:
     python create_worktree.py <epic-slug> <story-slug>
 
 Environment:
-    CLAUDE_PROJECT_DIR - Required: Path to the project root
+    SAGA_PROJECT_DIR - Required: Path to the project root
 
 Creates:
     - Git branch: story-<epic-slug>-<story-slug>
@@ -59,10 +59,10 @@ def main():
     epic_slug = args.epic_slug
     story_slug = args.story_slug
 
-    # Validate CLAUDE_PROJECT_DIR
-    project_dir = os.environ.get("CLAUDE_PROJECT_DIR")
+    # Validate SAGA_PROJECT_DIR
+    project_dir = os.environ.get("SAGA_PROJECT_DIR")
     if not project_dir:
-        output_result(False, error="CLAUDE_PROJECT_DIR environment variable is not set")
+        output_result(False, error="SAGA_PROJECT_DIR environment variable is not set")
 
     project_path = Path(project_dir)
 

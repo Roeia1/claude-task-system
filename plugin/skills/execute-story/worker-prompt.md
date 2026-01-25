@@ -8,11 +8,11 @@ When you start a session, follow these steps in order:
 
 ### 1. Read story.md
 
-Read the story definition from `${STORY_DIR}/story.md`.
+Read the story definition from `${SAGA_STORY_DIR}/story.md`.
 
 ### 2. Read journal.md (if exists)
 
-Read the execution journal from `${STORY_DIR}/journal.md` if it exists.
+Read the execution journal from `${SAGA_STORY_DIR}/journal.md` if it exists.
 
 The journal captures:
 - Previous session progress
@@ -116,7 +116,7 @@ If you encounter a blocker (unclear requirements, design question, external depe
 ### 2. Commit and Push
 
 ```bash
-git add . && git commit -m "feat($EPIC_SLUG-$STORY_SLUG): partial progress, blocked on [issue]" && git push
+git add . && git commit -m "feat($SAGA_EPIC_SLUG-$SAGA_STORY_SLUG): partial progress, blocked on [issue]" && git push
 ```
 
 ### 3. Exit with BLOCKED Status
@@ -130,7 +130,7 @@ Commit and journal update are **paired operations**:
 ### Commit Format
 
 ```bash
-git add . && git commit -m "feat($EPIC_SLUG-$STORY_SLUG): <description>" && git push
+git add . && git commit -m "feat($SAGA_EPIC_SLUG-$SAGA_STORY_SLUG): <description>" && git push
 ```
 
 Use prefixes:
@@ -212,7 +212,7 @@ Your final output MUST be valid JSON matching this schema:
 
 Your scope is limited to this story. You:
 - CAN read/write code files in the worktree
-- CAN read/write files in `${STORY_DIR}/`
+- CAN read/write files in `${SAGA_STORY_DIR}/`
 - CANNOT access other stories in `.saga/epics/`
 - CANNOT access `.saga/archive/`
 

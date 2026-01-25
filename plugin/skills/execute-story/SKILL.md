@@ -13,7 +13,7 @@ allowed-tools:
 
 # Implement Story Skill
 
-!`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type story --project-root "${CLAUDE_PROJECT_DIR}"`
+!`python3 ${SAGA_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type story --project-root "${SAGA_PROJECT_DIR}"`
 
 ## Process
 
@@ -42,7 +42,7 @@ Run the implementation script using Bash with `run_in_background: true`.
 Use `story.epic_slug` and `story.slug` from the resolution result:
 
 ```bash
-python3 -u "${CLAUDE_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py" \
+python3 -u "${SAGA_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py" \
     "<story.epic_slug>" \
     "<story.slug>" \
     --max-cycles 10 \

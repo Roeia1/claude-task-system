@@ -9,7 +9,7 @@ allowed-tools: Bash(python:*), Read, AskUserQuestion, Skill(generate-story)
 
 # Generate Stories Skill
 
-!`python ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type epic --project-root "${CLAUDE_PROJECT_DIR}"`
+!`python ${SAGA_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type epic --project-root "${SAGA_PROJECT_DIR}"`
 
 ## Process
 
@@ -35,7 +35,7 @@ The identifier resolver ran above. Handle the result:
 
 Read the epic file:
 ```
-${CLAUDE_PROJECT_DIR}/.saga/epics/<slug>/epic.md
+${SAGA_PROJECT_DIR}/.saga/epics/<slug>/epic.md
 ```
 
 ### 3. Generate Story Breakdown (Titles + Descriptions Only)

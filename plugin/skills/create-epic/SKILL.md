@@ -32,7 +32,7 @@ Convert the description to a URL-friendly slug (e.g., "User Authentication Syste
 
 ### 3. Check for Existing Epic
 
-Check if `${CLAUDE_PROJECT_DIR}/.saga/epics/<slug>/` already exists.
+Check if `${SAGA_PROJECT_DIR}/.saga/epics/<slug>/` already exists.
 
 If it exists, use AskUserQuestion to ask:
 ```
@@ -51,12 +51,12 @@ options:
 
 Create the epic directory:
 ```bash
-mkdir -p ${CLAUDE_PROJECT_DIR}/.saga/epics/<slug>/stories
+mkdir -p ${SAGA_PROJECT_DIR}/.saga/epics/<slug>/stories
 ```
 
 ### 5. Read Epic Template
 
-Read the template from: `${CLAUDE_PLUGIN_ROOT}/skills/create-epic/templates/epic-template.md`
+Read the template from: `${SAGA_PLUGIN_ROOT}/skills/create-epic/templates/epic-template.md`
 
 ### 6. AI-Assisted Dialog for Epic Content
 
@@ -91,7 +91,7 @@ Use the template structure to create the epic.md content. Fill in all sections b
 
 Write the content to:
 ```
-${CLAUDE_PROJECT_DIR}/.saga/epics/<slug>/epic.md
+${SAGA_PROJECT_DIR}/.saga/epics/<slug>/epic.md
 ```
 
 ### 9. Report Completion

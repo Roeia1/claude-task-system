@@ -176,32 +176,32 @@ class TestEnvironmentVars:
     """Tests for environment variable handling."""
 
     def test_gets_plugin_root(self):
-        """Gets CLAUDE_PLUGIN_ROOT from environment."""
+        """Gets SAGA_PLUGIN_ROOT from environment."""
         with patch.dict(os.environ, {
-            "CLAUDE_PLUGIN_ROOT": "/path/to/plugin",
-            "CLAUDE_PROJECT_DIR": "/path/to/project"
+            "SAGA_PLUGIN_ROOT": "/path/to/plugin",
+            "SAGA_PROJECT_DIR": "/path/to/project"
         }):
             env = get_environment_vars()
             assert env["plugin_root"] == "/path/to/plugin"
 
     def test_gets_project_dir(self):
-        """Gets CLAUDE_PROJECT_DIR from environment."""
+        """Gets SAGA_PROJECT_DIR from environment."""
         with patch.dict(os.environ, {
-            "CLAUDE_PLUGIN_ROOT": "/path/to/plugin",
-            "CLAUDE_PROJECT_DIR": "/path/to/project"
+            "SAGA_PLUGIN_ROOT": "/path/to/plugin",
+            "SAGA_PROJECT_DIR": "/path/to/project"
         }):
             env = get_environment_vars()
             assert env["project_dir"] == "/path/to/project"
 
     def test_raises_if_plugin_root_missing(self):
-        """Raises MissingEnvironmentError if CLAUDE_PLUGIN_ROOT is missing."""
-        with patch.dict(os.environ, {"CLAUDE_PROJECT_DIR": "/path"}, clear=True):
+        """Raises MissingEnvironmentError if SAGA_PLUGIN_ROOT is missing."""
+        with patch.dict(os.environ, {"SAGA_PROJECT_DIR": "/path"}, clear=True):
             with pytest.raises(MissingEnvironmentError):
                 get_environment_vars()
 
     def test_raises_if_project_dir_missing(self):
-        """Raises MissingEnvironmentError if CLAUDE_PROJECT_DIR is missing."""
-        with patch.dict(os.environ, {"CLAUDE_PLUGIN_ROOT": "/path"}, clear=True):
+        """Raises MissingEnvironmentError if SAGA_PROJECT_DIR is missing."""
+        with patch.dict(os.environ, {"SAGA_PLUGIN_ROOT": "/path"}, clear=True):
             with pytest.raises(MissingEnvironmentError):
                 get_environment_vars()
 

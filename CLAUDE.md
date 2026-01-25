@@ -80,11 +80,11 @@ plugin/                         # Plugin source code
 
 ### Plugin Path References
 
-When referencing files within the plugin, always use `${CLAUDE_PLUGIN_ROOT}` instead of relative paths:
+When referencing files within the plugin, always use `${SAGA_PLUGIN_ROOT}` instead of relative paths:
 
 ```markdown
 # Correct:
-`${CLAUDE_PLUGIN_ROOT}/skills/create-epic/templates/epic-template.md`
+`${SAGA_PLUGIN_ROOT}/skills/create-epic/templates/epic-template.md`
 
 # Incorrect:
 `templates/epic-template.md`
@@ -92,22 +92,22 @@ When referencing files within the plugin, always use `${CLAUDE_PLUGIN_ROOT}` ins
 
 ### Environment Variables
 
-Environment variables are available in the bash execution environment:
+Environment variables are available in the bash execution environment. All SAGA variables use the `SAGA_` prefix:
 
 ```bash
-echo $CLAUDE_PROJECT_DIR
+echo $SAGA_PROJECT_DIR
 ```
 
 **Available Variables:**
 
 | Variable | Description | Context |
 |----------|-------------|---------|
-| `CLAUDE_PROJECT_DIR` | Project root directory | Always |
-| `CLAUDE_PLUGIN_ROOT` | Plugin installation directory | Always |
-| `TASK_CONTEXT` | `"main"` or `"story-worktree"` | Always |
-| `EPIC_SLUG` | Epic identifier | Story worktree |
-| `STORY_SLUG` | Story identifier | Story worktree |
-| `STORY_DIR` | Path to story files | Story worktree |
+| `SAGA_PROJECT_DIR` | Project root directory | Always |
+| `SAGA_PLUGIN_ROOT` | Plugin installation directory | Always |
+| `SAGA_TASK_CONTEXT` | `"main"` or `"story-worktree"` | Always |
+| `SAGA_EPIC_SLUG` | Epic identifier | Story worktree |
+| `SAGA_STORY_SLUG` | Story identifier | Story worktree |
+| `SAGA_STORY_DIR` | Path to story files | Story worktree |
 
 For full documentation see: `plugin/docs/ENVIRONMENT.md`
 

@@ -78,7 +78,7 @@ describe('task-status script', () => {
   describe('argument parsing', () => {
     describe('--no-icons flag', () => {
       test('should produce ASCII output when --no-icons is set', () => {
-        const envFile = createTempEnvFile('export TASK_CONTEXT="main"');
+        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="main"');
         try {
           const result = runScript(['--no-icons', '--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -91,7 +91,7 @@ describe('task-status script', () => {
       });
 
       test('should produce Unicode output by default', () => {
-        const envFile = createTempEnvFile('export TASK_CONTEXT="main"');
+        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="main"');
         try {
           const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -105,7 +105,7 @@ describe('task-status script', () => {
 
     describe('section selector flags', () => {
       test('--origin should show only origin section', () => {
-        const envFile = createTempEnvFile('export TASK_CONTEXT="main"\nexport CURRENT_TASK_ID="042"');
+        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="main"\nexport CURRENT_TASK_ID="042"');
         try {
           const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -117,7 +117,7 @@ describe('task-status script', () => {
       });
 
       test('--task should show only task section', () => {
-        const envFile = createTempEnvFile('export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
+        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
         try {
           const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -128,7 +128,7 @@ describe('task-status script', () => {
       });
 
       test('--counts flag should be accepted', () => {
-        const envFile = createTempEnvFile('export TASK_CONTEXT="main"');
+        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="main"');
         try {
           const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -138,7 +138,7 @@ describe('task-status script', () => {
       });
 
       test('multiple section flags can be combined', () => {
-        const envFile = createTempEnvFile('export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
+        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
         try {
           const result = runScript(['--origin', '--task'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -148,7 +148,7 @@ describe('task-status script', () => {
       });
 
       test('no flags should show all sections (default behavior)', () => {
-        const envFile = createTempEnvFile('export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
+        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
         try {
           const result = runScript([], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -176,7 +176,7 @@ describe('task-status script', () => {
 
   describe('$CLAUDE_ENV_FILE sourcing', () => {
     test('should source environment file when CLAUDE_ENV_FILE is set', () => {
-      const envFile = createTempEnvFile('export TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
+      const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
@@ -210,12 +210,12 @@ describe('task-status script', () => {
       }
     });
 
-    test('should handle env file with missing TASK_CONTEXT', () => {
+    test('should handle env file with missing SAGA_TASK_CONTEXT', () => {
       const envFile = createTempEnvFile('export SOME_OTHER_VAR="value"');
       try {
         const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
-        // Should treat as main repo when TASK_CONTEXT is missing
+        // Should treat as main repo when SAGA_TASK_CONTEXT is missing
       } finally {
         cleanupTempFile(envFile);
       }
@@ -224,8 +224,8 @@ describe('task-status script', () => {
 
   describe('origin indicator output', () => {
     describe('main repo context', () => {
-      test('should show main repo icon when TASK_CONTEXT is "main"', () => {
-        const envFile = createTempEnvFile('export TASK_CONTEXT="main"');
+      test('should show main repo icon when SAGA_TASK_CONTEXT is "main"', () => {
+        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="main"');
         try {
           const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -236,8 +236,8 @@ describe('task-status script', () => {
         }
       });
 
-      test('should show [M] when --no-icons and TASK_CONTEXT is "main"', () => {
-        const envFile = createTempEnvFile('export TASK_CONTEXT="main"');
+      test('should show [M] when --no-icons and SAGA_TASK_CONTEXT is "main"', () => {
+        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="main"');
         try {
           const result = runScript(['--origin', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -247,7 +247,7 @@ describe('task-status script', () => {
         }
       });
 
-      test('should treat unset TASK_CONTEXT as main repo', () => {
+      test('should treat unset SAGA_TASK_CONTEXT as main repo', () => {
         const envFile = createTempEnvFile('export SOME_VAR="value"');
         try {
           const result = runScript(['--origin', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -260,8 +260,8 @@ describe('task-status script', () => {
     });
 
     describe('worktree context', () => {
-      test('should show worktree icon when TASK_CONTEXT is "worktree"', () => {
-        const envFile = createTempEnvFile('export TASK_CONTEXT="worktree"');
+      test('should show worktree icon when SAGA_TASK_CONTEXT is "worktree"', () => {
+        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="worktree"');
         try {
           const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -272,8 +272,8 @@ describe('task-status script', () => {
         }
       });
 
-      test('should show [W] when --no-icons and TASK_CONTEXT is "worktree"', () => {
-        const envFile = createTempEnvFile('export TASK_CONTEXT="worktree"');
+      test('should show [W] when --no-icons and SAGA_TASK_CONTEXT is "worktree"', () => {
+        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="worktree"');
         try {
           const result = runScript(['--origin', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -296,7 +296,7 @@ describe('task-status script', () => {
 
   describe('exit codes', () => {
     test('should exit 0 on successful execution', () => {
-      const envFile = createTempEnvFile('export TASK_CONTEXT="main"');
+      const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="main"');
       try {
         const result = runScript([], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);

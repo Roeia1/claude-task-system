@@ -6,7 +6,7 @@ user-invocable: true
 
 # Initialize Task System
 
-!`python3 ${CLAUDE_PLUGIN_ROOT}/skills/init/scripts/init_structure.py "$CLAUDE_PROJECT_DIR"`
+!`python3 ${SAGA_PLUGIN_ROOT}/skills/init/scripts/init_structure.py "$SAGA_PROJECT_DIR"`
 
 The initialization script has run. Report the results to the user:
 

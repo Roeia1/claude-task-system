@@ -30,7 +30,7 @@ Example: "Login Form Component" → `login-form-component`
 
 ### 2. Read Story Template
 
-Read the template from: `${CLAUDE_PLUGIN_ROOT}/skills/generate-stories/templates/story-template.md`
+Read the template from: `${SAGA_PLUGIN_ROOT}/skills/generate-stories/templates/story-template.md`
 
 ### 3. Generate Full Story Content
 
@@ -42,14 +42,14 @@ The story should be **self-contained** - understandable without reading the epic
 
 Create the story directory:
 ```
-${CLAUDE_PROJECT_DIR}/.saga/epics/<epic_slug>/stories/<generated-slug>/
+${SAGA_PROJECT_DIR}/.saga/epics/<epic_slug>/stories/<generated-slug>/
 ```
 
 ### 5. Write Story File
 
 Write the generated content to:
 ```
-${CLAUDE_PROJECT_DIR}/.saga/epics/<epic_slug>/stories/<generated-slug>/story.md
+${SAGA_PROJECT_DIR}/.saga/epics/<epic_slug>/stories/<generated-slug>/story.md
 ```
 
 ### 6. Create Git Infrastructure
@@ -57,7 +57,7 @@ ${CLAUDE_PROJECT_DIR}/.saga/epics/<epic_slug>/stories/<generated-slug>/story.md
 Run the create_worktree.py script:
 
 ```bash
-python ${CLAUDE_PLUGIN_ROOT}/skills/generate-stories/scripts/create_worktree.py "<epic_slug>" "<generated-slug>"
+python ${SAGA_PLUGIN_ROOT}/skills/generate-stories/scripts/create_worktree.py "<epic_slug>" "<generated-slug>"
 ```
 
 ### 7. Return Result

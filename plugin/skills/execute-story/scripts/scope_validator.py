@@ -8,8 +8,8 @@ story scope during autonomous execution. It blocks access to:
 - Other stories' files in .saga/epics/
 
 Environment variables required:
-- EPIC_SLUG: The current epic identifier
-- STORY_SLUG: The current story identifier
+- SAGA_EPIC_SLUG: The current epic identifier
+- SAGA_STORY_SLUG: The current story identifier
 
 Input: Tool input JSON is read from stdin
 Output: Exit code 0 = allowed, exit code 2 = blocked (with error message)
@@ -93,11 +93,11 @@ To access other stories, start a new /implement session for that story.""", file
 
 def main() -> int:
     # Get epic and story from environment variables
-    epic_slug = os.environ.get("EPIC_SLUG", "")
-    story_slug = os.environ.get("STORY_SLUG", "")
+    epic_slug = os.environ.get("SAGA_EPIC_SLUG", "")
+    story_slug = os.environ.get("SAGA_STORY_SLUG", "")
 
     if not epic_slug or not story_slug:
-        print("ERROR: scope_validator.py requires EPIC_SLUG and STORY_SLUG environment variables", file=sys.stderr)
+        print("ERROR: scope_validator.py requires SAGA_EPIC_SLUG and SAGA_STORY_SLUG environment variables", file=sys.stderr)
         return 2
 
     # Read tool input JSON from stdin

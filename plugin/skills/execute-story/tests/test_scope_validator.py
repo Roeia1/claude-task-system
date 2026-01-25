@@ -32,8 +32,8 @@ def run_validator(epic_slug: str, story_slug: str, tool_input: dict) -> tuple[in
     script_path = Path(__file__).parent.parent / "scripts" / "scope_validator.py"
 
     env = os.environ.copy()
-    env["EPIC_SLUG"] = epic_slug
-    env["STORY_SLUG"] = story_slug
+    env["SAGA_EPIC_SLUG"] = epic_slug
+    env["SAGA_STORY_SLUG"] = story_slug
 
     result = subprocess.run(
         ["python3", str(script_path)],
@@ -186,13 +186,13 @@ class TestEdgeCases:
         assert exit_code == 0
 
     def test_requires_environment_variables(self):
-        """Requires EPIC_SLUG and STORY_SLUG environment variables."""
+        """Requires SAGA_EPIC_SLUG and SAGA_STORY_SLUG environment variables."""
         script_path = Path(__file__).parent.parent / "scripts" / "scope_validator.py"
 
         # Missing environment variables
         env = os.environ.copy()
-        env.pop("EPIC_SLUG", None)
-        env.pop("STORY_SLUG", None)
+        env.pop("SAGA_EPIC_SLUG", None)
+        env.pop("SAGA_STORY_SLUG", None)
 
         result = subprocess.run(
             ["python3", str(script_path)],

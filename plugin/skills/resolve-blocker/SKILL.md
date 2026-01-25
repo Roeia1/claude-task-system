@@ -16,7 +16,7 @@ allowed-tools:
 
 # Resolve Blocker Skill
 
-!`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type story --project-root "${CLAUDE_PROJECT_DIR}"`
+!`python3 ${SAGA_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type story --project-root "${SAGA_PROJECT_DIR}"`
 
 ## Process
 
@@ -44,7 +44,7 @@ Compute paths to story files:
 ```
 EPIC_SLUG=<epic_slug from resolution>
 STORY_SLUG=<story_slug from resolution>
-WORKTREE="$CLAUDE_PROJECT_DIR/.saga/worktrees/$EPIC_SLUG/$STORY_SLUG"
+WORKTREE="$SAGA_PROJECT_DIR/.saga/worktrees/$EPIC_SLUG/$STORY_SLUG"
 STORY_DIR=".saga/epics/$EPIC_SLUG/stories/$STORY_SLUG"
 ```
 

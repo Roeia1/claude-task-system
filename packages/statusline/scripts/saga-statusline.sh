@@ -12,7 +12,7 @@ SHOW_COUNTS=false
 SHOW_ALL=true
 
 # Context variables (populated from CLAUDE_ENV_FILE)
-TASK_CONTEXT=""
+SAGA_TASK_CONTEXT=""
 CURRENT_TASK_ID=""
 
 # Icon definitions
@@ -38,7 +38,7 @@ If no section flags are specified, all sections are shown.
 
 Environment:
   CLAUDE_ENV_FILE    Path to environment file with pre-detected context variables.
-                     Expected variables: TASK_CONTEXT, CURRENT_TASK_ID
+                     Expected variables: SAGA_TASK_CONTEXT, CURRENT_TASK_ID
 
 Examples:
   task-status                    # Show all sections with icons
@@ -96,7 +96,7 @@ parse_args() {
 
 load_environment() {
     # Only use values from CLAUDE_ENV_FILE, not inherited environment
-    TASK_CONTEXT=""
+    SAGA_TASK_CONTEXT=""
     CURRENT_TASK_ID=""
 
     if [[ -n "${CLAUDE_ENV_FILE:-}" && -f "$CLAUDE_ENV_FILE" && -r "$CLAUDE_ENV_FILE" ]]; then
@@ -120,7 +120,7 @@ build_output() {
     local -a parts=()
 
     if [[ "$SHOW_ORIGIN" == "true" ]]; then
-        parts+=("$(get_indicator "${TASK_CONTEXT:-main}")")
+        parts+=("$(get_indicator "${SAGA_TASK_CONTEXT:-main}")")
     fi
 
     if [[ "$SHOW_TASK" == "true" && -n "$CURRENT_TASK_ID" ]]; then

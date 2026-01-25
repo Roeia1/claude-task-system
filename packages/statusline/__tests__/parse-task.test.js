@@ -49,9 +49,9 @@ function createTaskMd(tmpDir, taskId, content) {
  */
 function createEnvFile(tmpDir, taskId) {
   const envFile = path.join(tmpDir, 'claude-env.sh');
-  fs.writeFileSync(envFile, `export TASK_CONTEXT="worktree"
+  fs.writeFileSync(envFile, `export SAGA_TASK_CONTEXT="worktree"
 export CURRENT_TASK_ID="${taskId}"
-export CLAUDE_PROJECT_DIR="${tmpDir}"
+export SAGA_PROJECT_DIR="${tmpDir}"
 `, { mode: 0o644 });
   return envFile;
 }
@@ -78,7 +78,7 @@ Some overview text
         const envFile = createEnvFile(tmpDir, '042');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('Implement user authentication');
@@ -97,7 +97,7 @@ Some overview text
         const envFile = createEnvFile(tmpDir, '043');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('Fix: edge case in parser');
@@ -115,7 +115,7 @@ Some text without header
         const envFile = createEnvFile(tmpDir, '044');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should output some fallback, not error
@@ -135,7 +135,7 @@ Some text without header
         const envFile = createEnvFile(tmpDir, '045');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should truncate to ~40 chars or handle gracefully
@@ -155,7 +155,7 @@ Some text without header
         const envFile = createEnvFile(tmpDir, '046');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should not crash, may output fallback
@@ -176,7 +176,7 @@ Some text without header
         const envFile = createEnvFile(tmpDir, '050');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should show feature icon (sparkles ✨ or [F])
@@ -196,7 +196,7 @@ Some text without header
         const envFile = createEnvFile(tmpDir, '051');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Bug icon 🐛 or [B]
@@ -216,7 +216,7 @@ Some text without header
         const envFile = createEnvFile(tmpDir, '052');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Recycle icon ♻️ or [R]
@@ -236,7 +236,7 @@ Some text without header
         const envFile = createEnvFile(tmpDir, '053');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Lightning icon ⚡ or [P]
@@ -256,7 +256,7 @@ Some text without header
         const envFile = createEnvFile(tmpDir, '054');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Rocket icon 🚀 or [D]
@@ -278,7 +278,7 @@ someunknowntype - Description
         const envFile = createEnvFile(tmpDir, '055');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should use generic icon or [?]
@@ -298,7 +298,7 @@ Content without task type
         const envFile = createEnvFile(tmpDir, '056');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should not crash
@@ -317,7 +317,7 @@ Content without task type
         const envFile = createEnvFile(tmpDir, '057');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toMatch(/✨|\[F\]/);
@@ -344,7 +344,7 @@ Content without task type
         const envFile = createEnvFile(tmpDir, '060');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('User Authentication');
@@ -364,7 +364,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '061');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should omit feature portion, not error
@@ -389,7 +389,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '062');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('API v2 Redesign');
@@ -410,7 +410,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '070');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should contain Unicode feature icon (sparkles)
@@ -430,7 +430,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '071');
         const result = runScript(['--task', '--no-icons'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should contain ASCII [F] instead of Unicode
@@ -451,7 +451,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '072');
         const result = runScript(['--task', '--no-icons'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('[B]');
@@ -470,7 +470,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '073');
         const result = runScript(['--task', '--no-icons'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('[R]');
@@ -489,7 +489,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '074');
         const result = runScript(['--task', '--no-icons'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('[P]');
@@ -508,7 +508,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '075');
         const result = runScript(['--task', '--no-icons'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('[D]');
@@ -527,7 +527,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '080');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should show fallback "Task 080" when task.md is missing
@@ -545,7 +545,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '081');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should show "Task 081" as fallback
@@ -559,12 +559,12 @@ No feature context here
       const tmpDir = createTempTaskDir();
       try {
         const envFile = path.join(tmpDir, 'env.sh');
-        fs.writeFileSync(envFile, `export TASK_CONTEXT="worktree"
-export CLAUDE_PROJECT_DIR="${tmpDir}"
+        fs.writeFileSync(envFile, `export SAGA_TASK_CONTEXT="worktree"
+export SAGA_PROJECT_DIR="${tmpDir}"
 `, { mode: 0o644 });
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should handle missing task ID gracefully
@@ -580,7 +580,7 @@ export CLAUDE_PROJECT_DIR="${tmpDir}"
         const envFile = createEnvFile(tmpDir, '082');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should not crash, produce fallback
@@ -599,7 +599,7 @@ This file has no proper sections, just a title and random text.
         const envFile = createEnvFile(tmpDir, '083');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should extract title at minimum
@@ -627,7 +627,7 @@ feature - Test feature
         const envFile = createEnvFile(tmpDir, '090');
         const result = runScript(['--origin', '--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Should have worktree icon and task info
@@ -650,7 +650,7 @@ bugfix - Bug fix test
         const envFile = createEnvFile(tmpDir, '091');
         const result = runScript([], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('All sections test');
@@ -671,7 +671,7 @@ feature - Test
         const envFile = createEnvFile(tmpDir, '092');
         const result = runScript(['--origin'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Task title should NOT appear when only --origin is used
@@ -725,7 +725,7 @@ P1 - Core functionality required for task awareness
         const envFile = createEnvFile(tmpDir, '100');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          CLAUDE_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir
         });
         expect(result.exitCode).toBe(0);
         // Title is truncated to 30 chars (+ "...")

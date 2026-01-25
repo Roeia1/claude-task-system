@@ -12,9 +12,9 @@ SHOW_COUNTS=false
 SHOW_ALL=true
 
 # Context variables (populated from CLAUDE_ENV_FILE or environment)
-TASK_CONTEXT="${TASK_CONTEXT:-}"
+SAGA_TASK_CONTEXT="${SAGA_TASK_CONTEXT:-}"
 CURRENT_TASK_ID="${CURRENT_TASK_ID:-}"
-CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
+SAGA_PROJECT_DIR="${SAGA_PROJECT_DIR:-}"
 
 # Icon definitions
 readonly ICON_MAIN="🏠"
@@ -68,7 +68,7 @@ If no section flags are specified, all sections are shown.
 
 Environment:
   CLAUDE_ENV_FILE    Path to environment file with pre-detected context variables.
-                     Expected variables: TASK_CONTEXT, CURRENT_TASK_ID, CLAUDE_PROJECT_DIR
+                     Expected variables: SAGA_TASK_CONTEXT, CURRENT_TASK_ID, SAGA_PROJECT_DIR
 
 Examples:
   saga-status                    # Show all sections with icons
@@ -133,18 +133,18 @@ load_environment() {
     fi
     # If CLAUDE_ENV_FILE not available, variables inherit from environment (if set)
 
-    # Final fallback: use current working directory if CLAUDE_PROJECT_DIR not set
-    if [[ -z "${CLAUDE_PROJECT_DIR:-}" ]]; then
-        CLAUDE_PROJECT_DIR="$PWD"
+    # Final fallback: use current working directory if SAGA_PROJECT_DIR not set
+    if [[ -z "${SAGA_PROJECT_DIR:-}" ]]; then
+        SAGA_PROJECT_DIR="$PWD"
     fi
 
-    # Auto-detect TASK_CONTEXT if not set
-    if [[ -z "${TASK_CONTEXT:-}" ]]; then
+    # Auto-detect SAGA_TASK_CONTEXT if not set
+    if [[ -z "${SAGA_TASK_CONTEXT:-}" ]]; then
         # Check if we're in a worktree by looking for task-system/task-NNN folder
-        if [[ -d "${CLAUDE_PROJECT_DIR}/task-system" ]]; then
-            for dir in "${CLAUDE_PROJECT_DIR}"/task-system/task-[0-9]*/; do
+        if [[ -d "${SAGA_PROJECT_DIR}/task-system" ]]; then
+            for dir in "${SAGA_PROJECT_DIR}"/task-system/task-[0-9]*/; do
                 if [[ -d "$dir" ]]; then
-                    TASK_CONTEXT="worktree"
+                    SAGA_TASK_CONTEXT="worktree"
                     # Extract task ID if not already set
                     if [[ -z "${CURRENT_TASK_ID:-}" ]]; then
                         CURRENT_TASK_ID=$(basename "$dir" | sed 's/task-//')
@@ -154,7 +154,7 @@ load_environment() {
             done
         fi
         # Default to main if still not set
-        TASK_CONTEXT="${TASK_CONTEXT:-main}"
+        SAGA_TASK_CONTEXT="${SAGA_TASK_CONTEXT:-main}"
     fi
 }
 
@@ -176,7 +176,7 @@ count_local_tasks() {
     PENDING_COUNT=0
     LOCAL_TASK_IDS=""
 
-    local tasks_dir="${CLAUDE_PROJECT_DIR:-}/task-system/tasks"
+    local tasks_dir="${SAGA_PROJECT_DIR:-}/task-system/tasks"
 
     # Return zeros if tasks directory doesn't exist
     if [[ ! -d "$tasks_dir" ]]; then
@@ -217,8 +217,8 @@ count_local_tasks() {
 count_remote_tasks() {
     REMOTE_COUNT=0
 
-    # Need CLAUDE_PROJECT_DIR to determine git context
-    local spawn_dir="${CLAUDE_PROJECT_DIR:-}"
+    # Need SAGA_PROJECT_DIR to determine git context
+    local spawn_dir="${SAGA_PROJECT_DIR:-}"
     if [[ -z "$spawn_dir" ]]; then
         return 0
     fi
@@ -264,7 +264,7 @@ count_features_by_status() {
     FEATURE_ACTIVE_COUNT=0
     FEATURE_DRAFT_COUNT=0
 
-    local features_dir="${CLAUDE_PROJECT_DIR:-}/task-system/features"
+    local features_dir="${SAGA_PROJECT_DIR:-}/task-system/features"
 
     # Return zeros if features directory doesn't exist
     if [[ ! -d "$features_dir" ]]; then
@@ -318,7 +318,7 @@ parse_task_info() {
     TASK_TYPE=""
     FEATURE_LINK=""
 
-    local task_file="${CLAUDE_PROJECT_DIR:-}/task-system/task-${CURRENT_TASK_ID}/task.md"
+    local task_file="${SAGA_PROJECT_DIR:-}/task-system/task-${CURRENT_TASK_ID}/task.md"
 
     # Return if task file doesn't exist
     if [[ ! -f "$task_file" ]]; then
@@ -353,14 +353,14 @@ parse_task_info() {
 # Returns: feature name via stdout
 get_feature_name() {
     local feature_id="$1"
-    local feature_file="${CLAUDE_PROJECT_DIR:-}/task-system/features/${feature_id}/feature.md"
+    local feature_file="${SAGA_PROJECT_DIR:-}/task-system/features/${feature_id}/feature.md"
 
     # If not found and we're in a worktree, try going up to task-system level
-    if [[ ! -f "$feature_file" && "${TASK_CONTEXT:-}" == "worktree" ]]; then
+    if [[ ! -f "$feature_file" && "${SAGA_TASK_CONTEXT:-}" == "worktree" ]]; then
         # In worktree: /path/to/main/task-system/tasks/042
         # Features at:  /path/to/main/task-system/features
         # Go up two levels from worktree to task-system, then into features
-        feature_file="${CLAUDE_PROJECT_DIR:-}/../../features/${feature_id}/feature.md"
+        feature_file="${SAGA_PROJECT_DIR:-}/../../features/${feature_id}/feature.md"
     fi
 
     if [[ ! -f "$feature_file" ]]; then
@@ -407,7 +407,7 @@ get_task_type_icon() {
 # Format origin section
 # Returns: origin segment
 format_origin_segment() {
-    local context="${TASK_CONTEXT:-main}"
+    local context="${SAGA_TASK_CONTEXT:-main}"
     local indicator
     indicator=$(get_indicator "$context")
 
@@ -540,7 +540,7 @@ build_output() {
             # Get colors inline to avoid subshells
             case "$segment_type" in
                 origin)
-                    [[ "${TASK_CONTEXT:-main}" == "worktree" ]] && current_bg="$BG_CYAN" || current_bg="$BG_BLUE"
+                    [[ "${SAGA_TASK_CONTEXT:-main}" == "worktree" ]] && current_bg="$BG_CYAN" || current_bg="$BG_BLUE"
                     ;;
                 task) current_bg="$BG_GRAY" ;;
                 counts) current_bg="$BG_DARK_GRAY" ;;
@@ -548,7 +548,7 @@ build_output() {
 
             case "$next_segment" in
                 origin)
-                    [[ "${TASK_CONTEXT:-main}" == "worktree" ]] && next_bg="$BG_CYAN" || next_bg="$BG_BLUE"
+                    [[ "${SAGA_TASK_CONTEXT:-main}" == "worktree" ]] && next_bg="$BG_CYAN" || next_bg="$BG_BLUE"
                     ;;
                 task) next_bg="$BG_GRAY" ;;
                 counts) next_bg="$BG_DARK_GRAY" ;;

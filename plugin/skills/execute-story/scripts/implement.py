@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Story implementation orchestration script for the Claude Task System V2.
+Story implementation orchestration script for SAGA.
 
 This script spawns worker Claude instances in a loop to autonomously execute
 story tasks. Workers read story.md and journal.md themselves - the orchestrator
@@ -10,8 +10,8 @@ Usage:
     python implement.py <epic_slug> <story_slug> [options]
 
 Environment Variables:
-    CLAUDE_PLUGIN_ROOT - Path to the plugin root directory
-    CLAUDE_PROJECT_DIR - Path to the project root directory
+    SAGA_PLUGIN_ROOT - Path to the plugin root directory
+    SAGA_PROJECT_DIR - Path to the project root directory
 
 The script continues spawning workers until:
     - FINISH: All tasks completed
@@ -148,18 +148,18 @@ def get_environment_vars() -> Dict[str, str]:
     Get required environment variables.
 
     Returns:
-        Dict with CLAUDE_PLUGIN_ROOT and CLAUDE_PROJECT_DIR.
+        Dict with SAGA_PLUGIN_ROOT and SAGA_PROJECT_DIR.
 
     Raises:
         MissingEnvironmentError: If required variables are not set.
     """
-    plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
-    project_dir = os.environ.get("CLAUDE_PROJECT_DIR")
+    plugin_root = os.environ.get("SAGA_PLUGIN_ROOT")
+    project_dir = os.environ.get("SAGA_PROJECT_DIR")
 
     if not plugin_root:
-        raise MissingEnvironmentError("CLAUDE_PLUGIN_ROOT environment variable not set")
+        raise MissingEnvironmentError("SAGA_PLUGIN_ROOT environment variable not set")
     if not project_dir:
-        raise MissingEnvironmentError("CLAUDE_PROJECT_DIR environment variable not set")
+        raise MissingEnvironmentError("SAGA_PROJECT_DIR environment variable not set")
 
     return {
         "plugin_root": plugin_root,

@@ -4,14 +4,16 @@
 # This hook runs at session start for both interactive and headless modes.
 # It detects the working context (main repo or story worktree)
 # and makes environment variables available via CLAUDE_ENV_FILE.
+#
+# All SAGA environment variables use the SAGA_ prefix for namespacing.
 
 # =============================================================================
 # Story Detection (.saga/worktrees/EPIC/STORY/)
 # =============================================================================
 
-EPIC_SLUG=""
-STORY_SLUG=""
-STORY_DIR=""
+SAGA_EPIC_SLUG=""
+SAGA_STORY_SLUG=""
+SAGA_STORY_DIR=""
 
 # Check if we're in a story worktree by looking for the marker
 # The worktree path is: .saga/worktrees/<epic>/<story>/
@@ -23,9 +25,9 @@ if [ -d ".saga/epics" ]; then
         # Check if path contains /worktrees/ pattern
         if [[ "$WORKTREE_PATH" == *"/.saga/worktrees/"* ]]; then
             # Extract epic and story from path: .../worktrees/EPIC/STORY
-            STORY_SLUG=$(basename "$WORKTREE_PATH")
-            EPIC_SLUG=$(basename "$(dirname "$WORKTREE_PATH")")
-            STORY_DIR=".saga/epics/${EPIC_SLUG}/stories/${STORY_SLUG}"
+            SAGA_STORY_SLUG=$(basename "$WORKTREE_PATH")
+            SAGA_EPIC_SLUG=$(basename "$(dirname "$WORKTREE_PATH")")
+            SAGA_STORY_DIR=".saga/epics/${SAGA_EPIC_SLUG}/stories/${SAGA_STORY_SLUG}"
         fi
     fi
 fi
@@ -34,10 +36,10 @@ fi
 # Determine Context
 # =============================================================================
 
-if [ -n "$STORY_SLUG" ]; then
-    TASK_CONTEXT="story-worktree"
+if [ -n "$SAGA_STORY_SLUG" ]; then
+    SAGA_TASK_CONTEXT="story-worktree"
 else
-    TASK_CONTEXT="main"
+    SAGA_TASK_CONTEXT="main"
 fi
 
 # =============================================================================
@@ -46,14 +48,14 @@ fi
 
 if [ -n "$CLAUDE_ENV_FILE" ]; then
     # Core variables (always set)
-    echo "export CLAUDE_PROJECT_DIR=\"$CLAUDE_PROJECT_DIR\"" >> "$CLAUDE_ENV_FILE"
-    echo "export CLAUDE_PLUGIN_ROOT=\"$CLAUDE_PLUGIN_ROOT\"" >> "$CLAUDE_ENV_FILE"
-    echo "export TASK_CONTEXT=\"$TASK_CONTEXT\"" >> "$CLAUDE_ENV_FILE"
+    echo "export SAGA_PROJECT_DIR=\"$CLAUDE_PROJECT_DIR\"" >> "$CLAUDE_ENV_FILE"
+    echo "export SAGA_PLUGIN_ROOT=\"$CLAUDE_PLUGIN_ROOT\"" >> "$CLAUDE_ENV_FILE"
+    echo "export SAGA_TASK_CONTEXT=\"$SAGA_TASK_CONTEXT\"" >> "$CLAUDE_ENV_FILE"
 
     # Story variables (conditional)
-    [ -n "$EPIC_SLUG" ] && echo "export EPIC_SLUG=\"$EPIC_SLUG\"" >> "$CLAUDE_ENV_FILE"
-    [ -n "$STORY_SLUG" ] && echo "export STORY_SLUG=\"$STORY_SLUG\"" >> "$CLAUDE_ENV_FILE"
-    [ -n "$STORY_DIR" ] && echo "export STORY_DIR=\"$STORY_DIR\"" >> "$CLAUDE_ENV_FILE"
+    [ -n "$SAGA_EPIC_SLUG" ] && echo "export SAGA_EPIC_SLUG=\"$SAGA_EPIC_SLUG\"" >> "$CLAUDE_ENV_FILE"
+    [ -n "$SAGA_STORY_SLUG" ] && echo "export SAGA_STORY_SLUG=\"$SAGA_STORY_SLUG\"" >> "$CLAUDE_ENV_FILE"
+    [ -n "$SAGA_STORY_DIR" ] && echo "export SAGA_STORY_DIR=\"$SAGA_STORY_DIR\"" >> "$CLAUDE_ENV_FILE"
 fi
 
 # =============================================================================
@@ -62,14 +64,14 @@ fi
 
 echo "# Session Context"
 echo ""
-echo "CLAUDE_PROJECT_DIR: $CLAUDE_PROJECT_DIR"
-echo "CLAUDE_PLUGIN_ROOT: $CLAUDE_PLUGIN_ROOT"
-echo "TASK_CONTEXT: $TASK_CONTEXT"
+echo "SAGA_PROJECT_DIR: $CLAUDE_PROJECT_DIR"
+echo "SAGA_PLUGIN_ROOT: $CLAUDE_PLUGIN_ROOT"
+echo "SAGA_TASK_CONTEXT: $SAGA_TASK_CONTEXT"
 
-if [ "$TASK_CONTEXT" = "story-worktree" ]; then
-    echo "EPIC_SLUG: $EPIC_SLUG"
-    echo "STORY_SLUG: $STORY_SLUG"
-    echo "STORY_DIR: $STORY_DIR"
+if [ "$SAGA_TASK_CONTEXT" = "story-worktree" ]; then
+    echo "SAGA_EPIC_SLUG: $SAGA_EPIC_SLUG"
+    echo "SAGA_STORY_SLUG: $SAGA_STORY_SLUG"
+    echo "SAGA_STORY_DIR: $SAGA_STORY_DIR"
 fi
 
 echo ""
