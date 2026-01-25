@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-01-25
+
+### Changed
+
+- **branding**: Rename "Claude Task System" to "SAGA" (Structured Autonomous Goal Achievement)
+- **environment-variables**: Add `SAGA_` prefix to all environment variables for clear namespacing
+  - `CLAUDE_PROJECT_DIR` → `SAGA_PROJECT_DIR`
+  - `CLAUDE_PLUGIN_ROOT` → `SAGA_PLUGIN_ROOT`
+  - `TASK_CONTEXT` → `SAGA_TASK_CONTEXT`
+  - `EPIC_SLUG` → `SAGA_EPIC_SLUG`
+  - `STORY_SLUG` → `SAGA_STORY_SLUG`
+  - `STORY_DIR` → `SAGA_STORY_DIR`
+
 ## [2.0.0] - 2026-01-25
 
 ### Added
