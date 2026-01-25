@@ -1,6 +1,6 @@
 {
   "name": "claude-task-system",
-  "description": "Structured task workflow with feature planning, journaling, and architecture decision records",
+  "description": "Structured epic/story workflow with autonomous execution, journaling, and architecture decision records",
   "version": "1.4.2",
   "author": {
     "name": "Roei Avrahami",
@@ -10,25 +10,18 @@
   "repository": "https://github.com/Roeia1/claude-task-system",
   "license": "MIT",
   "keywords": [
-    "task-management",
+    "epic-management",
+    "story-workflow",
     "tdd",
-    "feature-planning",
-    "workflow",
+    "autonomous-execution",
     "architecture-decisions",
     "journaling"
   ],
   "commands": [
-    "./commands/init.md",
     "./commands/task-list.md",
     "./commands/task-cleanup.md",
     "./commands/task-resume.md",
-    "./commands/feature-definition.md",
-    "./commands/feature-planning.md",
-    "./commands/architecture-decisions.md",
-    "./commands/task-generation.md"
+    "./commands/architecture-decisions.md"
   ],
-  "skills": "./skills/",
-  "agents": [
-    "./agents/task-builder.md"
-  ]
+  "skills": "./skills/"
 }

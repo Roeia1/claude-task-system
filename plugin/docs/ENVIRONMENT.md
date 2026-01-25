@@ -34,17 +34,9 @@ These are computed by `hooks/session-init.sh` when a Claude Code session starts.
 
 | Variable | Description | Values |
 |----------|-------------|--------|
-| `TASK_CONTEXT` | Current working context | `"main"`, `"task-worktree"`, or `"story-worktree"` |
+| `TASK_CONTEXT` | Current working context | `"main"` or `"story-worktree"` |
 
-#### V1 Task Variables (Conditional)
-
-Set when `TASK_CONTEXT="task-worktree"`:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `CURRENT_TASK_ID` | The task number | `"024"`, `"001"` |
-
-#### V2 Story Variables (Conditional)
+#### Story Variables (Conditional)
 
 Set when `TASK_CONTEXT="story-worktree"`:
 
@@ -58,13 +50,10 @@ Set when `TASK_CONTEXT="story-worktree"`:
 
 The SessionStart hook determines context based on filesystem:
 
-1. **V2 Story Worktree**: If `.claude-tasks/epics/` exists AND git worktree path contains `/.claude-tasks/worktrees/`
+1. **Story Worktree**: If `.claude-tasks/epics/` exists AND git worktree path contains `/.claude-tasks/worktrees/`
    - Sets: `TASK_CONTEXT="story-worktree"`, `EPIC_SLUG`, `STORY_SLUG`, `STORY_DIR`
 
-2. **V1 Task Worktree**: If `task-system/task-NNN/` folder exists
-   - Sets: `TASK_CONTEXT="task-worktree"`, `CURRENT_TASK_ID`
-
-3. **Main Repository**: Otherwise
+2. **Main Repository**: Otherwise
    - Sets: `TASK_CONTEXT="main"`
 
 ## Interactive vs Headless Mode
@@ -132,8 +121,7 @@ If you need to add a new environment variable:
 │  └── Sets: CLAUDE_PROJECT_DIR, CLAUDE_PLUGIN_ROOT, CLAUDE_ENV_FILE│
 │                          ↓                                       │
 │  SessionStart Hook (session-init.sh)                             │
-│  └── Detects V1 task worktree (task-system/task-NNN/)           │
-│  └── Detects V2 story worktree (.claude-tasks/worktrees/...)    │
+│  └── Detects story worktree (.claude-tasks/worktrees/...)       │
 │  └── Sets: TASK_CONTEXT + context-specific variables             │
 │  └── Writes all to CLAUDE_ENV_FILE                               │
 │  └── Outputs context summary for Claude                          │
@@ -157,7 +145,7 @@ TASK_CONTEXT: main
 These variables are available via the Bash tool: echo $VARIABLE_NAME
 ```
 
-**In V2 story worktree:**
+**In story worktree:**
 ```
 # Session Context
 

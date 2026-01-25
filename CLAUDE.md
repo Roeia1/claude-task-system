@@ -4,113 +4,100 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is the **Claude Task System** - a structured development workflow that combines human-guided feature planning with disciplined task execution. The system provides a complete lifecycle from feature ideation through planning, task breakdown, and rigorous phased execution.
+This is the **Claude Task System** - a structured development workflow that combines human-guided epic planning with autonomous story execution. The system provides a complete lifecycle from epic ideation through story breakdown and rigorous implementation.
 
 ## Core Architecture
 
-### Three-Phase Development Lifecycle
+### Epic/Story Development Lifecycle
 
-1. **Feature Definition Phase**
-   - Define WHAT needs to be built (business requirements, user stories)
+1. **Epic Definition Phase**
+   - Define WHAT needs to be built (vision, goals, requirements)
    - Capture acceptance criteria and success metrics
-   - No implementation details - focus on user value
+   - Include high-level architecture decisions
+   - Use `/create-epic` to create unified epic.md
 
-2. **Technical Planning Phase**
-   - Design HOW to build the feature (architecture, tech stack)
-   - Create data models, API contracts, implementation strategy
-   - Document architectural decisions (ADRs)
-   - Generate task breakdown for approval
+2. **Story Generation Phase**
+   - Break epics into implementable stories
+   - Each story is self-contained with clear tasks
+   - Stories include implementation guidance and patterns
+   - Use `/generate-stories` to create stories from an epic
 
-3. **Task Execution Phase**
-   - Tasks executed autonomously via `/implement` command
-   - Workers complete objectives incrementally
-   - Tests written before implementation (non-negotiable)
+3. **Story Execution Phase**
+   - Stories executed autonomously via `/implement` command
+   - Workers complete tasks following TDD practices
    - Progress documented in journal.md throughout execution
+   - Use `/resolve` when workers get blocked
 
 ### Directory Structure
 
-When users install this plugin and run `/task-system:init`, the following structure is created:
+When users install this plugin and run `/init`, the following structure is created:
 
 ```
-task-system/                    # Created in user's project root
-├── features/                   # Feature definitions and plans
-│   └── NNN-feature-name/
-│       ├── feature.md         # What to build (requirements)
-│       ├── plan.md            # How to build (technical design)
-│       ├── tasks.md           # Reference to generated tasks
-│       └── adr/               # Feature-specific ADRs
-│           └── NNN-decision.md
-├── tasks/                      # Task worktrees (gitignored, each is a git worktree)
-│   └── NNN/                   # Task worktree with branch task-NNN-type
-│       └── [full project]     # Complete project checkout
-├── archive/                    # Completed task archives (tracked in git)
-│   └── NNN/                   # Archived task files
-│       ├── task.md            # Original task definition
-│       └── journal.md         # Execution log
-└── adrs/                       # Global architecture decisions
-    └── NNN-decision-title.md
+.claude-tasks/                  # Created in user's project root
+├── epics/                      # Epic definitions and stories
+│   └── <epic-slug>/
+│       ├── epic.md            # Vision, goals, architecture
+│       └── stories/
+│           └── <story-slug>/
+│               ├── story.md   # Self-contained story definition
+│               └── journal.md # Execution log (created when story starts)
+├── archive/                    # Completed story archives
+│   └── <epic-slug>/
+│       └── <story-slug>/
+│           ├── story.md
+│           └── journal.md
+└── worktrees/                  # Git worktrees for story isolation (gitignored)
+    └── <epic-slug>/
+        └── <story-slug>/      # Full project checkout
 ```
 
-**Inside each task worktree** (`task-system/tasks/NNN/`):
-```
-task-system/
-├── task-NNN/              # Task-specific folder
-│   ├── task.md           # Task definition and requirements
-│   └── journal.md        # Execution log (created when task starts)
-├── archive/              # Tracked archive folder
-└── features/             # Other tracked folders
-```
+**Key Points:**
+- Each story worktree is a full git checkout with isolation
+- Story files (story.md, journal.md) live in `epics/` and are tracked in git
+- Worktrees are gitignored to prevent nesting issues
+- Stories link back to their parent epic for context
 
-**Note**: Each `task-system/tasks/NNN/` directory is a git worktree containing a full project checkout. The `task-system/tasks/` folder is gitignored to prevent endless nesting. Task files live in `task-system/task-NNN/` within each worktree.
-
-The plugin itself lives in:
+### Plugin Structure
 
 ```
 plugin/                         # Plugin source code
 ├── .claude-plugin/
 │   └── plugin.json            # Plugin manifest
-├── agents/                     # Subagent definitions
-│   └── task-builder.md
-├── commands/                   # Slash commands
-│   ├── init.md                # Initialize task-system structure
-│   ├── adr.md                 # Architecture decision records
-│   └── ...
+├── commands/                   # Legacy commands (gaps to fill)
+│   ├── task-list.md           # TODO: Convert to story-list
+│   ├── task-cleanup.md        # TODO: Convert to story-cleanup
+│   ├── task-resume.md         # TODO: Convert to story-resume
+│   └── architecture-decisions.md
 ├── scripts/                    # Utility scripts
-└── skills/                     # Skills for task execution
-    ├── feature-definition/
-    │   ├── SKILL.md
-    │   └── templates/         # Skill-specific templates
-    ├── implement/                 # Autonomous task implementation
-    │   └── INSTRUCTIONS.md
-    ├── task-list/             # Dynamic task list generation
-    ├── task-resume/           # Resume remote tasks locally
-    └── ...
+│   └── identifier_resolver_v2.py
+├── hooks/                      # Session hooks
+│   └── session-init.sh        # Context detection
+├── docs/                       # Documentation
+│   └── ENVIRONMENT.md
+└── skills/                     # Core skills
+    ├── init/                  # Initialize .claude-tasks/
+    ├── create-epic/           # Create epic with vision + architecture
+    ├── generate-stories/      # Generate stories from epic
+    ├── generate-story/        # Create single story (internal)
+    ├── execute-story/         # Autonomous /implement
+    └── resolve-blocker/       # Resolve blockers with /resolve
 ```
 
 ### Plugin Path References
 
-When referencing files within the plugin (templates, scripts, workflows, step-instructions), always use `${CLAUDE_PLUGIN_ROOT}` instead of relative paths. This ensures paths resolve correctly when the plugin is installed in other projects.
+When referencing files within the plugin, always use `${CLAUDE_PLUGIN_ROOT}` instead of relative paths:
 
-**Why**: Relative paths like `templates/foo.md` or `../scripts/bar.sh` resolve relative to the user's project directory, not the plugin installation directory. Using `${CLAUDE_PLUGIN_ROOT}` ensures Claude reads from the correct location.
-
-**Pattern**:
 ```markdown
-# In instruction files, use:
-`${CLAUDE_PLUGIN_ROOT}/instructions/skill-name/templates/template.md`
-`${CLAUDE_PLUGIN_ROOT}/scripts/script-name.sh`
-`${CLAUDE_PLUGIN_ROOT}/instructions/skill-name/workflows/workflow.md`
+# Correct:
+`${CLAUDE_PLUGIN_ROOT}/skills/create-epic/templates/epic-template.md`
 
-# NOT relative paths like:
-`templates/template.md`
-`../../scripts/script-name.sh`
-`workflows/workflow.md`
+# Incorrect:
+`templates/epic-template.md`
 ```
-
-**Exception**: Paths in templates that will be written to the user's project (e.g., `../features/NNN/feature.md` in task-template.md) should remain relative since they reference the user's project structure, not plugin files.
 
 ### Environment Variables
 
-Environment variables are available in the bash execution environment. To read a value, use the Bash tool:
+Environment variables are available in the bash execution environment:
 
 ```bash
 echo $CLAUDE_PROJECT_DIR
@@ -122,145 +109,78 @@ echo $CLAUDE_PROJECT_DIR
 |----------|-------------|---------|
 | `CLAUDE_PROJECT_DIR` | Project root directory | Always |
 | `CLAUDE_PLUGIN_ROOT` | Plugin installation directory | Always |
-| `TASK_CONTEXT` | `"main"`, `"task-worktree"`, or `"story-worktree"` | Always |
-| `CURRENT_TASK_ID` | Task number | V1 task worktree |
-| `EPIC_SLUG` | Epic identifier | V2 story worktree |
-| `STORY_SLUG` | Story identifier | V2 story worktree |
-| `STORY_DIR` | Path to story files | V2 story worktree |
+| `TASK_CONTEXT` | `"main"` or `"story-worktree"` | Always |
+| `EPIC_SLUG` | Epic identifier | Story worktree |
+| `STORY_SLUG` | Story identifier | Story worktree |
+| `STORY_DIR` | Path to story files | Story worktree |
 
-**Important notes:**
-- The SessionStart hook outputs all variables at session start with their values
-- All variables are persisted to `CLAUDE_ENV_FILE` and available via Bash tool
-- Interactive and headless modes work identically - same hooks, same variables
+For full documentation see: `plugin/docs/ENVIRONMENT.md`
 
-For full documentation including headless mode behavior and how to add new variables, see: `plugin/docs/ENVIRONMENT.md`
+### Dynamic Story Status
 
-### Dynamic Task Status
-
-Task status is derived from filesystem and git state (no persistent TASK-LIST.md):
+Story status is derived from filesystem and git state:
 
 | Status | Signal |
 |--------|--------|
-| PENDING | Worktree exists in `task-system/tasks/NNN/`, no `journal.md` in `task-system/task-NNN/` |
-| IN_PROGRESS | Worktree exists, `journal.md` present in `task-system/task-NNN/` |
-| REMOTE | Open PR with task branch, no local worktree |
-| COMPLETED | PR merged, files archived to `task-system/archive/NNN/` |
-
-Use `list tasks` to see current task status.
+| PENDING | Worktree exists, no `journal.md` |
+| IN_PROGRESS | Worktree exists, `journal.md` present |
+| BLOCKED | IN_PROGRESS with unresolved blocker in journal |
+| REMOTE | Open PR with story branch, no local worktree |
+| COMPLETED | PR merged, files archived |
 
 ## Development Commands
 
 ### Initial Setup (Run Once)
 
 ```bash
-/task-system:init
-# Creates task-system/ structure:
-# - features/, tasks/, adrs/, archive/
-# - Adds gitignore pattern for task worktrees
+/init
+# Creates .claude-tasks/ structure:
+# - epics/, archive/, worktrees/
+# - Adds gitignore pattern for worktrees
 ```
 
-### Feature Planning Workflow
+### Epic and Story Workflow
 
 ```bash
-# 1. Define the feature (what to build)
-# Say: "define feature user authentication system"
-# Creates: task-system/features/001-user-authentication/feature.md
-# Output: User stories, requirements, acceptance criteria
-# AI assists with clarifications for ambiguities
+# 1. Create an epic
+/create-epic user authentication system
+# Creates: .claude-tasks/epics/user-auth/epic.md
+# Output: Vision, goals, architecture, success criteria
 
-# 2. Create technical plan (how to build)
-# Say: "plan feature" or "create technical plan"
-# Reads: task-system/features/001-user-authentication/feature.md
-# Creates: task-system/features/001-user-authentication/plan.md
-# Output: Architecture, tech choices, data models, API contracts, testing strategy
-# Requires human review and approval
+# 2. Generate stories from epic
+/generate-stories user-auth
+# Creates: .claude-tasks/epics/user-auth/stories/<story-slug>/story.md
+# Also creates: worktree + branch + PR for each story
 
-# 3. Generate tasks from plan
-# Say: "generate tasks" or "break down feature"
-# Reads: feature.md and plan.md
-# AI proposes task breakdown
-# Shows tasks for review/modification
-# After approval:
-#   - Creates worktree + branch + PR for each task
-#   - Creates: task-system/features/001-user-authentication/tasks.md (reference)
+# 3. Implement a story autonomously
+/implement login-flow
+# Spawns workers to implement the story
+# Workers follow TDD, document in journal.md
+# Exit states: FINISH, BLOCKED, TIMEOUT, MAX_CYCLES
+
+# 4. Resolve blockers when needed
+/resolve login-flow
+# Analyzes blocker from journal.md
+# Proposes solutions for human approval
+# Documents resolution for next worker
 ```
 
 ### Architecture Decision Records
 
 ```bash
-# Create ADR (context-aware) - use natural language
+# Create ADR - use natural language
 # Say: "create ADR for JWT vs session-based auth"
-# Say: "document decision for database choice"
-
-# If in feature directory → creates task-system/features/001-auth/adr/001-jwt-choice.md
-# If in repo root → creates task-system/adrs/NNN-decision.md
-# Uses standard ADR template with problem/options/decision/consequences
+# Uses standard template with problem/options/decision/consequences
 ```
-
-### Task Management
-
-```bash
-# List all tasks (local and remote)
-# Say "list tasks" or "show tasks"
-# Shows: LOCAL - IN_PROGRESS, LOCAL - PENDING, REMOTE (no local worktree)
-
-# Resume a remote task locally
-# Say "resume task 017"
-# Creates local worktree from existing remote branch
-```
-
-### Autonomous Task Implementation
-
-The `/implement` command provides autonomous, multi-session task execution:
-
-```bash
-# From MAIN REPO: Start autonomous implementation
-/implement 015
-/implement "User Login System"    # By task name
-/implement 007-user-auth          # By feature (lists tasks for selection)
-
-# The orchestrator:
-# 1. Resolves identifier to task worktree
-# 2. Spawns worker Claude instances in a loop
-# 3. Workers read task.json and journal.md for context
-# 4. Each worker completes objectives until:
-#    - FINISH: All objectives complete
-#    - BLOCKED: Human decision needed
-#    - TIMEOUT: Max time exceeded (default 60 min)
-#    - MAX_CYCLES: Max spawns reached (default 10)
-```
-
-**When a worker gets BLOCKED:**
-
-```bash
-# 1. Worker exits with BLOCKED status
-# 2. Blocker is documented in journal.md
-# 3. User runs /resolve from task worktree:
-
-cd task-system/tasks/016
-/resolve
-
-# 4. /resolve analyzes the blocker
-# 5. Proposes solutions with pros/cons
-# 6. Human approves a resolution
-# 7. Resolution appended to journal.md
-# 8. Resume with /implement to continue
-```
-
-**Identifier Resolution Priority:**
-
-1. **Task ID** - Direct lookup (e.g., "015", "15", "0015")
-2. **Task Name** - Search task.json meta.title (case-insensitive, partial match)
-3. **Feature Name** - Lists associated tasks for selection (e.g., "007-user-auth")
 
 ## Critical Execution Rules
 
 ### Autonomous Execution
 
-Tasks are executed autonomously using the `/implement` command. The orchestrator spawns worker Claude instances that:
+Stories are executed autonomously using the `/implement` command. The orchestrator spawns worker Claude instances that:
 
-1. Read task.json for objectives and current status
-2. Complete objectives incrementally
+1. Read story.md for tasks and guidance
+2. Complete tasks following TDD practices
 3. Document progress in journal.md
 4. Exit with status: FINISH (all done), BLOCKED (needs human decision), or TIMEOUT
 
@@ -277,206 +197,92 @@ When a worker gets BLOCKED, use `/resolve` to analyze and provide a resolution, 
 ### Git Commit Format
 
 ```bash
-# Phase-based commits (feature task example)
-git commit -m "test(task-XXX): add comprehensive test suite for [feature]"
-git commit -m "feat(task-XXX): implement core [component] functionality"
-git commit -m "refactor(task-XXX): improve [specific improvement]"
-git commit -m "docs(task-XXX): final verification and polish"
+# Story-based commits
+git commit -m "test(story-slug): add comprehensive test suite for [feature]"
+git commit -m "feat(story-slug): implement core [component] functionality"
+git commit -m "fix(story-slug): resolve [issue]"
 
 # Always commit and push together
 git add . && git commit -m "..." && git push
 ```
 
-## Key Patterns
+## Story File Structure
 
-### Feature to Task Traceability
+### story.md
 
-Tasks link back to features for full context:
-
-```markdown
-# In task-system/task-015/task.md (inside worktree)
-
-## Feature Context
-**Feature**: [001-user-authentication](../features/001-user-authentication/feature.md)
-**Technical Plan**: [plan.md](../features/001-user-authentication/plan.md)
-**ADRs**: [adr/](../features/001-user-authentication/adr/)
-
-## Overview
-[Task-specific implementation details...]
-```
-
-### Task Dependencies
-
-- Tasks list dependencies by ID in their `task.md` file
-- Dependencies are advisory (documented but not strictly enforced)
-- Git naturally handles conflicts if work proceeds out of order
-- Check dependency status via PR state (merged = complete)
-
-### Parallel Execution
-
-- Use git worktrees for concurrent task development
-- Each task has its own worktree in `task-system/tasks/NNN/`
-- Safe operations: commit, push, test in different worktrees concurrently
-- Requires coordination: merging PRs (one at a time)
-- Tasks can be worked on from different machines (use `resume task`)
-
-## Architecture Decision Records (ADRs)
-
-### When to Create ADRs
-
-Create an ADR whenever you need to:
-- Choose between multiple technical approaches
-- Make decisions that will impact future development
-- Document the reasoning behind architectural choices
-- Record trade-offs and their implications
-
-### ADR Locations
-
-- **Global ADRs** (`task-system/adrs/`): Project-wide architectural decisions
-- **Feature ADRs** (`task-system/features/NNN-name/adr/`): Feature-specific technical choices
-
-### ADR Template Structure
+Stories use markdown with structured sections:
 
 ```markdown
-# ADR NNN: [Title]
+# Story: [Title]
 
-**Status:** Proposed | Accepted | Deprecated | Superseded by ADR-XXX
-**Date:** YYYY-MM-DD
-**Context:** Feature/Project wide
+## Context
+Link to parent epic and relevant background.
 
-## Problem Statement
-What decision needs to be made and why?
+## Tasks
+1. **Task Name**
+   - Implementation guidance
+   - Patterns to follow
+   - Test requirements
 
-## Considered Options
-1. Option A - [pros/cons]
-2. Option B - [pros/cons]
+## References
+- Related files and patterns
+- API contracts
+- Design decisions
 
-## Decision
-Chosen: [Option] because [reasoning]
-
-## Consequences
-Positive: [benefits]
-Negative: [tradeoffs]
+## Acceptance Criteria
+- Testable success conditions
 ```
 
-## Task File Structure
+### journal.md
 
-### task.json (New Format)
+Workers document progress in journal.md:
 
-Tasks now use `task.json` for structured, machine-readable task definitions:
+```markdown
+## Session: [ISO timestamp]
 
-```json
-{
-  "meta": {
-    "id": "015",
-    "title": "User Login System",
-    "created": "2026-01-08",
-    "feature": "007"  // Optional: links to feature
-  },
-  "overview": "Context from feature definition and technical plan...",
-  "objectives": [
-    {
-      "id": "obj-1",
-      "description": "Create login endpoint with JWT authentication",
-      "steps": ["Define route", "Add controller", "Connect auth service"],
-      "notes": ["Use existing auth patterns"],
-      "status": "pending"  // pending | in_progress | done
-    }
-  ]
-}
+### Completed
+- Task X: [what was done]
+
+### Decisions
+- [technical decision]: [rationale]
+
+### Next Steps
+- [what remains]
+
+---
+
+## Blocker: [Title]
+
+**Task**: [Which task is blocked]
+**What I'm trying to do**: [Description]
+**What I tried**: [Approaches attempted]
+**What I need**: [Decision or information required]
+**Suggested options**: [If ideas exist]
+
+---
+
+## Resolution: [Blocker Title]
+
+**Decision**: [Chosen approach]
+**Implementation guidance**: [Steps for next worker]
+**Rationale**: [Why this approach]
+**Approved**: [ISO timestamp]
 ```
-
-**Benefits of task.json:**
-- Machine-readable for autonomous orchestration
-- Structured objectives with trackable status
-- Clear separation of metadata and implementation details
-- Enables `/implement` command to work autonomously
-
-### task.md (Legacy Format)
-
-Older tasks may still use `task.md` format with markdown structure:
-
-- **Feature Context**: Links to feature definition and plan
-- **Overview**: What needs to be accomplished and why
-- **Task Type**: feature|refactor|bugfix|performance|deployment
-- **Priority**: P1 (critical) → P3 (low)
-- **Dependencies**: Links to prerequisite tasks (advisory)
-- **Objectives**: Measurable checkboxes
-- **Sub-tasks**: Specific actionable items
-- **Technical Approach**: Implementation strategy
-- **Risks & Concerns**: Potential issues and mitigation
-- **Resources & Links**: Relevant documentation
-- **Acceptance Criteria**: Testable success conditions
-
-## Journaling
-
-Workers document their progress in `journal.md` within each task folder. Journal entries capture:
-- Objectives completed and their outcomes
-- Blockers encountered and resolutions
-- Technical decisions and their reasoning
-- Key learnings and insights
 
 ## Important Notes
 
-- **Separation of Concerns**: Feature definition (WHAT) → Planning (HOW) → Execution (DO) are distinct phases
-- **Human-Guided Development**: Every phase requires human review and approval
-- **Focus on Value**: Features describe user value, not implementation details
-- **Document Decisions**: Use ADRs to capture architectural reasoning
-- **Maintain Traceability**: Tasks link to features, features link to ADRs
+- **Epic-Driven Development**: Epics define vision, stories deliver value
+- **Human-Guided Planning**: Epic creation and story generation require human approval
+- **Autonomous Execution**: Stories execute independently with `/implement`
+- **Scope Enforcement**: Workers stay within story worktree boundaries
+- **Document Decisions**: Use ADRs for significant architectural choices
 - **Keep Complexity Minimal**: Only add what's directly needed
-- **Dynamic Status**: No TASK-LIST.md - status derived from filesystem and git state
-- **Task Archiving**: Completed tasks are archived to `task-system/archive/` before PR merge (as part of task-merge)
-- **Autonomous Execution**: Use `/implement` for autonomous task execution, `/resolve` when blocked
 
-## Migration Notes
+## Known Gaps (TODO)
 
-### Migrating from task.md to task.json
+The following V2 equivalents need to be implemented:
 
-The task system now supports autonomous implementation via `/implement`, which requires the structured `task.json` format.
-
-**What Changed:**
-
-| Aspect | Old (task.md) | New (task.json) |
-|--------|---------------|-----------------|
-| Format | Markdown with sections | JSON with structured schema |
-| Objectives | Checkbox list in markdown | Array with id, description, steps, status |
-| Execution | Phase-based with manual permission gates | Objective-based with autonomous progression |
-| Human input | Required for each phase transition | Only required when worker is BLOCKED |
-| Status tracking | Implicit via journal entries | Explicit status field per objective |
-
-**Migrating Existing Tasks:**
-
-1. **Tasks in progress**: Continue using manual workflow with task.md - no migration needed
-2. **New tasks**: Will automatically use task.json format
-3. **Optional conversion**: To use `/implement` on existing task.md tasks:
-
-```bash
-# 1. Create task.json in the task folder alongside task.md
-# 2. Convert content to JSON structure:
-{
-  "meta": {
-    "id": "[from task folder name]",
-    "title": "[from task.md title]",
-    "created": "[today's date]",
-    "feature": "[if linked to feature]"
-  },
-  "overview": "[combine Feature Context + Overview sections]",
-  "objectives": [
-    {
-      "id": "obj-1",
-      "description": "[from Objectives section]",
-      "steps": ["[from Sub-tasks section]"],
-      "notes": ["[from Technical Approach]"],
-      "status": "pending"
-    }
-  ]
-}
-# 3. Mark completed objectives as "done"
-# 4. Use /implement to continue
-```
-
-**Compatibility:**
-
-- `/implement` requires `task.json` to be present
-- The `/resolve` command works with task.json (uses journal.md for context)
-- Legacy `task.md` files are preserved in archives for historical reference
+1. **Story List** - List all epics/stories with status (replaces `/task-list`)
+2. **Story Cleanup** - Remove completed story worktrees (replaces `/task-cleanup`)
+3. **Story Resume** - Resume remote story locally (replaces `/task-resume`)
+4. **Story Merge** - Archive and merge completed stories (replaces `task-merge` skill)

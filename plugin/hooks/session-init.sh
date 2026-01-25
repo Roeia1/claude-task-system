@@ -2,30 +2,18 @@
 # SessionStart hook - detects context and persists environment variables
 #
 # This hook runs at session start for both interactive and headless modes.
-# It detects the working context (main repo, V1 task worktree, or V2 story worktree)
+# It detects the working context (main repo or story worktree)
 # and makes environment variables available via CLAUDE_ENV_FILE.
 
 # =============================================================================
-# V1 Task Detection (task-system/task-NNN/)
-# =============================================================================
-
-CURRENT_TASK_ID=""
-for dir in task-system/task-[0-9]*/; do
-    if [ -d "$dir" ]; then
-        CURRENT_TASK_ID=$(basename "$dir" | sed 's/task-//')
-        break
-    fi
-done
-
-# =============================================================================
-# V2 Story Detection (.claude-tasks/worktrees/EPIC/STORY/)
+# Story Detection (.claude-tasks/worktrees/EPIC/STORY/)
 # =============================================================================
 
 EPIC_SLUG=""
 STORY_SLUG=""
 STORY_DIR=""
 
-# Check if we're in a V2 story worktree by looking for the marker
+# Check if we're in a story worktree by looking for the marker
 # The worktree path is: .claude-tasks/worktrees/<epic>/<story>/
 # We detect by checking if .claude-tasks/epics exists and extracting from git worktree info
 if [ -d ".claude-tasks/epics" ]; then
@@ -48,8 +36,6 @@ fi
 
 if [ -n "$STORY_SLUG" ]; then
     TASK_CONTEXT="story-worktree"
-elif [ -n "$CURRENT_TASK_ID" ]; then
-    TASK_CONTEXT="task-worktree"
 else
     TASK_CONTEXT="main"
 fi
@@ -64,10 +50,7 @@ if [ -n "$CLAUDE_ENV_FILE" ]; then
     echo "export CLAUDE_PLUGIN_ROOT=\"$CLAUDE_PLUGIN_ROOT\"" >> "$CLAUDE_ENV_FILE"
     echo "export TASK_CONTEXT=\"$TASK_CONTEXT\"" >> "$CLAUDE_ENV_FILE"
 
-    # V1 task variables (conditional)
-    [ -n "$CURRENT_TASK_ID" ] && echo "export CURRENT_TASK_ID=\"$CURRENT_TASK_ID\"" >> "$CLAUDE_ENV_FILE"
-
-    # V2 story variables (conditional)
+    # Story variables (conditional)
     [ -n "$EPIC_SLUG" ] && echo "export EPIC_SLUG=\"$EPIC_SLUG\"" >> "$CLAUDE_ENV_FILE"
     [ -n "$STORY_SLUG" ] && echo "export STORY_SLUG=\"$STORY_SLUG\"" >> "$CLAUDE_ENV_FILE"
     [ -n "$STORY_DIR" ] && echo "export STORY_DIR=\"$STORY_DIR\"" >> "$CLAUDE_ENV_FILE"
@@ -87,8 +70,6 @@ if [ "$TASK_CONTEXT" = "story-worktree" ]; then
     echo "EPIC_SLUG: $EPIC_SLUG"
     echo "STORY_SLUG: $STORY_SLUG"
     echo "STORY_DIR: $STORY_DIR"
-elif [ "$TASK_CONTEXT" = "task-worktree" ]; then
-    echo "CURRENT_TASK_ID: $CURRENT_TASK_ID"
 fi
 
 echo ""
