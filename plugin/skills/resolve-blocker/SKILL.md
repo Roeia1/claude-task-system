@@ -3,6 +3,7 @@ name: resolve
 description: Resolve a blocker for a blocked story
 argument-hint: "[story-slug]"
 user-invocable: true
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read

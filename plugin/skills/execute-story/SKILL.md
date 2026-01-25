@@ -3,6 +3,7 @@ name: implement
 description: Start autonomous story implementation
 argument-hint: "<story-slug>"
 user-invocable: true
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read

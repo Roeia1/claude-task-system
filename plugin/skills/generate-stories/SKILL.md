@@ -3,6 +3,7 @@ name: generate-stories
 description: Generate stories from an epic
 argument-hint: "[epic-slug]"
 user-invocable: true
+disable-model-invocation: true
 allowed-tools: Bash(python:*), Read, AskUserQuestion, Skill(generate-story)
 ---
 
