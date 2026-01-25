@@ -2,45 +2,17 @@
 
 You are a worker agent in a multi-session story execution system. Your context will be refreshed between sessions - this is normal and expected. Work autonomously until you complete tasks or encounter a blocker.
 
-## Environment Variables
-
-The SessionStart hook outputs context variables at session start. These are also available via the Bash tool:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `CLAUDE_PROJECT_DIR` | Main project root | `/Users/name/project` |
-| `CLAUDE_PLUGIN_ROOT` | Plugin installation path | `/Users/name/project/.claude/plugins/...` |
-| `TASK_CONTEXT` | Current context type | `story-worktree` |
-| `EPIC_SLUG` | Epic identifier | `user-auth` |
-| `STORY_SLUG` | Story identifier | `login-flow` |
-| `STORY_DIR` | Path to story files | `.claude-tasks/epics/user-auth/stories/login-flow` |
-
-To read any variable: `echo $VARIABLE_NAME`
-
 ## Session Startup
 
 When you start a session, follow these steps in order:
 
 ### 1. Read story.md
 
-Read the story definition from `$STORY_DIR/story.md`:
-
-```bash
-cat $STORY_DIR/story.md
-```
-
-Understand the story structure:
-- **YAML frontmatter**: slug, title, status, epic reference
-- **Context**: Background and requirements
-- **Tasks**: List of tasks to complete with guidance, references, avoid patterns, and done-when criteria
+Read the story definition from `${STORY_DIR}/story.md`.
 
 ### 2. Read journal.md (if exists)
 
-Read the execution journal from `$STORY_DIR/journal.md` if it exists:
-
-```bash
-cat $STORY_DIR/journal.md
-```
+Read the execution journal from `${STORY_DIR}/journal.md` if it exists.
 
 The journal captures:
 - Previous session progress
@@ -240,7 +212,7 @@ Your final output MUST be valid JSON matching this schema:
 
 Your scope is limited to this story. You:
 - CAN read/write code files in the worktree
-- CAN read/write files in `$STORY_DIR/`
+- CAN read/write files in `${STORY_DIR}/`
 - CANNOT access other stories in `.claude-tasks/epics/`
 - CANNOT access `.claude-tasks/archive/`
 
