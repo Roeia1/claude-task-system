@@ -126,9 +126,9 @@ echo $CLAUDE_PROJECT_DIR
 | `CURRENT_TASK_ID` | Task number (only in worktree) | SessionStart hook |
 
 **Important notes:**
-- Runtime variables (`CLAUDE_PROJECT_DIR`, `CLAUDE_PLUGIN_ROOT`) are always available
-- Session variables (`TASK_CONTEXT`, `CURRENT_TASK_ID`) are set by the SessionStart hook
-- In headless worker mode, session variables are NOT available - use prompt context instead
+- Runtime variables are only available during hook execution; the SessionStart hook persists them to `CLAUDE_ENV_FILE`
+- Session variables (`TASK_CONTEXT`, `CURRENT_TASK_ID`) are computed by the SessionStart hook based on filesystem state
+- Headless mode runs hooks too - all variables work the same as interactive mode
 
 For full documentation including headless mode behavior and how to add new variables, see: `plugin/docs/ENVIRONMENT.md`
 

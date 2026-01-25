@@ -25,8 +25,9 @@ These are automatically available in any Claude Code session. They are set by th
 | `CLAUDE_ENV_FILE` | Path to temporary file for persisting bash environment | `/tmp/claude-env-abc123` |
 
 **Notes:**
-- `CLAUDE_PROJECT_DIR` and `CLAUDE_PLUGIN_ROOT` are always available
-- `CLAUDE_ENV_FILE` is used internally by the hook system for environment persistence across bash invocations
+- `CLAUDE_PROJECT_DIR` and `CLAUDE_PLUGIN_ROOT` are only available during hook execution (e.g., SessionStart)
+- The SessionStart hook writes them to `CLAUDE_ENV_FILE` so they're available in subsequent Bash tool invocations
+- `CLAUDE_ENV_FILE` is sourced automatically by the Bash tool, making all persisted variables accessible
 
 ### Session Variables (Set by SessionStart Hook)
 
@@ -43,23 +44,28 @@ These are computed by `hooks/session-init.sh` when a Claude Code session starts.
 
 ## Headless Mode (Worker Agents)
 
-When spawning headless Claude workers via `implement.py`:
+Headless Claude workers (spawned via `implement.py` or `claude -p`) use the plugin and run hooks just like interactive sessions. The SessionStart hook executes and sets up the same environment variables.
 
-1. **Runtime variables are inherited**: Python's `subprocess.run()` inherits the parent's environment by default, so `CLAUDE_PROJECT_DIR` and `CLAUDE_PLUGIN_ROOT` are available if the parent has them.
+**How it works:**
 
-2. **Session variables are NOT available**: The SessionStart hook doesn't run for headless workers. Instead, context is passed via the worker prompt.
+1. Worker is spawned with `cwd` set to the worktree directory
+2. SessionStart hook runs and detects the worktree context
+3. Hook writes `TASK_CONTEXT`, `CURRENT_TASK_ID`, etc. to `CLAUDE_ENV_FILE`
+4. All variables are available via Bash tool, same as interactive mode
 
-3. **Worker context pattern**: The orchestrator prepends context directly to the worker prompt:
-   ```
-   **Worktree Root:** /path/to/worktree
-   **Plugin Root:** /path/to/plugin
-   **Project Dir:** /path/to/project
-   **Epic:** example-epic
-   **Story:** example-story
-   **Story Dir:** .claude-tasks/epics/example-epic/stories/example-story
-   ```
+**Worker context in prompt:**
 
-This means workers should use the prompt context values, not environment variables, for story/epic paths.
+The orchestrator also prepends context to the worker prompt for convenience:
+```
+**Worktree Root:** /path/to/worktree
+**Plugin Root:** /path/to/plugin
+**Project Dir:** /path/to/project
+**Epic:** example-epic
+**Story:** example-story
+**Story Dir:** .claude-tasks/epics/example-epic/stories/example-story
+```
+
+This provides immediate access to paths without needing a Bash call, but the environment variables remain the authoritative source.
 
 ## Usage Patterns
 
@@ -133,14 +139,15 @@ If you need to add a new environment variable:
 │  Parent Process (implement.py)                                   │
 │  └── Reads: CLAUDE_PROJECT_DIR, CLAUDE_PLUGIN_ROOT from env     │
 │  └── Computes: worktree path, story dir, etc.                   │
+│  └── Prepends context to worker prompt                          │
 │                          ↓                                       │
-│  subprocess.run(["claude", "-p", ...])                          │
-│  └── Inherits: parent environment (runtime vars available)       │
-│  └── Worker prompt: context prepended with paths                 │
+│  subprocess.run(["claude", "-p", ...], cwd=worktree)            │
+│  └── Plugin loads, SessionStart hook runs                        │
+│  └── Hook detects worktree, writes vars to CLAUDE_ENV_FILE      │
 │                          ↓                                       │
 │  Worker's Bash Tool                                              │
-│  └── Runtime vars available (inherited)                          │
-│  └── Session vars NOT available (no hook ran)                    │
-│  └── Use prompt context for story/epic paths                     │
+│  └── Sources CLAUDE_ENV_FILE automatically                       │
+│  └── All variables available (same as interactive)               │
+│  └── Prompt context provides convenient path access              │
 └─────────────────────────────────────────────────────────────────┘
 ```
