@@ -1,0 +1,107 @@
+{
+  "meta": {
+    "id": "025",
+    "title": "Phase 4 - Plugin Manifest and Documentation",
+    "created": "2026-01-17",
+    "feature": "009"
+  },
+
+  "overview": "Update the claude-task-system plugin to reflect the new V2 architecture with Epic/Story hierarchy. The V2 system introduces a two-layer architecture where Commands (user-facing) accept arguments and invoke Skills (internal) via the Skill tool. New V2 commands include /init, /create-epic, /generate-stories, /implement, and /resolve. Internal skills (create-epic, generate-stories, execute-story, resolve-blocker) should be marked user-invocable: false since they receive context from commands rather than direct user invocation. V1 commands like /feature-definition, /feature-planning, /task-generation should be deprecated or removed. The plugin.json manifest must be updated to reflect these changes, and all skill SKILL.md files need documentation of the command-to-skill invocation pattern with usage examples.",
+
+  "objectives": [
+    {
+      "id": "obj-1",
+      "description": "Update plugin.json manifest to include new V2 commands",
+      "steps": [
+        "Add commands/create-epic.md to commands array",
+        "Add commands/generate-stories.md to commands array",
+        "Update existing init, implement, resolve command paths if needed",
+        "Verify all command paths point to existing files"
+      ],
+      "notes": [
+        "V2 commands: /init, /create-epic, /generate-stories, /implement, /resolve",
+        "Commands accept $ARGUMENTS and invoke skills via Skill tool"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-2",
+      "description": "Remove or deprecate V1 commands from plugin.json",
+      "steps": [
+        "Identify V1-only commands: feature-definition, feature-planning, task-generation",
+        "Remove these from the commands array in plugin.json",
+        "Optionally move deprecated command files to a legacy/ folder or add deprecation notice"
+      ],
+      "notes": [
+        "V1 used feature.md + plan.md + task.json workflow",
+        "V2 uses epic.md (unified) + story.md workflow",
+        "Keep task-list, task-cleanup, task-resume if still applicable"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-3",
+      "description": "Add new V2 skill directories to the skills folder structure",
+      "steps": [
+        "Create skills/init/SKILL.md for init skill",
+        "Create skills/create-epic/SKILL.md for epic creation",
+        "Create skills/generate-stories/SKILL.md for story generation",
+        "Create skills/execute-story/SKILL.md for story execution",
+        "Create skills/resolve-blocker/SKILL.md for blocker resolution"
+      ],
+      "notes": [
+        "All V2 skills should have user-invocable: false in frontmatter",
+        "Skills are internal and invoked by commands via Skill tool",
+        "Use plugin/skills/ folder which is auto-discovered"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-4",
+      "description": "Document command-to-skill invocation patterns in skill SKILL.md files",
+      "steps": [
+        "For each skill, document which command invokes it",
+        "Document what context the skill receives from the command",
+        "Add allowed-tools specification for each skill",
+        "Include example of how command passes context to skill"
+      ],
+      "notes": [
+        "Pattern: Command accepts $ARGUMENTS -> runs scripts with ! prefix -> invokes Skill tool",
+        "Skills receive context from conversation, not direct arguments",
+        "Reference plan.md Command Specifications section for details"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-5",
+      "description": "Add usage examples to skill instruction files",
+      "steps": [
+        "Add example workflow for create-epic skill",
+        "Add example workflow for generate-stories skill",
+        "Add example workflow for execute-story skill",
+        "Add example workflow for resolve-blocker skill"
+      ],
+      "notes": [
+        "Examples should show the user invoking the command, not the skill directly",
+        "Include sample input/output for clarity",
+        "Reference templates where applicable"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "obj-6",
+      "description": "Verify skill visibility settings are correct",
+      "steps": [
+        "Check all V2 skills have user-invocable: false",
+        "Ensure internal skills (task-builder, task-merge) retain proper settings",
+        "Verify user-facing commands remain visible in slash menu"
+      ],
+      "notes": [
+        "user-invocable: false hides skill from slash menu but allows Skill tool invocation",
+        "disable-model-invocation: true would block Skill tool - do NOT use for V2 skills",
+        "See plan.md Skill Visibility Controls section"
+      ],
+      "status": "pending"
+    }
+  ]
+}
