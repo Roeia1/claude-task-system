@@ -51,7 +51,9 @@ Story files are located at:
 
 Check that the worktree directory exists:
 
-!`test -d "$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/$(python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(d.get('story',{}).get('epic_slug',''))" 2>/dev/null || echo "MISSING")/$(python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(d.get('story',{}).get('slug',''))" 2>/dev/null || echo "MISSING")" && echo "WORKTREE_EXISTS" || echo "WORKTREE_MISSING"`
+```bash
+test -d "$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/$EPIC_SLUG/$STORY_SLUG" && echo "WORKTREE_EXISTS" || echo "WORKTREE_MISSING"
+```
 
 **If WORKTREE_MISSING:**
 ```

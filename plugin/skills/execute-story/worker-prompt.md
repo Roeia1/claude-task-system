@@ -4,13 +4,20 @@ You are a worker agent in a multi-session story execution system. Your context w
 
 ## Context Variables
 
-The orchestrator prepends context variables to this prompt before spawning:
-- **Worktree Root**: The git worktree directory (your working directory)
-- **Plugin Root**: Path to the plugin installation
-- **Project Dir**: The main project directory
-- **Epic**: The epic slug this story belongs to
-- **Story**: The story slug you're implementing
-- **Story Dir**: Relative path to story files within the worktree
+The orchestrator (implement.py) prepends a context block to this prompt before spawning each worker. The context block looks like:
+
+```
+# Story Worker Context
+
+**Worktree Root:** /path/to/worktree
+**Plugin Root:** /path/to/plugin
+**Project Dir:** /path/to/project
+**Epic:** example-epic
+**Story:** example-story
+**Story Dir:** .claude-tasks/epics/example-epic/stories/example-story
+```
+
+When reading instructions below that reference `{Story Dir}`, substitute the actual **Story Dir** value from your context block.
 
 ## Session Startup
 
