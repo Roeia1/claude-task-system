@@ -120,28 +120,26 @@ def resolve_epic(query: str, project_root: Path) -> Dict[str, Any]:
 # Story Resolution
 # ============================================================================
 
-def build_story_paths(epic_slug: str, story_slug: str) -> Dict[str, str]:
+def build_story_paths(project_root: Path, epic_slug: str, story_slug: str) -> Dict[str, str]:
     """
-    Build paths for a story using environment variable references.
-
-    Returns paths that use ${CLAUDE_PROJECT_DIR} so they can be directly
-    used in bash commands without the LLM computing them.
+    Build absolute paths for a story.
 
     Args:
+        project_root: Absolute path to the project root
         epic_slug: The epic slug
         story_slug: The story slug
 
     Returns:
-        Dict with worktree_path, story_dir, story_file, and journal_file paths
+        Dict with absolute paths: worktree_path, story_dir, story_file, journal_file
     """
-    worktree = f"${{CLAUDE_PROJECT_DIR}}/.claude-tasks/worktrees/{epic_slug}/{story_slug}"
-    story_dir = f".claude-tasks/epics/{epic_slug}/stories/{story_slug}"
+    worktree = project_root / ".claude-tasks" / "worktrees" / epic_slug / story_slug
+    story_dir = worktree / ".claude-tasks" / "epics" / epic_slug / "stories" / story_slug
 
     return {
-        "worktree_path": worktree,
-        "story_dir": story_dir,
-        "story_file": f"{worktree}/{story_dir}/story.md",
-        "journal_file": f"{worktree}/{story_dir}/journal.md"
+        "worktree_path": str(worktree),
+        "story_dir": str(story_dir),
+        "story_file": str(story_dir / "story.md"),
+        "journal_file": str(story_dir / "journal.md")
     }
 
 
@@ -158,7 +156,7 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
 
     Returns:
         Dict with resolved status and story data or error.
-        When resolved, includes paths with env var references for direct use.
+        When resolved, includes absolute paths for direct use.
     """
     epics_dir = project_root / ".claude-tasks" / "epics"
 
@@ -210,7 +208,7 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
                     "status": status,
                     "context": extract_context(body),
                     "epic_slug": epic_slug,
-                    "paths": build_story_paths(epic_slug, story_slug)
+                    "paths": build_story_paths(project_root, epic_slug, story_slug)
                 }
 
                 # Normalize for matching
