@@ -68,8 +68,11 @@ WORKER_OUTPUT_SCHEMA = {
 # ============================================================================
 # Custom Exceptions
 # ============================================================================
-# NOTE: StoryFileError removed - validation is now done by SKILL.md before
-# this script is called, so we don't need to handle story file errors here.
+
+class StoryFileError(Exception):
+    """Raised when story files are missing or invalid."""
+    pass
+
 
 class WorkerPromptError(Exception):
     """Raised when the worker prompt template cannot be loaded."""
@@ -198,16 +201,72 @@ def compute_story_path(worktree: Path, epic_slug: str, story_slug: str) -> Path:
 # Story File Validation
 # ============================================================================
 #
-# NOTE: Validation is performed by SKILL.md BEFORE this script is called.
-# This script trusts that the worktree and story.md have already been validated.
+# This is the authoritative validation point for story files.
+# SKILL.md delegates validation to this script for reliability.
 #
 # Validation architecture:
 # 1. identifier_resolver_v2.py - Resolves story slug (called by SKILL.md)
-# 2. SKILL.md Step 3 - Validates worktree and story.md exist
-# 3. This script - Trusts validation, focuses on orchestration
-# 4. scope_validator.py - Runtime file access enforcement
-#
-# See SKILL.md for the consolidated validation documentation.
+# 2. This script - Validates worktree and story.md exist (THIS IS THE ONLY VALIDATION)
+# 3. scope_validator.py - Runtime file access enforcement
+
+def validate_story_files(
+    worktree: Path,
+    epic_slug: str,
+    story_slug: str
+) -> Dict[str, Any]:
+    """
+    Validate that the worktree and story.md exist.
+
+    This is the authoritative validation - SKILL.md does not duplicate this.
+
+    Args:
+        worktree: Path to the story worktree
+        epic_slug: The epic slug
+        story_slug: The story slug
+
+    Returns:
+        Dict with:
+            - valid: bool indicating if files exist
+            - worktree_path: Path to worktree
+            - story_path: Path to story.md
+            - error: Error message if validation failed
+            - error_type: 'worktree_missing' or 'story_missing' for specific errors
+    """
+    # Check worktree exists
+    if not worktree.exists():
+        return {
+            "valid": False,
+            "worktree_path": str(worktree),
+            "story_path": None,
+            "error": f"Worktree not found at {worktree}\n\n"
+                     f"The story worktree has not been created yet. This can happen if:\n"
+                     f"1. The story was generated but the worktree wasn't set up\n"
+                     f"2. The worktree was deleted or moved\n\n"
+                     f"To create the worktree, use: /task-resume {story_slug}",
+            "error_type": "worktree_missing"
+        }
+
+    # Check story.md exists
+    story_path = compute_story_path(worktree, epic_slug, story_slug)
+    if not story_path.exists():
+        return {
+            "valid": False,
+            "worktree_path": str(worktree),
+            "story_path": str(story_path),
+            "error": f"story.md not found in worktree.\n\n"
+                     f"Expected location: {story_path}\n\n"
+                     f"The worktree exists but the story definition file is missing.\n"
+                     f"This may indicate an incomplete story setup.",
+            "error_type": "story_missing"
+        }
+
+    return {
+        "valid": True,
+        "worktree_path": str(worktree),
+        "story_path": str(story_path),
+        "error": None,
+        "error_type": None
+    }
 
 
 # ============================================================================
@@ -427,6 +486,7 @@ def run_loop(
 
     Raises:
         EnvironmentError: If environment variables are missing.
+        StoryFileError: If story files are not found.
     """
     # Get environment
     env = get_environment_vars()
@@ -434,8 +494,12 @@ def run_loop(
     project_dir = env["project_dir"]
 
     # Compute paths
-    # NOTE: Worktree and story.md validation was done by SKILL.md before calling this script
     worktree = compute_worktree_path(project_dir, epic_slug, story_slug)
+
+    # Validate story files (this is the authoritative validation point)
+    validation = validate_story_files(worktree, epic_slug, story_slug)
+    if not validation["valid"]:
+        raise StoryFileError(validation["error"])
 
     # Load worker prompt (context is injected by SessionStart hook, not here)
     worker_prompt = load_worker_prompt(plugin_root)
@@ -542,7 +606,18 @@ def main():
         print(json.dumps(error_result, indent=2))
         sys.exit(1)
 
-    # NOTE: StoryFileError handler removed - SKILL.md validates before calling this script
+    except StoryFileError as e:
+        error_result = {
+            "status": "ERROR",
+            "summary": str(e),
+            "cycles": 0,
+            "elapsed_minutes": 0,
+            "blocker": None,
+            "epic_slug": args.epic_slug,
+            "story_slug": args.story_slug
+        }
+        print(json.dumps(error_result, indent=2))
+        sys.exit(1)
 
     except WorkerPromptError as e:
         error_result = {

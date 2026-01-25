@@ -40,67 +40,15 @@ The identifier resolver ran above. Handle the result:
 ```
 EPIC_SLUG=<epic_slug from resolution>
 STORY_SLUG=<story_slug from resolution>
-WORKTREE_PATH="$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/$EPIC_SLUG/$STORY_SLUG"
 ```
 
-Story files are located at:
-- `$WORKTREE_PATH/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/story.md` - Story definition
-- `$WORKTREE_PATH/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/journal.md` - Execution journal
+### 3. Run Implementation Orchestrator
 
-### 3. Validate Before Execution
+Run the implementation script using Bash with `run_in_background: true`.
 
-<!--
-VALIDATION ARCHITECTURE NOTE:
-Validations are consolidated here in SKILL.md, which is the ONLY validation point.
-The implement.py script does NOT duplicate these checks - it trusts that SKILL.md
-has already validated before the script is called.
-
-Validation flow:
-1. identifier_resolver_v2.py - Resolves story slug to epic/story (Step 1)
-2. SKILL.md - Validates worktree and story.md exist (THIS STEP)
-3. scope_validator.py - Runtime file access enforcement (during worker execution)
-
-The session-init.sh hook only detects context and sets env vars, not validation.
--->
-
-Check that the worktree and story.md exist:
-
-```bash
-# Check worktree exists
-test -d "$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/$EPIC_SLUG/$STORY_SLUG" && echo "WORKTREE_EXISTS" || echo "WORKTREE_MISSING"
-```
-
-**If WORKTREE_MISSING:**
-```
-Worktree not found at .claude-tasks/worktrees/<epic>/<story>/
-
-The story worktree has not been created yet. This can happen if:
-1. The story was generated but the worktree wasn't set up
-2. The worktree was deleted or moved
-
-To create the worktree, use: /task-resume <story-slug>
-```
-**STOP** - do not continue
-
-```bash
-# Check story.md exists
-test -f "$WORKTREE_PATH/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/story.md" && echo "STORY_EXISTS" || echo "STORY_MISSING"
-```
-
-**If STORY_MISSING:**
-```
-story.md not found in worktree.
-
-Expected location: .claude-tasks/epics/<epic>/stories/<story>/story.md
-
-The worktree exists but the story definition file is missing.
-This may indicate an incomplete story setup.
-```
-**STOP** - do not continue
-
-### 4. Run Implementation Orchestrator
-
-All validation passed. Run the implementation script using Bash with `run_in_background: true`:
+The script handles all validation (worktree exists, story.md exists) and returns
+structured error messages if anything is missing. This ensures validation is
+deterministic and doesn't rely on LLM interpretation.
 
 ```bash
 python3 -u "${CLAUDE_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py" \
@@ -115,7 +63,7 @@ python3 -u "${CLAUDE_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py" \
 - `run_in_background: true` - runs the script as a background task
 - `timeout: 3660000` - 61 minute timeout (slightly longer than --max-time)
 
-### 6. Report Status
+### 4. Report Status
 
 Display the execution status:
 
