@@ -21,7 +21,7 @@ allowed-tools:
 
 The identifier resolver ran above. Handle the result:
 
-- **If resolved=true**: The `story` object contains all needed data including `paths`. Continue to step 2.
+- **If resolved=true**: Extract `story.epic_slug` and `story.slug`. Continue to step 2.
 - **If resolved=false with stories array**: Use AskUserQuestion to disambiguate:
   ```
   question: "Which story do you want to implement?"
@@ -32,7 +32,7 @@ The identifier resolver ran above. Handle the result:
     ...for each story in the stories array
   ]
   ```
-  After selection, use the selected story's data (it includes `paths`).
+  After selection, use the selected story's `epic_slug` and `slug`.
 - **If resolved=false with error**: Display the error. Suggest using `/task-list` to see available stories.
 
 ### 2. Run Implementation Orchestrator
@@ -59,23 +59,22 @@ structured error messages if anything is missing.
 
 ### 3. Report Status
 
-Display the execution status using the `paths` from the resolution result:
+Display the execution status:
 
 ```
 ===============================================================
 Starting Autonomous Story Implementation
 ===============================================================
 
-Epic: <story.epic_slug>
-Story: <story.slug>
-Worktree: <story.paths.worktree_path>
+Epic: <epic_slug>
+Story: <story_slug>
+Worktree: .claude-tasks/worktrees/<epic_slug>/<story_slug>/
 Task ID: <task_id from Bash tool>
 
 The implementation script is now running in the background.
 Workers will implement tasks following TDD practices.
 
 Monitor progress:
-  - Check journal: Read <story.paths.journal_file>
   - Check status: Use TaskOutput tool with task_id
 
 The script will exit with one of these statuses:

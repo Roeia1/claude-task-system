@@ -120,29 +120,6 @@ def resolve_epic(query: str, project_root: Path) -> Dict[str, Any]:
 # Story Resolution
 # ============================================================================
 
-def build_story_paths(project_root: Path, epic_slug: str, story_slug: str) -> Dict[str, str]:
-    """
-    Build absolute paths for a story.
-
-    Args:
-        project_root: Absolute path to the project root
-        epic_slug: The epic slug
-        story_slug: The story slug
-
-    Returns:
-        Dict with absolute paths: worktree_path, story_dir, story_file, journal_file
-    """
-    worktree = project_root / ".claude-tasks" / "worktrees" / epic_slug / story_slug
-    story_dir = worktree / ".claude-tasks" / "epics" / epic_slug / "stories" / story_slug
-
-    return {
-        "worktree_path": str(worktree),
-        "story_dir": str(story_dir),
-        "story_file": str(story_dir / "story.md"),
-        "journal_file": str(story_dir / "journal.md")
-    }
-
-
 def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
     """
     Resolve an identifier as a story slug or title.
@@ -155,8 +132,7 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
         project_root: Path to the project root
 
     Returns:
-        Dict with resolved status and story data or error.
-        When resolved, includes absolute paths for direct use.
+        Dict with resolved status and story data (slug, title, status, epic_slug) or error.
     """
     epics_dir = project_root / ".claude-tasks" / "epics"
 
@@ -201,14 +177,12 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
                 title = metadata.get("title", "")
                 status = metadata.get("status", "")
 
-                # Build story data with paths
                 story_data = {
                     "slug": story_slug,
                     "title": title,
                     "status": status,
                     "context": extract_context(body),
-                    "epic_slug": epic_slug,
-                    "paths": build_story_paths(project_root, epic_slug, story_slug)
+                    "epic_slug": epic_slug
                 }
 
                 # Normalize for matching
