@@ -282,45 +282,6 @@ def load_worker_prompt(plugin_root: str) -> str:
         raise WorkerPromptError(f"Failed to read worker prompt: {e}")
 
 
-def prepend_context_to_prompt(
-    prompt: str,
-    worktree: Path,
-    plugin_root: str,
-    project_dir: str,
-    epic_slug: str,
-    story_slug: str
-) -> str:
-    """
-    Prepend context variables to the worker prompt.
-
-    Args:
-        prompt: The base worker prompt template
-        worktree: Path to the worktree
-        plugin_root: Path to plugin root
-        project_dir: Path to project root
-        epic_slug: The epic slug
-        story_slug: The story slug
-
-    Returns:
-        The prompt with context variables prepended.
-    """
-    story_dir = f".claude-tasks/epics/{epic_slug}/stories/{story_slug}"
-
-    context = f"""# Story Worker Context
-
-**Worktree Root:** {worktree}
-**Plugin Root:** {plugin_root}
-**Project Dir:** {project_dir}
-**Epic:** {epic_slug}
-**Story:** {story_slug}
-**Story Dir:** {story_dir}
-
----
-
-"""
-    return context + prompt
-
-
 # ============================================================================
 # Scope Enforcement Settings
 # ============================================================================
@@ -519,11 +480,8 @@ def run_loop(
     if not validation["valid"]:
         raise StoryFileError(validation["error"])
 
-    # Load worker prompt
-    base_prompt = load_worker_prompt(plugin_root)
-    worker_prompt = prepend_context_to_prompt(
-        base_prompt, worktree, plugin_root, project_dir, epic_slug, story_slug
-    )
+    # Load worker prompt (context is injected by SessionStart hook, not here)
+    worker_prompt = load_worker_prompt(plugin_root)
 
     # Build scope settings
     settings = build_scope_settings(plugin_root, epic_slug, story_slug)

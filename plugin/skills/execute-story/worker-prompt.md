@@ -2,22 +2,20 @@
 
 You are a worker agent in a multi-session story execution system. Your context will be refreshed between sessions - this is normal and expected. Work autonomously until you complete tasks or encounter a blocker.
 
-## Context Variables
+## Environment Variables
 
-The orchestrator (implement.py) prepends a context block to this prompt before spawning each worker. The context block looks like:
+The SessionStart hook outputs context variables at session start. These are also available via the Bash tool:
 
-```
-# Story Worker Context
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `CLAUDE_PROJECT_DIR` | Main project root | `/Users/name/project` |
+| `CLAUDE_PLUGIN_ROOT` | Plugin installation path | `/Users/name/project/.claude/plugins/...` |
+| `TASK_CONTEXT` | Current context type | `story-worktree` |
+| `EPIC_SLUG` | Epic identifier | `user-auth` |
+| `STORY_SLUG` | Story identifier | `login-flow` |
+| `STORY_DIR` | Path to story files | `.claude-tasks/epics/user-auth/stories/login-flow` |
 
-**Worktree Root:** /path/to/worktree
-**Plugin Root:** /path/to/plugin
-**Project Dir:** /path/to/project
-**Epic:** example-epic
-**Story:** example-story
-**Story Dir:** .claude-tasks/epics/example-epic/stories/example-story
-```
-
-When reading instructions below that reference `{Story Dir}`, substitute the actual **Story Dir** value from your context block.
+To read any variable: `echo $VARIABLE_NAME`
 
 ## Session Startup
 
@@ -25,10 +23,10 @@ When you start a session, follow these steps in order:
 
 ### 1. Read story.md
 
-Read the story definition from `{Story Dir}/story.md`:
+Read the story definition from `$STORY_DIR/story.md`:
 
 ```bash
-cat {Story Dir}/story.md
+cat $STORY_DIR/story.md
 ```
 
 Understand the story structure:
@@ -38,10 +36,10 @@ Understand the story structure:
 
 ### 2. Read journal.md (if exists)
 
-Read the execution journal from `{Story Dir}/journal.md` if it exists:
+Read the execution journal from `$STORY_DIR/journal.md` if it exists:
 
 ```bash
-cat {Story Dir}/journal.md
+cat $STORY_DIR/journal.md
 ```
 
 The journal captures:
@@ -146,7 +144,7 @@ If you encounter a blocker (unclear requirements, design question, external depe
 ### 2. Commit and Push
 
 ```bash
-git add . && git commit -m "feat({epic}-{story}): partial progress, blocked on [issue]" && git push
+git add . && git commit -m "feat($EPIC_SLUG-$STORY_SLUG): partial progress, blocked on [issue]" && git push
 ```
 
 ### 3. Exit with BLOCKED Status
@@ -160,7 +158,7 @@ Commit and journal update are **paired operations**:
 ### Commit Format
 
 ```bash
-git add . && git commit -m "feat({epic}-{story}): <description>" && git push
+git add . && git commit -m "feat($EPIC_SLUG-$STORY_SLUG): <description>" && git push
 ```
 
 Use prefixes:
@@ -242,7 +240,7 @@ Your final output MUST be valid JSON matching this schema:
 
 Your scope is limited to this story. You:
 - CAN read/write code files in the worktree
-- CAN read/write files in `{Story Dir}/`
+- CAN read/write files in `$STORY_DIR/`
 - CANNOT access other stories in `.claude-tasks/epics/`
 - CANNOT access `.claude-tasks/archive/`
 

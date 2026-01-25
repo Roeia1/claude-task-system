@@ -118,17 +118,20 @@ echo $CLAUDE_PROJECT_DIR
 
 **Available Variables:**
 
-| Variable | Description | Source |
-|----------|-------------|--------|
-| `CLAUDE_PROJECT_DIR` | Project root directory | Runtime |
-| `CLAUDE_PLUGIN_ROOT` | Plugin installation directory | Runtime |
-| `TASK_CONTEXT` | `"main"` or `"worktree"` | SessionStart hook |
-| `CURRENT_TASK_ID` | Task number (only in worktree) | SessionStart hook |
+| Variable | Description | Context |
+|----------|-------------|---------|
+| `CLAUDE_PROJECT_DIR` | Project root directory | Always |
+| `CLAUDE_PLUGIN_ROOT` | Plugin installation directory | Always |
+| `TASK_CONTEXT` | `"main"`, `"task-worktree"`, or `"story-worktree"` | Always |
+| `CURRENT_TASK_ID` | Task number | V1 task worktree |
+| `EPIC_SLUG` | Epic identifier | V2 story worktree |
+| `STORY_SLUG` | Story identifier | V2 story worktree |
+| `STORY_DIR` | Path to story files | V2 story worktree |
 
 **Important notes:**
-- Runtime variables are only available during hook execution; the SessionStart hook persists them to `CLAUDE_ENV_FILE`
-- Session variables (`TASK_CONTEXT`, `CURRENT_TASK_ID`) are computed by the SessionStart hook based on filesystem state
-- Headless mode runs hooks too - all variables work the same as interactive mode
+- The SessionStart hook outputs all variables at session start with their values
+- All variables are persisted to `CLAUDE_ENV_FILE` and available via Bash tool
+- Interactive and headless modes work identically - same hooks, same variables
 
 For full documentation including headless mode behavior and how to add new variables, see: `plugin/docs/ENVIRONMENT.md`
 

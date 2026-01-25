@@ -12,11 +12,13 @@ Environment variables in Claude Code are available in the bash execution environ
 echo $CLAUDE_PROJECT_DIR
 ```
 
+The SessionStart hook outputs context at session start, displaying all available variables with their values.
+
 ## Variable Reference
 
 ### Runtime Variables (Provided by Claude Code)
 
-These are automatically available in any Claude Code session. They are set by the plugin runtime before any user interaction.
+These are set by the plugin runtime before any user interaction. They are only available during hook execution, so the SessionStart hook persists them to `CLAUDE_ENV_FILE`.
 
 | Variable | Description | Example |
 |----------|-------------|---------|
@@ -24,48 +26,58 @@ These are automatically available in any Claude Code session. They are set by th
 | `CLAUDE_PLUGIN_ROOT` | Absolute path to the plugin installation directory | `/Users/name/my-project/.claude/plugins/claude-task-system` |
 | `CLAUDE_ENV_FILE` | Path to temporary file for persisting bash environment | `/tmp/claude-env-abc123` |
 
-**Notes:**
-- `CLAUDE_PROJECT_DIR` and `CLAUDE_PLUGIN_ROOT` are only available during hook execution (e.g., SessionStart)
-- The SessionStart hook writes them to `CLAUDE_ENV_FILE` so they're available in subsequent Bash tool invocations
-- `CLAUDE_ENV_FILE` is sourced automatically by the Bash tool, making all persisted variables accessible
-
 ### Session Variables (Set by SessionStart Hook)
 
 These are computed by `hooks/session-init.sh` when a Claude Code session starts. They are derived from filesystem state.
 
-| Variable | Description | Values | Condition |
-|----------|-------------|--------|-----------|
-| `TASK_CONTEXT` | Whether session is in main repo or task worktree | `"main"` or `"worktree"` | Always set |
-| `CURRENT_TASK_ID` | The task number when in a worktree | `"024"`, `"001"`, etc. | Only when `TASK_CONTEXT="worktree"` |
+#### Core Variables (Always Set)
 
-**Detection logic:**
-- If `task-system/task-NNN/` folder exists in current directory → `TASK_CONTEXT="worktree"`, `CURRENT_TASK_ID="NNN"`
-- Otherwise → `TASK_CONTEXT="main"`, `CURRENT_TASK_ID` is not set
+| Variable | Description | Values |
+|----------|-------------|--------|
+| `TASK_CONTEXT` | Current working context | `"main"`, `"task-worktree"`, or `"story-worktree"` |
 
-## Headless Mode (Worker Agents)
+#### V1 Task Variables (Conditional)
 
-Headless Claude workers (spawned via `implement.py` or `claude -p`) use the plugin and run hooks just like interactive sessions. The SessionStart hook executes and sets up the same environment variables.
+Set when `TASK_CONTEXT="task-worktree"`:
 
-**How it works:**
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `CURRENT_TASK_ID` | The task number | `"024"`, `"001"` |
 
-1. Worker is spawned with `cwd` set to the worktree directory
-2. SessionStart hook runs and detects the worktree context
-3. Hook writes `TASK_CONTEXT`, `CURRENT_TASK_ID`, etc. to `CLAUDE_ENV_FILE`
-4. All variables are available via Bash tool, same as interactive mode
+#### V2 Story Variables (Conditional)
 
-**Worker context in prompt:**
+Set when `TASK_CONTEXT="story-worktree"`:
 
-The orchestrator also prepends context to the worker prompt for convenience:
-```
-**Worktree Root:** /path/to/worktree
-**Plugin Root:** /path/to/plugin
-**Project Dir:** /path/to/project
-**Epic:** example-epic
-**Story:** example-story
-**Story Dir:** .claude-tasks/epics/example-epic/stories/example-story
-```
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `EPIC_SLUG` | Epic identifier | `"user-auth"` |
+| `STORY_SLUG` | Story identifier | `"login-flow"` |
+| `STORY_DIR` | Relative path to story files | `".claude-tasks/epics/user-auth/stories/login-flow"` |
 
-This provides immediate access to paths without needing a Bash call, but the environment variables remain the authoritative source.
+### Detection Logic
+
+The SessionStart hook determines context based on filesystem:
+
+1. **V2 Story Worktree**: If `.claude-tasks/epics/` exists AND git worktree path contains `/.claude-tasks/worktrees/`
+   - Sets: `TASK_CONTEXT="story-worktree"`, `EPIC_SLUG`, `STORY_SLUG`, `STORY_DIR`
+
+2. **V1 Task Worktree**: If `task-system/task-NNN/` folder exists
+   - Sets: `TASK_CONTEXT="task-worktree"`, `CURRENT_TASK_ID`
+
+3. **Main Repository**: Otherwise
+   - Sets: `TASK_CONTEXT="main"`
+
+## Interactive vs Headless Mode
+
+Both interactive and headless Claude sessions work the same way:
+
+1. Plugin loads
+2. SessionStart hook runs and detects context
+3. Hook persists all variables to `CLAUDE_ENV_FILE`
+4. Hook outputs context summary for Claude to see
+5. Bash tool sources `CLAUDE_ENV_FILE`, making all variables available
+
+**There is no difference** - headless workers (spawned via `implement.py` or `claude -p`) run hooks just like interactive sessions.
 
 ## Usage Patterns
 
@@ -78,7 +90,7 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/example.md`
 ```
 
 ```bash
-cat ${CLAUDE_PROJECT_DIR}/.claude-tasks/epics/my-epic/epic.md
+cat $STORY_DIR/story.md
 ```
 
 ### In Python Scripts
@@ -95,8 +107,8 @@ if not project_dir:
 
 ```bash
 # Always check if set before using
-if [ -z "$CLAUDE_PROJECT_DIR" ]; then
-    echo "Error: CLAUDE_PROJECT_DIR not set" >&2
+if [ -z "$STORY_DIR" ]; then
+    echo "Error: STORY_DIR not set" >&2
     exit 1
 fi
 ```
@@ -106,48 +118,55 @@ fi
 If you need to add a new environment variable:
 
 1. **Document it here first** - add to the appropriate table above
-2. **Set it in one place only** - either:
-   - Runtime: Request from Claude Code plugin system (not user-controllable)
-   - Session: Add to `hooks/session-init.sh`
+2. **Set it in one place only** - add to `hooks/session-init.sh`
 3. **Update CLAUDE.md** - if the variable affects how Claude should behave
-4. **Consider headless mode** - will workers need this? If so, either:
-   - Ensure it's inherited via subprocess environment
-   - Pass it via worker prompt context
+4. **Use consistent naming** - the same name should be used everywhere (hook output, env var, documentation)
 
 ## Variable Flow Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Interactive Session                           │
+│              Session Start (Interactive or Headless)             │
 ├─────────────────────────────────────────────────────────────────┤
 │  Claude Code Runtime                                             │
 │  └── Sets: CLAUDE_PROJECT_DIR, CLAUDE_PLUGIN_ROOT, CLAUDE_ENV_FILE│
 │                          ↓                                       │
 │  SessionStart Hook (session-init.sh)                             │
-│  └── Detects filesystem state                                    │
-│  └── Sets: TASK_CONTEXT, CURRENT_TASK_ID (if worktree)          │
+│  └── Detects V1 task worktree (task-system/task-NNN/)           │
+│  └── Detects V2 story worktree (.claude-tasks/worktrees/...)    │
+│  └── Sets: TASK_CONTEXT + context-specific variables             │
 │  └── Writes all to CLAUDE_ENV_FILE                               │
+│  └── Outputs context summary for Claude                          │
 │                          ↓                                       │
 │  Bash Tool Invocations                                           │
 │  └── Sources CLAUDE_ENV_FILE automatically                       │
 │  └── All variables available via $VAR or ${VAR}                  │
 └─────────────────────────────────────────────────────────────────┘
+```
 
-┌─────────────────────────────────────────────────────────────────┐
-│                    Headless Worker Session                       │
-├─────────────────────────────────────────────────────────────────┤
-│  Parent Process (implement.py)                                   │
-│  └── Reads: CLAUDE_PROJECT_DIR, CLAUDE_PLUGIN_ROOT from env     │
-│  └── Computes: worktree path, story dir, etc.                   │
-│  └── Prepends context to worker prompt                          │
-│                          ↓                                       │
-│  subprocess.run(["claude", "-p", ...], cwd=worktree)            │
-│  └── Plugin loads, SessionStart hook runs                        │
-│  └── Hook detects worktree, writes vars to CLAUDE_ENV_FILE      │
-│                          ↓                                       │
-│  Worker's Bash Tool                                              │
-│  └── Sources CLAUDE_ENV_FILE automatically                       │
-│  └── All variables available (same as interactive)               │
-│  └── Prompt context provides convenient path access              │
-└─────────────────────────────────────────────────────────────────┘
+### Example Session Output
+
+**In main repository:**
+```
+# Session Context
+
+CLAUDE_PROJECT_DIR: /Users/name/my-project
+CLAUDE_PLUGIN_ROOT: /Users/name/my-project/.claude/plugins/claude-task-system
+TASK_CONTEXT: main
+
+These variables are available via the Bash tool: echo $VARIABLE_NAME
+```
+
+**In V2 story worktree:**
+```
+# Session Context
+
+CLAUDE_PROJECT_DIR: /Users/name/my-project
+CLAUDE_PLUGIN_ROOT: /Users/name/my-project/.claude/plugins/claude-task-system
+TASK_CONTEXT: story-worktree
+EPIC_SLUG: user-auth
+STORY_SLUG: login-flow
+STORY_DIR: .claude-tasks/epics/user-auth/stories/login-flow
+
+These variables are available via the Bash tool: echo $VARIABLE_NAME
 ```
