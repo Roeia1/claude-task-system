@@ -39,7 +39,7 @@ from implement import (
     parse_worker_output,
     spawn_worker,
     run_loop,
-    EnvironmentError,
+    MissingEnvironmentError,
     StoryFileError,
     WorkerPromptError,
     WorkerOutputError,
@@ -194,15 +194,15 @@ class TestEnvironmentVars:
             assert env["project_dir"] == "/path/to/project"
 
     def test_raises_if_plugin_root_missing(self):
-        """Raises EnvironmentError if CLAUDE_PLUGIN_ROOT is missing."""
+        """Raises MissingEnvironmentError if CLAUDE_PLUGIN_ROOT is missing."""
         with patch.dict(os.environ, {"CLAUDE_PROJECT_DIR": "/path"}, clear=True):
-            with pytest.raises(EnvironmentError):
+            with pytest.raises(MissingEnvironmentError):
                 get_environment_vars()
 
     def test_raises_if_project_dir_missing(self):
-        """Raises EnvironmentError if CLAUDE_PROJECT_DIR is missing."""
+        """Raises MissingEnvironmentError if CLAUDE_PROJECT_DIR is missing."""
         with patch.dict(os.environ, {"CLAUDE_PLUGIN_ROOT": "/path"}, clear=True):
-            with pytest.raises(EnvironmentError):
+            with pytest.raises(MissingEnvironmentError):
                 get_environment_vars()
 
 

@@ -89,7 +89,7 @@ class WorkerSpawnError(Exception):
     pass
 
 
-class EnvironmentError(Exception):
+class MissingEnvironmentError(Exception):
     """Raised when required environment variables are missing."""
     pass
 
@@ -151,15 +151,15 @@ def get_environment_vars() -> Dict[str, str]:
         Dict with CLAUDE_PLUGIN_ROOT and CLAUDE_PROJECT_DIR.
 
     Raises:
-        EnvironmentError: If required variables are not set.
+        MissingEnvironmentError: If required variables are not set.
     """
     plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR")
 
     if not plugin_root:
-        raise EnvironmentError("CLAUDE_PLUGIN_ROOT environment variable not set")
+        raise MissingEnvironmentError("CLAUDE_PLUGIN_ROOT environment variable not set")
     if not project_dir:
-        raise EnvironmentError("CLAUDE_PROJECT_DIR environment variable not set")
+        raise MissingEnvironmentError("CLAUDE_PROJECT_DIR environment variable not set")
 
     return {
         "plugin_root": plugin_root,
@@ -485,7 +485,7 @@ def run_loop(
         Final result dict with status, summary, cycles, elapsed_minutes, blocker.
 
     Raises:
-        EnvironmentError: If environment variables are missing.
+        MissingEnvironmentError: If environment variables are missing.
         StoryFileError: If story files are not found.
     """
     # Get environment
@@ -593,7 +593,7 @@ def main():
         print(json.dumps(result, indent=2))
         sys.exit(0)
 
-    except EnvironmentError as e:
+    except MissingEnvironmentError as e:
         error_result = {
             "status": "ERROR",
             "summary": str(e),
