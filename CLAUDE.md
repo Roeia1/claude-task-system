@@ -108,6 +108,33 @@ When referencing files within the plugin (templates, scripts, workflows, step-in
 
 **Exception**: Paths in templates that will be written to the user's project (e.g., `../features/NNN/feature.md` in task-template.md) should remain relative since they reference the user's project structure, not plugin files.
 
+### Environment Variables
+
+Environment variables are available in the bash execution environment. To read a value, use the Bash tool:
+
+```bash
+echo $CLAUDE_PROJECT_DIR
+```
+
+**Available Variables:**
+
+| Variable | Description | Context |
+|----------|-------------|---------|
+| `CLAUDE_PROJECT_DIR` | Project root directory | Always |
+| `CLAUDE_PLUGIN_ROOT` | Plugin installation directory | Always |
+| `TASK_CONTEXT` | `"main"`, `"task-worktree"`, or `"story-worktree"` | Always |
+| `CURRENT_TASK_ID` | Task number | V1 task worktree |
+| `EPIC_SLUG` | Epic identifier | V2 story worktree |
+| `STORY_SLUG` | Story identifier | V2 story worktree |
+| `STORY_DIR` | Path to story files | V2 story worktree |
+
+**Important notes:**
+- The SessionStart hook outputs all variables at session start with their values
+- All variables are persisted to `CLAUDE_ENV_FILE` and available via Bash tool
+- Interactive and headless modes work identically - same hooks, same variables
+
+For full documentation including headless mode behavior and how to add new variables, see: `plugin/docs/ENVIRONMENT.md`
+
 ### Dynamic Task Status
 
 Task status is derived from filesystem and git state (no persistent TASK-LIST.md):

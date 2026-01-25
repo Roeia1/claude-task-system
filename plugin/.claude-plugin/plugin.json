@@ -20,8 +20,6 @@
   "commands": [
     "./commands/init.md",
     "./commands/task-list.md",
-    "./commands/implement.md",
-    "./commands/resolve.md",
     "./commands/task-cleanup.md",
     "./commands/task-resume.md",
     "./commands/feature-definition.md",

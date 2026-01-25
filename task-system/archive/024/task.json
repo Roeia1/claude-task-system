@@ -1,0 +1,135 @@
+{
+  "meta": {
+    "id": "024",
+    "title": "Phase 3 - Story Execution and Resolution",
+    "created": "2026-01-17",
+    "feature": "009"
+  },
+
+  "overview": "Implement the story execution and resolution infrastructure for Task System V2. This task creates the /implement command that spawns worker Claude instances to autonomously execute stories, and the /resolve command for handling blocked stories. The execution flow works as follows: the /implement command uses identifier_resolver_v2.py to resolve story slugs, then invokes the execute-story skill which runs implement.py as an orchestrator. The orchestrator spawns workers in a loop with dynamic scope enforcement via --settings hooks, parsing worker output (ONGOING/FINISH/BLOCKED) until completion or timeout. Workers read story.md for tasks and write progress to journal.md, operating within a git worktree at .claude-tasks/worktrees/<epic>/<story>/. Scope enforcement uses scope_validator.sh as a PreToolUse hook to block access to other stories' task files and the archive folder. When workers return BLOCKED status, the /resolve command invokes resolve-blocker skill to analyze journal.md, propose solutions, and document resolutions. Key constraints: workers must use --dangerously-skip-permissions flag, scope hooks passed via --settings JSON, all file paths relative to worktree root, and worker output must conform to JSON schema with status/summary/blocker fields.",
+
+  "objectives": [
+    {
+      "id": "obj-1",
+      "description": "Create the /implement command that accepts a story-slug argument and invokes the execute-story skill",
+      "steps": [
+        "Create plugin/commands/implement.md with frontmatter (argument-hint: <story-slug>, allowed-tools including Bash and Skill)",
+        "Add bash execution (!` prefix) to run identifier_resolver_v2.py with story type",
+        "Document resolution handling: resolved=true invokes skill, multiple matches uses AskUserQuestion, error displays message"
+      ],
+      "notes": [
+        "Command format follows existing V2 commands pattern",
+        "identifier_resolver_v2.py already exists from task 022",
+        "Must use $ARGUMENTS and $CLAUDE_PROJECT_DIR placeholders"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "obj-2",
+      "description": "Create the execute-story skill with SKILL.md that orchestrates story implementation",
+      "steps": [
+        "Create plugin/skills/execute-story/SKILL.md with frontmatter (user-invocable: false, allowed-tools for Bash and Task)",
+        "Document path computation: worktree at $CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/<epic>/<story>/",
+        "Document story.md and journal.md paths inside worktree",
+        "Include validation requirements and orchestrator invocation"
+      ],
+      "notes": [
+        "Skill receives resolved story context from /implement command",
+        "Must validate worktree and story.md exist before spawning orchestrator"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "obj-3",
+      "description": "Create implement.py orchestrator script that spawns worker Claude instances in a loop",
+      "steps": [
+        "Create plugin/skills/execute-story/scripts/implement.py",
+        "Parse arguments: epic_slug, story_slug, --max-cycles (default 10), --max-time (default 60), --model (default opus)",
+        "Read CLAUDE_PLUGIN_ROOT and CLAUDE_PROJECT_DIR from environment",
+        "Compute worktree path and validate existence",
+        "Load worker-prompt.md template and prepend context variables",
+        "Build scope enforcement settings JSON with PreToolUse hooks",
+        "Implement spawn loop: call claude CLI with prompt, settings, model, output-format json, json-schema, --dangerously-skip-permissions",
+        "Parse worker output and handle ONGOING/FINISH/BLOCKED/TIMEOUT/MAX_CYCLES",
+        "Output final result as JSON"
+      ],
+      "notes": [
+        "Worker cwd must be set to worktree root",
+        "Use subprocess.run for claude CLI invocation",
+        "Worker output schema: {status, summary, blocker}",
+        "Exit with appropriate status codes for orchestrator tracking"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "obj-4",
+      "description": "Create worker-prompt.md template with context variable placeholders and execution instructions",
+      "steps": [
+        "Create plugin/skills/execute-story/worker-prompt.md",
+        "Define context variable format at top (WORKTREE_ROOT, CLAUDE_PLUGIN_ROOT, etc.)",
+        "Document session startup: read story.md, read journal.md, run git log, select task",
+        "Document implementation workflow: follow task guidance, references, avoid patterns, done-when criteria",
+        "Include TDD workflow requirements",
+        "Include commit discipline requirements",
+        "Document exit protocol: output JSON with status ONGOING/FINISH/BLOCKED"
+      ],
+      "notes": [
+        "Context variables prepended by implement.py before spawning",
+        "Worker operates entirely within worktree context",
+        "Must reference paths using $WORKTREE_ROOT prefix"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "obj-5",
+      "description": "Create scope_validator.sh hook script for enforcing story isolation",
+      "steps": [
+        "Create plugin/skills/execute-story/scripts/scope_validator.sh",
+        "Accept epic_slug and story_slug as command-line arguments",
+        "Read tool input JSON from stdin",
+        "Extract file_path from JSON (handle both file_path and path field names)",
+        "Block access to .claude-tasks/archive/ folder with clear error message",
+        "Block access to other stories' files in .claude-tasks/epics/ with scope violation message",
+        "Allow all other file operations (code files)",
+        "Exit 0 for allowed, exit 2 for blocked"
+      ],
+      "notes": [
+        "Hook runs as PreToolUse for Read/Write/Edit operations",
+        "Error messages must explain what path was attempted and what the allowed scope is",
+        "Use python3 for JSON parsing from stdin"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "obj-6",
+      "description": "Create the /resolve command that accepts an optional story-slug and invokes resolve-blocker skill",
+      "steps": [
+        "Create plugin/commands/resolve.md with frontmatter (argument-hint: [story-slug], allowed-tools)",
+        "Add bash execution to run identifier_resolver_v2.py",
+        "Handle resolution scenarios: resolved invokes skill, multiple matches disambiguates, error displays"
+      ],
+      "notes": [
+        "Optional argument - may need to detect current context if not provided",
+        "Similar structure to /implement command"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "obj-7",
+      "description": "Create the resolve-blocker skill that analyzes blockers and documents resolutions",
+      "steps": [
+        "Create plugin/skills/resolve-blocker/SKILL.md with frontmatter (user-invocable: false)",
+        "Document workflow: read journal.md to understand blocker",
+        "Analyze blocker and propose solutions with pros/cons",
+        "Use AskUserQuestion to get human decision",
+        "Document resolution in journal.md",
+        "Update story status to allow resumption with /implement"
+      ],
+      "notes": [
+        "Skill provides human-in-the-loop for BLOCKED worker status",
+        "Resolution must be documented before worker can continue"
+      ],
+      "status": "done"
+    }
+  ]
+}

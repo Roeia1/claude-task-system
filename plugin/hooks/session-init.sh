@@ -1,7 +1,14 @@
 #!/bin/bash
-# SessionStart hook - detects and persists task context
+# SessionStart hook - detects context and persists environment variables
+#
+# This hook runs at session start for both interactive and headless modes.
+# It detects the working context (main repo, V1 task worktree, or V2 story worktree)
+# and makes environment variables available via CLAUDE_ENV_FILE.
 
-# Detect task ID from task-system/task-NNN folder
+# =============================================================================
+# V1 Task Detection (task-system/task-NNN/)
+# =============================================================================
+
 CURRENT_TASK_ID=""
 for dir in task-system/task-[0-9]*/; do
     if [ -d "$dir" ]; then
@@ -10,26 +17,81 @@ for dir in task-system/task-[0-9]*/; do
     fi
 done
 
-# Task folder present = worktree, otherwise = main
-if [ -n "$CURRENT_TASK_ID" ]; then
-    TASK_CONTEXT="worktree"
+# =============================================================================
+# V2 Story Detection (.claude-tasks/worktrees/EPIC/STORY/)
+# =============================================================================
+
+EPIC_SLUG=""
+STORY_SLUG=""
+STORY_DIR=""
+
+# Check if we're in a V2 story worktree by looking for the marker
+# The worktree path is: .claude-tasks/worktrees/<epic>/<story>/
+# We detect by checking if .claude-tasks/epics exists and extracting from git worktree info
+if [ -d ".claude-tasks/epics" ]; then
+    # Get the worktree path from git
+    WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [ -n "$WORKTREE_PATH" ]; then
+        # Check if path contains /worktrees/ pattern
+        if [[ "$WORKTREE_PATH" == *"/.claude-tasks/worktrees/"* ]]; then
+            # Extract epic and story from path: .../worktrees/EPIC/STORY
+            STORY_SLUG=$(basename "$WORKTREE_PATH")
+            EPIC_SLUG=$(basename "$(dirname "$WORKTREE_PATH")")
+            STORY_DIR=".claude-tasks/epics/${EPIC_SLUG}/stories/${STORY_SLUG}"
+        fi
+    fi
+fi
+
+# =============================================================================
+# Determine Context
+# =============================================================================
+
+if [ -n "$STORY_SLUG" ]; then
+    TASK_CONTEXT="story-worktree"
+elif [ -n "$CURRENT_TASK_ID" ]; then
+    TASK_CONTEXT="task-worktree"
 else
     TASK_CONTEXT="main"
 fi
 
-# Write to CLAUDE_ENV_FILE for bash access
+# =============================================================================
+# Persist to CLAUDE_ENV_FILE
+# =============================================================================
+
 if [ -n "$CLAUDE_ENV_FILE" ]; then
+    # Core variables (always set)
     echo "export CLAUDE_PROJECT_DIR=\"$CLAUDE_PROJECT_DIR\"" >> "$CLAUDE_ENV_FILE"
     echo "export CLAUDE_PLUGIN_ROOT=\"$CLAUDE_PLUGIN_ROOT\"" >> "$CLAUDE_ENV_FILE"
     echo "export TASK_CONTEXT=\"$TASK_CONTEXT\"" >> "$CLAUDE_ENV_FILE"
+
+    # V1 task variables (conditional)
     [ -n "$CURRENT_TASK_ID" ] && echo "export CURRENT_TASK_ID=\"$CURRENT_TASK_ID\"" >> "$CLAUDE_ENV_FILE"
+
+    # V2 story variables (conditional)
+    [ -n "$EPIC_SLUG" ] && echo "export EPIC_SLUG=\"$EPIC_SLUG\"" >> "$CLAUDE_ENV_FILE"
+    [ -n "$STORY_SLUG" ] && echo "export STORY_SLUG=\"$STORY_SLUG\"" >> "$CLAUDE_ENV_FILE"
+    [ -n "$STORY_DIR" ] && echo "export STORY_DIR=\"$STORY_DIR\"" >> "$CLAUDE_ENV_FILE"
 fi
 
-# Output for Claude awareness
-if [ "$TASK_CONTEXT" = "worktree" ] && [ -n "$CURRENT_TASK_ID" ]; then
-    echo "Task Context: Working in task $CURRENT_TASK_ID worktree"
-else
-    echo "Task Context: In main repository"
+# =============================================================================
+# Output Context for Claude (uses env var names for consistency)
+# =============================================================================
+
+echo "# Session Context"
+echo ""
+echo "CLAUDE_PROJECT_DIR: $CLAUDE_PROJECT_DIR"
+echo "CLAUDE_PLUGIN_ROOT: $CLAUDE_PLUGIN_ROOT"
+echo "TASK_CONTEXT: $TASK_CONTEXT"
+
+if [ "$TASK_CONTEXT" = "story-worktree" ]; then
+    echo "EPIC_SLUG: $EPIC_SLUG"
+    echo "STORY_SLUG: $STORY_SLUG"
+    echo "STORY_DIR: $STORY_DIR"
+elif [ "$TASK_CONTEXT" = "task-worktree" ]; then
+    echo "CURRENT_TASK_ID: $CURRENT_TASK_ID"
 fi
+
+echo ""
+echo "These variables are available via the Bash tool: echo \$VARIABLE_NAME"
 
 exit 0

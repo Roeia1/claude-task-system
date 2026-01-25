@@ -132,7 +132,7 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
         project_root: Path to the project root
 
     Returns:
-        Dict with resolved status and story data or error
+        Dict with resolved status and story data (slug, title, status, epic_slug) or error.
     """
     epics_dir = project_root / ".claude-tasks" / "epics"
 
@@ -177,6 +177,14 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
                 title = metadata.get("title", "")
                 status = metadata.get("status", "")
 
+                story_data = {
+                    "slug": story_slug,
+                    "title": title,
+                    "status": status,
+                    "context": extract_context(body),
+                    "epic_slug": epic_slug
+                }
+
                 # Normalize for matching
                 slug_normalized = story_slug.lower().replace("-", " ").replace("_", " ")
                 title_normalized = title.lower().replace("-", " ").replace("_", " ")
@@ -185,13 +193,7 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
                 if slug_normalized == query_normalized:
                     return {
                         "resolved": True,
-                        "story": {
-                            "slug": story_slug,
-                            "title": title,
-                            "status": status,
-                            "context": extract_context(body),
-                            "epic_slug": epic_slug
-                        }
+                        "story": story_data
                     }
 
                 # Fuzzy match
@@ -199,13 +201,7 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
                     slug_normalized in query_normalized or
                     query_normalized in title_normalized or
                     title_normalized in query_normalized):
-                    matches.append({
-                        "slug": story_slug,
-                        "title": title,
-                        "status": status,
-                        "context": extract_context(body),
-                        "epic_slug": epic_slug
-                    })
+                    matches.append(story_data)
 
             except Exception:
                 # Skip stories with invalid files
