@@ -35,7 +35,6 @@ from implement import (
     compute_story_path,
     validate_story_files,
     load_worker_prompt,
-    prepend_context_to_prompt,
     build_scope_settings,
     parse_worker_output,
     spawn_worker,
@@ -306,23 +305,6 @@ class TestWorkerPrompt:
         with pytest.raises(WorkerPromptError):
             load_worker_prompt(str(temp_project / "nonexistent"))
 
-    def test_prepends_context_variables(self):
-        """Prepends context variables to prompt."""
-        base_prompt = "# Instructions"
-        result = prepend_context_to_prompt(
-            base_prompt,
-            Path("/worktree"),
-            "/plugin",
-            "/project",
-            "epic",
-            "story"
-        )
-        assert "**Worktree Root:**" in result
-        assert "**Epic:** epic" in result
-        assert "**Story:** story" in result
-        assert "# Instructions" in result
-
-
 # ============================================================================
 # Scope Settings Tests
 # ============================================================================
@@ -342,12 +324,13 @@ class TestScopeSettings:
         hook = settings["hooks"]["PreToolUse"][0]
         assert "Read|Write|Edit" in hook["matcher"]
 
-    def test_hook_includes_epic_and_story(self):
-        """Hook command includes epic and story slugs."""
+    def test_hook_command_invokes_scope_validator(self):
+        """Hook command invokes scope_validator.py script."""
         settings = build_scope_settings("/plugin", "my-epic", "my-story")
         hook = settings["hooks"]["PreToolUse"][0]
-        assert "my-epic" in hook["hooks"][0]
-        assert "my-story" in hook["hooks"][0]
+        # Scope validator gets epic/story from environment variables (set by SessionStart hook)
+        assert "scope_validator.py" in hook["hooks"][0]
+        assert "python3" in hook["hooks"][0]
 
 
 # ============================================================================
