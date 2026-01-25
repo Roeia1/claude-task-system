@@ -1,33 +1,45 @@
 ---
-name: execute-story
-description: Orchestrate autonomous story implementation
-user-invocable: false
+name: implement
+description: Start autonomous story implementation
+argument-hint: "<story-slug>"
+user-invocable: true
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read
   - Task
+  - AskUserQuestion
 ---
 
-# Execute Story Skill
+# Implement Story Skill
 
-This skill orchestrates the autonomous implementation of a story by spawning worker Claude instances.
+!`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type story --project-root "${CLAUDE_PROJECT_DIR}"`
 
-## Arguments
+## Process
 
-The skill receives two arguments from the `/implement` command:
-- `$EPIC_SLUG` - The parent epic's slug (e.g., "auth-system")
-- `$STORY_SLUG` - The story's slug (e.g., "user-login")
+### 1. Check Resolution Result
 
-Parse these from `$ARGUMENTS`:
+The identifier resolver ran above. Handle the result:
+
+- **If resolved=true**: Extract `story.slug` and `story.epic_slug`, continue to step 2
+- **If resolved=false with stories array**: Use AskUserQuestion to disambiguate:
+  ```
+  question: "Which story do you want to implement?"
+  header: "Story"
+  multiSelect: false
+  options: [
+    {label: "<slug>", description: "<title> (Epic: <epic_slug>, Status: <status>)"}
+    ...for each story in the stories array
+  ]
+  ```
+  After selection, continue with the selected story.
+- **If resolved=false with error**: Display the error. Suggest using `/task-list` to see available stories.
+
+### 2. Compute Paths
+
 ```
-EPIC_SLUG=$(echo "$ARGUMENTS" | cut -d' ' -f1)
-STORY_SLUG=$(echo "$ARGUMENTS" | cut -d' ' -f2)
-```
-
-## Step 1: Compute Paths
-
-The worktree path follows the V2 structure:
-```
+EPIC_SLUG=<epic_slug from resolution>
+STORY_SLUG=<story_slug from resolution>
 WORKTREE_PATH="$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/$EPIC_SLUG/$STORY_SLUG"
 ```
 
@@ -35,11 +47,11 @@ Story files are located at:
 - `$WORKTREE_PATH/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/story.md` - Story definition
 - `$WORKTREE_PATH/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/journal.md` - Execution journal
 
-## Step 2: Validate Worktree Exists
+### 3. Validate Worktree Exists
 
 Check that the worktree directory exists:
 
-!`test -d "$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/$(echo "$ARGUMENTS" | cut -d' ' -f1)/$(echo "$ARGUMENTS" | cut -d' ' -f2)" && echo "WORKTREE_EXISTS" || echo "WORKTREE_MISSING"`
+!`test -d "$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/$(python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(d.get('story',{}).get('epic_slug',''))" 2>/dev/null || echo "MISSING")/$(python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(d.get('story',{}).get('slug',''))" 2>/dev/null || echo "MISSING")" && echo "WORKTREE_EXISTS" || echo "WORKTREE_MISSING"`
 
 **If WORKTREE_MISSING:**
 ```
@@ -53,13 +65,15 @@ To create the worktree, use: /task-resume <story-slug>
 ```
 **STOP** - do not continue
 
-## Step 3: Validate story.md Exists
+### 4. Validate story.md Exists
 
-Check that story.md exists in the worktree:
+Check that story.md exists in the worktree. Read the file:
 
-!`WORKTREE="$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/$(echo "$ARGUMENTS" | cut -d' ' -f1)/$(echo "$ARGUMENTS" | cut -d' ' -f2)"; EPIC=$(echo "$ARGUMENTS" | cut -d' ' -f1); STORY=$(echo "$ARGUMENTS" | cut -d' ' -f2); test -f "$WORKTREE/.claude-tasks/epics/$EPIC/stories/$STORY/story.md" && echo "STORY_EXISTS" || echo "STORY_MISSING"`
+```bash
+cat $WORKTREE_PATH/.claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/story.md
+```
 
-**If STORY_MISSING:**
+**If file not found:**
 ```
 story.md not found in worktree.
 
@@ -70,14 +84,14 @@ This may indicate an incomplete story setup.
 ```
 **STOP** - do not continue
 
-## Step 4: Run Implementation Orchestrator
+### 5. Run Implementation Orchestrator
 
 All validation passed. Run the implementation script using Bash with `run_in_background: true`:
 
 ```bash
 python3 -u "${CLAUDE_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py" \
-    "$(echo "$ARGUMENTS" | cut -d' ' -f1)" \
-    "$(echo "$ARGUMENTS" | cut -d' ' -f2)" \
+    "$EPIC_SLUG" \
+    "$STORY_SLUG" \
     --max-cycles 10 \
     --max-time 60 \
     --model opus
@@ -87,7 +101,7 @@ python3 -u "${CLAUDE_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py" \
 - `run_in_background: true` - runs the script as a background task
 - `timeout: 3660000` - 61 minute timeout (slightly longer than --max-time)
 
-## Step 5: Report Status
+### 6. Report Status
 
 Display the execution status:
 

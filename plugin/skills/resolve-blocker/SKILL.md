@@ -1,7 +1,9 @@
 ---
-name: resolve-blocker
-description: Analyze blockers and document resolutions for blocked stories
-user-invocable: false
+name: resolve
+description: Resolve a blocker for a blocked story
+argument-hint: "[story-slug]"
+user-invocable: true
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read
@@ -14,24 +16,34 @@ allowed-tools:
 
 # Resolve Blocker Skill
 
-This skill analyzes blockers from story execution and guides humans through resolving them.
+!`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type story --project-root "${CLAUDE_PROJECT_DIR}"`
 
-## Arguments
+## Process
 
-The skill receives two arguments from the `/resolve` command:
-- `$EPIC_SLUG` - The epic slug
-- `$STORY_SLUG` - The story slug
+### 1. Check Resolution Result
 
-Parse these from `$ARGUMENTS`:
-```bash
-EPIC_SLUG=$(echo "$ARGUMENTS" | cut -d' ' -f1)
-STORY_SLUG=$(echo "$ARGUMENTS" | cut -d' ' -f2)
-```
+The identifier resolver ran above. Handle the result:
 
-## Step 1: Locate Story Files
+- **If resolved=true**: Extract `story.slug` and `story.epic_slug`, continue to step 2
+- **If resolved=false with stories array**: Use AskUserQuestion to disambiguate:
+  ```
+  question: "Which story's blocker do you want to resolve?"
+  header: "Story"
+  multiSelect: false
+  options: [
+    {label: "<slug>", description: "<title> (Epic: <epic_slug>, Status: <status>)"}
+    ...for each story in the stories array
+  ]
+  ```
+  After selection, continue with the selected story.
+- **If resolved=false with error**: Display the error. Suggest using `/task-list` to see available stories.
+
+### 2. Locate Story Files
 
 Compute paths to story files:
 ```
+EPIC_SLUG=<epic_slug from resolution>
+STORY_SLUG=<story_slug from resolution>
 WORKTREE="$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/$EPIC_SLUG/$STORY_SLUG"
 STORY_DIR=".claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG"
 ```
@@ -40,7 +52,7 @@ Story files within the worktree:
 - `$WORKTREE/$STORY_DIR/story.md` - Story definition
 - `$WORKTREE/$STORY_DIR/journal.md` - Execution journal
 
-## Step 2: Read Story Context
+### 3. Read Story Context
 
 Read the story definition to understand what's being built:
 
@@ -53,7 +65,7 @@ Extract:
 - Tasks and their guidance
 - References and patterns
 
-## Step 3: Read Journal and Find Blocker
+### 4. Read Journal and Find Blocker
 
 Read the journal to find the blocker:
 
@@ -122,7 +134,7 @@ To resume implementation with the resolution applied:
 ```
 **STOP** - do not continue
 
-## Step 4: Present Blocker Summary
+### 5. Present Blocker Summary
 
 Display the blocker context to the human:
 
@@ -159,7 +171,7 @@ Analyzing codebase to propose solutions...
 ===============================================================
 ```
 
-## Step 5: Analyze and Propose Solutions
+### 6. Analyze and Propose Solutions
 
 **This is the critical analysis phase.** Use your full codebase access to:
 
@@ -221,7 +233,7 @@ Based on my analysis of the blocker and codebase:
 ===============================================================
 ```
 
-## Step 6: Get Human Approval
+### 7. Get Human Approval
 
 **CRITICAL**: Do NOT proceed without explicit human approval.
 
@@ -240,9 +252,9 @@ Options:
 
 - If human selects an option: Use that option's details
 - If human provides custom guidance: Use their guidance
-- If human wants more analysis: Return to Step 5 with refined focus
+- If human wants more analysis: Return to Step 6 with refined focus
 
-## Step 7: Write Resolution to Journal
+### 8. Write Resolution to Journal
 
 Append the resolution entry to journal.md using the Edit tool:
 
@@ -263,7 +275,7 @@ $GUIDANCE
 ---
 ```
 
-## Step 8: Confirm Completion
+### 9. Confirm Completion
 
 ```
 ===============================================================
@@ -283,7 +295,7 @@ apply the guidance to complete the blocked task.
 ===============================================================
 ```
 
-## Important Notes
+## Notes
 
 - **Human approval is mandatory**: Never write a resolution without explicit approval
 - **Full codebase access**: Use all available tools to analyze the problem
