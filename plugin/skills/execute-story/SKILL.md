@@ -21,7 +21,7 @@ allowed-tools:
 
 The identifier resolver ran above. Handle the result:
 
-- **If resolved=true**: Extract `story.slug` and `story.epic_slug`, continue to step 2
+- **If resolved=true**: The `story` object contains all needed data including `paths`. Continue to step 2.
 - **If resolved=false with stories array**: Use AskUserQuestion to disambiguate:
   ```
   question: "Which story do you want to implement?"
@@ -32,56 +32,50 @@ The identifier resolver ran above. Handle the result:
     ...for each story in the stories array
   ]
   ```
-  After selection, continue with the selected story.
+  After selection, use the selected story's data (it includes `paths`).
 - **If resolved=false with error**: Display the error. Suggest using `/task-list` to see available stories.
 
-### 2. Compute Paths
-
-```
-EPIC_SLUG=<epic_slug from resolution>
-STORY_SLUG=<story_slug from resolution>
-```
-
-### 3. Run Implementation Orchestrator
+### 2. Run Implementation Orchestrator
 
 Run the implementation script using Bash with `run_in_background: true`.
 
-The script handles all validation (worktree exists, story.md exists) and returns
-structured error messages if anything is missing. This ensures validation is
-deterministic and doesn't rely on LLM interpretation.
+Use `story.epic_slug` and `story.slug` from the resolution result:
 
 ```bash
 python3 -u "${CLAUDE_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py" \
-    "$EPIC_SLUG" \
-    "$STORY_SLUG" \
+    "<story.epic_slug>" \
+    "<story.slug>" \
     --max-cycles 10 \
     --max-time 60 \
     --model opus
 ```
 
+The script handles all validation (worktree exists, story.md exists) and returns
+structured error messages if anything is missing.
+
 **Important:** Use these Bash tool parameters:
 - `run_in_background: true` - runs the script as a background task
 - `timeout: 3660000` - 61 minute timeout (slightly longer than --max-time)
 
-### 4. Report Status
+### 3. Report Status
 
-Display the execution status:
+Display the execution status using the `paths` from the resolution result:
 
 ```
 ===============================================================
 Starting Autonomous Story Implementation
 ===============================================================
 
-Epic: $EPIC_SLUG
-Story: $STORY_SLUG
-Worktree: .claude-tasks/worktrees/$EPIC_SLUG/$STORY_SLUG/
+Epic: <story.epic_slug>
+Story: <story.slug>
+Worktree: <story.paths.worktree_path>
 Task ID: <task_id from Bash tool>
 
 The implementation script is now running in the background.
 Workers will implement tasks following TDD practices.
 
 Monitor progress:
-  - Check journal: Read .claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG/journal.md
+  - Check journal: Read <story.paths.journal_file>
   - Check status: Use TaskOutput tool with task_id
 
 The script will exit with one of these statuses:

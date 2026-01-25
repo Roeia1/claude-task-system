@@ -120,6 +120,31 @@ def resolve_epic(query: str, project_root: Path) -> Dict[str, Any]:
 # Story Resolution
 # ============================================================================
 
+def build_story_paths(epic_slug: str, story_slug: str) -> Dict[str, str]:
+    """
+    Build paths for a story using environment variable references.
+
+    Returns paths that use ${CLAUDE_PROJECT_DIR} so they can be directly
+    used in bash commands without the LLM computing them.
+
+    Args:
+        epic_slug: The epic slug
+        story_slug: The story slug
+
+    Returns:
+        Dict with worktree_path, story_dir, story_file, and journal_file paths
+    """
+    worktree = f"${{CLAUDE_PROJECT_DIR}}/.claude-tasks/worktrees/{epic_slug}/{story_slug}"
+    story_dir = f".claude-tasks/epics/{epic_slug}/stories/{story_slug}"
+
+    return {
+        "worktree_path": worktree,
+        "story_dir": story_dir,
+        "story_file": f"{worktree}/{story_dir}/story.md",
+        "journal_file": f"{worktree}/{story_dir}/journal.md"
+    }
+
+
 def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
     """
     Resolve an identifier as a story slug or title.
@@ -132,7 +157,8 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
         project_root: Path to the project root
 
     Returns:
-        Dict with resolved status and story data or error
+        Dict with resolved status and story data or error.
+        When resolved, includes paths with env var references for direct use.
     """
     epics_dir = project_root / ".claude-tasks" / "epics"
 
@@ -177,6 +203,16 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
                 title = metadata.get("title", "")
                 status = metadata.get("status", "")
 
+                # Build story data with paths
+                story_data = {
+                    "slug": story_slug,
+                    "title": title,
+                    "status": status,
+                    "context": extract_context(body),
+                    "epic_slug": epic_slug,
+                    "paths": build_story_paths(epic_slug, story_slug)
+                }
+
                 # Normalize for matching
                 slug_normalized = story_slug.lower().replace("-", " ").replace("_", " ")
                 title_normalized = title.lower().replace("-", " ").replace("_", " ")
@@ -185,13 +221,7 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
                 if slug_normalized == query_normalized:
                     return {
                         "resolved": True,
-                        "story": {
-                            "slug": story_slug,
-                            "title": title,
-                            "status": status,
-                            "context": extract_context(body),
-                            "epic_slug": epic_slug
-                        }
+                        "story": story_data
                     }
 
                 # Fuzzy match
@@ -199,13 +229,7 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
                     slug_normalized in query_normalized or
                     query_normalized in title_normalized or
                     title_normalized in query_normalized):
-                    matches.append({
-                        "slug": story_slug,
-                        "title": title,
-                        "status": status,
-                        "context": extract_context(body),
-                        "epic_slug": epic_slug
-                    })
+                    matches.append(story_data)
 
             except Exception:
                 # Skip stories with invalid files
