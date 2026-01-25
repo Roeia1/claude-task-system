@@ -1,6 +1,6 @@
 {
   "name": "claude-task-system",
-  "description": "Structured epic/story workflow with autonomous execution, journaling, and architecture decision records",
+  "description": "Structured epic/story workflow with autonomous execution and journaling",
   "version": "1.4.2",
   "author": {
     "name": "Roei Avrahami",
@@ -14,14 +14,7 @@
     "story-workflow",
     "tdd",
     "autonomous-execution",
-    "architecture-decisions",
     "journaling"
-  ],
-  "commands": [
-    "./commands/task-list.md",
-    "./commands/task-cleanup.md",
-    "./commands/task-resume.md",
-    "./commands/architecture-decisions.md"
   ],
   "skills": "./skills/"
 }

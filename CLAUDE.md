@@ -63,11 +63,6 @@ When users install this plugin and run `/init`, the following structure is creat
 plugin/                         # Plugin source code
 ├── .claude-plugin/
 │   └── plugin.json            # Plugin manifest
-├── commands/                   # Legacy commands (gaps to fill)
-│   ├── task-list.md           # TODO: Convert to story-list
-│   ├── task-cleanup.md        # TODO: Convert to story-cleanup
-│   ├── task-resume.md         # TODO: Convert to story-resume
-│   └── architecture-decisions.md
 ├── scripts/                    # Utility scripts
 │   └── identifier_resolver_v2.py
 ├── hooks/                      # Session hooks
@@ -165,14 +160,6 @@ Story status is derived from filesystem and git state:
 # Documents resolution for next worker
 ```
 
-### Architecture Decision Records
-
-```bash
-# Create ADR - use natural language
-# Say: "create ADR for JWT vs session-based auth"
-# Uses standard template with problem/options/decision/consequences
-```
-
 ## Critical Execution Rules
 
 ### Autonomous Execution
@@ -192,7 +179,6 @@ When a worker gets BLOCKED, use `/resolve` to analyze and provide a resolution, 
 - **No Test Modification**: After tests are written, they can only be changed with explicit user approval
 - **Continuous Journaling**: Document decisions and insights in journal.md throughout execution
 - **Commit Discipline**: Commit and push at logical milestones
-- **ADR Documentation**: Create ADRs for all significant architectural decisions
 
 ### Git Commit Format
 
@@ -275,14 +261,4 @@ Workers document progress in journal.md:
 - **Human-Guided Planning**: Epic creation and story generation require human approval
 - **Autonomous Execution**: Stories execute independently with `/implement`
 - **Scope Enforcement**: Workers stay within story worktree boundaries
-- **Document Decisions**: Use ADRs for significant architectural choices
 - **Keep Complexity Minimal**: Only add what's directly needed
-
-## Known Gaps (TODO)
-
-The following V2 equivalents need to be implemented:
-
-1. **Story List** - List all epics/stories with status (replaces `/task-list`)
-2. **Story Cleanup** - Remove completed story worktrees (replaces `/task-cleanup`)
-3. **Story Resume** - Resume remote story locally (replaces `/task-resume`)
-4. **Story Merge** - Archive and merge completed stories (replaces `task-merge` skill)
