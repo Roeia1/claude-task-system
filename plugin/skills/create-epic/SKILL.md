@@ -3,7 +3,6 @@ name: create-epic
 description: Create a new epic document with vision and architecture sections
 argument-hint: "<description>"
 user-invocable: true
-disable-model-invocation: true
 allowed-tools: Read, Write, Bash(mkdir:*), AskUserQuestion
 ---
 
