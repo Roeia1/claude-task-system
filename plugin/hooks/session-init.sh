@@ -6,7 +6,7 @@
 # and makes environment variables available via CLAUDE_ENV_FILE.
 
 # =============================================================================
-# Story Detection (.claude-tasks/worktrees/EPIC/STORY/)
+# Story Detection (.saga/worktrees/EPIC/STORY/)
 # =============================================================================
 
 EPIC_SLUG=""
@@ -14,18 +14,18 @@ STORY_SLUG=""
 STORY_DIR=""
 
 # Check if we're in a story worktree by looking for the marker
-# The worktree path is: .claude-tasks/worktrees/<epic>/<story>/
-# We detect by checking if .claude-tasks/epics exists and extracting from git worktree info
-if [ -d ".claude-tasks/epics" ]; then
+# The worktree path is: .saga/worktrees/<epic>/<story>/
+# We detect by checking if .saga/epics exists and extracting from git worktree info
+if [ -d ".saga/epics" ]; then
     # Get the worktree path from git
     WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null)
     if [ -n "$WORKTREE_PATH" ]; then
         # Check if path contains /worktrees/ pattern
-        if [[ "$WORKTREE_PATH" == *"/.claude-tasks/worktrees/"* ]]; then
+        if [[ "$WORKTREE_PATH" == *"/.saga/worktrees/"* ]]; then
             # Extract epic and story from path: .../worktrees/EPIC/STORY
             STORY_SLUG=$(basename "$WORKTREE_PATH")
             EPIC_SLUG=$(basename "$(dirname "$WORKTREE_PATH")")
-            STORY_DIR=".claude-tasks/epics/${EPIC_SLUG}/stories/${STORY_SLUG}"
+            STORY_DIR=".saga/epics/${EPIC_SLUG}/stories/${STORY_SLUG}"
         fi
     fi
 fi

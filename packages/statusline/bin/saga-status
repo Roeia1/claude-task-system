@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# task-status: Statusline integration script for Claude Task System
+# saga-status: Statusline integration script for SAGA
 # Displays task context information for terminal prompts with powerline formatting
 
 set -euo pipefail
@@ -53,9 +53,9 @@ readonly RESET=$'\x1b[0m'
 
 show_help() {
     cat << 'EOF'
-Usage: task-status [OPTIONS]
+Usage: saga-status [OPTIONS]
 
-Display Claude Task System context information for terminal statuslines.
+Display SAGA context information for terminal statuslines.
 
 Options:
   --help        Show this help message and exit
@@ -71,10 +71,10 @@ Environment:
                      Expected variables: TASK_CONTEXT, CURRENT_TASK_ID, CLAUDE_PROJECT_DIR
 
 Examples:
-  task-status                    # Show all sections with icons
-  task-status --no-icons         # Show all sections with ASCII
-  task-status --origin           # Show only origin indicator
-  task-status --origin --task    # Show origin and task sections
+  saga-status                    # Show all sections with icons
+  saga-status --no-icons         # Show all sections with ASCII
+  saga-status --origin           # Show only origin indicator
+  saga-status --origin --task    # Show origin and task sections
 
 Exit codes:
   0    Success

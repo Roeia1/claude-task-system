@@ -179,7 +179,7 @@ def compute_worktree_path(project_dir: str, epic_slug: str, story_slug: str) -> 
     Returns:
         Path to the story worktree
     """
-    return Path(project_dir) / ".claude-tasks" / "worktrees" / epic_slug / story_slug
+    return Path(project_dir) / ".saga" / "worktrees" / epic_slug / story_slug
 
 
 def compute_story_path(worktree: Path, epic_slug: str, story_slug: str) -> Path:
@@ -194,7 +194,7 @@ def compute_story_path(worktree: Path, epic_slug: str, story_slug: str) -> Path:
     Returns:
         Path to story.md
     """
-    return worktree / ".claude-tasks" / "epics" / epic_slug / "stories" / story_slug / "story.md"
+    return worktree / ".saga" / "epics" / epic_slug / "stories" / story_slug / "story.md"
 
 
 # ============================================================================

@@ -1,5 +1,5 @@
 {
-  "description": "Session initialization for claude-task-system plugin",
+  "description": "Session initialization for SAGA plugin",
   "hooks": {
     "SessionStart": [
       {

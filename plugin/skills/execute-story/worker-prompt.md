@@ -213,8 +213,8 @@ Your final output MUST be valid JSON matching this schema:
 Your scope is limited to this story. You:
 - CAN read/write code files in the worktree
 - CAN read/write files in `${STORY_DIR}/`
-- CANNOT access other stories in `.claude-tasks/epics/`
-- CANNOT access `.claude-tasks/archive/`
+- CANNOT access other stories in `.saga/epics/`
+- CANNOT access `.saga/archive/`
 
 The scope validator hook enforces these restrictions.
 

@@ -1,6 +1,6 @@
 # Releasing a New Version
 
-This document describes the process for releasing a new version of the Claude Task System plugin.
+This document describes the process for releasing a new version of the SAGA plugin.
 
 ## Overview
 
@@ -163,9 +163,9 @@ git push origin :refs/tags/vX.Y.Z
 
 After releasing:
 
-1. Verify the release appears on GitHub: https://github.com/Roeia1/claude-task-system/releases
+1. Verify the release appears on GitHub: https://github.com/Roeia1/saga/releases
 2. Test installation:
    ```bash
-   /plugin install claude-task-system@claude-task-system
+   /plugin install saga@core
    ```
 3. Announce the release if significant changes were made

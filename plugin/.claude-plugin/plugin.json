@@ -1,13 +1,13 @@
 {
-  "name": "claude-task-system",
-  "description": "Structured epic/story workflow with autonomous execution and journaling",
+  "name": "core",
+  "description": "SAGA - Structured Autonomous Goal Achievement: epic/story workflow with autonomous execution",
   "version": "2.0.0",
   "author": {
     "name": "Roei Avrahami",
     "email": "roei.avrahami2@gmail.com"
   },
-  "homepage": "https://github.com/Roeia1/claude-task-system",
-  "repository": "https://github.com/Roeia1/claude-task-system",
+  "homepage": "https://github.com/Roeia1/saga",
+  "repository": "https://github.com/Roeia1/saga",
   "license": "MIT",
   "keywords": [
     "epic-management",

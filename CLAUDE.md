@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is the **Claude Task System** - a structured development workflow that combines human-guided epic planning with autonomous story execution. The system provides a complete lifecycle from epic ideation through story breakdown and rigorous implementation.
+This is **SAGA** (Structured Autonomous Goal Achievement) - a structured development workflow that combines human-guided epic planning with autonomous story execution. The system provides a complete lifecycle from epic ideation through story breakdown and rigorous implementation.
 
 ## Core Architecture
 
@@ -33,7 +33,7 @@ This is the **Claude Task System** - a structured development workflow that comb
 When users install this plugin and run `/init`, the following structure is created:
 
 ```
-.claude-tasks/                  # Created in user's project root
+.saga/                  # Created in user's project root
 ├── epics/                      # Epic definitions and stories
 │   └── <epic-slug>/
 │       ├── epic.md            # Vision, goals, architecture
@@ -70,7 +70,7 @@ plugin/                         # Plugin source code
 ├── docs/                       # Documentation
 │   └── ENVIRONMENT.md
 └── skills/                     # Core skills
-    ├── init/                  # Initialize .claude-tasks/
+    ├── init/                  # Initialize .saga/
     ├── create-epic/           # Create epic with vision + architecture
     ├── generate-stories/      # Generate stories from epic
     ├── generate-story/        # Create single story (internal)
@@ -129,7 +129,7 @@ Story status is derived from filesystem and git state:
 
 ```bash
 /init
-# Creates .claude-tasks/ structure:
+# Creates .saga/ structure:
 # - epics/, archive/, worktrees/
 # - Adds gitignore pattern for worktrees
 ```
@@ -139,12 +139,12 @@ Story status is derived from filesystem and git state:
 ```bash
 # 1. Create an epic
 /create-epic user authentication system
-# Creates: .claude-tasks/epics/user-auth/epic.md
+# Creates: .saga/epics/user-auth/epic.md
 # Output: Vision, goals, architecture, success criteria
 
 # 2. Generate stories from epic
 /generate-stories user-auth
-# Creates: .claude-tasks/epics/user-auth/stories/<story-slug>/story.md
+# Creates: .saga/epics/user-auth/stories/<story-slug>/story.md
 # Also creates: worktree + branch + PR for each story
 
 # 3. Implement a story autonomously

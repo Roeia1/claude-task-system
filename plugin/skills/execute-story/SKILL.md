@@ -68,7 +68,7 @@ Starting Autonomous Story Implementation
 
 Epic: <epic_slug>
 Story: <story_slug>
-Worktree: .claude-tasks/worktrees/<epic_slug>/<story_slug>/
+Worktree: .saga/worktrees/<epic_slug>/<story_slug>/
 Task ID: <task_id from Bash tool>
 
 The implementation script is now running in the background.

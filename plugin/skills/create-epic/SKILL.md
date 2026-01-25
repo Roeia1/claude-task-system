@@ -32,7 +32,7 @@ Convert the description to a URL-friendly slug (e.g., "User Authentication Syste
 
 ### 3. Check for Existing Epic
 
-Check if `${CLAUDE_PROJECT_DIR}/.claude-tasks/epics/<slug>/` already exists.
+Check if `${CLAUDE_PROJECT_DIR}/.saga/epics/<slug>/` already exists.
 
 If it exists, use AskUserQuestion to ask:
 ```
@@ -51,7 +51,7 @@ options:
 
 Create the epic directory:
 ```bash
-mkdir -p ${CLAUDE_PROJECT_DIR}/.claude-tasks/epics/<slug>/stories
+mkdir -p ${CLAUDE_PROJECT_DIR}/.saga/epics/<slug>/stories
 ```
 
 ### 5. Read Epic Template
@@ -91,17 +91,17 @@ Use the template structure to create the epic.md content. Fill in all sections b
 
 Write the content to:
 ```
-${CLAUDE_PROJECT_DIR}/.claude-tasks/epics/<slug>/epic.md
+${CLAUDE_PROJECT_DIR}/.saga/epics/<slug>/epic.md
 ```
 
 ### 9. Report Completion
 
 ```
-Epic created: .claude-tasks/epics/<slug>/
+Epic created: .saga/epics/<slug>/
 
 Files:
-- .claude-tasks/epics/<slug>/epic.md
-- .claude-tasks/epics/<slug>/stories/ (empty, for future stories)
+- .saga/epics/<slug>/epic.md
+- .saga/epics/<slug>/stories/ (empty, for future stories)
 
 Next steps:
 - Review and refine epic.md as needed
@@ -140,4 +140,4 @@ Do these goals capture your intent? Would you like to modify or add any?
 
 - Epics contain both vision (WHAT) and architecture (HOW) in a unified document
 - Stories will be generated from the epic using `/generate-stories`
-- Slug must be unique within `.claude-tasks/epics/`
+- Slug must be unique within `.saga/epics/`

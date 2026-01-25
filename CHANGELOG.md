@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **V2 Epic/Story workflow**: Complete new architecture replacing V1 task system
-  - `/init` - Initialize `.claude-tasks/` directory structure
+  - `/init` - Initialize `.saga/` directory structure
   - `/create-epic` - Define epics with vision, goals, and architecture
   - `/generate-stories` - Break epics into implementable stories with worktrees
   - `/implement` - Autonomous story execution with worker spawning
@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Directory structure**: Now uses `.claude-tasks/` instead of `task-system/`
+- **Directory structure**: Now uses `.saga/` instead of `task-system/`
   - `epics/` - Epic definitions with nested stories
   - `archive/` - Completed story archives
   - `worktrees/` - Git worktrees for story isolation

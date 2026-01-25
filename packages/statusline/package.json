@@ -1,18 +1,18 @@
 {
-  "name": "@claude-task-system/statusline",
+  "name": "@saga/statusline",
   "version": "1.1.0",
-  "description": "Statusline integration script for Claude Task System - displays task context in terminal prompts",
+  "description": "Statusline integration script for SAGA - displays task context in terminal prompts",
   "bin": {
-    "task-status": "bin/task-status"
+    "saga-status": "bin/saga-status"
   },
   "scripts": {
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "lint": "shellcheck bin/task-status scripts/*.sh"
+    "lint": "shellcheck bin/saga-status scripts/*.sh"
   },
   "keywords": [
     "claude",
-    "task-system",
+    "saga",
     "statusline",
     "prompt"
   ],
@@ -20,10 +20,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Roeia1/claude-task-system.git",
+    "url": "git+https://github.com/Roeia1/saga.git",
     "directory": "packages/statusline"
   },
-  "homepage": "https://github.com/Roeia1/claude-task-system#readme",
+  "homepage": "https://github.com/Roeia1/saga#readme",
   "devDependencies": {
     "jest": "^29.7.0"
   },

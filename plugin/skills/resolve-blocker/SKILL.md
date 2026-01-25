@@ -44,8 +44,8 @@ Compute paths to story files:
 ```
 EPIC_SLUG=<epic_slug from resolution>
 STORY_SLUG=<story_slug from resolution>
-WORKTREE="$CLAUDE_PROJECT_DIR/.claude-tasks/worktrees/$EPIC_SLUG/$STORY_SLUG"
-STORY_DIR=".claude-tasks/epics/$EPIC_SLUG/stories/$STORY_SLUG"
+WORKTREE="$CLAUDE_PROJECT_DIR/.saga/worktrees/$EPIC_SLUG/$STORY_SLUG"
+STORY_DIR=".saga/epics/$EPIC_SLUG/stories/$STORY_SLUG"
 ```
 
 Story files within the worktree:

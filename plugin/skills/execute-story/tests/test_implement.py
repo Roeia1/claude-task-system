@@ -67,11 +67,11 @@ def temp_worktree(temp_project):
     """Create a temporary worktree for testing."""
     epic_slug = "test-epic"
     story_slug = "test-story"
-    worktree = temp_project / ".claude-tasks" / "worktrees" / epic_slug / story_slug
+    worktree = temp_project / ".saga" / "worktrees" / epic_slug / story_slug
     worktree.mkdir(parents=True)
 
     # Create story.md
-    story_dir = worktree / ".claude-tasks" / "epics" / epic_slug / "stories" / story_slug
+    story_dir = worktree / ".saga" / "epics" / epic_slug / "stories" / story_slug
     story_dir.mkdir(parents=True)
     (story_dir / "story.md").write_text("""---
 slug: test-story
@@ -216,14 +216,14 @@ class TestPathComputation:
     def test_compute_worktree_path(self):
         """Computes correct worktree path."""
         path = compute_worktree_path("/project", "my-epic", "my-story")
-        expected = Path("/project/.claude-tasks/worktrees/my-epic/my-story")
+        expected = Path("/project/.saga/worktrees/my-epic/my-story")
         assert path == expected
 
     def test_compute_story_path(self):
         """Computes correct story.md path."""
-        worktree = Path("/project/.claude-tasks/worktrees/epic/story")
+        worktree = Path("/project/.saga/worktrees/epic/story")
         path = compute_story_path(worktree, "epic", "story")
-        expected = worktree / ".claude-tasks/epics/epic/stories/story/story.md"
+        expected = worktree / ".saga/epics/epic/stories/story/story.md"
         assert path == expected
 
 
@@ -264,7 +264,7 @@ class TestStoryFileValidation:
 
     def test_invalid_when_worktree_missing(self, temp_project):
         """Returns valid=False when worktree doesn't exist."""
-        worktree = temp_project / ".claude-tasks" / "worktrees" / "nonexistent" / "story"
+        worktree = temp_project / ".saga" / "worktrees" / "nonexistent" / "story"
         result = validate_story_files(worktree, "nonexistent", "story")
         assert result["valid"] is False
         assert "not found" in result["error"]

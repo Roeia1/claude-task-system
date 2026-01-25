@@ -1,11 +1,11 @@
-# Claude Task System
+# SAGA
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
 [![Version](https://img.shields.io/badge/version-2.0.0-blue)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Skills](https://img.shields.io/badge/skills-6-green)](https://github.com/Roeia1/claude-task-system)
+[![Skills](https://img.shields.io/badge/skills-6-green)](https://github.com/Roeia1/saga)
 
-> Transform epic ideas into shipped code through structured planning, autonomous execution, and continuous journaling.
+> **S**tructured **A**utonomous **G**oal **A**chievement - Transform epic ideas into shipped code through structured planning, autonomous execution, and continuous journaling.
 
 A complete development lifecycle from epic ideation through story breakdown and rigorous implementation. Epics define the vision. Stories deliver the value. Workers execute autonomously. Everything is documented.
 
@@ -43,17 +43,17 @@ flowchart LR
 
 ```bash
 # Add the marketplace
-/plugin marketplace add Roeia1/claude-task-system
+/plugin marketplace add Roeia1/saga
 
 # Install latest version
-/plugin install claude-task-system@claude-task-system
+/plugin install saga@core
 ```
 
 **Option 2: Specific Version**
 
 ```bash
 # Install a specific version
-/plugin install claude-task-system@claude-task-system@1.0.0
+/plugin install saga@core@1.0.0
 ```
 
 **Option 3: Interactive**
@@ -61,7 +61,7 @@ flowchart LR
 ```bash
 # Browse and install via menu
 /plugin
-# Select "Browse Plugins" → find claude-task-system → install
+# Select "Browse Plugins" → find saga → install
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
@@ -75,14 +75,14 @@ cd your-project
 # Start Claude Code
 claude
 
-# Initialize the task system
+# Initialize SAGA
 > /init
 ```
 
-This creates the `.claude-tasks/` directory structure:
+This creates the `.saga/` directory structure:
 
 ```
-.claude-tasks/
+.saga/
 ├── epics/        # Epic definitions and stories
 ├── archive/      # Completed story archives
 └── worktrees/    # Git worktrees for story isolation (gitignored)
@@ -131,7 +131,7 @@ Claude will:
 - Design high-level architecture
 - Iterate with you until the epic is clear
 
-**Output**: `.claude-tasks/epics/order-notifications/epic.md`
+**Output**: `.saga/epics/order-notifications/epic.md`
 
 ### Story Generation
 
@@ -147,7 +147,7 @@ Claude breaks down the epic into implementable stories:
 - Creates git branch + worktree for each story
 - Opens draft PRs automatically
 
-**Output**: Multiple stories in `.claude-tasks/epics/order-notifications/stories/`
+**Output**: Multiple stories in `.saga/epics/order-notifications/stories/`
 
 ### Story Execution
 
@@ -185,7 +185,7 @@ Workers document progress throughout execution:
 Work on multiple stories simultaneously:
 
 ```
-.claude-tasks/worktrees/
+.saga/worktrees/
 └── order-notifications/
     ├── websocket-setup/    # Full project checkout
     ├── event-handlers/     # Full project checkout
@@ -214,7 +214,7 @@ All functionality is accessed through skills (slash commands):
 
 | Skill | Command | Description |
 |-------|---------|-------------|
-| Initialize | `/init` | Create `.claude-tasks/` directory structure |
+| Initialize | `/init` | Create `.saga/` directory structure |
 | Create Epic | `/create-epic [description]` | Define epic with vision and architecture |
 | Generate Stories | `/generate-stories [epic-slug]` | Break epic into implementable stories |
 | Implement | `/implement [story-slug]` | Execute story autonomously |
@@ -268,7 +268,7 @@ All functionality is accessed through skills (slash commands):
 
 ```
 your-project/
-└── .claude-tasks/
+└── .saga/
     ├── epics/
     │   └── shopping-cart/
     │       ├── epic.md              # Vision, goals, architecture
@@ -370,6 +370,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 <p align="center">
   <b>Stop the chaos. Ship with discipline.</b>
   <br><br>
-  <a href="https://github.com/Roeia1/claude-task-system">GitHub</a> ·
-  <a href="https://github.com/Roeia1/claude-task-system/issues">Issues</a>
+  <a href="https://github.com/Roeia1/saga">GitHub</a> ·
+  <a href="https://github.com/Roeia1/saga/issues">Issues</a>
 </p>

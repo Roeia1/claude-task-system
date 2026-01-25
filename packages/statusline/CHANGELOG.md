@@ -42,5 +42,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auto-detection**: Automatically detects worktree context from directory structure
 - **Environment variables**: Reads from `CLAUDE_ENV_FILE` or falls back to environment
 
-[1.1.0]: https://github.com/Roeia1/claude-task-system/compare/statusline-v1.0.0...statusline-v1.1.0
-[1.0.0]: https://github.com/Roeia1/claude-task-system/releases/tag/statusline-v1.0.0
+[1.1.0]: https://github.com/Roeia1/saga/compare/statusline-v1.0.0...statusline-v1.1.0
+[1.0.0]: https://github.com/Roeia1/saga/releases/tag/statusline-v1.0.0

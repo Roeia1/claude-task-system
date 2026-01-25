@@ -41,16 +41,16 @@ class TestEpicResolution:
 
     @pytest.fixture
     def temp_project(self):
-        """Create a temporary project with .claude-tasks/ structure."""
+        """Create a temporary project with .saga/ structure."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project = Path(tmpdir)
-            epics_dir = project / ".claude-tasks" / "epics"
+            epics_dir = project / ".saga" / "epics"
             epics_dir.mkdir(parents=True)
             yield project
 
     def test_resolve_exact_epic_slug(self, temp_project):
         """Resolves exact match on epic slug."""
-        (temp_project / ".claude-tasks" / "epics" / "auth-system").mkdir()
+        (temp_project / ".saga" / "epics" / "auth-system").mkdir()
 
         result = run_resolver("auth-system", "epic", str(temp_project))
 
@@ -59,7 +59,7 @@ class TestEpicResolution:
 
     def test_resolve_partial_epic_slug(self, temp_project):
         """Resolves partial match on epic slug."""
-        (temp_project / ".claude-tasks" / "epics" / "user-authentication").mkdir()
+        (temp_project / ".saga" / "epics" / "user-authentication").mkdir()
 
         result = run_resolver("auth", "epic", str(temp_project))
 
@@ -68,7 +68,7 @@ class TestEpicResolution:
 
     def test_resolve_epic_case_insensitive(self, temp_project):
         """Epic resolution is case-insensitive."""
-        (temp_project / ".claude-tasks" / "epics" / "Auth-System").mkdir()
+        (temp_project / ".saga" / "epics" / "Auth-System").mkdir()
 
         result = run_resolver("auth-system", "epic", str(temp_project))
 
@@ -76,8 +76,8 @@ class TestEpicResolution:
 
     def test_resolve_epic_multiple_matches(self, temp_project):
         """Returns array when multiple epics match."""
-        (temp_project / ".claude-tasks" / "epics" / "auth-v1").mkdir()
-        (temp_project / ".claude-tasks" / "epics" / "auth-v2").mkdir()
+        (temp_project / ".saga" / "epics" / "auth-v1").mkdir()
+        (temp_project / ".saga" / "epics" / "auth-v2").mkdir()
 
         result = run_resolver("auth", "epic", str(temp_project))
 
@@ -90,7 +90,7 @@ class TestEpicResolution:
 
     def test_resolve_epic_no_match(self, temp_project):
         """Returns error on no match."""
-        (temp_project / ".claude-tasks" / "epics" / "payments").mkdir()
+        (temp_project / ".saga" / "epics" / "payments").mkdir()
 
         result = run_resolver("auth", "epic", str(temp_project))
 
@@ -107,7 +107,7 @@ class TestEpicResolution:
 
     def test_resolve_epic_no_file_reading(self, temp_project):
         """Epic resolution only uses folder names, never reads files."""
-        epic_dir = temp_project / ".claude-tasks" / "epics" / "auth-system"
+        epic_dir = temp_project / ".saga" / "epics" / "auth-system"
         epic_dir.mkdir()
         # Create epic.md but with different content - shouldn't matter
         (epic_dir / "epic.md").write_text("# Different Title\n\nSome content")
@@ -131,7 +131,7 @@ class TestStoryResolution:
 
     def create_story(self, project: Path, epic_slug: str, story_id: str, title: str, status: str = "ready"):
         """Helper to create a story.md file with YAML front matter."""
-        story_dir = project / ".claude-tasks" / "epics" / epic_slug / "stories" / story_id
+        story_dir = project / ".saga" / "epics" / epic_slug / "stories" / story_id
         story_dir.mkdir(parents=True)
         story_md = story_dir / "story.md"
         story_md.write_text(f"""---
@@ -149,13 +149,13 @@ Test story context for {title}.
         return story_md
 
     def test_resolve_story_by_exact_id(self, temp_project):
-        """Resolves exact match on story id."""
+        """Resolves exact match on story slug."""
         self.create_story(temp_project, "auth", "user-login", "Implement User Login")
 
         result = run_resolver("user-login", "story", str(temp_project))
 
         assert result["resolved"] is True
-        assert result["story"]["id"] == "user-login"
+        assert result["story"]["slug"] == "user-login"
         assert result["story"]["title"] == "Implement User Login"
         assert result["story"]["epic_slug"] == "auth"
 
@@ -166,7 +166,7 @@ Test story context for {title}.
         result = run_resolver("login", "story", str(temp_project))
 
         assert result["resolved"] is True
-        assert result["story"]["id"] == "login-flow"
+        assert result["story"]["slug"] == "login-flow"
 
     def test_resolve_story_case_insensitive(self, temp_project):
         """Story resolution is case-insensitive."""
@@ -207,7 +207,7 @@ Test story context for {title}.
 
     def test_resolve_story_returns_truncated_context(self, temp_project):
         """Story resolution returns context truncated to 300 chars."""
-        story_dir = temp_project / ".claude-tasks" / "epics" / "auth" / "stories" / "login"
+        story_dir = temp_project / ".saga" / "epics" / "auth" / "stories" / "login"
         story_dir.mkdir(parents=True)
         long_context = "A" * 500  # 500 character context
         (story_dir / "story.md").write_text(f"""---
@@ -268,7 +268,7 @@ class TestCLIInterface:
         """Create a temporary project directory."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project = Path(tmpdir)
-            (project / ".claude-tasks" / "epics").mkdir(parents=True)
+            (project / ".saga" / "epics").mkdir(parents=True)
             yield project
 
     def test_accepts_type_flag(self, script_path, temp_project):

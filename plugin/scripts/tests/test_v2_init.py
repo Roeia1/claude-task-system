@@ -2,10 +2,10 @@
 """
 Tests for the V2 init_structure.sh script functionality.
 
-The init script creates the .claude-tasks/ directory structure:
-- .claude-tasks/epics/
-- .claude-tasks/archive/
-- .claude-tasks/worktrees/
+The init script creates the .saga/ directory structure:
+- .saga/epics/
+- .saga/archive/
+- .saga/worktrees/
 - Updates .gitignore
 """
 
@@ -31,7 +31,7 @@ class TestInitStructureScript:
         return Path(__file__).parent.parent.parent / "skills" / "init" / "scripts" / "init_structure.sh"
 
     def test_creates_claude_tasks_directory(self, temp_project, script_path):
-        """Script creates .claude-tasks/ directory."""
+        """Script creates .saga/ directory."""
         if not script_path.exists():
             pytest.skip("init_structure.sh not yet implemented")
 
@@ -42,10 +42,10 @@ class TestInitStructureScript:
         )
 
         assert result.returncode == 0, f"Script failed: {result.stderr}"
-        assert (temp_project / ".claude-tasks").is_dir()
+        assert (temp_project / ".saga").is_dir()
 
     def test_creates_epics_directory(self, temp_project, script_path):
-        """Script creates .claude-tasks/epics/ directory."""
+        """Script creates .saga/epics/ directory."""
         if not script_path.exists():
             pytest.skip("init_structure.sh not yet implemented")
 
@@ -55,10 +55,10 @@ class TestInitStructureScript:
             text=True
         )
 
-        assert (temp_project / ".claude-tasks" / "epics").is_dir()
+        assert (temp_project / ".saga" / "epics").is_dir()
 
     def test_creates_archive_directory(self, temp_project, script_path):
-        """Script creates .claude-tasks/archive/ directory."""
+        """Script creates .saga/archive/ directory."""
         if not script_path.exists():
             pytest.skip("init_structure.sh not yet implemented")
 
@@ -68,10 +68,10 @@ class TestInitStructureScript:
             text=True
         )
 
-        assert (temp_project / ".claude-tasks" / "archive").is_dir()
+        assert (temp_project / ".saga" / "archive").is_dir()
 
     def test_creates_worktrees_directory(self, temp_project, script_path):
-        """Script creates .claude-tasks/worktrees/ directory."""
+        """Script creates .saga/worktrees/ directory."""
         if not script_path.exists():
             pytest.skip("init_structure.sh not yet implemented")
 
@@ -81,7 +81,7 @@ class TestInitStructureScript:
             text=True
         )
 
-        assert (temp_project / ".claude-tasks" / "worktrees").is_dir()
+        assert (temp_project / ".saga" / "worktrees").is_dir()
 
     def test_updates_gitignore_new_file(self, temp_project, script_path):
         """Script creates .gitignore with worktrees pattern if it doesn't exist."""
@@ -97,7 +97,7 @@ class TestInitStructureScript:
         gitignore = temp_project / ".gitignore"
         assert gitignore.exists()
         content = gitignore.read_text()
-        assert ".claude-tasks/worktrees/" in content
+        assert ".saga/worktrees/" in content
 
     def test_updates_gitignore_existing_file(self, temp_project, script_path):
         """Script appends to existing .gitignore."""
@@ -115,7 +115,7 @@ class TestInitStructureScript:
 
         content = gitignore.read_text()
         assert "node_modules/" in content
-        assert ".claude-tasks/worktrees/" in content
+        assert ".saga/worktrees/" in content
 
     def test_gitignore_idempotent(self, temp_project, script_path):
         """Script doesn't duplicate gitignore entries on repeated runs."""
@@ -128,7 +128,7 @@ class TestInitStructureScript:
 
         gitignore = temp_project / ".gitignore"
         content = gitignore.read_text()
-        assert content.count(".claude-tasks/worktrees/") == 1
+        assert content.count(".saga/worktrees/") == 1
 
     def test_script_is_idempotent(self, temp_project, script_path):
         """Script can be run multiple times safely."""

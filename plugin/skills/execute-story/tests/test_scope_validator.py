@@ -53,7 +53,7 @@ class TestArchiveBlocking:
         """Blocks reading from archive folder."""
         exit_code, _, stderr = run_validator(
             "my-epic", "my-story",
-            {"file_path": ".claude-tasks/archive/old-story/file.md"}
+            {"file_path": ".saga/archive/old-story/file.md"}
         )
         assert exit_code == 2
         assert "SCOPE VIOLATION" in stderr
@@ -63,7 +63,7 @@ class TestArchiveBlocking:
         """Blocks nested archive paths."""
         exit_code, _, stderr = run_validator(
             "my-epic", "my-story",
-            {"file_path": "/project/.claude-tasks/archive/123/journal.md"}
+            {"file_path": "/project/.saga/archive/123/journal.md"}
         )
         assert exit_code == 2
 
@@ -71,7 +71,7 @@ class TestArchiveBlocking:
         """Handles 'path' field name (not just 'file_path')."""
         exit_code, _, _ = run_validator(
             "my-epic", "my-story",
-            {"path": ".claude-tasks/archive/story.md"}
+            {"path": ".saga/archive/story.md"}
         )
         assert exit_code == 2
 
@@ -83,7 +83,7 @@ class TestOtherStoryBlocking:
         """Blocks access to different story in same epic."""
         exit_code, _, stderr = run_validator(
             "auth-system", "user-login",
-            {"file_path": ".claude-tasks/epics/auth-system/stories/password-reset/story.md"}
+            {"file_path": ".saga/epics/auth-system/stories/password-reset/story.md"}
         )
         assert exit_code == 2
         assert "SCOPE VIOLATION" in stderr
@@ -92,7 +92,7 @@ class TestOtherStoryBlocking:
         """Blocks access to different epic entirely."""
         exit_code, _, stderr = run_validator(
             "auth-system", "user-login",
-            {"file_path": ".claude-tasks/epics/payments/stories/checkout/task.md"}
+            {"file_path": ".saga/epics/payments/stories/checkout/task.md"}
         )
         assert exit_code == 2
 
@@ -100,7 +100,7 @@ class TestOtherStoryBlocking:
         """Blocks even if story name matches but epic differs."""
         exit_code, _, _ = run_validator(
             "auth", "login",
-            {"file_path": ".claude-tasks/epics/other-epic/stories/login/story.md"}
+            {"file_path": ".saga/epics/other-epic/stories/login/story.md"}
         )
         assert exit_code == 2
 
@@ -112,7 +112,7 @@ class TestAllowedPaths:
         """Allows access to own story files."""
         exit_code, _, _ = run_validator(
             "auth-system", "user-login",
-            {"file_path": ".claude-tasks/epics/auth-system/stories/user-login/story.md"}
+            {"file_path": ".saga/epics/auth-system/stories/user-login/story.md"}
         )
         assert exit_code == 0
 
@@ -120,7 +120,7 @@ class TestAllowedPaths:
         """Allows access to own story journal."""
         exit_code, _, _ = run_validator(
             "my-epic", "my-story",
-            {"file_path": ".claude-tasks/epics/my-epic/stories/my-story/journal.md"}
+            {"file_path": ".saga/epics/my-epic/stories/my-story/journal.md"}
         )
         assert exit_code == 0
 
@@ -160,7 +160,7 @@ class TestAllowedPaths:
         """Allows access to epic-level files (not in stories/)."""
         exit_code, _, _ = run_validator(
             "my-epic", "my-story",
-            {"file_path": ".claude-tasks/epics/my-epic/epic.md"}
+            {"file_path": ".saga/epics/my-epic/epic.md"}
         )
         assert exit_code == 0
 
@@ -207,7 +207,7 @@ class TestEdgeCases:
         """Handles paths with ./ prefix."""
         exit_code, _, _ = run_validator(
             "my-epic", "my-story",
-            {"file_path": "./.claude-tasks/archive/old/file.md"}
+            {"file_path": "./.saga/archive/old/file.md"}
         )
         assert exit_code == 2  # Should still block archive
 
@@ -215,7 +215,7 @@ class TestEdgeCases:
         """Error message includes allowed scope information."""
         exit_code, _, stderr = run_validator(
             "test-epic", "test-story",
-            {"file_path": ".claude-tasks/epics/other/stories/story/file.md"}
+            {"file_path": ".saga/epics/other/stories/story/file.md"}
         )
         assert exit_code == 2
         assert "test-epic" in stderr
@@ -229,7 +229,7 @@ class TestPathVariations:
         """Handles absolute paths that reference worktree."""
         exit_code, _, _ = run_validator(
             "epic", "story",
-            {"file_path": "/home/user/project/.claude-tasks/epics/epic/stories/story/file.md"}
+            {"file_path": "/home/user/project/.saga/epics/epic/stories/story/file.md"}
         )
         assert exit_code == 0
 
@@ -237,7 +237,7 @@ class TestPathVariations:
         """Blocks absolute paths to wrong story."""
         exit_code, _, _ = run_validator(
             "epic", "story",
-            {"file_path": "/home/user/project/.claude-tasks/epics/epic/stories/other/file.md"}
+            {"file_path": "/home/user/project/.saga/epics/epic/stories/other/file.md"}
         )
         assert exit_code == 2
 
@@ -245,6 +245,6 @@ class TestPathVariations:
         """Handles paths with trailing slashes."""
         exit_code, _, _ = run_validator(
             "epic", "story",
-            {"file_path": ".claude-tasks/epics/epic/stories/story/"}
+            {"file_path": ".saga/epics/epic/stories/story/"}
         )
         assert exit_code == 0

@@ -1,4 +1,4 @@
 
-# Claude Task System - Task worktrees (each task folder is a git worktree)
+# SAGA - Story worktrees (each story folder is a git worktree)
 task-system/tasks/*/
 __pycache__/

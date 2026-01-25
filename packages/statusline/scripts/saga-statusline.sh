@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# task-status: Statusline integration script for Claude Task System
+# saga-status: Statusline integration script for SAGA
 # Displays task context information for terminal prompts
 
 set -euo pipefail

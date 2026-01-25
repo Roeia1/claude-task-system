@@ -1,6 +1,6 @@
-# @claude-task-system/statusline
+# @saga/statusline
 
-A powerline-style statusline for [Claude Code](https://claude.ai/code) that displays **task system context** - always know which task you're working on, its type, linked feature, and project-wide task/feature counts.
+A powerline-style statusline for [Claude Code](https://claude.ai/code) that displays **SAGA context** - always know which task you're working on, its type, linked feature, and project-wide task/feature counts.
 
 Inspired by [claude-powerline](https://github.com/Owloops/claude-powerline). Can be used standalone or combined with other statusline tools.
 
@@ -86,7 +86,7 @@ Add to your Claude Code `settings.json`:
 {
   "statusLine": {
     "type": "command",
-    "command": "npx -y @claude-task-system/statusline@latest"
+    "command": "npx -y @saga/statusline@latest"
   }
 }
 ```
@@ -94,7 +94,7 @@ Add to your Claude Code `settings.json`:
 ### Global Install
 
 ```bash
-npm install -g @claude-task-system/statusline
+npm install -g @saga/statusline
 ```
 
 Then configure:
@@ -103,7 +103,7 @@ Then configure:
 {
   "statusLine": {
     "type": "command",
-    "command": "task-status"
+    "command": "saga-status"
   }
 }
 ```
@@ -111,9 +111,9 @@ Then configure:
 ### Standalone Script
 
 ```bash
-curl -o task-status https://raw.githubusercontent.com/Roeia1/claude-task-system/main/packages/statusline/scripts/claude-task-system-statusline.sh
-chmod +x task-status
-./task-status
+curl -o saga-status https://raw.githubusercontent.com/Roeia1/saga/main/packages/statusline/scripts/saga-statusline.sh
+chmod +x saga-status
+./saga-status
 ```
 
 ## Combining with Other Statusline Tools
@@ -123,7 +123,7 @@ This package reads from environment variables, not Claude's stdout. This makes i
 **General pattern:** Run stdout-dependent tools first, then this package last:
 
 ```bash
-<other-statusline-tool>; npx -y @claude-task-system/statusline
+<other-statusline-tool>; npx -y @saga/statusline
 ```
 
 Each command's output appears on its own line in the statusline.
@@ -136,7 +136,7 @@ Each command's output appears on its own line in the statusline.
 {
   "statusLine": {
     "type": "command",
-    "command": "npx -y @owloops/claude-powerline@latest 2>/dev/null; npx -y @claude-task-system/statusline"
+    "command": "npx -y @owloops/claude-powerline@latest 2>/dev/null; npx -y @saga/statusline"
   }
 }
 ```
@@ -146,7 +146,7 @@ The `2>/dev/null` suppresses stderr from the first tool. claude-powerline runs f
 ## Usage
 
 ```bash
-task-status [OPTIONS]
+saga-status [OPTIONS]
 ```
 
 ### Options
@@ -165,27 +165,27 @@ Combine flags to show specific segments: `--origin --task` shows origin and task
 
 ```bash
 # Full output (all segments)
-task-status
+saga-status
 # Output: 🌿 ✨ Implement Auth (User System) 🔄 1 ⏸️ 2 ☁️ 0 | ⭐ 1 📝 1
 
 # ASCII mode
-task-status --no-icons
+saga-status --no-icons
 # Output: [W] [F] Implement Auth (User System) I:1 P:2 R:0 | A:1 D:1
 
 # Origin only
-task-status --origin
+saga-status --origin
 # Output: 🌿
 
 # Task info only
-task-status --task
+saga-status --task
 # Output: ✨ Implement Auth (User System)
 
 # Counts only
-task-status --counts
+saga-status --counts
 # Output: 🔄 1 ⏸️ 2 ☁️ 0 | ⭐ 1 📝 1
 
 # Origin and counts (skip task info)
-task-status --origin --counts
+saga-status --origin --counts
 # Output: 🌿 🔄 1 ⏸️ 2 ☁️ 0 | ⭐ 1 📝 1
 ```
 
@@ -228,9 +228,9 @@ The script reads context from `CLAUDE_ENV_FILE` or directly from environment:
 | 0 | Success |
 | 1 | Invalid arguments |
 
-## Part of Claude Task System
+## Part of SAGA
 
-This statusline is part of the [Claude Task System](https://github.com/Roeia1/claude-task-system) - a structured development workflow for Claude Code featuring:
+This statusline is part of [SAGA](https://github.com/Roeia1/saga) (Structured Autonomous Goal Achievement) - a structured development workflow for Claude Code featuring:
 
 - Feature definition and technical planning
 - Task breakdown with git worktrees for parallel execution

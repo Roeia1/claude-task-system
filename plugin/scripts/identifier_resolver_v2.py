@@ -3,7 +3,7 @@
 V2 Identifier Resolution for Epic and Story lookup.
 
 This module resolves flexible identifiers to epic slugs or story metadata
-for the Task System V2 (.claude-tasks/) structure.
+for the Task System V2 (.saga/) structure.
 
 Usage:
     # Resolve a story (default)
@@ -50,7 +50,7 @@ def resolve_epic(query: str, project_root: Path) -> Dict[str, Any]:
     """
     Resolve an identifier as an epic slug.
 
-    Epic resolution only uses folder names in .claude-tasks/epics/,
+    Epic resolution only uses folder names in .saga/epics/,
     never reads epic.md files.
 
     Args:
@@ -60,12 +60,12 @@ def resolve_epic(query: str, project_root: Path) -> Dict[str, Any]:
     Returns:
         Dict with resolved status and epic data or error
     """
-    epics_dir = project_root / ".claude-tasks" / "epics"
+    epics_dir = project_root / ".saga" / "epics"
 
     if not epics_dir.exists():
         return {
             "resolved": False,
-            "error": f"No .claude-tasks/epics/ directory found"
+            "error": f"No .saga/epics/ directory found"
         }
 
     # List all epic folders
@@ -134,12 +134,12 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
     Returns:
         Dict with resolved status and story data (slug, title, status, epic_slug) or error.
     """
-    epics_dir = project_root / ".claude-tasks" / "epics"
+    epics_dir = project_root / ".saga" / "epics"
 
     if not epics_dir.exists():
         return {
             "resolved": False,
-            "error": f"No .claude-tasks/epics/ directory found"
+            "error": f"No .saga/epics/ directory found"
         }
 
     # Normalize query for matching
@@ -246,7 +246,7 @@ def main():
     parser.add_argument(
         "--project-root",
         required=True,
-        help="Path to the project root containing .claude-tasks/"
+        help="Path to the project root containing .saga/"
     )
 
     args = parser.parse_args()

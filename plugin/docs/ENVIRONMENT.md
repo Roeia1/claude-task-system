@@ -1,6 +1,6 @@
 # Environment Variables
 
-This document is the single source of truth for environment variables used in the Claude Task System.
+This document is the single source of truth for environment variables used in the SAGA.
 
 ## Overview
 
@@ -44,13 +44,13 @@ Set when `TASK_CONTEXT="story-worktree"`:
 |----------|-------------|---------|
 | `EPIC_SLUG` | Epic identifier | `"user-auth"` |
 | `STORY_SLUG` | Story identifier | `"login-flow"` |
-| `STORY_DIR` | Relative path to story files | `".claude-tasks/epics/user-auth/stories/login-flow"` |
+| `STORY_DIR` | Relative path to story files | `".saga/epics/user-auth/stories/login-flow"` |
 
 ### Detection Logic
 
 The SessionStart hook determines context based on filesystem:
 
-1. **Story Worktree**: If `.claude-tasks/epics/` exists AND git worktree path contains `/.claude-tasks/worktrees/`
+1. **Story Worktree**: If `.saga/epics/` exists AND git worktree path contains `/.saga/worktrees/`
    - Sets: `TASK_CONTEXT="story-worktree"`, `EPIC_SLUG`, `STORY_SLUG`, `STORY_DIR`
 
 2. **Main Repository**: Otherwise
@@ -121,7 +121,7 @@ If you need to add a new environment variable:
 │  └── Sets: CLAUDE_PROJECT_DIR, CLAUDE_PLUGIN_ROOT, CLAUDE_ENV_FILE│
 │                          ↓                                       │
 │  SessionStart Hook (session-init.sh)                             │
-│  └── Detects story worktree (.claude-tasks/worktrees/...)       │
+│  └── Detects story worktree (.saga/worktrees/...)       │
 │  └── Sets: TASK_CONTEXT + context-specific variables             │
 │  └── Writes all to CLAUDE_ENV_FILE                               │
 │  └── Outputs context summary for Claude                          │
@@ -154,7 +154,7 @@ CLAUDE_PLUGIN_ROOT: /Users/name/my-project/.claude/plugins/claude-task-system
 TASK_CONTEXT: story-worktree
 EPIC_SLUG: user-auth
 STORY_SLUG: login-flow
-STORY_DIR: .claude-tasks/epics/user-auth/stories/login-flow
+STORY_DIR: .saga/epics/user-auth/stories/login-flow
 
 These variables are available via the Bash tool: echo $VARIABLE_NAME
 ```

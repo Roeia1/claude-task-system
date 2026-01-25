@@ -35,7 +35,7 @@ The identifier resolver ran above. Handle the result:
 
 Read the epic file:
 ```
-${CLAUDE_PROJECT_DIR}/.claude-tasks/epics/<slug>/epic.md
+${CLAUDE_PROJECT_DIR}/.saga/epics/<slug>/epic.md
 ```
 
 ### 3. Generate Story Breakdown (Titles + Descriptions Only)
@@ -112,7 +112,7 @@ Stories created for epic: <slug>
 | <title> | <slug> | story-<epic>-<slug> | <pr-url> |
 | ... | ... | ... | ... |
 
-Worktrees created in: .claude-tasks/worktrees/<epic-slug>/
+Worktrees created in: .saga/worktrees/<epic-slug>/
 
 Next steps:
 - Review story.md files and refine as needed

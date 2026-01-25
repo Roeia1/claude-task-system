@@ -10,7 +10,7 @@ Environment:
 
 Creates:
     - Git branch: story-<epic-slug>-<story-slug>
-    - Worktree: .claude-tasks/worktrees/<epic-slug>/<story-slug>/
+    - Worktree: .saga/worktrees/<epic-slug>/<story-slug>/
     - Draft PR with title: "Story: <epic-slug>/<story-slug>"
 
 Output (JSON):
@@ -68,8 +68,8 @@ def main():
 
     # Paths
     branch_name = f"story-{story_slug}-epic-{epic_slug}"
-    worktree_dir = project_path / ".claude-tasks" / "worktrees" / epic_slug / story_slug
-    story_file = project_path / ".claude-tasks" / "epics" / epic_slug / "stories" / story_slug / "story.md"
+    worktree_dir = project_path / ".saga" / "worktrees" / epic_slug / story_slug
+    story_file = project_path / ".saga" / "epics" / epic_slug / "stories" / story_slug / "story.md"
 
     # Check if story.md exists
     if not story_file.exists():

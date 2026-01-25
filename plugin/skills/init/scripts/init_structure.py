@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-init_structure.py - Initialize .claude-tasks/ directory structure
+init_structure.py - Initialize .saga/ directory structure
 
 Usage: python init_structure.py <project_root>
 
 Creates:
-  .claude-tasks/epics/
-  .claude-tasks/archive/
-  .claude-tasks/worktrees/
+  .saga/epics/
+  .saga/archive/
+  .saga/worktrees/
 
 Updates .gitignore to ignore worktrees/
 """
@@ -28,16 +28,16 @@ def main():
         print(f"Error: Project root '{project_root}' does not exist", file=sys.stderr)
         sys.exit(1)
 
-    claude_tasks_dir = project_root / ".claude-tasks"
+    claude_tasks_dir = project_root / ".saga"
     gitignore = project_root / ".gitignore"
-    worktrees_pattern = ".claude-tasks/worktrees/"
+    worktrees_pattern = ".saga/worktrees/"
 
     # Create directory structure
     (claude_tasks_dir / "epics").mkdir(parents=True, exist_ok=True)
     (claude_tasks_dir / "archive").mkdir(parents=True, exist_ok=True)
     (claude_tasks_dir / "worktrees").mkdir(parents=True, exist_ok=True)
 
-    print("Created .claude-tasks/ directory structure")
+    print("Created .saga/ directory structure")
 
     # Update .gitignore
     if gitignore.exists():
@@ -56,7 +56,7 @@ def main():
         )
         print("Created .gitignore with worktrees pattern")
 
-    print(f"Initialized .claude-tasks/ at {project_root}")
+    print(f"Initialized .saga/ at {project_root}")
 
 
 if __name__ == "__main__":

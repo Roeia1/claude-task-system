@@ -1,6 +1,6 @@
 ---
 name: init
-description: Initialize .claude-tasks/ directory structure
+description: Initialize .saga/ directory structure
 user-invocable: true
 ---
 
@@ -10,9 +10,9 @@ user-invocable: true
 
 The initialization script has run. Report the results to the user:
 
-- Created `.claude-tasks/epics/` - Directory for epic definitions
-- Created `.claude-tasks/archive/` - Archive for completed stories
-- Created `.claude-tasks/worktrees/` - Git worktrees for story isolation (gitignored)
+- Created `.saga/epics/` - Directory for epic definitions
+- Created `.saga/archive/` - Archive for completed stories
+- Created `.saga/worktrees/` - Git worktrees for story isolation (gitignored)
 - Updated `.gitignore` to exclude worktrees/
 
 ## Next Steps

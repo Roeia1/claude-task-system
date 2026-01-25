@@ -4,8 +4,8 @@ Scope validator hook for story isolation.
 
 This script is invoked as a PreToolUse hook by the Claude CLI to enforce
 story scope during autonomous execution. It blocks access to:
-- .claude-tasks/archive/ (completed stories)
-- Other stories' files in .claude-tasks/epics/
+- .saga/archive/ (completed stories)
+- Other stories' files in .saga/epics/
 
 Environment variables required:
 - EPIC_SLUG: The current epic identifier
@@ -40,7 +40,7 @@ def normalize_path(path: str) -> str:
 
 def is_archive_access(path: str) -> bool:
     """Check if path attempts to access the archive folder."""
-    return ".claude-tasks/archive" in path
+    return ".saga/archive" in path
 
 
 def check_story_access(path: str, allowed_epic: str, allowed_story: str) -> bool:
@@ -49,7 +49,7 @@ def check_story_access(path: str, allowed_epic: str, allowed_story: str) -> bool
 
     Returns True if access is allowed, False if blocked.
     """
-    if ".claude-tasks/epics/" not in path:
+    if ".saga/epics/" not in path:
         return True
 
     parts = path.split("/")
@@ -86,7 +86,7 @@ Attempted path: {file_path}
 Your scope is limited to:
   Epic: {epic_slug}
   Story: {story_slug}
-  Allowed: .claude-tasks/epics/{epic_slug}/stories/{story_slug}/
+  Allowed: .saga/epics/{epic_slug}/stories/{story_slug}/
 
 To access other stories, start a new /implement session for that story.""", file=sys.stderr)
 
