@@ -267,7 +267,7 @@ class TestStoryFileValidation:
         worktree = temp_project / ".claude-tasks" / "worktrees" / "nonexistent" / "story"
         result = validate_story_files(worktree, "nonexistent", "story")
         assert result["valid"] is False
-        assert "does not exist" in result["error"]
+        assert "not found" in result["error"]
 
     def test_invalid_when_story_missing(self, temp_worktree):
         """Returns valid=False when story.md doesn't exist."""
