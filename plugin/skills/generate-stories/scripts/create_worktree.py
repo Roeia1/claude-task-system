@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Create git worktree and draft PR for a story.
+Create git worktree for a story.
 
 Usage:
     python create_worktree.py <epic-slug> <story-slug>
@@ -9,19 +9,17 @@ Environment:
     SAGA_PROJECT_DIR - Required: Path to the project root
 
 Creates:
-    - Git branch: story-<epic-slug>-<story-slug>
+    - Git branch: story-<story-slug>-epic-<epic-slug>
     - Worktree: .saga/worktrees/<epic-slug>/<story-slug>/
-    - Draft PR with title: "Story: <epic-slug>/<story-slug>"
 
 Output (JSON):
-    {"success": true, "worktree_path": "...", "branch": "...", "pr_url": "..."}
+    {"success": true, "worktree_path": "...", "branch": "..."}
     {"success": false, "error": "..."}
 """
 
 import argparse
 import json
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -51,7 +49,7 @@ def output_result(success: bool, **kwargs):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Create worktree and PR for a story")
+    parser = argparse.ArgumentParser(description="Create worktree for a story")
     parser.add_argument("epic_slug", help="Epic slug")
     parser.add_argument("story_slug", help="Story slug")
     args = parser.parse_args()
@@ -69,11 +67,6 @@ def main():
     # Paths
     branch_name = f"story-{story_slug}-epic-{epic_slug}"
     worktree_dir = project_path / ".saga" / "worktrees" / epic_slug / story_slug
-    story_file = project_path / ".saga" / "epics" / epic_slug / "stories" / story_slug / "story.md"
-
-    # Check if story.md exists
-    if not story_file.exists():
-        output_result(False, error=f"Story file not found: {story_file}")
 
     # Check if branch already exists
     success, _ = run_command(
@@ -122,61 +115,11 @@ def main():
     if not success:
         output_result(False, error=f"Failed to create worktree: {error}")
 
-    # Push the branch to origin
-    success, error = run_command(
-        ["git", "push", "-u", "origin", branch_name],
-        cwd=str(worktree_dir)
+    output_result(
+        True,
+        worktree_path=str(worktree_dir),
+        branch=branch_name
     )
-    if not success:
-        output_result(False, error=f"Failed to push branch: {error}")
-
-    # Extract story title from story.md
-    story_title = story_slug
-    try:
-        content = story_file.read_text(encoding="utf-8")
-        match = re.search(r'^title:\s*(.+)$', content, re.MULTILINE)
-        if match:
-            story_title = match.group(1).strip()
-    except Exception:
-        pass
-
-    # Create draft PR
-    pr_title = f"Story: {epic_slug}/{story_slug}"
-    pr_body = f"""## Story: {story_title}
-
-**Epic**: {epic_slug}
-**Story**: {story_slug}
-
----
-
-This is a draft PR for tracking story progress.
-
-To implement this story, run:
-```
-/implement {story_slug}
-```
-"""
-
-    success, pr_url = run_command(
-        ["gh", "pr", "create", "--draft", "--title", pr_title, "--body", pr_body, "--head", branch_name],
-        cwd=str(worktree_dir)
-    )
-
-    if not success or not pr_url:
-        output_result(
-            True,
-            worktree_path=str(worktree_dir),
-            branch=branch_name,
-            pr_url=None,
-            warning="Failed to create draft PR"
-        )
-    else:
-        output_result(
-            True,
-            worktree_path=str(worktree_dir),
-            branch=branch_name,
-            pr_url=pr_url
-        )
 
 
 if __name__ == "__main__":
