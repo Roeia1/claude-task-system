@@ -17,5 +17,5 @@
     "journaling"
   ],
   "skills": "./skills/",
-  "agents": "./agents/"
+  "agents": ["./agents/generate-story.md"]
 }
