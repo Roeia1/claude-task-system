@@ -42,7 +42,7 @@ Run the CLI command using Bash with `run_in_background: true`.
 Use `story.slug` from the resolution result:
 
 ```bash
-node "${SAGA_PROJECT_DIR}/packages/cli/dist/cli.cjs" implement "<story.slug>" \
+npx @saga-ai/cli@latest implement "<story.slug>" \
     --path "$SAGA_PROJECT_DIR" \
     --max-cycles 10 \
     --max-time 60 \

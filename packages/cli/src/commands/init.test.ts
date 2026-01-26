@@ -166,4 +166,63 @@ describe('init command', () => {
       expect(result.exitCode).not.toBe(0);
     });
   });
+
+  describe('dry-run mode', () => {
+    it('should accept --dry-run option', () => {
+      const result = runCli(['init', '--dry-run', '--path', testDir]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).not.toContain('unknown option');
+      expect(result.stdout).toContain('Dry Run');
+    });
+
+    it('should not create directories in dry-run mode', () => {
+      const result = runCli(['init', '--dry-run', '--path', testDir]);
+
+      expect(result.exitCode).toBe(0);
+      // Directories should NOT exist
+      expect(require('node:fs').existsSync(join(testDir, '.saga'))).toBe(false);
+    });
+
+    it('should show what directories would be created', () => {
+      const result = runCli(['init', '--dry-run', '--path', testDir]);
+
+      expect(result.stdout).toContain('epics');
+      expect(result.stdout).toContain('archive');
+      expect(result.stdout).toContain('worktrees');
+      expect(result.stdout).toContain('will create');
+    });
+
+    it('should show existing directories as skip', () => {
+      // Create .saga structure first
+      mkdirSync(join(testDir, '.saga', 'epics'), { recursive: true });
+
+      const result = runCli(['init', '--dry-run', '--path', testDir]);
+
+      expect(result.stdout).toContain('epics');
+      expect(result.stdout).toMatch(/exists.*skip/i);
+    });
+
+    it('should show gitignore action', () => {
+      const result = runCli(['init', '--dry-run', '--path', testDir]);
+
+      expect(result.stdout).toContain('.gitignore');
+      expect(result.stdout).toContain('worktrees pattern');
+    });
+
+    it('should indicate when gitignore already has pattern', () => {
+      // Create .gitignore with pattern
+      writeFileSync(join(testDir, '.gitignore'), '.saga/worktrees/\n');
+
+      const result = runCli(['init', '--dry-run', '--path', testDir]);
+
+      expect(result.stdout).toContain('already has pattern');
+    });
+
+    it('should show no changes made message', () => {
+      const result = runCli(['init', '--dry-run', '--path', testDir]);
+
+      expect(result.stdout).toContain('No changes made');
+    });
+  });
 });

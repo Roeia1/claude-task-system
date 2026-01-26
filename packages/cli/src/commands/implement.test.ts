@@ -206,4 +206,132 @@ Test story for implement command testing.
       expect(true).toBe(true); // Placeholder - actual logic is in TypeScript
     });
   });
+
+  describe('dry-run mode', () => {
+    // Helper to create a mock plugin structure
+    function createMockPlugin(dir: string) {
+      const skillDir = join(dir, 'skills', 'execute-story');
+      const scriptsDir = join(skillDir, 'scripts');
+      mkdirSync(scriptsDir, { recursive: true });
+
+      // Create worker-prompt.md
+      writeFileSync(join(skillDir, 'worker-prompt.md'), '# Worker Prompt\nTest prompt content');
+
+      // Create scope_validator.py
+      writeFileSync(join(scriptsDir, 'scope_validator.py'), '# Mock scope validator');
+
+      return dir;
+    }
+
+    it('should accept --dry-run option', () => {
+      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
+
+      const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir]);
+
+      // Should not fail due to unknown option
+      expect(result.stderr).not.toContain("unknown option");
+      // Should contain dry run output
+      expect(result.stdout).toContain("Dry Run");
+    });
+
+    it('should report missing SAGA_PLUGIN_ROOT in dry-run', () => {
+      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
+
+      const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir]);
+
+      expect(result.stdout).toContain("SAGA_PLUGIN_ROOT");
+      expect(result.stdout).toMatch(/not set|FAILED/i);
+    });
+
+    it('should pass all checks when environment is complete', () => {
+      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
+      const pluginDir = join(testDir, 'mock-plugin');
+      createMockPlugin(pluginDir);
+
+      const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir], {
+        env: { SAGA_PLUGIN_ROOT: pluginDir },
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("All checks passed");
+      expect(result.stdout).toContain("Ready to implement");
+    });
+
+    it('should fail when worker-prompt.md is missing', () => {
+      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
+      const pluginDir = join(testDir, 'incomplete-plugin');
+      // Create plugin dir without worker-prompt.md
+      mkdirSync(join(pluginDir, 'skills', 'execute-story', 'scripts'), { recursive: true });
+      writeFileSync(join(pluginDir, 'skills', 'execute-story', 'scripts', 'scope_validator.py'), '# mock');
+
+      const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir], {
+        env: { SAGA_PLUGIN_ROOT: pluginDir },
+      });
+
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stdout).toContain("Worker prompt");
+      expect(result.stdout).toMatch(/not found|FAILED/i);
+    });
+
+    it('should fail when worktree is missing', () => {
+      // Create project without worktree
+      const sagaDir = join(testDir, '.saga');
+      const epicDir = join(sagaDir, 'epics', 'test-epic');
+      const storyDir = join(epicDir, 'stories', 'test-story');
+      mkdirSync(storyDir, { recursive: true });
+      writeFileSync(join(storyDir, 'story.md'), '---\nid: test-story\n---\n');
+      // Do NOT create worktree
+
+      const pluginDir = join(testDir, 'mock-plugin');
+      createMockPlugin(pluginDir);
+
+      const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir], {
+        env: { SAGA_PLUGIN_ROOT: pluginDir },
+      });
+
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stdout).toContain("Worktree");
+      expect(result.stdout).toMatch(/not found|FAILED/i);
+    });
+
+    it('should report story found successfully', () => {
+      createSagaProject(testDir, { epicSlug: 'my-epic', storySlug: 'my-story' });
+      const pluginDir = join(testDir, 'mock-plugin');
+      createMockPlugin(pluginDir);
+
+      const result = runCli(['implement', 'my-story', '--dry-run', '--path', testDir], {
+        env: { SAGA_PLUGIN_ROOT: pluginDir },
+      });
+
+      expect(result.stdout).toContain("Story found");
+      expect(result.stdout).toContain("my-story");
+      expect(result.stdout).toContain("my-epic");
+    });
+
+    it('should check for claude CLI availability', () => {
+      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
+      const pluginDir = join(testDir, 'mock-plugin');
+      createMockPlugin(pluginDir);
+
+      const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir], {
+        env: { SAGA_PLUGIN_ROOT: pluginDir },
+      });
+
+      // Should check for claude CLI
+      expect(result.stdout).toContain("claude CLI");
+    });
+
+    it('should check for python3 availability', () => {
+      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
+      const pluginDir = join(testDir, 'mock-plugin');
+      createMockPlugin(pluginDir);
+
+      const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir], {
+        env: { SAGA_PLUGIN_ROOT: pluginDir },
+      });
+
+      // Should check for python3
+      expect(result.stdout).toContain("python3");
+    });
+  });
 });

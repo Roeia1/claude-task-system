@@ -34,6 +34,7 @@ export interface ImplementOptions {
   maxCycles?: number;
   maxTime?: number;
   model?: string;
+  dryRun?: boolean;
 }
 
 /**
@@ -185,6 +186,218 @@ function validateStoryFiles(
  */
 function getSkillRoot(pluginRoot: string): string {
   return join(pluginRoot, 'skills', 'execute-story');
+}
+
+/**
+ * Check if a command exists in PATH
+ */
+function checkCommandExists(command: string): { exists: boolean; path?: string } {
+  try {
+    const result = spawnSync('which', [command], { encoding: 'utf-8' });
+    if (result.status === 0 && result.stdout.trim()) {
+      return { exists: true, path: result.stdout.trim() };
+    }
+    return { exists: false };
+  } catch {
+    return { exists: false };
+  }
+}
+
+/**
+ * Result of a dry run validation check
+ */
+interface DryRunCheck {
+  name: string;
+  path?: string;
+  passed: boolean;
+  error?: string;
+}
+
+/**
+ * Result of the dry run validation
+ */
+interface DryRunResult {
+  success: boolean;
+  checks: DryRunCheck[];
+  story?: {
+    epicSlug: string;
+    storySlug: string;
+    worktreePath: string;
+  };
+}
+
+/**
+ * Run dry-run validation to check all dependencies
+ */
+function runDryRun(
+  storyInfo: StoryInfo,
+  projectPath: string,
+  pluginRoot: string | undefined
+): DryRunResult {
+  const checks: DryRunCheck[] = [];
+  let allPassed = true;
+
+  // Check 1: SAGA_PLUGIN_ROOT environment variable
+  if (pluginRoot) {
+    checks.push({
+      name: 'SAGA_PLUGIN_ROOT',
+      path: pluginRoot,
+      passed: true,
+    });
+  } else {
+    checks.push({
+      name: 'SAGA_PLUGIN_ROOT',
+      passed: false,
+      error: 'Environment variable not set',
+    });
+    allPassed = false;
+  }
+
+  // Check 2: claude CLI is available
+  const claudeCheck = checkCommandExists('claude');
+  checks.push({
+    name: 'claude CLI',
+    path: claudeCheck.path,
+    passed: claudeCheck.exists,
+    error: claudeCheck.exists ? undefined : 'Command not found in PATH',
+  });
+  if (!claudeCheck.exists) allPassed = false;
+
+  // Check 3: python3 is available (for scope validator)
+  const pythonCheck = checkCommandExists('python3');
+  checks.push({
+    name: 'python3',
+    path: pythonCheck.path,
+    passed: pythonCheck.exists,
+    error: pythonCheck.exists ? undefined : 'Command not found in PATH',
+  });
+  if (!pythonCheck.exists) allPassed = false;
+
+  // Check 4: Worker prompt file
+  if (pluginRoot) {
+    const skillRoot = getSkillRoot(pluginRoot);
+    const workerPromptPath = join(skillRoot, WORKER_PROMPT_RELATIVE);
+    if (existsSync(workerPromptPath)) {
+      checks.push({
+        name: 'Worker prompt',
+        path: workerPromptPath,
+        passed: true,
+      });
+    } else {
+      checks.push({
+        name: 'Worker prompt',
+        path: workerPromptPath,
+        passed: false,
+        error: 'File not found',
+      });
+      allPassed = false;
+    }
+
+    // Check 5: Scope validator script
+    const scopeValidatorPath = join(skillRoot, 'scripts', 'scope_validator.py');
+    if (existsSync(scopeValidatorPath)) {
+      checks.push({
+        name: 'Scope validator',
+        path: scopeValidatorPath,
+        passed: true,
+      });
+    } else {
+      checks.push({
+        name: 'Scope validator',
+        path: scopeValidatorPath,
+        passed: false,
+        error: 'File not found',
+      });
+      allPassed = false;
+    }
+  }
+
+  // Check 6: Story exists
+  checks.push({
+    name: 'Story found',
+    path: `${storyInfo.storySlug} (epic: ${storyInfo.epicSlug})`,
+    passed: true,
+  });
+
+  // Check 7: Worktree exists
+  if (existsSync(storyInfo.worktreePath)) {
+    checks.push({
+      name: 'Worktree exists',
+      path: storyInfo.worktreePath,
+      passed: true,
+    });
+  } else {
+    checks.push({
+      name: 'Worktree exists',
+      path: storyInfo.worktreePath,
+      passed: false,
+      error: 'Directory not found',
+    });
+    allPassed = false;
+  }
+
+  // Check 8: story.md in worktree
+  if (existsSync(storyInfo.worktreePath)) {
+    const storyMdPath = computeStoryPath(
+      storyInfo.worktreePath,
+      storyInfo.epicSlug,
+      storyInfo.storySlug
+    );
+    if (existsSync(storyMdPath)) {
+      checks.push({
+        name: 'story.md in worktree',
+        path: storyMdPath,
+        passed: true,
+      });
+    } else {
+      checks.push({
+        name: 'story.md in worktree',
+        path: storyMdPath,
+        passed: false,
+        error: 'File not found',
+      });
+      allPassed = false;
+    }
+  }
+
+  return {
+    success: allPassed,
+    checks,
+    story: {
+      epicSlug: storyInfo.epicSlug,
+      storySlug: storyInfo.storySlug,
+      worktreePath: storyInfo.worktreePath,
+    },
+  };
+}
+
+/**
+ * Print dry run results to console
+ */
+function printDryRunResults(result: DryRunResult): void {
+  console.log('Dry Run Validation');
+  console.log('==================\n');
+
+  for (const check of result.checks) {
+    const icon = check.passed ? '\u2713' : '\u2717';
+    const status = check.passed ? 'OK' : 'FAILED';
+
+    if (check.passed) {
+      console.log(`${icon} ${check.name}: ${check.path || status}`);
+    } else {
+      console.log(`${icon} ${check.name}: ${check.error}`);
+      if (check.path) {
+        console.log(`  Expected: ${check.path}`);
+      }
+    }
+  }
+
+  console.log('');
+  if (result.success) {
+    console.log('Dry run complete. All checks passed. Ready to implement.');
+  } else {
+    console.log('Dry run failed. Please fix the issues above before running implement.');
+  }
 }
 
 /**
@@ -467,6 +680,16 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
     process.exit(1);
   }
 
+  // Get plugin root (may be undefined for dry-run validation)
+  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
+
+  // Handle dry-run mode
+  if (options.dryRun) {
+    const dryRunResult = runDryRun(storyInfo, projectPath, pluginRoot);
+    printDryRunResults(dryRunResult);
+    process.exit(dryRunResult.success ? 0 : 1);
+  }
+
   // Check if worktree exists
   if (!existsSync(storyInfo.worktreePath)) {
     console.error(`Error: Worktree not found at ${storyInfo.worktreePath}`);
@@ -476,7 +699,6 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
   }
 
   // If SAGA_PLUGIN_ROOT is not set, provide a helpful error
-  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
   if (!pluginRoot) {
     console.error('Error: SAGA_PLUGIN_ROOT environment variable is not set.');
     console.error('\nThis variable is required for the implementation script.');

@@ -6,7 +6,7 @@ user-invocable: true
 
 # Initialize Task System
 
-!`node "${SAGA_PROJECT_DIR}/packages/cli/dist/cli.cjs" init --path "$SAGA_PROJECT_DIR"`
+!`npx @saga-ai/cli@latest init --path "$SAGA_PROJECT_DIR"`
 
 The initialization script has run. Report the results to the user:
 

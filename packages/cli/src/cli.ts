@@ -34,9 +34,10 @@ program.option('-p, --path <dir>', 'Path to SAGA project directory (overrides au
 program
   .command('init')
   .description('Initialize .saga/ directory structure')
-  .action(async () => {
+  .option('--dry-run', 'Show what would be created without making changes')
+  .action(async (options: { dryRun?: boolean }) => {
     const globalOpts = program.opts();
-    await initCommand({ path: globalOpts.path });
+    await initCommand({ path: globalOpts.path, dryRun: options.dryRun });
   });
 
 // implement command
@@ -46,13 +47,15 @@ program
   .option('--max-cycles <n>', 'Maximum number of implementation cycles', parseInt)
   .option('--max-time <n>', 'Maximum time in minutes', parseInt)
   .option('--model <name>', 'Model to use for implementation')
-  .action(async (storySlug: string, options: { maxCycles?: number; maxTime?: number; model?: string }) => {
+  .option('--dry-run', 'Validate dependencies without running implementation')
+  .action(async (storySlug: string, options: { maxCycles?: number; maxTime?: number; model?: string; dryRun?: boolean }) => {
     const globalOpts = program.opts();
     await implementCommand(storySlug, {
       path: globalOpts.path,
       maxCycles: options.maxCycles,
       maxTime: options.maxTime,
       model: options.model,
+      dryRun: options.dryRun,
     });
   });
 
