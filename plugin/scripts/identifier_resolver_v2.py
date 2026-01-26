@@ -124,8 +124,11 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
     """
     Resolve an identifier as a story slug or title.
 
-    Story resolution reads YAML front matter from story.md files
-    to match on slug and title fields.
+    Story resolution searches for stories in worktrees, reading YAML front matter
+    from story.md files to match on slug/id and title fields.
+
+    Stories are located at:
+    .saga/worktrees/<epic>/<story>/.saga/epics/<epic>/stories/<story>/story.md
 
     Args:
         query: The identifier to resolve (potential story slug or title)
@@ -134,12 +137,12 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
     Returns:
         Dict with resolved status and story data (slug, title, status, epic_slug) or error.
     """
-    epics_dir = project_root / ".saga" / "epics"
+    worktrees_dir = project_root / ".saga" / "worktrees"
 
-    if not epics_dir.exists():
+    if not worktrees_dir.exists():
         return {
             "resolved": False,
-            "error": f"No .saga/epics/ directory found"
+            "error": "No .saga/worktrees/ directory found. Run /generate-stories first."
         }
 
     # Normalize query for matching
@@ -147,23 +150,25 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
 
     matches = []
 
-    # Search all epics for stories
-    for epic_dir in epics_dir.iterdir():
+    # Search all worktrees: .saga/worktrees/<epic>/<story>/
+    for epic_dir in worktrees_dir.iterdir():
         if not epic_dir.is_dir():
             continue
 
         epic_slug = epic_dir.name
-        stories_dir = epic_dir / "stories"
 
-        if not stories_dir.exists():
-            continue
-
-        # Search all stories in this epic
-        for story_dir in stories_dir.iterdir():
-            if not story_dir.is_dir():
+        for story_worktree in epic_dir.iterdir():
+            if not story_worktree.is_dir():
                 continue
 
-            story_md = story_dir / "story.md"
+            story_slug_from_dir = story_worktree.name
+
+            # Story file is at: <worktree>/.saga/epics/<epic>/stories/<story>/story.md
+            story_md = (
+                story_worktree / ".saga" / "epics" / epic_slug /
+                "stories" / story_slug_from_dir / "story.md"
+            )
+
             if not story_md.exists():
                 continue
 
@@ -173,7 +178,8 @@ def resolve_story(query: str, project_root: Path) -> Dict[str, Any]:
                 metadata = post.metadata
                 body = post.content
 
-                story_slug = metadata.get("slug", story_dir.name)
+                # Support both "id" and "slug" fields, fallback to directory name
+                story_slug = metadata.get("id") or metadata.get("slug") or story_slug_from_dir
                 title = metadata.get("title", "")
                 status = metadata.get("status", "")
 

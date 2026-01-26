@@ -130,8 +130,12 @@ class TestStoryResolution:
             yield project
 
     def create_story(self, project: Path, epic_slug: str, story_id: str, title: str, status: str = "ready"):
-        """Helper to create a story.md file with YAML front matter."""
-        story_dir = project / ".saga" / "epics" / epic_slug / "stories" / story_id
+        """Helper to create a story.md file with YAML front matter in worktree structure."""
+        # Stories are located at: .saga/worktrees/<epic>/<story>/.saga/epics/<epic>/stories/<story>/story.md
+        story_dir = (
+            project / ".saga" / "worktrees" / epic_slug / story_id /
+            ".saga" / "epics" / epic_slug / "stories" / story_id
+        )
         story_dir.mkdir(parents=True)
         story_md = story_dir / "story.md"
         story_md.write_text(f"""---
@@ -207,7 +211,11 @@ Test story context for {title}.
 
     def test_resolve_story_returns_truncated_context(self, temp_project):
         """Story resolution returns context truncated to 300 chars."""
-        story_dir = temp_project / ".saga" / "epics" / "auth" / "stories" / "login"
+        # Stories are located at: .saga/worktrees/<epic>/<story>/.saga/epics/<epic>/stories/<story>/story.md
+        story_dir = (
+            temp_project / ".saga" / "worktrees" / "auth" / "login" /
+            ".saga" / "epics" / "auth" / "stories" / "login"
+        )
         story_dir.mkdir(parents=True)
         long_context = "A" * 500  # 500 character context
         (story_dir / "story.md").write_text(f"""---

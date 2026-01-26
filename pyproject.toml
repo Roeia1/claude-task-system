@@ -1,0 +1,18 @@
+[project]
+name = "saga"
+version = "2.3.0"
+description = "Structured Autonomous Goal Achievement - A structured development workflow"
+requires-python = ">=3.10"
+dependencies = [
+    "python-frontmatter>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.0",
+]
