@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { resolve, relative } from 'node:path';
 
 // Test the internal functions by importing the module
 // We'll test the logic directly since the command reads from stdin
@@ -14,29 +15,82 @@ describe('scope-validator', () => {
     process.env = originalEnv;
   });
 
+  describe('isWithinWorktree', () => {
+    // Mirror the function logic for testing
+    const isWithinWorktree = (filePath: string, worktreePath: string): boolean => {
+      const absoluteFilePath = resolve(filePath);
+      const absoluteWorktree = resolve(worktreePath);
+      const relativePath = relative(absoluteWorktree, absoluteFilePath);
+
+      if (relativePath.startsWith('..') || resolve(relativePath) === relativePath) {
+        return false;
+      }
+
+      return true;
+    };
+
+    it('should allow paths within the worktree', () => {
+      expect(isWithinWorktree('/project/worktree/src/file.ts', '/project/worktree')).toBe(true);
+      expect(isWithinWorktree('/project/worktree/package.json', '/project/worktree')).toBe(true);
+      expect(isWithinWorktree('/project/worktree/.saga/epics/test/story.md', '/project/worktree')).toBe(true);
+    });
+
+    it('should block paths outside the worktree', () => {
+      expect(isWithinWorktree('/other/project/file.ts', '/project/worktree')).toBe(false);
+      expect(isWithinWorktree('/project/file.ts', '/project/worktree')).toBe(false);
+      expect(isWithinWorktree('/etc/passwd', '/project/worktree')).toBe(false);
+    });
+
+    it('should block parent directory traversal', () => {
+      expect(isWithinWorktree('/project/worktree/../secret.txt', '/project/worktree')).toBe(false);
+      expect(isWithinWorktree('/project/worktree/../../etc/passwd', '/project/worktree')).toBe(false);
+    });
+
+    it('should allow the worktree root itself', () => {
+      expect(isWithinWorktree('/project/worktree', '/project/worktree')).toBe(true);
+    });
+
+    it('should handle relative paths by resolving them', () => {
+      // Relative paths are resolved against cwd, so test with worktree as subdirectory
+      const cwd = process.cwd();
+      expect(isWithinWorktree(`${cwd}/subdir/file.ts`, cwd)).toBe(true);
+      expect(isWithinWorktree('../outside.ts', cwd)).toBe(false);
+    });
+  });
+
   describe('getFilePathFromInput', () => {
-    // Import the function for testing
-    const getFilePathFromInput = (input: string): string | null => {
+    // Mirror the function logic for testing (uses hook input structure)
+    const getFilePathFromInput = (hookInput: string): string | null => {
       try {
-        const data = JSON.parse(input);
-        return data.file_path || data.path || null;
+        const data = JSON.parse(hookInput);
+        const toolInput = data.tool_input || {};
+        return toolInput.file_path || toolInput.path || null;
       } catch {
         return null;
       }
     };
 
-    it('should extract file_path from JSON', () => {
-      const input = JSON.stringify({ file_path: '/path/to/file.ts' });
+    it('should extract file_path from Read tool input', () => {
+      const input = JSON.stringify({
+        tool_name: 'Read',
+        tool_input: { file_path: '/path/to/file.ts' },
+      });
       expect(getFilePathFromInput(input)).toBe('/path/to/file.ts');
     });
 
-    it('should extract path from JSON if file_path is not present', () => {
-      const input = JSON.stringify({ path: '/path/to/file.ts' });
-      expect(getFilePathFromInput(input)).toBe('/path/to/file.ts');
+    it('should extract path from Glob tool input', () => {
+      const input = JSON.stringify({
+        tool_name: 'Glob',
+        tool_input: { pattern: '**/*.ts', path: '/path/to/search' },
+      });
+      expect(getFilePathFromInput(input)).toBe('/path/to/search');
     });
 
     it('should prefer file_path over path', () => {
-      const input = JSON.stringify({ file_path: '/first.ts', path: '/second.ts' });
+      const input = JSON.stringify({
+        tool_name: 'Read',
+        tool_input: { file_path: '/first.ts', path: '/second.ts' },
+      });
       expect(getFilePathFromInput(input)).toBe('/first.ts');
     });
 
@@ -45,7 +99,15 @@ describe('scope-validator', () => {
     });
 
     it('should return null if no path fields present', () => {
-      const input = JSON.stringify({ other: 'field' });
+      const input = JSON.stringify({
+        tool_name: 'Bash',
+        tool_input: { command: 'echo hello' },
+      });
+      expect(getFilePathFromInput(input)).toBeNull();
+    });
+
+    it('should return null if tool_input is missing', () => {
+      const input = JSON.stringify({ tool_name: 'Read' });
       expect(getFilePathFromInput(input)).toBeNull();
     });
   });

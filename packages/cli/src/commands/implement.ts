@@ -384,7 +384,7 @@ function buildScopeSettings(): Record<string, unknown> {
     hooks: {
       PreToolUse: [
         {
-          matcher: 'Read|Write|Edit',
+          matcher: 'Read|Write|Edit|Glob|Grep',
           hooks: [hookCommand],
         },
       ],
