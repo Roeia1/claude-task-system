@@ -1,7 +1,7 @@
 # SAGA
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-2.8.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.9.0-blue)](CHANGELOG.md)
 [![npm](https://img.shields.io/npm/v/@saga-ai/cli)](https://www.npmjs.com/package/@saga-ai/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skills](https://img.shields.io/badge/skills-5-green)](https://github.com/Roeia1/saga)
