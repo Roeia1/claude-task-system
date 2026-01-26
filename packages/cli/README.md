@@ -2,21 +2,20 @@
 
 Command-line interface for SAGA (Structured Autonomous Goal Achievement) - a structured development workflow that combines human-guided epic planning with autonomous story execution.
 
-## Installation
-
-```bash
-pnpm add -g @saga-ai/cli
-```
-
-Or with npm:
-```bash
-npm install -g @saga-ai/cli
-```
-
 ## Requirements
 
 - Node.js >= 18.0.0
-- [Claude CLI](https://docs.anthropic.com/en/docs/claude-cli) (for `implement` command)
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (for `implement` command)
+
+## Usage
+
+Run commands using npx (no global installation required):
+
+```bash
+npx @saga-ai/cli init
+npx @saga-ai/cli implement <story-slug>
+npx @saga-ai/cli dashboard
+```
 
 ## Commands
 
