@@ -62,8 +62,9 @@ describe('CLI entry point', () => {
       expect(stdout).toContain('init');
     });
 
-    it('init --help shows path option', () => {
-      const { stdout } = runCli(['init', '--help']);
+    it('init uses global --path option', () => {
+      // --path is a global option shown in main help
+      const { stdout } = runCli(['--help']);
       expect(stdout).toContain('--path');
     });
   });
@@ -80,12 +81,17 @@ describe('CLI entry point', () => {
       expect(stdout).toContain('story-slug');
     });
 
-    it('implement --help shows options', () => {
+    it('implement --help shows command-specific options', () => {
       const { stdout } = runCli(['implement', '--help']);
-      expect(stdout).toContain('--path');
       expect(stdout).toContain('--max-cycles');
       expect(stdout).toContain('--max-time');
       expect(stdout).toContain('--model');
+    });
+
+    it('implement uses global --path option', () => {
+      // --path is a global option shown in main help
+      const { stdout } = runCli(['--help']);
+      expect(stdout).toContain('--path');
     });
   });
 
@@ -101,8 +107,9 @@ describe('CLI entry point', () => {
       expect(stdout).toContain('--port');
     });
 
-    it('dashboard --help shows path option', () => {
-      const { stdout } = runCli(['dashboard', '--help']);
+    it('dashboard uses global --path option', () => {
+      // --path is a global option shown in main help
+      const { stdout } = runCli(['--help']);
       expect(stdout).toContain('--path');
     });
   });

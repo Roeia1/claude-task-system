@@ -10,6 +10,7 @@
 import { Command } from 'commander';
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
+import { initCommand } from './commands/init.js';
 
 // Read version from package.json
 // In the bundled CJS output, __dirname will be available
@@ -31,20 +32,20 @@ program.option('-p, --path <dir>', 'Path to SAGA project directory (overrides au
 program
   .command('init')
   .description('Initialize .saga/ directory structure')
-  .option('-p, --path <dir>', 'Path to initialize (default: current directory)')
-  .action(async (options: { path?: string }) => {
-    console.log('init command not yet implemented');
+  .action(async () => {
+    const globalOpts = program.opts();
+    await initCommand({ path: globalOpts.path });
   });
 
 // implement command
 program
   .command('implement <story-slug>')
   .description('Run story implementation')
-  .option('-p, --path <dir>', 'Path to SAGA project directory')
   .option('--max-cycles <n>', 'Maximum number of implementation cycles', parseInt)
   .option('--max-time <n>', 'Maximum time in seconds', parseInt)
   .option('--model <name>', 'Model to use for implementation')
-  .action(async (storySlug: string, options: { path?: string; maxCycles?: number; maxTime?: number; model?: string }) => {
+  .action(async (storySlug: string, options: { maxCycles?: number; maxTime?: number; model?: string }) => {
+    const globalOpts = program.opts();
     console.log(`implement command not yet implemented (story: ${storySlug})`);
   });
 
@@ -52,9 +53,9 @@ program
 program
   .command('dashboard')
   .description('Start the dashboard server')
-  .option('-p, --path <dir>', 'Path to SAGA project directory')
   .option('--port <n>', 'Port to run the server on (default: 3847)', parseInt)
-  .action(async (options: { path?: string; port?: number }) => {
+  .action(async (options: { port?: number }) => {
+    const globalOpts = program.opts();
     console.log('dashboard command not yet implemented');
   });
 

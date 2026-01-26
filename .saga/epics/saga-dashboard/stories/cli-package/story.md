@@ -15,7 +15,7 @@ tasks:
     status: completed
   - id: t4
     title: Implement saga init command
-    status: pending
+    status: completed
   - id: t5
     title: Implement saga implement command
     status: pending

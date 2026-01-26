@@ -89,3 +89,38 @@
 - t5: Implement saga implement command
 - t6: Implement saga dashboard command
 - t7-t8: Script migration and skill updates
+
+## Session: 2026-01-26T05:05:00Z
+
+### Task: t4 - Implement saga init command
+
+**What was done:**
+- Created `src/commands/init.ts` with init command handler
+- Created `scripts/init_structure.py` (migrated from plugin)
+- Created comprehensive test suite with 10 tests covering:
+  - Initializing .saga/ structure at specified path
+  - Updating .gitignore with worktrees pattern
+  - Creating .gitignore if it doesn't exist
+  - Not duplicating worktrees pattern if already present
+  - Failing with non-existent path (error handling)
+  - Initializing from project root without .saga/
+  - Initializing from subdirectory (discovers project root)
+  - Finding existing .saga/ from subdirectory
+  - Displaying script output to user
+  - Reporting errors with helpful messages
+- Fixed Commander.js option handling issue where global `--path` option was conflicting with subcommand options
+- Updated cli.ts to properly access global options via `program.opts()`
+- All 34 tests passing
+
+**Decisions:**
+- Moved `--path` to be a global option only (removed from subcommands) to avoid Commander.js option shadowing
+- Updated cli.test.ts tests to reflect that `--path` is global (shown in main help, not subcommand help)
+- Init command validates that explicit path exists and is a directory before proceeding
+- Created scripts/ directory early as part of t4 (script migration is formally t7, but needed for init to work)
+- Script spawns python3 subprocess and streams output to console
+
+**Next steps:**
+- t5: Implement saga implement command
+- t6: Implement saga dashboard command
+- t7: Formally complete script migration (implement.py)
+- t8: Update plugin skills to call CLI commands
