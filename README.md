@@ -2,6 +2,7 @@
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
 [![Version](https://img.shields.io/badge/version-2.4.0-blue)](CHANGELOG.md)
+[![npm](https://img.shields.io/npm/v/@saga-ai/cli)](https://www.npmjs.com/package/@saga-ai/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skills](https://img.shields.io/badge/skills-5-green)](https://github.com/Roeia1/saga)
 [![Agents](https://img.shields.io/badge/agents-1-blue)](https://github.com/Roeia1/saga)
@@ -31,6 +32,7 @@ flowchart LR
 - [Directory Structure](#directory-structure)
 - [Non-Negotiable Rules](#non-negotiable-rules)
 - [Plugin Architecture](#plugin-architecture)
+- [CLI Package](#cli-package)
 - [Requirements](#requirements)
 - [Contributing](#contributing)
 
@@ -335,6 +337,37 @@ plugin/
 └── docs/
     └── ENVIRONMENT.md        # Environment variable reference
 ```
+
+---
+
+## CLI Package
+
+The `@saga-ai/cli` npm package provides standalone CLI commands for SAGA workflows. It's used internally by the plugin for story orchestration but can also be used directly.
+
+### Installation
+
+```bash
+# Run directly with npx (no install required)
+npx @saga-ai/cli <command>
+
+# Or install globally
+npm install -g @saga-ai/cli
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `saga init` | Initialize `.saga/` directory structure |
+| `saga implement <story>` | Orchestrate autonomous story execution |
+| `saga dashboard` | Start HTTP server for dashboard UI |
+| `saga help` | Display help information |
+
+### Usage with Plugin
+
+The plugin's `/execute-story` skill uses the CLI's `implement` command under the hood. When running via the plugin, environment variables like `SAGA_PLUGIN_ROOT` are automatically configured.
+
+For CLI development, see [`packages/cli/CLAUDE.md`](packages/cli/CLAUDE.md).
 
 ---
 

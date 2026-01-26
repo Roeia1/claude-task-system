@@ -6,6 +6,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is **SAGA** (Structured Autonomous Goal Achievement) - a structured development workflow that combines human-guided epic planning with autonomous story execution. The system provides a complete lifecycle from epic ideation through story breakdown and rigorous implementation.
 
+### Repository Structure
+
+```
+saga/
+├── plugin/                     # Claude Code plugin source
+├── packages/
+│   └── cli/                    # @saga-ai/cli npm package
+├── CLAUDE.md                   # This file
+├── README.md                   # User-facing documentation
+├── CHANGELOG.md                # Plugin version history
+└── RELEASING.md                # Release process documentation
+```
+
+**Key packages:**
+- **plugin/**: The Claude Code plugin with skills, agents, and hooks
+- **packages/cli/**: Standalone CLI for story orchestration (see [`packages/cli/CLAUDE.md`](packages/cli/CLAUDE.md) for development guide)
+
 ## Core Architecture
 
 ### Epic/Story Development Lifecycle
