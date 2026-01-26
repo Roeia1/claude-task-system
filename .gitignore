@@ -2,3 +2,4 @@
 # SAGA - Story worktrees (each story folder is a git worktree)
 task-system/tasks/*/
 __pycache__/
+.venv/
