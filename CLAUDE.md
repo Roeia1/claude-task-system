@@ -111,17 +111,29 @@ echo $SAGA_PROJECT_DIR
 
 For full documentation see: `plugin/docs/ENVIRONMENT.md`
 
-### Dynamic Story Status
+### Story Status
 
-Story status is derived from filesystem and git state:
+Story and task status are stored in the story.md frontmatter:
 
-| Status | Signal |
-|--------|--------|
-| PENDING | Worktree exists, no `journal.md` |
-| IN_PROGRESS | Worktree exists, `journal.md` present |
-| BLOCKED | IN_PROGRESS with unresolved blocker in journal |
-| REMOTE | Open PR with story branch, no local worktree |
-| COMPLETED | PR merged, files archived |
+```yaml
+---
+id: story-slug
+title: Story Title
+status: ready           # Story-level status
+epic: epic-slug
+tasks:
+  - id: t1
+    title: Task 1 Title
+    status: pending     # Task-level status
+---
+```
+
+| Status | Meaning |
+|--------|---------|
+| `ready` | Story is ready to be implemented |
+| `in_progress` | Story is currently being worked on |
+| `blocked` | Story is blocked, needs resolution |
+| `completed` | Story implementation is finished |
 
 ## Development Commands
 
@@ -196,27 +208,38 @@ git add . && git commit -m "..." && git push
 
 ### story.md
 
-Stories use markdown with structured sections:
+Stories use YAML frontmatter for metadata and markdown for content:
 
 ```markdown
-# Story: [Title]
+---
+id: story-slug
+title: Story Title
+status: ready
+epic: epic-slug
+tasks:
+  - id: t1
+    title: Task 1 Title
+    status: pending
+  - id: t2
+    title: Task 2 Title
+    status: pending
+---
 
 ## Context
-Link to parent epic and relevant background.
+Self-contained description of what this story accomplishes.
 
-## Tasks
-1. **Task Name**
-   - Implementation guidance
-   - Patterns to follow
-   - Test requirements
+## Scope Boundaries
+**In scope:** / **Out of scope:**
 
-## References
-- Related files and patterns
-- API contracts
-- Design decisions
+## Interface
+**Inputs:** / **Outputs:**
 
 ## Acceptance Criteria
-- Testable success conditions
+- [ ] Verifiable conditions
+
+## Tasks
+### t1: Task 1 Title
+**Guidance:** / **References:** / **Avoid:** / **Done when:**
 ```
 
 ### journal.md
