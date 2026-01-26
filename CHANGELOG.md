@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-01-26
+
+### Added
+
+- **cli**: New `@saga-ai/cli` npm package - standalone CLI for SAGA workflows
+  - `saga init` - Initialize `.saga/` directory structure
+  - `saga implement <story>` - Orchestrate autonomous story execution
+  - `saga dashboard` - Start HTTP server for dashboard UI
+  - `saga help` - Display help information
+- **skills**: `/publish-cli` skill for npm package releases
+- **release-skill**: Step to update documentation content during releases
+
+### Changed
+
+- **cli**: Converted Python orchestration scripts to TypeScript
+- **cli**: Switched to pnpm package manager with Node 23
+- **docs**: Refactored CLAUDE.md to index-style with progressive discovery pattern
+- **skills**: Renamed `/release` skill to `/publish-plugin`
+
+### Fixed
+
+- **gitignore**: Added `.saga/worktrees/` to prevent accidental commits
+- **cleanup**: Removed accidentally committed worktrees
+
 ## [2.4.0] - 2026-01-26
 
 ### Changed
