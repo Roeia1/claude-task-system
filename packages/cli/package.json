@@ -11,7 +11,8 @@
     "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.cjs --format=cjs --banner:js='#!/usr/bin/env node'",
     "dev": "npm run build && node dist/cli.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "publish:npm": "npm run build && npm test && npm publish --access public"
   },
   "keywords": [
     "claude",
