@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-01-26
+
+### Added
+
+- **agents**: New `plugin/agents/` directory for Claude Code agents
+- **generate-story agent**: Story generation now uses a proper Claude Code agent with `model: opus`
+
+### Changed
+
+- **generate-stories**: Now spawns `generate-story` agents via Task tool instead of using Skill tool with fork context
+- **plugin.json**: Added `agents` directory registration
+
+### Removed
+
+- **generate-story skill**: Replaced by `generate-story` agent (better parallelism and isolation)
+
 ## [2.1.2] - 2026-01-25
 
 ### Reverted
