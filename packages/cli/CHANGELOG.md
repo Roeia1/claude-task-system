@@ -5,6 +5,15 @@ All notable changes to the `@saga-ai/cli` package will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-01-27
+
+### Added
+- **implement**: New `--stream` flag for real-time worker output
+  - Streams worker activity to stdout as it happens
+  - Uses Claude Code's `--output-format stream-json --verbose` mode
+  - Parses streaming JSON to display readable progress updates
+  - Enables monitoring worker progress via background task output file
+
 ## [0.4.0] - 2026-01-27
 
 ### Added
