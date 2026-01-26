@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-01-26
+
+### Changed
+
+- **skills**: Migrated execute-story, resolve-blocker, generate-stories from Python `identifier_resolver_v2.py` to `saga find` CLI command
+  - Fuzzy search with typo tolerance powered by Fuse.js
+  - Field names updated from snake_case to camelCase (epicSlug, etc.)
+
+### Added
+
+- **cli**: New `saga find <query>` command (v0.2.0)
+  - Find epics or stories by slug/title with fuzzy matching
+  - `--type epic|story` option (default: story)
+  - Returns JSON with match data or multiple matches for disambiguation
+
 ## [2.5.0] - 2026-01-26
 
 ### Added
