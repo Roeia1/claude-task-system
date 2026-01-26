@@ -29,3 +29,36 @@
 
 **Next steps:**
 - t2: Implement file system parsing module (parser.ts) with gray-matter for YAML frontmatter
+
+## Session: 2026-01-26T23:56:00Z
+
+### Task: t2 - File System Parsing Module
+
+**What was done:**
+- Created `packages/cli/src/server/parser.ts` with complete filesystem parsing logic:
+  - TypeScript interfaces: `StoryCounts`, `Task`, `JournalEntry`, `StoryDetail`, `EpicSummary`, `Epic`
+  - `parseStory(storyPath, epicSlug)` - parses story.md with YAML frontmatter using gray-matter
+  - `parseEpic(epicPath)` - extracts title from first `# ` heading in epic.md
+  - `parseJournal(journalPath)` - parses journal.md by `## Session:`, `## Blocker:`, `## Resolution:` headers
+  - `scanSagaDirectory(sagaRoot)` - scans entire .saga/ directory structure including archived stories
+- Created comprehensive test suite in `packages/cli/src/server/__tests__/parser.test.ts` with 23 tests covering:
+  - Valid YAML frontmatter parsing
+  - Missing file handling (returns null/empty array)
+  - Malformed YAML graceful degradation (uses defaults)
+  - Journal entry parsing for all types (session, blocker, resolution)
+  - Multiple epics and stories scanning
+  - Story counts calculation by status
+  - Archived stories detection with `archived: true` flag
+  - Relative path generation from saga root
+- Fixed server.test.ts to use random ports (30000-50000 range) to avoid port conflicts in parallel test runs
+
+**Decisions:**
+- Used async/await for all file operations for consistency
+- Graceful error handling: missing files return null/empty, malformed YAML logs warning and uses defaults (status: 'ready', tasks: [])
+- Story status validated to one of: 'ready', 'in_progress', 'blocked', 'completed'
+- Task status validated to one of: 'pending', 'in_progress', 'completed'
+- Paths in results are relative to saga root (not absolute) to avoid exposing system paths
+- Journal entries parsed by splitting on `## ` headers and checking for known prefixes
+
+**Next steps:**
+- t3: Implement REST API endpoints (routes.ts) using the parser module
