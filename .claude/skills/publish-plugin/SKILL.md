@@ -1,5 +1,5 @@
 ---
-name: release
+name: publish-plugin
 description: "Releases new versions of the Claude Task System plugin. Bumps version numbers in CHANGELOG.md, README.md, plugin.json, and marketplace.json, then creates git tags and GitHub releases. Use when the user says 'release', 'new version', 'version bump', or 'publish release'."
 allowed-tools: Read, Edit, Bash, Glob, Grep
 ---

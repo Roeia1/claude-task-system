@@ -388,7 +388,7 @@ Contributions are welcome! Please:
 3. Follow the existing code patterns
 4. Submit a pull request
 
-For maintainers: use `/release` to publish new versions.
+For maintainers: use `/publish-plugin` to publish new versions.
 
 ---
 
