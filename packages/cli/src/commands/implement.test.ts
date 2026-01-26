@@ -52,16 +52,15 @@ describe('implement command', () => {
   // Helper to create a minimal SAGA project structure
   function createSagaProject(dir: string, options: { epicSlug: string; storySlug: string }) {
     const sagaDir = join(dir, '.saga');
-    const epicDir = join(sagaDir, 'epics', options.epicSlug);
-    const storyDir = join(epicDir, 'stories', options.storySlug);
     const worktreeDir = join(sagaDir, 'worktrees', options.epicSlug, options.storySlug);
+    // Story.md lives inside the worktree at: <worktree>/.saga/epics/<epic>/stories/<story>/story.md
+    const storyDirInWorktree = join(worktreeDir, '.saga', 'epics', options.epicSlug, 'stories', options.storySlug);
 
     // Create directory structure
-    mkdirSync(storyDir, { recursive: true });
-    mkdirSync(worktreeDir, { recursive: true });
+    mkdirSync(storyDirInWorktree, { recursive: true });
 
-    // Create minimal story.md
-    writeFileSync(join(storyDir, 'story.md'), `---
+    // Create minimal story.md inside the worktree
+    writeFileSync(join(storyDirInWorktree, 'story.md'), `---
 id: ${options.storySlug}
 title: Test Story
 status: ready
@@ -76,12 +75,7 @@ tasks:
 Test story for implement command testing.
 `);
 
-    // Create story.md in worktree too (mirroring the project structure)
-    const worktreeStoryDir = join(worktreeDir, '.saga', 'epics', options.epicSlug, 'stories', options.storySlug);
-    mkdirSync(worktreeStoryDir, { recursive: true });
-    writeFileSync(join(worktreeStoryDir, 'story.md'), readFileSync(join(storyDir, 'story.md')));
-
-    return { sagaDir, storyDir, worktreeDir };
+    return { sagaDir, storyDir: storyDirInWorktree, worktreeDir };
   }
 
   describe('argument validation', () => {
@@ -269,13 +263,10 @@ Test story for implement command testing.
     });
 
     it('should fail when worktree is missing', () => {
-      // Create project without worktree
+      // Create .saga directory but no worktree for the story
       const sagaDir = join(testDir, '.saga');
-      const epicDir = join(sagaDir, 'epics', 'test-epic');
-      const storyDir = join(epicDir, 'stories', 'test-story');
-      mkdirSync(storyDir, { recursive: true });
-      writeFileSync(join(storyDir, 'story.md'), '---\nid: test-story\n---\n');
-      // Do NOT create worktree
+      mkdirSync(join(sagaDir, 'worktrees'), { recursive: true });
+      // Do NOT create worktree for the story
 
       const pluginDir = join(testDir, 'mock-plugin');
       createMockPlugin(pluginDir);
@@ -284,9 +275,10 @@ Test story for implement command testing.
         env: { SAGA_PLUGIN_ROOT: pluginDir },
       });
 
+      // Since stories are only found in worktrees, missing worktree = story not found
       expect(result.exitCode).not.toBe(0);
-      expect(result.stdout).toContain("Worktree");
-      expect(result.stdout).toMatch(/not found|FAILED/i);
+      expect(result.stderr).toContain("not found");
+      expect(result.stderr).toContain("/generate-stories");
     });
 
     it('should report story found successfully', () => {

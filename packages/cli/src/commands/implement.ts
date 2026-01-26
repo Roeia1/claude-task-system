@@ -99,37 +99,50 @@ const WORKER_OUTPUT_SCHEMA = {
 /**
  * Find a story by slug in the SAGA project
  *
- * Searches through all epics to find a story matching the given slug.
+ * Searches through worktrees to find a story matching the given slug.
+ * Stories are located at:
+ * .saga/worktrees/<epic>/<story>/.saga/epics/<epic>/stories/<story>/story.md
+ *
  * Returns the epic slug and story path if found.
  */
 function findStory(projectPath: string, storySlug: string): StoryInfo | null {
-  const epicsDir = join(projectPath, '.saga', 'epics');
+  const worktreesDir = join(projectPath, '.saga', 'worktrees');
 
-  if (!existsSync(epicsDir)) {
+  if (!existsSync(worktreesDir)) {
     return null;
   }
 
-  // Search through all epics
-  const epicDirs = readdirSync(epicsDir, { withFileTypes: true })
+  // Search through all epic worktrees
+  const epicDirs = readdirSync(worktreesDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
 
   for (const epicSlug of epicDirs) {
-    const storiesDir = join(epicsDir, epicSlug, 'stories');
-    if (!existsSync(storiesDir)) {
+    const epicWorktreeDir = join(worktreesDir, epicSlug);
+
+    // Check if this story's worktree exists
+    const storyWorktree = join(epicWorktreeDir, storySlug);
+    if (!existsSync(storyWorktree)) {
       continue;
     }
 
-    const storyDir = join(storiesDir, storySlug);
-    const storyPath = join(storyDir, 'story.md');
+    // Story file is at: <worktree>/.saga/epics/<epic>/stories/<story>/story.md
+    const storyPath = join(
+      storyWorktree,
+      '.saga',
+      'epics',
+      epicSlug,
+      'stories',
+      storySlug,
+      'story.md'
+    );
 
     if (existsSync(storyPath)) {
-      const worktreePath = join(projectPath, '.saga', 'worktrees', epicSlug, storySlug);
       return {
         epicSlug,
         storySlug,
         storyPath,
-        worktreePath,
+        worktreePath: storyWorktree,
       };
     }
   }
@@ -646,8 +659,9 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
   const storyInfo = findStory(projectPath, storySlug);
   if (!storyInfo) {
     console.error(`Error: Story '${storySlug}' not found in SAGA project.`);
-    console.error(`\nSearched in: ${join(projectPath, '.saga', 'epics')}`);
-    console.error('\nMake sure the story exists and has a story.md file.');
+    console.error(`\nSearched in: ${join(projectPath, '.saga', 'worktrees')}`);
+    console.error('\nMake sure the story worktree exists and has a story.md file.');
+    console.error('Run /generate-stories to create story worktrees.');
     process.exit(1);
   }
 
