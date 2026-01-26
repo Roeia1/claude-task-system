@@ -33,10 +33,10 @@ Example: "Login Form Component" → `login-form-component`
 
 ### 2. Create Git Infrastructure
 
-Run the create_worktree.py script to create the branch and worktree:
+Run the saga worktree command to create the branch and worktree:
 
 ```bash
-python ${SAGA_PLUGIN_ROOT}/skills/generate-stories/scripts/create_worktree.py "<epic_slug>" "<generated-slug>"
+npx @saga-ai/cli worktree "<epic_slug>" "<generated-slug>" --path "${SAGA_PROJECT_DIR}"
 ```
 
 This creates:

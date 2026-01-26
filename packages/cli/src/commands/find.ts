@@ -1,0 +1,59 @@
+/**
+ * saga find command - Find epics or stories by slug/title
+ *
+ * This command resolves flexible identifiers to epic slugs or story metadata.
+ *
+ * Usage:
+ *   saga find <query>                   # Find a story (default)
+ *   saga find <query> --type epic       # Find an epic
+ *   saga find <query> --type story      # Find a story (explicit)
+ *
+ * Output:
+ *   JSON object with:
+ *   - found: true/false
+ *   - data: object with metadata (if single match)
+ *   - matches: array (if multiple matches)
+ *   - error: string (if no match)
+ */
+
+import { findEpic, findStory } from '../utils/finder.js';
+import { resolveProjectPath } from '../utils/project-discovery.js';
+
+/**
+ * Options for the find command
+ */
+export interface FindOptions {
+  path?: string;
+  type?: 'epic' | 'story';
+}
+
+/**
+ * Execute the find command
+ */
+export async function findCommand(query: string, options: FindOptions): Promise<void> {
+  // Resolve project path
+  let projectPath: string;
+  try {
+    projectPath = resolveProjectPath(options.path);
+  } catch (error: any) {
+    console.log(JSON.stringify({ found: false, error: error.message }));
+    process.exit(1);
+  }
+
+  const type = options.type ?? 'story';
+
+  let result;
+  if (type === 'epic') {
+    result = findEpic(projectPath, query);
+  } else {
+    result = findStory(projectPath, query);
+  }
+
+  // Output JSON result
+  console.log(JSON.stringify(result, null, 2));
+
+  // Exit with appropriate code
+  if (!result.found) {
+    process.exit(1);
+  }
+}

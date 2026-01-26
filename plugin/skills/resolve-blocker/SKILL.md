@@ -1,5 +1,5 @@
 ---
-name: resolve
+name: resolve-blocker
 description: Resolve a blocker for a blocked story
 argument-hint: "[story-slug]"
 user-invocable: true
@@ -16,27 +16,27 @@ allowed-tools:
 
 # Resolve Blocker Skill
 
-!`python3 ${SAGA_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type story --project-root "${SAGA_PROJECT_DIR}"`
+!`npx @saga-ai/cli --path "${SAGA_PROJECT_DIR}" find "$0" --type story`
 
 ## Process
 
 ### 1. Check Resolution Result
 
-The identifier resolver ran above. Handle the result:
+The `saga find` command ran above. Handle the result:
 
-- **If resolved=true**: Extract `story.slug` and `story.epic_slug`, continue to step 2
-- **If resolved=false with stories array**: Use AskUserQuestion to disambiguate:
+- **If found=true**: Extract `data.slug` and `data.epicSlug`, continue to step 2
+- **If found=false with matches array**: Use AskUserQuestion to disambiguate:
   ```
   question: "Which story's blocker do you want to resolve?"
   header: "Story"
   multiSelect: false
   options: [
-    {label: "<slug>", description: "<title> (Epic: <epic_slug>, Status: <status>)"}
-    ...for each story in the stories array
+    {label: "<slug>", description: "<title> (Epic: <epicSlug>, Status: <status>)"}
+    ...for each story in the matches array
   ]
   ```
   After selection, continue with the selected story.
-- **If resolved=false with error**: Display the error. Suggest using `/task-list` to see available stories.
+- **If found=false with error**: Display the error. Suggest using `/task-list` to see available stories.
 
 ### 2. Locate Story Files
 

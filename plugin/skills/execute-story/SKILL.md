@@ -1,5 +1,5 @@
 ---
-name: implement
+name: execute-story
 description: Start autonomous story implementation
 argument-hint: "<story-slug>"
 user-invocable: true
@@ -13,44 +13,43 @@ allowed-tools:
 
 # Implement Story Skill
 
-!`python3 ${SAGA_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type story --project-root "${SAGA_PROJECT_DIR}"`
+!`npx @saga-ai/cli --path "${SAGA_PROJECT_DIR}" find "$0" --type story`
 
 ## Process
 
 ### 1. Check Resolution Result
 
-The identifier resolver ran above. Handle the result:
+The `saga find` command ran above. Handle the result:
 
-- **If resolved=true**: Extract `story.epic_slug` and `story.slug`. Continue to step 2.
-- **If resolved=false with stories array**: Use AskUserQuestion to disambiguate:
+- **If found=true**: Extract `data.epicSlug` and `data.slug`. Continue to step 2.
+- **If found=false with matches array**: Use AskUserQuestion to disambiguate:
   ```
   question: "Which story do you want to implement?"
   header: "Story"
   multiSelect: false
   options: [
-    {label: "<slug>", description: "<title> (Epic: <epic_slug>, Status: <status>)"}
-    ...for each story in the stories array
+    {label: "<slug>", description: "<title> (Epic: <epicSlug>, Status: <status>)"}
+    ...for each story in the matches array
   ]
   ```
-  After selection, use the selected story's `epic_slug` and `slug`.
-- **If resolved=false with error**: Display the error. Suggest using `/task-list` to see available stories.
+  After selection, use the selected story's `epicSlug` and `slug`.
+- **If found=false with error**: Display the error. Suggest using `/task-list` to see available stories.
 
 ### 2. Run Implementation Orchestrator
 
-Run the implementation script using Bash with `run_in_background: true`.
+Run the CLI command using Bash with `run_in_background: true`.
 
-Use `story.epic_slug` and `story.slug` from the resolution result:
+Use `data.slug` from the resolution result:
 
 ```bash
-python3 -u "${SAGA_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py" \
-    "<story.epic_slug>" \
-    "<story.slug>" \
+npx @saga-ai/cli@latest implement "<story.slug>" \
+    --path "$SAGA_PROJECT_DIR" \
     --max-cycles 10 \
     --max-time 60 \
     --model opus
 ```
 
-The script handles all validation (worktree exists, story.md exists) and returns
+The CLI handles all validation (worktree exists, story.md exists) and returns
 structured error messages if anything is missing.
 
 **Important:** Use these Bash tool parameters:

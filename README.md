@@ -1,7 +1,8 @@
 # SAGA
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-2.3.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.6.0-blue)](CHANGELOG.md)
+[![npm](https://img.shields.io/npm/v/@saga-ai/cli)](https://www.npmjs.com/package/@saga-ai/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skills](https://img.shields.io/badge/skills-5-green)](https://github.com/Roeia1/saga)
 [![Agents](https://img.shields.io/badge/agents-1-blue)](https://github.com/Roeia1/saga)
@@ -31,6 +32,7 @@ flowchart LR
 - [Directory Structure](#directory-structure)
 - [Non-Negotiable Rules](#non-negotiable-rules)
 - [Plugin Architecture](#plugin-architecture)
+- [CLI Package](#cli-package)
 - [Requirements](#requirements)
 - [Contributing](#contributing)
 
@@ -99,11 +101,11 @@ This creates the `.saga/` directory structure:
 > /generate-stories user-auth
 
 # 3. Implement a story autonomously
-> /implement login-flow
+> /execute-story login-flow
 
 # 4. If blocked, resolve and continue
-> /resolve login-flow
-> /implement login-flow
+> /resolve-blocker login-flow
+> /execute-story login-flow
 ```
 
 ---
@@ -152,15 +154,15 @@ Claude breaks down the epic into implementable stories:
 
 ### Story Execution
 
-Stories are executed autonomously using the `/implement` command:
+Stories are executed autonomously using the `/execute-story` command:
 
 ```
-> /implement websocket-setup
+> /execute-story websocket-setup
 ```
 
 The orchestrator spawns worker Claude instances that complete tasks incrementally. Workers exit with:
 - **FINISH** - All tasks complete
-- **BLOCKED** - Needs human decision (use `/resolve` to unblock)
+- **BLOCKED** - Needs human decision (use `/resolve-blocker` to unblock)
 - **TIMEOUT** - Max time exceeded
 
 ---
@@ -218,8 +220,8 @@ All functionality is accessed through skills (slash commands):
 | Initialize | `/init` | Create `.saga/` directory structure |
 | Create Epic | `/create-epic [description]` | Define epic with vision and architecture |
 | Generate Stories | `/generate-stories [epic-slug]` | Break epic into implementable stories |
-| Implement | `/implement [story-slug]` | Execute story autonomously |
-| Resolve | `/resolve [story-slug]` | Analyze and resolve blockers |
+| Execute Story | `/execute-story [story-slug]` | Execute story autonomously |
+| Resolve Blocker | `/resolve-blocker [story-slug]` | Analyze and resolve blockers |
 
 ### Agents
 
@@ -243,12 +245,12 @@ Agents are Claude Code subagents that run autonomously. They are spawned by skil
 # Review proposed stories, approve
 
 # Session 2: Execute stories autonomously
-> /implement cart-api
+> /execute-story cart-api
 # Workers complete tasks, document in journal.md
-# If blocked, use /resolve to provide resolution
+# If blocked, use /resolve-blocker to provide resolution
 # When complete, PR is ready for review and merge
 
-> /implement checkout-flow
+> /execute-story checkout-flow
 # Continue with next story
 ```
 
@@ -256,13 +258,13 @@ Agents are Claude Code subagents that run autonomously. They are spawned by skil
 
 ```bash
 # Worker exits with BLOCKED status
-> /resolve cart-api
+> /resolve-blocker cart-api
 # Analyze blocker from journal.md
 # Review proposed solutions
 # Approve resolution
 
 # Continue implementation
-> /implement cart-api
+> /execute-story cart-api
 ```
 
 ---
@@ -326,15 +328,46 @@ plugin/
 │   ├── init/                 # /init - Initialize structure
 │   ├── create-epic/          # /create-epic - Define epics
 │   ├── generate-stories/     # /generate-stories - Break down epics
-│   ├── execute-story/        # /implement - Autonomous execution
-│   └── resolve-blocker/      # /resolve - Handle blockers
-├── scripts/
-│   └── identifier_resolver_v2.py
+│   ├── execute-story/        # /execute-story - Autonomous execution
+│   └── resolve-blocker/      # /resolve-blocker - Handle blockers
 ├── hooks/
 │   └── session-init.sh       # Session startup & context detection
 └── docs/
     └── ENVIRONMENT.md        # Environment variable reference
 ```
+
+---
+
+## CLI Package
+
+The `@saga-ai/cli` npm package provides standalone CLI commands for SAGA workflows. It's used internally by the plugin for story orchestration but can also be used directly.
+
+### Installation
+
+```bash
+# Run directly with npx (no install required)
+npx @saga-ai/cli <command>
+
+# Or install globally
+npm install -g @saga-ai/cli
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `saga init` | Initialize `.saga/` directory structure |
+| `saga find <query>` | Find epic or story by slug/title (fuzzy search) |
+| `saga worktree <epic> <story>` | Create git worktree for story isolation |
+| `saga implement <story>` | Orchestrate autonomous story execution |
+| `saga dashboard` | Start HTTP server for dashboard UI |
+| `saga help` | Display help information |
+
+### Usage with Plugin
+
+The plugin's `/execute-story` skill uses the CLI's `implement` command under the hood. When running via the plugin, environment variables like `SAGA_PLUGIN_ROOT` are automatically configured.
+
+For full CLI documentation, see [`packages/cli/README.md`](packages/cli/README.md).
 
 ---
 
@@ -355,7 +388,7 @@ Contributions are welcome! Please:
 3. Follow the existing code patterns
 4. Submit a pull request
 
-For maintainers, see [RELEASING.md](RELEASING.md) for the version release process.
+For maintainers: use `/publish-plugin` to publish new versions.
 
 ---
 
