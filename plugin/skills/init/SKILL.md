@@ -6,7 +6,7 @@ user-invocable: true
 
 # Initialize Task System
 
-!`python3 ${SAGA_PLUGIN_ROOT}/skills/init/scripts/init_structure.py "$SAGA_PROJECT_DIR"`
+!`node "${SAGA_PROJECT_DIR}/packages/cli/dist/cli.cjs" init --path "$SAGA_PROJECT_DIR"`
 
 The initialization script has run. Report the results to the user:
 

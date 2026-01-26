@@ -1,7 +1,7 @@
 ---
 id: cli-package
 title: CLI Package with Commands and Script Migration
-status: ready
+status: completed
 epic: saga-dashboard
 tasks:
   - id: t1
@@ -27,7 +27,7 @@ tasks:
     status: completed
   - id: t8
     title: Update plugin skills to call CLI commands
-    status: pending
+    status: completed
 ---
 
 ## Context

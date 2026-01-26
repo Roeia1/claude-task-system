@@ -226,3 +226,31 @@
 
 **Next steps:**
 - t8: Update plugin skills to call CLI commands
+
+## Session: 2026-01-26T05:24:00Z
+
+### Task: t8 - Update plugin skills to call CLI commands
+
+**What was done:**
+- Updated `plugin/skills/init/SKILL.md`:
+  - Changed from calling `python3 ${SAGA_PLUGIN_ROOT}/skills/init/scripts/init_structure.py`
+  - Now calls `node "${SAGA_PROJECT_DIR}/packages/cli/dist/cli.cjs" init --path "$SAGA_PROJECT_DIR"`
+  - Kept the post-initialization user guidance text unchanged
+- Updated `plugin/skills/execute-story/SKILL.md`:
+  - Changed from calling `python3 -u "${SAGA_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py"`
+  - Now calls `node "${SAGA_PROJECT_DIR}/packages/cli/dist/cli.cjs" implement "<story.slug>"`
+  - Passes through all options: `--path`, `--max-cycles`, `--max-time`, `--model`
+  - Kept the identifier resolution step (still runs first to disambiguate story slugs)
+  - Kept the status report format unchanged
+- Verified all 51 CLI tests pass
+- Verified CLI commands work via manual testing (`--help` for init and implement)
+- Updated story.md to mark t8 and overall story status as completed
+
+**Decisions:**
+- Used `node` to run CLI directly instead of `npx @saga/cli` since package is local (not published to npm)
+- CLI is invoked from `${SAGA_PROJECT_DIR}/packages/cli/dist/cli.cjs`
+- The CLI `implement` command only needs story slug - it searches all epics automatically
+- Kept identifier resolver step since it handles disambiguation when multiple stories match
+
+**Story completed:**
+All 8 tasks are now complete. The CLI package provides a unified interface for all SAGA operations.
