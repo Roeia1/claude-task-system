@@ -2,7 +2,7 @@
 
 ## Overview
 
-A unified CLI package (`@saga/cli`) that provides both command-line tools and a web dashboard for the SAGA system. The CLI consolidates core SAGA operations (`init`, `implement`) while the dashboard provides visualization of epics, stories, statuses, and the ability to trigger implementations directly from the browser.
+A unified CLI package (`@saga/cli`) that provides both command-line tools and a web dashboard for the SAGA system. The CLI consolidates core SAGA operations (`init`, `implement`) while the dashboard provides read-only visualization of epics, stories, and statuses with real-time updates.
 
 ## Goals
 
@@ -10,8 +10,7 @@ A unified CLI package (`@saga/cli`) that provides both command-line tools and a 
 2. **Visual System Overview**: Provide a clear, intuitive visualization of all epics and their associated stories
 3. **Real-time Status Display**: Show current status of stories (ready, in_progress, blocked, completed) with live updates
 4. **Journal Browser**: Enable inline viewing and navigation of journal.md content for any story
-5. **Command Integration**: Support triggering `/implement` directly from the dashboard UI
-6. **Progress Tracking**: Display visual progress indicators, task completion statistics, and epic-level summaries
+5. **Progress Tracking**: Display visual progress indicators, task completion statistics, and epic-level summaries
 
 ## Success Metrics
 
@@ -38,7 +37,6 @@ A unified CLI package (`@saga/cli`) that provides both command-line tools and a 
 - Epic list view with story counts and status summaries
 - Story detail view with tasks and journal
 - Real-time file watching with WebSocket updates
-- Command execution panel for /implement with streaming output
 - Progress visualization (progress bars, completion percentages)
 - Archived stories toggle (filtered view)
 
@@ -50,7 +48,8 @@ A unified CLI package (`@saga/cli`) that provides both command-line tools and a 
 - Multi-project support (single .saga directory per server instance)
 - User authentication or authorization (local-only access assumed)
 - Database persistence (reads directly from filesystem)
-- Story or epic editing through the UI (read-only + command execution)
+- Story or epic editing through the UI (read-only visualization)
+- Command execution from dashboard (use `/implement` plugin skill instead)
 - Mobile-optimized responsive design (desktop-first)
 - Deployment/hosting capabilities (local development only)
 
@@ -70,7 +69,6 @@ The dashboard follows a client-server architecture:
    - Watches `.saga/` directory for file changes using chokidar
    - Provides REST API for reading epics, stories, journals
    - WebSocket server for pushing real-time updates
-   - Spawns SAGA commands and streams output
 
 2. **Frontend (React)**:
    - Single-page application with React Router
@@ -85,11 +83,7 @@ The dashboard follows a client-server architecture:
    - Reads story/task status from story.md frontmatter
    - Parses journal.md for session logs and blockers
 
-4. **Command Execution**:
-   - Dashboard calls `saga implement` CLI (same package)
-   - Streams command output in real-time via WebSocket
-
-5. **Build & Packaging**:
+4. **Build & Packaging**:
    - Frontend: Vite builds React app to static files
    - Backend/CLI: esbuild bundles TypeScript to single JS files
    - All assets bundled in npm package, no runtime compilation
@@ -138,20 +132,16 @@ The dashboard follows a client-server architecture:
 - **Choice**: Port 3847 ("SAGA" on phone keypad)
 - **Rationale**: Memorable, low collision risk with common ports
 
-### Command Output: Real-time Streaming
-
-- **Choice**: Stream command output via WebSocket as it executes
-- **Rationale**: `/implement` can run for extended periods; users need feedback
-
 ### Archived Stories: Filtered View
 
 - **Choice**: Toggle filter on main story list to show/hide archived
 - **Rationale**: Keeps UI simple, one list with optional visibility
 
-### Command Execution: Internal CLI
+### Dashboard Mode: Read-Only
 
-- **Choice**: Dashboard calls `saga implement` from the same package
-- **Rationale**: Unified package, no external dependency for /implement
+- **Choice**: Dashboard is read-only, no command execution
+- **Rationale**: Simplifies architecture significantly. Commands are executed via `/implement` plugin skill, which updates story status in frontmatter. Dashboard watches files and reflects status changes in real-time. No need for process tracking, streaming output, or coordinating between dashboard-initiated and plugin-initiated commands.
+- **Implication**: `in_progress` status means "being worked on" but doesn't guarantee a live process is running
 
 ### Script Location: CLI Package
 
@@ -167,7 +157,7 @@ The dashboard follows a client-server architecture:
 ### State Management: XState
 
 - **Choice**: XState for frontend state management
-- **Rationale**: Excellent for complex async flows (WebSocket, command execution)
+- **Rationale**: Excellent for async flows (WebSocket connections, real-time updates)
 
 ### CLI Project Discovery
 
@@ -178,21 +168,6 @@ The dashboard follows a client-server architecture:
 
 - **Choice**: Minimal flags: `--path <dir>` and `--port <number>`
 - **Rationale**: Simple interface, no auto-open browser
-
-### Command Working Directory
-
-- **Choice**: Run `saga implement` from project root
-- **Rationale**: CLI handles worktree navigation internally via implement.py
-
-### Command Cancellation
-
-- **Choice**: Kill process via SIGTERM when user stops command
-- **Rationale**: Clean termination, allows graceful shutdown
-
-### Concurrent Commands
-
-- **Choice**: Multiple commands can run simultaneously (one per story)
-- **Rationale**: Flexibility for parallel story implementation
 
 ### Frontend Routes
 
@@ -326,26 +301,12 @@ interface JournalEntry {
 - **Input**: `epicSlug`, `storySlug` path parameters
 - **Output**: `StoryDetail`
 
-#### POST /api/commands/implement
-
-- **Description**: Trigger `saga implement` for a story
-- **Input**: `{ epicSlug: string, storySlug: string }`
-- **Output**: `{ success: boolean, output: string }`
-
-#### POST /api/commands/stop
-
-- **Description**: Stop a running command for a story
-- **Input**: `{ epicSlug: string, storySlug: string }`
-- **Output**: `{ success: boolean }`
-
 ### WebSocket Events
 
 #### Server -> Client
 
 - `epics:updated` - Epic list changed
 - `story:updated` - Single story status/content changed
-- `command:output` - Streaming output from running command
-- `command:stopped` - Command was terminated
 
 #### Client -> Server
 
