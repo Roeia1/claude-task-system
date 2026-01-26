@@ -13,6 +13,11 @@ saga/
 ├── plugin/                     # Claude Code plugin source
 ├── packages/
 │   └── cli/                    # @saga-ai/cli npm package
+├── .claude/
+│   └── skills/                 # Development skills for this repo
+│       ├── publish-cli/        # Publish @saga-ai/cli to npm
+│       ├── release/            # Release new plugin versions
+│       └── pr-review/          # Address PR review comments
 ├── CLAUDE.md                   # This file
 ├── README.md                   # User-facing documentation
 ├── CHANGELOG.md                # Plugin version history
@@ -22,6 +27,7 @@ saga/
 **Key packages:**
 - **plugin/**: The Claude Code plugin with skills, agents, and hooks
 - **packages/cli/**: Standalone CLI for story orchestration (see [`packages/cli/CLAUDE.md`](packages/cli/CLAUDE.md) for development guide)
+- **.claude/skills/**: Development workflows for maintaining this repository (publishing, releasing, PR reviews)
 
 ## Core Architecture
 
