@@ -41,8 +41,10 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^22.10.0",
+    "@types/supertest": "^6.0.3",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.24.0",
+    "supertest": "^7.2.2",
     "typescript": "^5.7.0",
     "vitest": "^3.2.4"
   },

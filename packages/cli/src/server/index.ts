@@ -8,6 +8,7 @@
 
 import express, { type Express, type Request, type Response } from 'express';
 import { createServer, type Server as HttpServer } from 'http';
+import { createApiRouter } from './routes.js';
 
 /**
  * Configuration for starting the server
@@ -39,7 +40,7 @@ const DEFAULT_PORT = 3847;
 /**
  * Create and configure the Express app
  */
-function createApp(): Express {
+function createApp(sagaRoot: string): Express {
   const app = express();
 
   // JSON middleware
@@ -58,6 +59,9 @@ function createApp(): Express {
     res.json({ status: 'ok' });
   });
 
+  // API routes
+  app.use('/api', createApiRouter(sagaRoot));
+
   return app;
 }
 
@@ -69,7 +73,7 @@ function createApp(): Express {
  */
 export async function startServer(config: ServerConfig): Promise<ServerInstance> {
   const port = config.port ?? DEFAULT_PORT;
-  const app = createApp();
+  const app = createApp(config.sagaRoot);
   const httpServer = createServer(app);
 
   return new Promise((resolve, reject) => {

@@ -62,3 +62,34 @@
 
 **Next steps:**
 - t3: Implement REST API endpoints (routes.ts) using the parser module
+
+## Session: 2026-01-27T00:33:00Z
+
+### Task: t3 - REST API Endpoints
+
+**What was done:**
+- Created `packages/cli/src/server/routes.ts` with Express router and three endpoints:
+  - `GET /api/epics` - returns `EpicSummary[]` (without full story list or content)
+  - `GET /api/epics/:slug` - returns full `Epic` with stories and content
+  - `GET /api/stories/:epicSlug/:storySlug` - returns `StoryDetail` with parsed journal
+- Implemented data caching (cache cleared on each request for now, will be refreshed by file watcher)
+- Integrated router into main server via `createApiRouter(sagaRoot)` in `index.ts`
+- Created comprehensive test suite in `packages/cli/src/server/__tests__/routes.test.ts` with 21 tests covering:
+  - Epic list returns proper `EpicSummary[]` structure
+  - Epic detail includes stories with tasks and archived flag
+  - Story detail includes parsed journal entries by type
+  - 404 responses for missing epics/stories with JSON error bodies
+  - Relative paths used (no absolute system paths exposed)
+  - Empty array for projects with no epics
+- Installed `supertest` and `@types/supertest` for HTTP testing
+- Updated `dashboard.test.ts` to work with actual running server (async process spawning with proper cleanup)
+
+**Decisions:**
+- Used `toEpicSummary()` helper to strip stories/content from Epic for the list endpoint
+- 404 responses return JSON `{ error: "..." }` for consistency
+- Journal is parsed on-demand in story detail endpoint (not cached with story)
+- Tests use random ports (30000-50000) to avoid conflicts in parallel test runs
+- Dashboard tests now spawn actual server process and wait for startup message
+
+**Next steps:**
+- t4: Implement file watching with Chokidar (watcher.ts)
