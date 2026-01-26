@@ -42,7 +42,6 @@
   },
   "files": [
     "dist/",
-    "scripts/",
     "README.md"
   ]
 }
