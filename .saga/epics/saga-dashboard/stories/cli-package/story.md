@@ -12,7 +12,7 @@ tasks:
     status: completed
   - id: t3
     title: Implement CLI entry point with argument parsing
-    status: pending
+    status: completed
   - id: t4
     title: Implement saga init command
     status: pending

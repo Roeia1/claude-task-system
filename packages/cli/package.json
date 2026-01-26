@@ -4,11 +4,11 @@
   "description": "CLI for SAGA - Structured Autonomous Goal Achievement",
   "type": "module",
   "bin": {
-    "saga": "./dist/cli.js"
+    "saga": "./dist/cli.cjs"
   },
-  "main": "./dist/cli.js",
+  "main": "./dist/cli.cjs",
   "scripts": {
-    "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.js --format=esm --banner:js='#!/usr/bin/env node'",
+    "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.cjs --format=cjs --banner:js='#!/usr/bin/env node'",
     "dev": "npm run build && node dist/cli.js",
     "test": "vitest run",
     "test:watch": "vitest"

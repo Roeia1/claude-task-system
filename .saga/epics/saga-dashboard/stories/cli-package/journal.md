@@ -56,3 +56,36 @@
 **Next steps:**
 - t3: Implement CLI entry point with argument parsing
 - t4-t8: Remaining tasks
+
+## Session: 2026-01-26T04:55:00Z
+
+### Task: t3 - Implement CLI entry point with argument parsing
+
+**What was done:**
+- Implemented `src/cli.ts` as the main entry point using commander.js
+- Created program with version from package.json
+- Registered three subcommands: `init`, `implement`, `dashboard`
+- Added global `--path` option for project directory override
+- `init` command has `--path` option
+- `implement` command accepts `<story-slug>` argument plus options: `--path`, `--max-cycles`, `--max-time`, `--model`
+- `dashboard` command has `--port` and `--path` options
+- Added error handling for unknown commands
+- Created comprehensive test suite with 13 tests covering:
+  - Help output with all commands and options
+  - Version output
+  - Individual command help for init, implement, dashboard
+  - Unknown command error handling
+- All 23 tests passing (10 from t2, 13 from t3)
+
+**Decisions:**
+- Changed build output from ESM (`.js`) to CJS (`.cjs`) format because commander uses CommonJS internals that break in ESM context when bundled with esbuild
+- Updated package.json: bin points to `dist/cli.cjs`, build outputs `dist/cli.cjs`
+- Kept `"type": "module"` in package.json for source files while outputting CJS for the bundle
+- Used `readFileSync` instead of `createRequire` for reading package.json to avoid import.meta issues in CJS output
+- Command handlers are placeholder stubs - actual implementation in t4-t6
+
+**Next steps:**
+- t4: Implement saga init command
+- t5: Implement saga implement command
+- t6: Implement saga dashboard command
+- t7-t8: Script migration and skill updates

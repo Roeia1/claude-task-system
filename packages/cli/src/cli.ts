@@ -1,2 +1,67 @@
-// CLI entry point - placeholder for initial package setup
-console.log('SAGA CLI placeholder');
+/**
+ * SAGA CLI - Command-line interface for SAGA
+ *
+ * Commands:
+ *   saga init              Initialize .saga/ directory structure
+ *   saga implement <slug>  Run story implementation
+ *   saga dashboard         Start the dashboard server
+ */
+
+import { Command } from 'commander';
+import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+
+// Read version from package.json
+// In the bundled CJS output, __dirname will be available
+declare const __dirname: string;
+const packageJsonPath = join(__dirname, '..', 'package.json');
+const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+
+const program = new Command();
+
+program
+  .name('saga')
+  .description('CLI for SAGA - Structured Autonomous Goal Achievement')
+  .version(packageJson.version);
+
+// Global --path option
+program.option('-p, --path <dir>', 'Path to SAGA project directory (overrides auto-discovery)');
+
+// init command
+program
+  .command('init')
+  .description('Initialize .saga/ directory structure')
+  .option('-p, --path <dir>', 'Path to initialize (default: current directory)')
+  .action(async (options: { path?: string }) => {
+    console.log('init command not yet implemented');
+  });
+
+// implement command
+program
+  .command('implement <story-slug>')
+  .description('Run story implementation')
+  .option('-p, --path <dir>', 'Path to SAGA project directory')
+  .option('--max-cycles <n>', 'Maximum number of implementation cycles', parseInt)
+  .option('--max-time <n>', 'Maximum time in seconds', parseInt)
+  .option('--model <name>', 'Model to use for implementation')
+  .action(async (storySlug: string, options: { path?: string; maxCycles?: number; maxTime?: number; model?: string }) => {
+    console.log(`implement command not yet implemented (story: ${storySlug})`);
+  });
+
+// dashboard command
+program
+  .command('dashboard')
+  .description('Start the dashboard server')
+  .option('-p, --path <dir>', 'Path to SAGA project directory')
+  .option('--port <n>', 'Port to run the server on (default: 3847)', parseInt)
+  .action(async (options: { path?: string; port?: number }) => {
+    console.log('dashboard command not yet implemented');
+  });
+
+// Error handling for unknown commands
+program.on('command:*', (operands) => {
+  console.error(`error: unknown command '${operands[0]}'`);
+  process.exit(1);
+});
+
+program.parse();
