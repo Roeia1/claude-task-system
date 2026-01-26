@@ -26,7 +26,8 @@ const program = new Command();
 program
   .name('saga')
   .description('CLI for SAGA - Structured Autonomous Goal Achievement')
-  .version(packageJson.version);
+  .version(packageJson.version)
+  .addHelpCommand('help [command]', 'Display help for a command');
 
 // Global --path option
 program.option('-p, --path <dir>', 'Path to SAGA project directory (overrides auto-discovery)');

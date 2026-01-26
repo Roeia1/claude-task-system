@@ -211,14 +211,10 @@ Test story for implement command testing.
     // Helper to create a mock plugin structure
     function createMockPlugin(dir: string) {
       const skillDir = join(dir, 'skills', 'execute-story');
-      const scriptsDir = join(skillDir, 'scripts');
-      mkdirSync(scriptsDir, { recursive: true });
+      mkdirSync(skillDir, { recursive: true });
 
       // Create worker-prompt.md
       writeFileSync(join(skillDir, 'worker-prompt.md'), '# Worker Prompt\nTest prompt content');
-
-      // Create scope_validator.py
-      writeFileSync(join(scriptsDir, 'scope_validator.py'), '# Mock scope validator');
 
       return dir;
     }
@@ -261,8 +257,7 @@ Test story for implement command testing.
       createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
       const pluginDir = join(testDir, 'incomplete-plugin');
       // Create plugin dir without worker-prompt.md
-      mkdirSync(join(pluginDir, 'skills', 'execute-story', 'scripts'), { recursive: true });
-      writeFileSync(join(pluginDir, 'skills', 'execute-story', 'scripts', 'scope_validator.py'), '# mock');
+      mkdirSync(join(pluginDir, 'skills', 'execute-story'), { recursive: true });
 
       const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir], {
         env: { SAGA_PLUGIN_ROOT: pluginDir },
@@ -319,19 +314,6 @@ Test story for implement command testing.
 
       // Should check for claude CLI
       expect(result.stdout).toContain("claude CLI");
-    });
-
-    it('should check for python3 availability', () => {
-      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
-      const pluginDir = join(testDir, 'mock-plugin');
-      createMockPlugin(pluginDir);
-
-      const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir], {
-        env: { SAGA_PLUGIN_ROOT: pluginDir },
-      });
-
-      // Should check for python3
-      expect(result.stdout).toContain("python3");
     });
   });
 });

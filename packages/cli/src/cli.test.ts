@@ -55,6 +55,39 @@ describe('CLI entry point', () => {
     });
   });
 
+  describe('help command', () => {
+    it('saga help shows main help', () => {
+      const { stdout, exitCode } = runCli(['help']);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('Usage:');
+      expect(stdout).toContain('init');
+      expect(stdout).toContain('implement');
+      expect(stdout).toContain('dashboard');
+    });
+
+    it('saga help init shows init command help', () => {
+      const { stdout, exitCode } = runCli(['help', 'init']);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('init');
+      expect(stdout).toContain('--dry-run');
+    });
+
+    it('saga help implement shows implement command help', () => {
+      const { stdout, exitCode } = runCli(['help', 'implement']);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('implement');
+      expect(stdout).toContain('story-slug');
+      expect(stdout).toContain('--max-cycles');
+    });
+
+    it('saga help dashboard shows dashboard command help', () => {
+      const { stdout, exitCode } = runCli(['help', 'dashboard']);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('dashboard');
+      expect(stdout).toContain('--port');
+    });
+  });
+
   describe('init command', () => {
     it('has init subcommand', () => {
       const { stdout, exitCode } = runCli(['init', '--help']);
