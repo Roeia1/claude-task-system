@@ -13,6 +13,7 @@ Run commands using npx (no global installation required):
 
 ```bash
 npx @saga-ai/cli init
+npx @saga-ai/cli find <query>
 npx @saga-ai/cli implement <story-slug>
 npx @saga-ai/cli dashboard
 ```
@@ -34,6 +35,26 @@ Creates the `.saga/` directory structure:
 - `.saga/worktrees/` - Git worktrees for story isolation
 
 Also updates `.gitignore` to ignore worktrees.
+
+### `saga find <query>`
+
+Find an epic or story by slug or title using fuzzy search.
+
+```bash
+saga find my-story
+saga find "login feature"
+saga find auth --type epic
+```
+
+Options:
+- `--type <type>` - Type to search for: `epic` or `story` (default: story)
+
+Returns JSON with:
+- `found: true` + `data` - Single match found
+- `found: false` + `matches` - Multiple matches for disambiguation
+- `found: false` + `error` - No matches found
+
+Supports typo tolerance (e.g., "implment" matches "implement").
 
 ### `saga implement <story-slug>`
 
