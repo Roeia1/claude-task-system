@@ -16,9 +16,11 @@ pnpm test:watch   # Watch mode
 |------|---------|
 | `src/cli.ts` | Entry point, Commander.js command registration |
 | `src/commands/init.ts` | `saga init` - creates `.saga/` directory |
+| `src/commands/find.ts` | `saga find` - find epic/story by slug/title |
 | `src/commands/implement.ts` | `saga implement` - worker orchestration loop |
 | `src/commands/dashboard.ts` | `saga dashboard` - HTTP server (placeholder) |
 | `src/commands/scope-validator.ts` | Hook validator for file operations |
+| `src/utils/finder.ts` | Fuzzy search for epics/stories (Fuse.js) |
 | `src/utils/project-discovery.ts` | Finds `.saga/` in parent directories |
 
 ## Adding Commands
@@ -43,6 +45,12 @@ Tests run against the built CLI using `spawnSync`. See `src/commands/init.test.t
 - `buildScopeSettings()` - creates hook config for scope enforcement
 
 **Scope Validator** - Called as a Claude Code PreToolUse hook. Blocks access to archive and other stories. Environment: `SAGA_EPIC_SLUG`, `SAGA_STORY_SLUG`.
+
+**Finder Utility** - Fuzzy search for epics and stories using Fuse.js. Used by `saga find` command and internally by `implement.ts`. Key functions:
+- `findEpic()` - searches `.saga/epics/` directories
+- `findStory()` - searches `.saga/worktrees/` for story.md files
+- `parseFrontmatter()` - minimal YAML parser for story metadata
+- `extractContext()` - extracts `## Context` section from story body
 
 ## Build
 
