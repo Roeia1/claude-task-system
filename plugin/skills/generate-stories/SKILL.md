@@ -9,27 +9,27 @@ allowed-tools: Bash(python:*), Bash(git:*), Bash(gh:*), Read, Write, AskUserQues
 
 # Generate Stories Skill
 
-!`python ${SAGA_PLUGIN_ROOT}/scripts/identifier_resolver_v2.py "$0" --type epic --project-root "${SAGA_PROJECT_DIR}"`
+!`npx @saga-ai/cli find "$0" --type epic --path "${SAGA_PROJECT_DIR}"`
 
 ## Process
 
 ### 1. Check Resolution Result
 
-The identifier resolver ran above. Handle the result:
+The `saga find` command ran above. Handle the result:
 
-- **If resolved=true**: Continue to step 2 with the resolved epic slug
-- **If resolved=false with epics array**: Use AskUserQuestion to disambiguate:
+- **If found=true**: Continue to step 2 with `data.slug` as the epic slug
+- **If found=false with matches array**: Use AskUserQuestion to disambiguate:
   ```
   question: "Which epic do you want to generate stories for?"
   header: "Epic"
   multiSelect: false
   options: [
     {label: "<slug>", description: "Epic: <slug>"}
-    ...for each epic in the epics array
+    ...for each epic in the matches array
   ]
   ```
   After selection, continue with the selected epic slug.
-- **If resolved=false with error**: Display the error. Suggest using `/create-epic` first.
+- **If found=false with error**: Display the error. Suggest using `/create-epic` first.
 
 ### 2. Read Epic Document
 

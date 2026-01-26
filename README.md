@@ -330,8 +330,6 @@ plugin/
 │   ├── generate-stories/     # /generate-stories - Break down epics
 │   ├── execute-story/        # /execute-story - Autonomous execution
 │   └── resolve-blocker/      # /resolve-blocker - Handle blockers
-├── scripts/
-│   └── identifier_resolver_v2.py
 ├── hooks/
 │   └── session-init.sh       # Session startup & context detection
 └── docs/
@@ -359,6 +357,7 @@ npm install -g @saga-ai/cli
 | Command | Description |
 |---------|-------------|
 | `saga init` | Initialize `.saga/` directory structure |
+| `saga find <query>` | Find epic or story by slug/title (fuzzy search) |
 | `saga implement <story>` | Orchestrate autonomous story execution |
 | `saga dashboard` | Start HTTP server for dashboard UI |
 | `saga help` | Display help information |
