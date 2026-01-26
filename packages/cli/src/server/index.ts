@@ -9,6 +9,7 @@
 import express, { type Express, type Request, type Response } from 'express';
 import { createServer, type Server as HttpServer } from 'http';
 import { createApiRouter } from './routes.js';
+import { createWebSocketServer, type WebSocketInstance } from './websocket.js';
 
 /**
  * Configuration for starting the server
@@ -28,6 +29,8 @@ export interface ServerInstance {
   app: Express;
   /** The HTTP server instance */
   httpServer: HttpServer;
+  /** The WebSocket server instance */
+  wsServer: WebSocketInstance;
   /** The port the server is running on */
   port: number;
   /** Close the server gracefully */
@@ -76,6 +79,9 @@ export async function startServer(config: ServerConfig): Promise<ServerInstance>
   const app = createApp(config.sagaRoot);
   const httpServer = createServer(app);
 
+  // Create WebSocket server attached to HTTP server
+  const wsServer = await createWebSocketServer(httpServer, config.sagaRoot);
+
   return new Promise((resolve, reject) => {
     httpServer.on('error', reject);
 
@@ -85,8 +91,13 @@ export async function startServer(config: ServerConfig): Promise<ServerInstance>
       resolve({
         app,
         httpServer,
+        wsServer,
         port,
-        close: () => {
+        close: async () => {
+          // Close WebSocket server first
+          await wsServer.close();
+
+          // Then close HTTP server
           return new Promise<void>((resolveClose, rejectClose) => {
             httpServer.close((err) => {
               if (err) {

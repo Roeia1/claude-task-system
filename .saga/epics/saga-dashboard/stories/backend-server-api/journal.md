@@ -127,3 +127,45 @@
 
 **Next steps:**
 - t5: Implement WebSocket server for real-time updates (websocket.ts)
+
+## Session: 2026-01-27T00:47:00Z
+
+### Task: t5 - WebSocket Server for Real-time Updates
+
+**What was done:**
+- Created `packages/cli/src/server/websocket.ts` with complete WebSocket functionality:
+  - `createWebSocketServer(httpServer, sagaRoot)` - attaches WebSocket server to existing HTTP server
+  - TypeScript interfaces: `WebSocketInstance`, `ClientState`, `ClientMessage`, `ServerMessage`
+  - Server→Client events: `epics:updated`, `story:updated`
+  - Client→Server events: `subscribe:story`, `unsubscribe:story`
+  - Per-client subscription tracking via `subscribedStories` Set
+  - Integrated with file watcher to broadcast updates when files change
+  - Ping/pong heartbeat mechanism (30 second interval) to detect dead connections
+- Created comprehensive test suite in `packages/cli/src/server/__tests__/websocket.test.ts` with 15 tests covering:
+  - WebSocket connection acceptance on same port as HTTP
+  - Multiple concurrent connections
+  - Connection cleanup on client disconnect
+  - subscribe:story message handling
+  - unsubscribe:story message handling
+  - epics:updated broadcast to all clients on epic changes
+  - story:updated broadcast only to subscribed clients
+  - Story updates on journal.md modification
+  - Full StoryDetail payload in story:updated events
+  - Ping/pong heartbeat response
+  - Graceful handling of malformed messages and missing fields
+- Updated `packages/cli/src/server/index.ts`:
+  - Added `wsServer` field to `ServerInstance` interface
+  - Integrated WebSocket server creation in `startServer()`
+  - Updated `close()` to properly shut down WebSocket server first
+
+**Decisions:**
+- Used `ws` library as specified in epic (not Socket.io)
+- WebSocket server shares port with Express by attaching to HTTP server
+- Subscription tracking per-client using `Set<StoryKey>` where `StoryKey = ${epicSlug}:${storySlug}`
+- 30-second heartbeat interval to clean up dead connections
+- File watcher integration: epic events broadcast `epics:updated` to all, story events broadcast `story:updated` to subscribers
+- Story changes also trigger `epics:updated` since story counts may change
+- Graceful error handling: malformed messages are silently ignored, watcher failures logged but don't crash server
+
+**Next steps:**
+- t6: Integration tests and error handling
