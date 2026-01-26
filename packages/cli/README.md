@@ -5,6 +5,11 @@ Command-line interface for SAGA (Structured Autonomous Goal Achievement) - a str
 ## Installation
 
 ```bash
+pnpm add -g @saga-ai/cli
+```
+
+Or with npm:
+```bash
 npm install -g @saga-ai/cli
 ```
 
