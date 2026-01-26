@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026-01-26
+
+### Added
+
+- **cli**: New `saga worktree <epic> <story>` command (v0.3.0)
+  - Creates git branch and worktree for story isolation
+  - Returns JSON with `worktreePath` and `branch` on success
+
+### Changed
+
+- **generate-story**: Agent now uses `saga worktree` CLI instead of Python script
+
+### Removed
+
+- **Python scripts**: Removed all Python scripts (`identifier_resolver_v2.py`, `create_worktree.py`) - replaced by CLI commands (`saga find`, `saga worktree`)
+- **Python config**: Removed `pyproject.toml`, `uv.lock`, and Python entries from `.gitignore`
+
 ## [2.6.0] - 2026-01-26
 
 ### Changed
