@@ -6,7 +6,7 @@ epic: saga-dashboard
 tasks:
   - id: t1
     title: Initialize npm package structure
-    status: pending
+    status: completed
   - id: t2
     title: Implement project discovery utility
     status: completed
@@ -24,7 +24,7 @@ tasks:
     status: completed
   - id: t7
     title: Migrate scripts from plugin to CLI package
-    status: pending
+    status: completed
   - id: t8
     title: Update plugin skills to call CLI commands
     status: pending

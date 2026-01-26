@@ -199,3 +199,30 @@
 **Next steps:**
 - t7: Formally complete script migration
 - t8: Update plugin skills to call CLI commands
+
+## Session: 2026-01-26T05:21:00Z
+
+### Task: t7 - Migrate scripts from plugin to CLI package
+
+**What was done:**
+- Verified scripts were already migrated during t4 and t5:
+  - `packages/cli/scripts/init_structure.py` - copied from plugin during t4
+  - `packages/cli/scripts/implement.py` - copied from plugin during t5
+- Confirmed script integrity:
+  - Both scripts identical to originals (verified via diff)
+  - Both scripts have correct shebang: `#!/usr/bin/env python3`
+  - Both scripts are executable (permissions: 755)
+- Verified scripts work when called directly:
+  - `init_structure.py` successfully creates `.saga/` directory structure
+  - `implement.py` shows correct help output
+- Original scripts remain in plugin for backwards compatibility
+- Updated story.md to mark t1 and t7 as completed (t1 was done but not marked)
+- All 51 tests still passing
+
+**Decisions:**
+- Formalized the script migration that was already done as part of t4 and t5
+- No additional script changes needed - migration was complete
+- Keeping original scripts in plugin as specified in task guidance
+
+**Next steps:**
+- t8: Update plugin skills to call CLI commands
