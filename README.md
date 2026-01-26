@@ -367,6 +367,8 @@ npm install -g @saga-ai/cli
 
 The plugin's `/execute-story` skill uses the CLI's `implement` command under the hood. When running via the plugin, environment variables like `SAGA_PLUGIN_ROOT` are automatically configured.
 
+For full CLI documentation, see [`packages/cli/README.md`](packages/cli/README.md).
+
 ---
 
 ## Requirements
