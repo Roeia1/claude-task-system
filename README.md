@@ -99,11 +99,11 @@ This creates the `.saga/` directory structure:
 > /generate-stories user-auth
 
 # 3. Implement a story autonomously
-> /implement login-flow
+> /execute-story login-flow
 
 # 4. If blocked, resolve and continue
-> /resolve login-flow
-> /implement login-flow
+> /resolve-blocker login-flow
+> /execute-story login-flow
 ```
 
 ---
@@ -152,15 +152,15 @@ Claude breaks down the epic into implementable stories:
 
 ### Story Execution
 
-Stories are executed autonomously using the `/implement` command:
+Stories are executed autonomously using the `/execute-story` command:
 
 ```
-> /implement websocket-setup
+> /execute-story websocket-setup
 ```
 
 The orchestrator spawns worker Claude instances that complete tasks incrementally. Workers exit with:
 - **FINISH** - All tasks complete
-- **BLOCKED** - Needs human decision (use `/resolve` to unblock)
+- **BLOCKED** - Needs human decision (use `/resolve-blocker` to unblock)
 - **TIMEOUT** - Max time exceeded
 
 ---
@@ -218,8 +218,8 @@ All functionality is accessed through skills (slash commands):
 | Initialize | `/init` | Create `.saga/` directory structure |
 | Create Epic | `/create-epic [description]` | Define epic with vision and architecture |
 | Generate Stories | `/generate-stories [epic-slug]` | Break epic into implementable stories |
-| Implement | `/implement [story-slug]` | Execute story autonomously |
-| Resolve | `/resolve [story-slug]` | Analyze and resolve blockers |
+| Execute Story | `/execute-story [story-slug]` | Execute story autonomously |
+| Resolve Blocker | `/resolve-blocker [story-slug]` | Analyze and resolve blockers |
 
 ### Agents
 
@@ -243,12 +243,12 @@ Agents are Claude Code subagents that run autonomously. They are spawned by skil
 # Review proposed stories, approve
 
 # Session 2: Execute stories autonomously
-> /implement cart-api
+> /execute-story cart-api
 # Workers complete tasks, document in journal.md
-# If blocked, use /resolve to provide resolution
+# If blocked, use /resolve-blocker to provide resolution
 # When complete, PR is ready for review and merge
 
-> /implement checkout-flow
+> /execute-story checkout-flow
 # Continue with next story
 ```
 
@@ -256,13 +256,13 @@ Agents are Claude Code subagents that run autonomously. They are spawned by skil
 
 ```bash
 # Worker exits with BLOCKED status
-> /resolve cart-api
+> /resolve-blocker cart-api
 # Analyze blocker from journal.md
 # Review proposed solutions
 # Approve resolution
 
 # Continue implementation
-> /implement cart-api
+> /execute-story cart-api
 ```
 
 ---
@@ -326,8 +326,8 @@ plugin/
 │   ├── init/                 # /init - Initialize structure
 │   ├── create-epic/          # /create-epic - Define epics
 │   ├── generate-stories/     # /generate-stories - Break down epics
-│   ├── execute-story/        # /implement - Autonomous execution
-│   └── resolve-blocker/      # /resolve - Handle blockers
+│   ├── execute-story/        # /execute-story - Autonomous execution
+│   └── resolve-blocker/      # /resolve-blocker - Handle blockers
 ├── scripts/
 │   └── identifier_resolver_v2.py
 ├── hooks/
