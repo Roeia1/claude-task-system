@@ -1,5 +1,5 @@
 ---
-name: resolve
+name: resolve-blocker
 description: Resolve a blocker for a blocked story
 argument-hint: "[story-slug]"
 user-invocable: true

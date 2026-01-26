@@ -23,10 +23,10 @@ This is **SAGA** (Structured Autonomous Goal Achievement) - a structured develop
    - Use `/generate-stories` to create stories from an epic
 
 3. **Story Execution Phase**
-   - Stories executed autonomously via `/implement` command
+   - Stories executed autonomously via `/execute-story` command
    - Workers complete tasks following TDD practices
    - Progress documented in journal.md throughout execution
-   - Use `/resolve` when workers get blocked
+   - Use `/resolve-blocker` when workers get blocked
 
 ### Directory Structure
 
@@ -75,8 +75,8 @@ plugin/                         # Plugin source code
     ├── init/                  # Initialize .saga/
     ├── create-epic/           # Create epic with vision + architecture
     ├── generate-stories/      # Generate stories from epic (spawns agents)
-    ├── execute-story/         # Autonomous /implement
-    └── resolve-blocker/       # Resolve blockers with /resolve
+    ├── execute-story/         # Autonomous /execute-story
+    └── resolve-blocker/       # Resolve blockers with /resolve-blocker
 ```
 
 ### Agents
@@ -183,13 +183,13 @@ tasks:
 # Also creates: worktree + branch + PR for each story
 
 # 3. Implement a story autonomously
-/implement login-flow
+/execute-story login-flow
 # Spawns workers to implement the story
 # Workers follow TDD, document in journal.md
 # Exit states: FINISH, BLOCKED, TIMEOUT, MAX_CYCLES
 
 # 4. Resolve blockers when needed
-/resolve login-flow
+/resolve-blocker login-flow
 # Analyzes blocker from journal.md
 # Proposes solutions for human approval
 # Documents resolution for next worker
@@ -199,14 +199,14 @@ tasks:
 
 ### Autonomous Execution
 
-Stories are executed autonomously using the `/implement` command. The orchestrator spawns worker Claude instances that:
+Stories are executed autonomously using the `/execute-story` command. The orchestrator spawns worker Claude instances that:
 
 1. Read story.md for tasks and guidance
 2. Complete tasks following TDD practices
 3. Document progress in journal.md
 4. Exit with status: FINISH (all done), BLOCKED (needs human decision), or TIMEOUT
 
-When a worker gets BLOCKED, use `/resolve` to analyze and provide a resolution, then continue with `/implement`.
+When a worker gets BLOCKED, use `/resolve-blocker` to analyze and provide a resolution, then continue with `/execute-story`.
 
 ### Non-Negotiable Rules
 
@@ -305,6 +305,6 @@ Workers document progress in journal.md:
 
 - **Epic-Driven Development**: Epics define vision, stories deliver value
 - **Human-Guided Planning**: Epic creation and story generation require human approval
-- **Autonomous Execution**: Stories execute independently with `/implement`
+- **Autonomous Execution**: Stories execute independently with `/execute-story`
 - **Scope Enforcement**: Workers stay within story worktree boundaries
 - **Keep Complexity Minimal**: Only add what's directly needed

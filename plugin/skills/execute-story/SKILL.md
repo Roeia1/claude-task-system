@@ -1,5 +1,5 @@
 ---
-name: implement
+name: execute-story
 description: Start autonomous story implementation
 argument-hint: "<story-slug>"
 user-invocable: true
