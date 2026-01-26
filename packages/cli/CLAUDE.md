@@ -17,6 +17,7 @@ pnpm test:watch   # Watch mode
 | `src/cli.ts` | Entry point, Commander.js command registration |
 | `src/commands/init.ts` | `saga init` - creates `.saga/` directory |
 | `src/commands/find.ts` | `saga find` - find epic/story by slug/title |
+| `src/commands/worktree.ts` | `saga worktree` - create git worktree for story |
 | `src/commands/implement.ts` | `saga implement` - worker orchestration loop |
 | `src/commands/dashboard.ts` | `saga dashboard` - HTTP server (placeholder) |
 | `src/commands/scope-validator.ts` | Hook validator for file operations |

@@ -14,6 +14,7 @@ Run commands using npx (no global installation required):
 ```bash
 npx @saga-ai/cli init
 npx @saga-ai/cli find <query>
+npx @saga-ai/cli worktree <epic-slug> <story-slug>
 npx @saga-ai/cli implement <story-slug>
 npx @saga-ai/cli dashboard
 ```
@@ -55,6 +56,23 @@ Returns JSON with:
 - `found: false` + `error` - No matches found
 
 Supports typo tolerance (e.g., "implment" matches "implement").
+
+### `saga worktree <epic-slug> <story-slug>`
+
+Create a git worktree and branch for story isolation.
+
+```bash
+saga worktree my-epic my-story
+saga worktree auth-system login-form --path /path/to/project
+```
+
+Creates:
+- Branch: `story-<story-slug>-epic-<epic-slug>`
+- Worktree: `.saga/worktrees/<epic-slug>/<story-slug>/`
+
+Returns JSON with:
+- `success: true` + `worktreePath`, `branch` - Worktree created
+- `success: false` + `error` - Creation failed (branch exists, directory exists, etc.)
 
 ### `saga implement <story-slug>`
 

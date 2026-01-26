@@ -15,6 +15,7 @@ import { implementCommand } from './commands/implement.js';
 import { dashboardCommand } from './commands/dashboard.js';
 import { scopeValidatorCommand } from './commands/scope-validator.js';
 import { findCommand } from './commands/find.js';
+import { worktreeCommand } from './commands/worktree.js';
 
 // Read version from package.json
 // In the bundled CJS output, __dirname will be available
@@ -73,6 +74,15 @@ program
       path: globalOpts.path,
       type: options.type,
     });
+  });
+
+// worktree command
+program
+  .command('worktree <epic-slug> <story-slug>')
+  .description('Create git worktree for a story')
+  .action(async (epicSlug: string, storySlug: string) => {
+    const globalOpts = program.opts();
+    await worktreeCommand(epicSlug, storySlug, { path: globalOpts.path });
   });
 
 // dashboard command

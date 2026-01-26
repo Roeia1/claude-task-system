@@ -358,6 +358,7 @@ npm install -g @saga-ai/cli
 |---------|-------------|
 | `saga init` | Initialize `.saga/` directory structure |
 | `saga find <query>` | Find epic or story by slug/title (fuzzy search) |
+| `saga worktree <epic> <story>` | Create git worktree for story isolation |
 | `saga implement <story>` | Orchestrate autonomous story execution |
 | `saga dashboard` | Start HTTP server for dashboard UI |
 | `saga help` | Display help information |
