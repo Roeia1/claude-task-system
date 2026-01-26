@@ -36,6 +36,7 @@ export interface ImplementOptions {
   maxTime?: number;
   model?: string;
   dryRun?: boolean;
+  stream?: boolean;
 }
 
 /**
@@ -442,7 +443,7 @@ function parseWorkerOutput(output: string): WorkerOutput {
 }
 
 /**
- * Spawn a worker Claude instance
+ * Spawn a worker Claude instance (synchronous, no streaming)
  */
 function spawnWorker(
   prompt: string,
@@ -481,17 +482,170 @@ function spawnWorker(
 }
 
 /**
+ * Parse a stream-json line and extract displayable content
+ * Returns the text to display, or null if nothing to display
+ */
+function formatStreamLine(line: string): string | null {
+  try {
+    const data = JSON.parse(line);
+
+    // Assistant message with text content
+    if (data.type === 'assistant' && data.message?.content) {
+      for (const block of data.message.content) {
+        if (block.type === 'text' && block.text) {
+          return block.text;
+        }
+        if (block.type === 'tool_use') {
+          return `[Tool: ${block.name}]`;
+        }
+      }
+    }
+
+    // System init message
+    if (data.type === 'system' && data.subtype === 'init') {
+      return `[Session started: ${data.session_id}]`;
+    }
+
+    // Result message (final)
+    if (data.type === 'result') {
+      const status = data.subtype === 'success' ? 'completed' : 'failed';
+      return `\n[Worker ${status} in ${Math.round(data.duration_ms / 1000)}s]`;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Parse the final result from stream-json output
+ * Looks for the {"type":"result",...} line and extracts structured_output
+ */
+function parseStreamingResult(buffer: string): WorkerOutput {
+  const lines = buffer.split('\n').filter(line => line.trim());
+
+  // Find the result line (should be the last one)
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try {
+      const data = JSON.parse(lines[i]);
+      if (data.type === 'result') {
+        if (data.is_error) {
+          throw new Error(`Worker failed: ${data.result || 'Unknown error'}`);
+        }
+
+        if (!data.structured_output) {
+          throw new Error('Worker result missing structured_output');
+        }
+
+        const output = data.structured_output;
+
+        if (!VALID_STATUSES.has(output.status)) {
+          throw new Error(`Invalid status: ${output.status}`);
+        }
+
+        return {
+          status: output.status,
+          summary: output.summary || '',
+          blocker: output.blocker ?? null,
+        };
+      }
+    } catch (e) {
+      // Not a valid JSON line or not a result, continue searching
+      if (e instanceof Error && e.message.startsWith('Worker')) {
+        throw e;
+      }
+    }
+  }
+
+  throw new Error('No result found in worker output');
+}
+
+/**
+ * Spawn a worker Claude instance with streaming output
+ * Streams output to stdout in real-time while collecting the final result
+ */
+function spawnWorkerAsync(
+  prompt: string,
+  model: string,
+  settings: Record<string, unknown>,
+  workingDir: string
+): Promise<WorkerOutput> {
+  return new Promise((resolve, reject) => {
+    let buffer = '';
+
+    // Build command arguments for streaming
+    const args = [
+      '-p',
+      prompt,
+      '--model',
+      model,
+      '--output-format',
+      'stream-json',
+      '--verbose',
+      '--json-schema',
+      JSON.stringify(WORKER_OUTPUT_SCHEMA),
+      '--settings',
+      JSON.stringify(settings),
+      '--dangerously-skip-permissions',
+    ];
+
+    const child = spawn('claude', args, {
+      cwd: workingDir,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    child.stdout.on('data', (chunk: Buffer) => {
+      const text = chunk.toString();
+      buffer += text;
+
+      // Parse and display each line
+      const lines = text.split('\n');
+      for (const line of lines) {
+        if (line.trim()) {
+          const formatted = formatStreamLine(line);
+          if (formatted) {
+            process.stdout.write(formatted);
+          }
+        }
+      }
+    });
+
+    child.stderr.on('data', (chunk: Buffer) => {
+      process.stderr.write(chunk);
+    });
+
+    child.on('error', (err) => {
+      reject(new Error(`Failed to spawn worker: ${err.message}`));
+    });
+
+    child.on('close', (code) => {
+      // Add newline after streaming output
+      process.stdout.write('\n');
+
+      try {
+        const result = parseStreamingResult(buffer);
+        resolve(result);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  });
+}
+
+/**
  * Main orchestration loop that spawns workers until completion
  */
-function runLoop(
+async function runLoop(
   epicSlug: string,
   storySlug: string,
   maxCycles: number,
   maxTime: number,
   model: string,
   projectDir: string,
-  pluginRoot: string
-): LoopResult {
+  pluginRoot: string,
+  stream: boolean = false
+): Promise<LoopResult> {
   // Compute worktree path
   const worktree = join(projectDir, '.saga', 'worktrees', epicSlug, storySlug);
 
@@ -548,35 +702,56 @@ function runLoop(
 
     // Spawn worker
     cycles += 1;
-    let output: string;
-    try {
-      output = spawnWorker(workerPrompt, model, settings, worktree);
-    } catch (e: any) {
-      return {
-        status: 'ERROR',
-        summary: e.message,
-        cycles,
-        elapsedMinutes: (Date.now() - startTime) / 60000,
-        blocker: null,
-        epicSlug,
-        storySlug,
-      };
-    }
-
-    // Parse worker output
     let parsed: WorkerOutput;
-    try {
-      parsed = parseWorkerOutput(output);
-    } catch (e: any) {
-      return {
-        status: 'ERROR',
-        summary: e.message,
-        cycles,
-        elapsedMinutes: (Date.now() - startTime) / 60000,
-        blocker: null,
-        epicSlug,
-        storySlug,
-      };
+
+    if (stream) {
+      // Streaming mode: use async spawn with real-time output
+      console.log(`\n--- Worker ${cycles} started ---\n`);
+      try {
+        parsed = await spawnWorkerAsync(workerPrompt, model, settings, worktree);
+      } catch (e: any) {
+        return {
+          status: 'ERROR',
+          summary: e.message,
+          cycles,
+          elapsedMinutes: (Date.now() - startTime) / 60000,
+          blocker: null,
+          epicSlug,
+          storySlug,
+        };
+      }
+      console.log(`\n--- Worker ${cycles} result: ${parsed.status} ---\n`);
+    } else {
+      // Non-streaming mode: use sync spawn
+      let output: string;
+      try {
+        output = spawnWorker(workerPrompt, model, settings, worktree);
+      } catch (e: any) {
+        return {
+          status: 'ERROR',
+          summary: e.message,
+          cycles,
+          elapsedMinutes: (Date.now() - startTime) / 60000,
+          blocker: null,
+          epicSlug,
+          storySlug,
+        };
+      }
+
+      // Parse worker output
+      try {
+        parsed = parseWorkerOutput(output);
+      } catch (e: any) {
+        return {
+          status: 'ERROR',
+          summary: e.message,
+          cycles,
+          elapsedMinutes: (Date.now() - startTime) / 60000,
+          blocker: null,
+          epicSlug,
+          storySlug,
+        };
+      }
     }
 
     summaries.push(parsed.summary);
@@ -669,22 +844,25 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTime = options.maxTime ?? DEFAULT_MAX_TIME;
   const model = options.model ?? DEFAULT_MODEL;
+  const stream = options.stream ?? false;
 
   console.log('Starting story implementation...');
   console.log(`  Epic: ${storyInfo.epicSlug}`);
   console.log(`  Story: ${storyInfo.storySlug}`);
   console.log(`  Worktree: ${storyInfo.worktreePath}`);
+  console.log(`  Streaming: ${stream ? 'enabled' : 'disabled'}`);
   console.log('');
 
   // Run the orchestration loop
-  const result = runLoop(
+  const result = await runLoop(
     storyInfo.epicSlug,
     storyInfo.storySlug,
     maxCycles,
     maxTime,
     model,
     projectPath,
-    pluginRoot
+    pluginRoot,
+    stream
   );
 
   // Output result as JSON

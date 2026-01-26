@@ -46,7 +46,8 @@ npx @saga-ai/cli@latest implement "<story.slug>" \
     --path "$SAGA_PROJECT_DIR" \
     --max-cycles 10 \
     --max-time 60 \
-    --model opus
+    --model opus \
+    --stream
 ```
 
 The CLI handles all validation (worktree exists, story.md exists) and returns
@@ -55,6 +56,9 @@ structured error messages if anything is missing.
 **Important:** Use these Bash tool parameters:
 - `run_in_background: true` - runs the script as a background task
 - `timeout: 3660000` - 61 minute timeout (slightly longer than --max-time)
+
+The `--stream` flag enables real-time output from the worker, so you can monitor
+progress by reading the background task output file.
 
 ### 3. Report Status
 
@@ -74,7 +78,9 @@ The implementation script is now running in the background.
 Workers will implement tasks following TDD practices.
 
 Monitor progress:
+  - Worker output streams in real-time to the task output file
   - Check status: Use TaskOutput tool with task_id
+  - Or read the output file directly with Read tool
 
 The script will exit with one of these statuses:
   FINISH     - All tasks completed successfully
