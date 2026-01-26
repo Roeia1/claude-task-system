@@ -11,6 +11,7 @@ import { Command } from 'commander';
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { initCommand } from './commands/init.js';
+import { implementCommand } from './commands/implement.js';
 
 // Read version from package.json
 // In the bundled CJS output, __dirname will be available
@@ -42,11 +43,16 @@ program
   .command('implement <story-slug>')
   .description('Run story implementation')
   .option('--max-cycles <n>', 'Maximum number of implementation cycles', parseInt)
-  .option('--max-time <n>', 'Maximum time in seconds', parseInt)
+  .option('--max-time <n>', 'Maximum time in minutes', parseInt)
   .option('--model <name>', 'Model to use for implementation')
   .action(async (storySlug: string, options: { maxCycles?: number; maxTime?: number; model?: string }) => {
     const globalOpts = program.opts();
-    console.log(`implement command not yet implemented (story: ${storySlug})`);
+    await implementCommand(storySlug, {
+      path: globalOpts.path,
+      maxCycles: options.maxCycles,
+      maxTime: options.maxTime,
+      model: options.model,
+    });
   });
 
 // dashboard command

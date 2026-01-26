@@ -124,3 +124,41 @@
 - t6: Implement saga dashboard command
 - t7: Formally complete script migration (implement.py)
 - t8: Update plugin skills to call CLI commands
+
+## Session: 2026-01-26T05:17:00Z
+
+### Task: t5 - Implement saga implement command
+
+**What was done:**
+- Created `src/commands/implement.ts` with implement command handler
+- Copied `implement.py` from plugin to `scripts/implement.py` (migration done early, t7 will formalize)
+- Handler functionality:
+  - Resolves project path from `--path` option or auto-discovery
+  - Searches all epics to find story by slug
+  - Validates worktree exists
+  - Checks for required `SAGA_PLUGIN_ROOT` environment variable
+  - Spawns `implement.py` script with appropriate arguments
+  - Passes through options: `--max-cycles`, `--max-time`, `--model`
+  - Streams script output to console
+- Updated `cli.ts` to import and use `implementCommand` handler
+- Created comprehensive test suite with 9 tests covering:
+  - Requiring story-slug argument
+  - Accepting positional argument (not failing on argument parsing)
+  - Accepting `--max-cycles`, `--max-time`, `--model` options
+  - Failing gracefully when no SAGA project found
+  - Finding project using `--path` option
+  - Reporting error when story does not exist
+  - Verifying implement.py script exists in package
+- Tests use clean environment without SAGA_PLUGIN_ROOT to prevent script execution
+- All 43 tests passing
+
+**Decisions:**
+- Story lookup searches through all epics to find matching story slug
+- SAGA_PLUGIN_ROOT is required by the Python script for worker-prompt.md (still in plugin)
+- CLI provides helpful error message when SAGA_PLUGIN_ROOT is not set
+- Tests explicitly unset SAGA_PLUGIN_ROOT to prevent actual script execution during testing
+
+**Next steps:**
+- t6: Implement saga dashboard command
+- t7: Formally complete script migration
+- t8: Update plugin skills to call CLI commands
