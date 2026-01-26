@@ -13,8 +13,7 @@ saga/
 ├── plugin/                  # Plugin source (skills, agents, hooks)
 ├── packages/cli/            # @saga-ai/cli npm package
 ├── .claude/skills/          # Dev skills for this repo (release, publish-cli, pr-review)
-├── CHANGELOG.md             # Plugin version history
-└── RELEASING.md             # Release process
+└── CHANGELOG.md             # Plugin version history
 ```
 
 ## Key Documentation
@@ -22,7 +21,6 @@ saga/
 | Doc | Purpose |
 |-----|---------|
 | [`README.md`](README.md) | User-facing: installation, workflow, skills reference |
-| [`RELEASING.md`](RELEASING.md) | Plugin release process |
 | [`plugin/docs/ENVIRONMENT.md`](plugin/docs/ENVIRONMENT.md) | Environment variables reference |
 | [`packages/cli/CLAUDE.md`](packages/cli/CLAUDE.md) | CLI package development guide |
 
