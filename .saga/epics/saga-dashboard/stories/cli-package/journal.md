@@ -162,3 +162,40 @@
 - t6: Implement saga dashboard command
 - t7: Formally complete script migration
 - t8: Update plugin skills to call CLI commands
+
+## Session: 2026-01-26T05:20:00Z
+
+### Task: t6 - Implement saga dashboard command
+
+**What was done:**
+- Created `src/commands/dashboard.ts` with dashboard command handler
+- Handler functionality:
+  - Resolves project path from `--path` option or auto-discovery
+  - Uses default port 3847 if `--port` not specified
+  - Prints placeholder messages:
+    - "Starting dashboard server on port <port>..."
+    - "Project: <path>"
+    - "Dashboard will be available at http://localhost:<port>"
+    - "Note: Dashboard server implementation pending (Backend Server story)"
+  - Exits with code 0 (placeholder success)
+- Updated `cli.ts` to import and use `dashboardCommand` handler
+- Created comprehensive test suite with 8 tests covering:
+  - Prints placeholder message when called without options
+  - Uses custom port when --port option is provided
+  - Uses custom port when --port option with equals sign
+  - Resolves project path with global --path option
+  - Exits with 0 for placeholder success
+  - Fails with helpful error when no SAGA project found
+  - Discovers project from subdirectory
+  - Shows project path in output
+- All 51 tests passing (43 from previous + 8 new)
+
+**Decisions:**
+- Kept implementation minimal - just prints placeholder messages per task guidance
+- Uses `resolveProjectPath` from project-discovery utility for consistency with other commands
+- Exits immediately after printing (no blocking) as specified in guidance
+- Shows project path in output for user clarity
+
+**Next steps:**
+- t7: Formally complete script migration
+- t8: Update plugin skills to call CLI commands

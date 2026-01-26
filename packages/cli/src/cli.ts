@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { initCommand } from './commands/init.js';
 import { implementCommand } from './commands/implement.js';
+import { dashboardCommand } from './commands/dashboard.js';
 
 // Read version from package.json
 // In the bundled CJS output, __dirname will be available
@@ -62,7 +63,10 @@ program
   .option('--port <n>', 'Port to run the server on (default: 3847)', parseInt)
   .action(async (options: { port?: number }) => {
     const globalOpts = program.opts();
-    console.log('dashboard command not yet implemented');
+    await dashboardCommand({
+      path: globalOpts.path,
+      port: options.port,
+    });
   });
 
 // Error handling for unknown commands

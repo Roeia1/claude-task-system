@@ -21,7 +21,7 @@ tasks:
     status: completed
   - id: t6
     title: Implement saga dashboard command
-    status: pending
+    status: completed
   - id: t7
     title: Migrate scripts from plugin to CLI package
     status: pending
