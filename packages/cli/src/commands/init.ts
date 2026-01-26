@@ -1,18 +1,17 @@
 /**
  * saga init command - Initialize .saga/ directory structure
  *
- * This command creates the .saga/ directory structure for a SAGA project.
- * It calls the init_structure.py script to do the actual work.
+ * This command creates the .saga/ directory structure for a SAGA project:
+ *   .saga/epics/
+ *   .saga/archive/
+ *   .saga/worktrees/
+ *
+ * It also updates .gitignore to ignore worktrees/
  */
 
-import { spawn } from 'node:child_process';
-import { dirname, join } from 'node:path';
-import { existsSync, statSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { existsSync, statSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
 import { findProjectRoot } from '../utils/project-discovery.js';
-
-// In bundled CJS output, __dirname is available
-declare const __dirname: string;
 
 /**
  * Options for the init command
@@ -21,14 +20,7 @@ export interface InitOptions {
   path?: string;
 }
 
-/**
- * Get the path to the scripts directory
- */
-function getScriptsDir(): string {
-  // __dirname will be dist/ in the bundled output
-  // scripts/ is at the same level as dist/
-  return join(__dirname, '..', 'scripts');
-}
+const WORKTREES_PATTERN = '.saga/worktrees/';
 
 /**
  * Resolve the target directory for initialization
@@ -54,19 +46,48 @@ function resolveTargetPath(explicitPath?: string): string {
 }
 
 /**
+ * Create the .saga/ directory structure
+ */
+function createDirectoryStructure(projectRoot: string): void {
+  const sagaDir = join(projectRoot, '.saga');
+
+  mkdirSync(join(sagaDir, 'epics'), { recursive: true });
+  mkdirSync(join(sagaDir, 'archive'), { recursive: true });
+  mkdirSync(join(sagaDir, 'worktrees'), { recursive: true });
+
+  console.log('Created .saga/ directory structure');
+}
+
+/**
+ * Update .gitignore to include worktrees pattern
+ */
+function updateGitignore(projectRoot: string): void {
+  const gitignorePath = join(projectRoot, '.gitignore');
+
+  if (existsSync(gitignorePath)) {
+    const content = readFileSync(gitignorePath, 'utf-8');
+    if (content.includes(WORKTREES_PATTERN)) {
+      console.log('.gitignore already contains worktrees pattern');
+    } else {
+      appendFileSync(
+        gitignorePath,
+        `\n# Claude Tasks - Worktrees (git worktree isolation for stories)\n${WORKTREES_PATTERN}\n`
+      );
+      console.log('Updated .gitignore with worktrees pattern');
+    }
+  } else {
+    writeFileSync(
+      gitignorePath,
+      `# Claude Tasks - Worktrees (git worktree isolation for stories)\n${WORKTREES_PATTERN}\n`
+    );
+    console.log('Created .gitignore with worktrees pattern');
+  }
+}
+
+/**
  * Execute the init command
  */
 export async function initCommand(options: InitOptions): Promise<void> {
-  const scriptsDir = getScriptsDir();
-  const scriptPath = join(scriptsDir, 'init_structure.py');
-
-  // Verify script exists
-  if (!existsSync(scriptPath)) {
-    console.error(`Error: init script not found at ${scriptPath}`);
-    console.error('This is likely an installation issue with the CLI package.');
-    process.exit(1);
-  }
-
   // Validate explicit path exists and is a directory
   if (options.path) {
     if (!existsSync(options.path)) {
@@ -81,38 +102,11 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
   const targetPath = resolveTargetPath(options.path);
 
-  return new Promise<void>((resolve, reject) => {
-    const pythonProcess = spawn('python3', [scriptPath, targetPath], {
-      stdio: ['inherit', 'pipe', 'pipe'],
-    });
+  // Create directory structure
+  createDirectoryStructure(targetPath);
 
-    let stdout = '';
-    let stderr = '';
+  // Update .gitignore
+  updateGitignore(targetPath);
 
-    pythonProcess.stdout.on('data', (data) => {
-      const text = data.toString();
-      stdout += text;
-      process.stdout.write(text);
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      const text = data.toString();
-      stderr += text;
-      process.stderr.write(text);
-    });
-
-    pythonProcess.on('close', (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        process.exit(code || 1);
-      }
-    });
-
-    pythonProcess.on('error', (err) => {
-      console.error(`Error: Failed to run init script: ${err.message}`);
-      console.error('Make sure Python 3 is installed and available as "python3".');
-      process.exit(1);
-    });
-  });
+  console.log(`Initialized .saga/ at ${targetPath}`);
 }

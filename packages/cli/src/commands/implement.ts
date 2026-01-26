@@ -1,17 +1,30 @@
 /**
  * saga implement command - Run story implementation
  *
- * This command invokes the implementation orchestrator that spawns
- * worker Claude instances to autonomously implement story tasks.
+ * This command implements the orchestration loop that spawns worker Claude
+ * instances to autonomously implement story tasks.
+ *
+ * The orchestrator:
+ * 1. Validates story files exist in the worktree
+ * 2. Loads the worker prompt template
+ * 3. Spawns workers in a loop until completion
+ *
+ * Workers exit with status:
+ * - FINISH: All tasks completed
+ * - BLOCKED: Human input needed
+ * - ONGOING: More work to do (triggers next worker spawn)
+ *
+ * Loop exits with:
+ * - FINISH: All tasks completed
+ * - BLOCKED: Human input needed
+ * - TIMEOUT: Max time exceeded
+ * - MAX_CYCLES: Max spawns reached
  */
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolveProjectPath } from '../utils/project-discovery.js';
-
-// In bundled CJS output, __dirname is available
-declare const __dirname: string;
 
 /**
  * Options for the implement command
@@ -34,13 +47,53 @@ interface StoryInfo {
 }
 
 /**
- * Get the path to the scripts directory
+ * Result from the orchestration loop
  */
-function getScriptsDir(): string {
-  // __dirname will be dist/ in the bundled output
-  // scripts/ is at the same level as dist/
-  return join(__dirname, '..', 'scripts');
+interface LoopResult {
+  status: 'FINISH' | 'BLOCKED' | 'TIMEOUT' | 'MAX_CYCLES' | 'ERROR';
+  summary: string;
+  cycles: number;
+  elapsedMinutes: number;
+  blocker: string | null;
+  epicSlug: string;
+  storySlug: string;
 }
+
+/**
+ * Parsed worker output
+ */
+interface WorkerOutput {
+  status: 'ONGOING' | 'FINISH' | 'BLOCKED';
+  summary: string;
+  blocker?: string | null;
+}
+
+// Constants
+const DEFAULT_MAX_CYCLES = 10;
+const DEFAULT_MAX_TIME = 60; // minutes
+const DEFAULT_MODEL = 'opus';
+const VALID_STATUSES = new Set(['ONGOING', 'FINISH', 'BLOCKED']);
+const WORKER_PROMPT_RELATIVE = 'worker-prompt.md';
+
+// JSON schema for worker output validation
+const WORKER_OUTPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    status: {
+      type: 'string',
+      enum: ['ONGOING', 'FINISH', 'BLOCKED'],
+    },
+    summary: {
+      type: 'string',
+      description: 'What was accomplished this session',
+    },
+    blocker: {
+      type: ['string', 'null'],
+      description: 'Brief description if BLOCKED, null otherwise',
+    },
+  },
+  required: ['status', 'summary'],
+};
 
 /**
  * Find a story by slug in the SAGA project
@@ -57,8 +110,8 @@ function findStory(projectPath: string, storySlug: string): StoryInfo | null {
 
   // Search through all epics
   const epicDirs = readdirSync(epicsDir, { withFileTypes: true })
-    .filter(d => d.isDirectory())
-    .map(d => d.name);
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name);
 
   for (const epicSlug of epicDirs) {
     const storiesDir = join(epicsDir, epicSlug, 'stories');
@@ -81,6 +134,315 @@ function findStory(projectPath: string, storySlug: string): StoryInfo | null {
   }
 
   return null;
+}
+
+/**
+ * Compute the path to story.md within a worktree
+ */
+function computeStoryPath(worktree: string, epicSlug: string, storySlug: string): string {
+  return join(worktree, '.saga', 'epics', epicSlug, 'stories', storySlug, 'story.md');
+}
+
+/**
+ * Validate that the worktree and story.md exist
+ */
+function validateStoryFiles(
+  worktree: string,
+  epicSlug: string,
+  storySlug: string
+): { valid: boolean; error?: string } {
+  // Check worktree exists
+  if (!existsSync(worktree)) {
+    return {
+      valid: false,
+      error:
+        `Worktree not found at ${worktree}\n\n` +
+        `The story worktree has not been created yet. This can happen if:\n` +
+        `1. The story was generated but the worktree wasn't set up\n` +
+        `2. The worktree was deleted or moved\n\n` +
+        `To create the worktree, use: /task-resume ${storySlug}`,
+    };
+  }
+
+  // Check story.md exists
+  const storyPath = computeStoryPath(worktree, epicSlug, storySlug);
+  if (!existsSync(storyPath)) {
+    return {
+      valid: false,
+      error:
+        `story.md not found in worktree.\n\n` +
+        `Expected location: ${storyPath}\n\n` +
+        `The worktree exists but the story definition file is missing.\n` +
+        `This may indicate an incomplete story setup.`,
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Get the execute-story skill root directory
+ */
+function getSkillRoot(pluginRoot: string): string {
+  return join(pluginRoot, 'skills', 'execute-story');
+}
+
+/**
+ * Load the worker prompt template
+ */
+function loadWorkerPrompt(pluginRoot: string): string {
+  const skillRoot = getSkillRoot(pluginRoot);
+  const promptPath = join(skillRoot, WORKER_PROMPT_RELATIVE);
+
+  if (!existsSync(promptPath)) {
+    throw new Error(`Worker prompt not found at ${promptPath}`);
+  }
+
+  return readFileSync(promptPath, 'utf-8');
+}
+
+/**
+ * Build the settings JSON for scope enforcement hooks
+ */
+function buildScopeSettings(pluginRoot: string): Record<string, unknown> {
+  const skillRoot = getSkillRoot(pluginRoot);
+  const validatorPath = join(skillRoot, 'scripts', 'scope_validator.py');
+
+  // Build the hook command - env vars are already set by the worker environment
+  const hookCommand = `python3 ${validatorPath}`;
+
+  return {
+    hooks: {
+      PreToolUse: [
+        {
+          matcher: 'Read|Write|Edit',
+          hooks: [hookCommand],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Parse and validate worker JSON output
+ */
+function parseWorkerOutput(output: string): WorkerOutput {
+  if (!output || !output.trim()) {
+    throw new Error('Worker output is empty');
+  }
+
+  // Parse the claude CLI JSON response
+  let cliResponse: Record<string, unknown>;
+  try {
+    cliResponse = JSON.parse(output.trim());
+  } catch (e) {
+    throw new Error(`Invalid JSON in worker output: ${e}`);
+  }
+
+  // Extract structured_output from the CLI response
+  if (!('structured_output' in cliResponse)) {
+    // Check if this is an error response
+    if (cliResponse.is_error) {
+      const errorMsg = cliResponse.result || 'Unknown error';
+      throw new Error(`Worker failed: ${errorMsg}`);
+    }
+    throw new Error(`Worker output missing structured_output field. Got keys: ${Object.keys(cliResponse).join(', ')}`);
+  }
+
+  const parsed = cliResponse.structured_output as Record<string, unknown>;
+
+  // Validate required fields
+  if (!('status' in parsed)) {
+    throw new Error('Worker output missing required field: status');
+  }
+
+  if (!('summary' in parsed)) {
+    throw new Error('Worker output missing required field: summary');
+  }
+
+  // Validate status value
+  if (!VALID_STATUSES.has(parsed.status as string)) {
+    throw new Error(`Invalid status value: ${parsed.status}. Must be one of: ${[...VALID_STATUSES].join(', ')}`);
+  }
+
+  return {
+    status: parsed.status as WorkerOutput['status'],
+    summary: parsed.summary as string,
+    blocker: (parsed.blocker as string | null) ?? null,
+  };
+}
+
+/**
+ * Spawn a worker Claude instance
+ */
+function spawnWorker(
+  prompt: string,
+  model: string,
+  settings: Record<string, unknown>,
+  workingDir: string
+): string {
+  // Build command arguments
+  const args = [
+    '-p',
+    prompt,
+    '--model',
+    model,
+    '--output-format',
+    'json',
+    '--json-schema',
+    JSON.stringify(WORKER_OUTPUT_SCHEMA),
+    '--settings',
+    JSON.stringify(settings),
+    '--dangerously-skip-permissions',
+  ];
+
+  const result = spawnSync('claude', args, {
+    cwd: workingDir,
+    encoding: 'utf-8',
+    maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs
+  });
+
+  if (result.error) {
+    throw new Error(`Failed to spawn worker: ${result.error.message}`);
+  }
+
+  // Return stdout even if exit code is non-zero
+  // Worker might have output before failing
+  return result.stdout || '';
+}
+
+/**
+ * Main orchestration loop that spawns workers until completion
+ */
+function runLoop(
+  epicSlug: string,
+  storySlug: string,
+  maxCycles: number,
+  maxTime: number,
+  model: string,
+  projectDir: string,
+  pluginRoot: string
+): LoopResult {
+  // Compute worktree path
+  const worktree = join(projectDir, '.saga', 'worktrees', epicSlug, storySlug);
+
+  // Validate story files (this is the authoritative validation point)
+  const validation = validateStoryFiles(worktree, epicSlug, storySlug);
+  if (!validation.valid) {
+    return {
+      status: 'ERROR',
+      summary: validation.error || 'Story validation failed',
+      cycles: 0,
+      elapsedMinutes: 0,
+      blocker: null,
+      epicSlug,
+      storySlug,
+    };
+  }
+
+  // Load worker prompt
+  let workerPrompt: string;
+  try {
+    workerPrompt = loadWorkerPrompt(pluginRoot);
+  } catch (e: any) {
+    return {
+      status: 'ERROR',
+      summary: e.message,
+      cycles: 0,
+      elapsedMinutes: 0,
+      blocker: null,
+      epicSlug,
+      storySlug,
+    };
+  }
+
+  // Build scope settings
+  const settings = buildScopeSettings(pluginRoot);
+
+  // Initialize loop state
+  const startTime = Date.now();
+  let cycles = 0;
+  const summaries: string[] = [];
+  let lastBlocker: string | null = null;
+  let finalStatus: LoopResult['status'] | null = null;
+
+  // Compute max time in milliseconds
+  const maxTimeMs = maxTime * 60 * 1000;
+
+  while (cycles < maxCycles) {
+    // Check time limit
+    const elapsedMs = Date.now() - startTime;
+    if (elapsedMs >= maxTimeMs) {
+      finalStatus = 'TIMEOUT';
+      break;
+    }
+
+    // Spawn worker
+    cycles += 1;
+    let output: string;
+    try {
+      output = spawnWorker(workerPrompt, model, settings, worktree);
+    } catch (e: any) {
+      return {
+        status: 'ERROR',
+        summary: e.message,
+        cycles,
+        elapsedMinutes: (Date.now() - startTime) / 60000,
+        blocker: null,
+        epicSlug,
+        storySlug,
+      };
+    }
+
+    // Parse worker output
+    let parsed: WorkerOutput;
+    try {
+      parsed = parseWorkerOutput(output);
+    } catch (e: any) {
+      return {
+        status: 'ERROR',
+        summary: e.message,
+        cycles,
+        elapsedMinutes: (Date.now() - startTime) / 60000,
+        blocker: null,
+        epicSlug,
+        storySlug,
+      };
+    }
+
+    summaries.push(parsed.summary);
+
+    if (parsed.status === 'FINISH') {
+      finalStatus = 'FINISH';
+      break;
+    } else if (parsed.status === 'BLOCKED') {
+      finalStatus = 'BLOCKED';
+      lastBlocker = parsed.blocker || null;
+      break;
+    }
+    // ONGOING: continue loop
+  }
+
+  // Check if we hit max cycles
+  if (finalStatus === null) {
+    finalStatus = 'MAX_CYCLES';
+  }
+
+  // Calculate elapsed minutes
+  const elapsedMinutes = (Date.now() - startTime) / 60000;
+
+  // Combine summaries
+  const combinedSummary = summaries.length === 1 ? summaries[0] : summaries.join(' | ');
+
+  return {
+    status: finalStatus,
+    summary: combinedSummary,
+    cycles,
+    elapsedMinutes: Math.round(elapsedMinutes * 100) / 100,
+    blocker: lastBlocker,
+    epicSlug,
+    storySlug,
+  };
 }
 
 /**
@@ -113,44 +475,9 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
     process.exit(1);
   }
 
-  // Verify scripts directory and implement.py exist
-  const scriptsDir = getScriptsDir();
-  const scriptPath = join(scriptsDir, 'implement.py');
-
-  if (!existsSync(scriptPath)) {
-    console.error(`Error: implement script not found at ${scriptPath}`);
-    console.error('This is likely an installation issue with the CLI package.');
-    process.exit(1);
-  }
-
-  // Build script arguments
-  const scriptArgs: string[] = [
-    '-u', // unbuffered output
-    scriptPath,
-    storyInfo.epicSlug,
-    storyInfo.storySlug,
-  ];
-
-  if (options.maxCycles !== undefined) {
-    scriptArgs.push('--max-cycles', String(options.maxCycles));
-  }
-  if (options.maxTime !== undefined) {
-    scriptArgs.push('--max-time', String(options.maxTime));
-  }
-  if (options.model !== undefined) {
-    scriptArgs.push('--model', options.model);
-  }
-
-  // Set up environment variables for the script
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    SAGA_PROJECT_DIR: projectPath,
-    // SAGA_PLUGIN_ROOT needs to be set by the caller (plugin skill) or from env
-    // The script requires it for loading worker-prompt.md
-  };
-
-  // If SAGA_PLUGIN_ROOT is not set, provide a helpful error before spawning
-  if (!env.SAGA_PLUGIN_ROOT) {
+  // If SAGA_PLUGIN_ROOT is not set, provide a helpful error
+  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
+  if (!pluginRoot) {
     console.error('Error: SAGA_PLUGIN_ROOT environment variable is not set.');
     console.error('\nThis variable is required for the implementation script.');
     console.error('When running via the /implement skill, this is set automatically.');
@@ -159,46 +486,33 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
     process.exit(1);
   }
 
+  // Get options with defaults
+  const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
+  const maxTime = options.maxTime ?? DEFAULT_MAX_TIME;
+  const model = options.model ?? DEFAULT_MODEL;
+
   console.log('Starting story implementation...');
   console.log(`  Epic: ${storyInfo.epicSlug}`);
   console.log(`  Story: ${storyInfo.storySlug}`);
   console.log(`  Worktree: ${storyInfo.worktreePath}`);
   console.log('');
 
-  return new Promise<void>((resolve, reject) => {
-    const pythonProcess = spawn('python3', scriptArgs, {
-      stdio: ['inherit', 'pipe', 'pipe'],
-      env,
-      cwd: storyInfo.worktreePath,
-    });
+  // Run the orchestration loop
+  const result = runLoop(
+    storyInfo.epicSlug,
+    storyInfo.storySlug,
+    maxCycles,
+    maxTime,
+    model,
+    projectPath,
+    pluginRoot
+  );
 
-    let stdout = '';
-    let stderr = '';
+  // Output result as JSON
+  console.log(JSON.stringify(result, null, 2));
 
-    pythonProcess.stdout.on('data', (data) => {
-      const text = data.toString();
-      stdout += text;
-      process.stdout.write(text);
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      const text = data.toString();
-      stderr += text;
-      process.stderr.write(text);
-    });
-
-    pythonProcess.on('close', (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        process.exit(code || 1);
-      }
-    });
-
-    pythonProcess.on('error', (err) => {
-      console.error(`Error: Failed to run implement script: ${err.message}`);
-      console.error('Make sure Python 3 is installed and available as "python3".');
-      process.exit(1);
-    });
-  });
+  // Exit with appropriate code
+  if (result.status === 'ERROR') {
+    process.exit(1);
+  }
 }
