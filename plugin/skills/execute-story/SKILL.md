@@ -37,20 +37,19 @@ The identifier resolver ran above. Handle the result:
 
 ### 2. Run Implementation Orchestrator
 
-Run the implementation script using Bash with `run_in_background: true`.
+Run the CLI command using Bash with `run_in_background: true`.
 
-Use `story.epic_slug` and `story.slug` from the resolution result:
+Use `story.slug` from the resolution result:
 
 ```bash
-python3 -u "${SAGA_PLUGIN_ROOT}/skills/execute-story/scripts/implement.py" \
-    "<story.epic_slug>" \
-    "<story.slug>" \
+npx @saga-ai/cli@latest implement "<story.slug>" \
+    --path "$SAGA_PROJECT_DIR" \
     --max-cycles 10 \
     --max-time 60 \
     --model opus
 ```
 
-The script handles all validation (worktree exists, story.md exists) and returns
+The CLI handles all validation (worktree exists, story.md exists) and returns
 structured error messages if anything is missing.
 
 **Important:** Use these Bash tool parameters:

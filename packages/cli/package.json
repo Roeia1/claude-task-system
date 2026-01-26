@@ -1,0 +1,49 @@
+{
+  "name": "@saga-ai/cli",
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.0",
+  "description": "CLI for SAGA - Structured Autonomous Goal Achievement",
+  "type": "module",
+  "bin": {
+    "saga": "./dist/cli.cjs"
+  },
+  "main": "./dist/cli.cjs",
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.cjs --format=cjs --banner:js='#!/usr/bin/env node'",
+    "dev": "npm run build && node dist/cli.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "publish:npm": "pnpm build && pnpm test && pnpm publish --access public"
+  },
+  "keywords": [
+    "claude",
+    "saga",
+    "cli",
+    "workflow",
+    "automation"
+  ],
+  "author": "Roei Avrahami <roei.avrahami2@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Roeia1/saga.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/Roeia1/saga#readme",
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ]
+}
