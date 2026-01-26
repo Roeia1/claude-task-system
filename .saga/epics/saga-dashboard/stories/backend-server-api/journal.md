@@ -169,3 +169,48 @@
 
 **Next steps:**
 - t6: Integration tests and error handling
+
+## Session: 2026-01-27T00:48:00Z
+
+### Task: t6 - Integration Tests and Error Handling
+
+**What was done:**
+- Created `packages/cli/src/server/__tests__/integration.test.ts` with 12 comprehensive integration tests covering:
+  - Full end-to-end flow: file change → watcher → WebSocket → client within 1 second
+  - Story update delivery to subscribed clients (verified <1 second latency)
+  - Epic update broadcast to all clients when structure changes
+  - API data refresh after file changes
+  - Server lifecycle: start, serve requests, clean shutdown
+  - WebSocket connection cleanup on server shutdown
+  - Error recovery: server continues after invalid API requests
+  - Rapid WebSocket connections/disconnections handling
+  - File operations during high WebSocket activity
+  - Data consistency between API responses and WebSocket payloads
+  - Journal inclusion in story updates
+  - Performance: 10 concurrent subscribers receiving updates within 1 second
+- All 233 tests pass (12 new integration tests + 221 existing tests)
+
+**Decisions:**
+- Integration tests verify the critical acceptance criteria: "File change updates reach connected clients within 1 second"
+- Tests cover both success paths and error scenarios
+- Server lifecycle tests mark server as null after explicit close to avoid double-close in afterEach
+- Performance test with 10 concurrent clients demonstrates scalability
+
+**Test categories covered by t6:**
+1. API endpoint tests - already comprehensive in routes.test.ts (21 tests)
+2. Parser tests with fixtures - already comprehensive in parser.test.ts (23 tests including malformed YAML)
+3. WebSocket event tests - already comprehensive in websocket.test.ts (15 tests)
+4. Integration tests - NEW in integration.test.ts (12 tests)
+5. Server handles and logs errors without crashing - verified in error recovery tests
+6. All tests run with `npm test` command - verified (233 tests pass)
+
+**All t6 done-when criteria verified:**
+- ✅ API endpoint tests pass with valid requests
+- ✅ API endpoint tests verify 404 for missing resources
+- ✅ Parser tests verify graceful handling of malformed files
+- ✅ WebSocket tests verify event delivery
+- ✅ Server handles and logs errors without crashing
+- ✅ All tests run with `npm test` command
+
+**Next steps:**
+- All tasks complete - story ready for review
