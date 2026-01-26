@@ -1,6 +1,7 @@
 {
   "name": "@saga-ai/cli",
   "version": "0.1.0",
+  "packageManager": "pnpm@9.15.0",
   "description": "CLI for SAGA - Structured Autonomous Goal Achievement",
   "type": "module",
   "bin": {
@@ -12,7 +13,7 @@
     "dev": "npm run build && node dist/cli.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "publish:npm": "npm run build && npm test && npm publish --access public"
+    "publish:npm": "pnpm build && pnpm test && pnpm publish --access public"
   },
   "keywords": [
     "claude",
