@@ -42,11 +42,20 @@ Run the CLI command using Bash with `run_in_background: true`.
 Use `story.slug` from the resolution result:
 
 ```bash
-npx @saga-ai/cli@latest implement "<story.slug>" \
-    --path "$SAGA_PROJECT_DIR" \
-    --max-cycles 10 \
-    --max-time 60 \
-    --model opus
+# Use local CLI if available (dev mode), otherwise use npm
+if [ -f "$SAGA_PROJECT_DIR/packages/cli/dist/cli.cjs" ]; then
+  node "$SAGA_PROJECT_DIR/packages/cli/dist/cli.cjs" implement "<story.slug>" \
+      --path "$SAGA_PROJECT_DIR" \
+      --max-cycles 10 \
+      --max-time 60 \
+      --model opus
+else
+  npx @saga-ai/cli@latest implement "<story.slug>" \
+      --path "$SAGA_PROJECT_DIR" \
+      --max-cycles 10 \
+      --max-time 60 \
+      --model opus
+fi
 ```
 
 The CLI handles all validation (worktree exists, story.md exists) and returns
