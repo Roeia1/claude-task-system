@@ -1,0 +1,45 @@
+{
+  "name": "@saga/cli",
+  "version": "0.1.0",
+  "description": "CLI for SAGA - Structured Autonomous Goal Achievement",
+  "type": "module",
+  "bin": {
+    "saga": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.js --format=esm --banner:js='#!/usr/bin/env node'",
+    "dev": "npm run build && node dist/cli.js"
+  },
+  "keywords": [
+    "claude",
+    "saga",
+    "cli",
+    "workflow",
+    "automation"
+  ],
+  "author": "Roei Avrahami <roei.avrahami2@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Roeia1/saga.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/Roeia1/saga#readme",
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/",
+    "scripts/",
+    "README.md"
+  ]
+}
