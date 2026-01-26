@@ -9,7 +9,7 @@ allowed-tools: Bash(python:*), Bash(git:*), Bash(gh:*), Read, Write, AskUserQues
 
 # Generate Stories Skill
 
-!`npx @saga-ai/cli find "$0" --type epic --path "${SAGA_PROJECT_DIR}"`
+!`npx @saga-ai/cli --path "${SAGA_PROJECT_DIR}" find "$0" --type epic`
 
 ## Process
 

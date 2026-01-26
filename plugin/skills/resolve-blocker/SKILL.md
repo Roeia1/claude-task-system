@@ -16,7 +16,7 @@ allowed-tools:
 
 # Resolve Blocker Skill
 
-!`npx @saga-ai/cli find "$0" --type story --path "${SAGA_PROJECT_DIR}"`
+!`npx @saga-ai/cli --path "${SAGA_PROJECT_DIR}" find "$0" --type story`
 
 ## Process
 
