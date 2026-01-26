@@ -31,7 +31,8 @@
   },
   "homepage": "https://github.com/Roeia1/saga#readme",
   "dependencies": {
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "fuse.js": "^7.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

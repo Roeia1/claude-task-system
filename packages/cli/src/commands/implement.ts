@@ -25,6 +25,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolveProjectPath } from '../utils/project-discovery.js';
+import { findStory as findStoryUtil, type StoryInfo as FinderStoryInfo } from '../utils/finder.js';
 
 /**
  * Options for the implement command
@@ -39,6 +40,7 @@ export interface ImplementOptions {
 
 /**
  * Story info extracted from story.md or file structure
+ * Maps from the finder utility's StoryInfo
  */
 interface StoryInfo {
   epicSlug: string;
@@ -99,55 +101,25 @@ const WORKER_OUTPUT_SCHEMA = {
 /**
  * Find a story by slug in the SAGA project
  *
- * Searches through worktrees to find a story matching the given slug.
- * Stories are located at:
- * .saga/worktrees/<epic>/<story>/.saga/epics/<epic>/stories/<story>/story.md
+ * Uses the shared finder utility to search through worktrees.
+ * Supports fuzzy matching by slug or title.
  *
- * Returns the epic slug and story path if found.
+ * Returns the story info if a single match is found, null otherwise.
  */
 function findStory(projectPath: string, storySlug: string): StoryInfo | null {
-  const worktreesDir = join(projectPath, '.saga', 'worktrees');
+  const result = findStoryUtil(projectPath, storySlug);
 
-  if (!existsSync(worktreesDir)) {
+  if (!result.found) {
     return null;
   }
 
-  // Search through all epic worktrees
-  const epicDirs = readdirSync(worktreesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name);
-
-  for (const epicSlug of epicDirs) {
-    const epicWorktreeDir = join(worktreesDir, epicSlug);
-
-    // Check if this story's worktree exists
-    const storyWorktree = join(epicWorktreeDir, storySlug);
-    if (!existsSync(storyWorktree)) {
-      continue;
-    }
-
-    // Story file is at: <worktree>/.saga/epics/<epic>/stories/<story>/story.md
-    const storyPath = join(
-      storyWorktree,
-      '.saga',
-      'epics',
-      epicSlug,
-      'stories',
-      storySlug,
-      'story.md'
-    );
-
-    if (existsSync(storyPath)) {
-      return {
-        epicSlug,
-        storySlug,
-        storyPath,
-        worktreePath: storyWorktree,
-      };
-    }
-  }
-
-  return null;
+  // Map from finder's StoryInfo to implement's StoryInfo
+  return {
+    epicSlug: result.data.epicSlug,
+    storySlug: result.data.slug,
+    storyPath: result.data.storyPath,
+    worktreePath: result.data.worktreePath,
+  };
 }
 
 /**
