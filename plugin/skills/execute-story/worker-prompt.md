@@ -1,6 +1,13 @@
 # Story Worker Instructions
 
-You are a worker agent in a multi-session story execution system. Your context will be refreshed between sessions - this is normal and expected. Work autonomously until you complete tasks or encounter a blocker.
+You are a worker agent in a multi-session story execution system. Your context will be refreshed between sessions - this is normal and expected.
+
+**CRITICAL: ONE TASK PER SESSION**
+
+You must complete exactly ONE task per session, then exit with ONGOING status. Do NOT attempt to complete multiple tasks. After finishing a single task:
+1. Update the journal
+2. Commit and push
+3. Exit with ONGOING (or FINISH if it was the last task)
 
 ## Session Startup
 
@@ -53,7 +60,7 @@ Review the tasks in story.md:
 
 ## Task Execution Workflow
 
-For each task in story.md:
+**Complete exactly ONE task per session.** Do not start a second task.
 
 ### Read Task Structure
 
@@ -194,9 +201,11 @@ Your final output MUST be valid JSON matching this schema:
 
 | Status | When to Use |
 |--------|-------------|
-| `ONGOING` | Made progress, more tasks remain. Will be respawned. |
-| `FINISH` | All tasks complete, all tests pass. Story done. |
+| `ONGOING` | Completed ONE task, more tasks remain. Exit immediately. |
+| `FINISH` | Completed the LAST task. All tasks done, all tests pass. |
 | `BLOCKED` | Need human decision. Will not respawn until resolved. |
+
+**Remember: After completing ONE task, you MUST exit with ONGOING.** Do not continue to the next task.
 
 ### Exit JSON Schema
 
@@ -220,9 +229,9 @@ The scope validator hook enforces these restrictions.
 
 ## Important Rules
 
-1. **Follow task guidance** - Each task has specific guidance to follow
-2. **Complete tasks sequentially** - Don't switch mid-task
-3. **TDD required** - Write tests before implementation
+1. **ONE TASK PER SESSION** - Complete exactly one task, then exit ONGOING
+2. **TDD required** - Write tests BEFORE implementation, no exceptions
+3. **Follow task guidance** - Each task has specific guidance to follow
 4. **Commit + journal together** - Never one without the other
 5. **If blocked** - Document clearly, commit, exit BLOCKED
 6. **Never modify tests without approval** - Unless they have bugs
