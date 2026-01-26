@@ -263,17 +263,7 @@ function runDryRun(
   });
   if (!claudeCheck.exists) allPassed = false;
 
-  // Check 3: python3 is available (for scope validator)
-  const pythonCheck = checkCommandExists('python3');
-  checks.push({
-    name: 'python3',
-    path: pythonCheck.path,
-    passed: pythonCheck.exists,
-    error: pythonCheck.exists ? undefined : 'Command not found in PATH',
-  });
-  if (!pythonCheck.exists) allPassed = false;
-
-  // Check 4: Worker prompt file
+  // Check 3: Worker prompt file
   if (pluginRoot) {
     const skillRoot = getSkillRoot(pluginRoot);
     const workerPromptPath = join(skillRoot, WORKER_PROMPT_RELATIVE);
@@ -293,33 +283,16 @@ function runDryRun(
       allPassed = false;
     }
 
-    // Check 5: Scope validator script
-    const scopeValidatorPath = join(skillRoot, 'scripts', 'scope_validator.py');
-    if (existsSync(scopeValidatorPath)) {
-      checks.push({
-        name: 'Scope validator',
-        path: scopeValidatorPath,
-        passed: true,
-      });
-    } else {
-      checks.push({
-        name: 'Scope validator',
-        path: scopeValidatorPath,
-        passed: false,
-        error: 'File not found',
-      });
-      allPassed = false;
-    }
   }
 
-  // Check 6: Story exists
+  // Check 4: Story exists
   checks.push({
     name: 'Story found',
     path: `${storyInfo.storySlug} (epic: ${storyInfo.epicSlug})`,
     passed: true,
   });
 
-  // Check 7: Worktree exists
+  // Check 5: Worktree exists
   if (existsSync(storyInfo.worktreePath)) {
     checks.push({
       name: 'Worktree exists',
@@ -336,7 +309,7 @@ function runDryRun(
     allPassed = false;
   }
 
-  // Check 8: story.md in worktree
+  // Check 6: story.md in worktree
   if (existsSync(storyInfo.worktreePath)) {
     const storyMdPath = computeStoryPath(
       storyInfo.worktreePath,
@@ -417,12 +390,10 @@ function loadWorkerPrompt(pluginRoot: string): string {
 /**
  * Build the settings JSON for scope enforcement hooks
  */
-function buildScopeSettings(pluginRoot: string): Record<string, unknown> {
-  const skillRoot = getSkillRoot(pluginRoot);
-  const validatorPath = join(skillRoot, 'scripts', 'scope_validator.py');
-
-  // Build the hook command - env vars are already set by the worker environment
-  const hookCommand = `python3 ${validatorPath}`;
+function buildScopeSettings(): Record<string, unknown> {
+  // Use npx to run the CLI's scope-validator command
+  // This avoids dependency on Python and keeps everything in TypeScript
+  const hookCommand = 'npx @saga-ai/cli scope-validator';
 
   return {
     hooks: {
@@ -570,7 +541,7 @@ function runLoop(
   }
 
   // Build scope settings
-  const settings = buildScopeSettings(pluginRoot);
+  const settings = buildScopeSettings();
 
   // Initialize loop state
   const startTime = Date.now();

@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { initCommand } from './commands/init.js';
 import { implementCommand } from './commands/implement.js';
 import { dashboardCommand } from './commands/dashboard.js';
+import { scopeValidatorCommand } from './commands/scope-validator.js';
 
 // Read version from package.json
 // In the bundled CJS output, __dirname will be available
@@ -70,6 +71,14 @@ program
       path: globalOpts.path,
       port: options.port,
     });
+  });
+
+// scope-validator command (internal - used by implement command's hook system)
+program
+  .command('scope-validator')
+  .description('Validate file operations against story scope (internal)')
+  .action(async () => {
+    await scopeValidatorCommand();
   });
 
 // Error handling for unknown commands
