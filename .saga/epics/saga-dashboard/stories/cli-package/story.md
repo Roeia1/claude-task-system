@@ -9,7 +9,7 @@ tasks:
     status: pending
   - id: t2
     title: Implement project discovery utility
-    status: pending
+    status: completed
   - id: t3
     title: Implement CLI entry point with argument parsing
     status: pending

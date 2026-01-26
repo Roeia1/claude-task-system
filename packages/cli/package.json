@@ -9,7 +9,9 @@
   "main": "./dist/cli.js",
   "scripts": {
     "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.js --format=esm --banner:js='#!/usr/bin/env node'",
-    "dev": "npm run build && node dist/cli.js"
+    "dev": "npm run build && node dist/cli.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "claude",
@@ -32,7 +34,8 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "esbuild": "^0.24.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=18.0.0"

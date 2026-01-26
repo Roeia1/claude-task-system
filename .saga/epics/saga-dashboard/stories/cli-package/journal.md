@@ -27,3 +27,32 @@
 - t2: Implement project discovery utility
 - t3: Implement CLI entry point with argument parsing
 - t4-t8: Remaining tasks
+
+## Session: 2026-01-26T04:52:00Z
+
+### Task: t2 - Implement project discovery utility
+
+**What was done:**
+- Added vitest as testing framework (`npm install --save-dev vitest`)
+- Added test and test:watch scripts to package.json
+- Created `src/utils/project-discovery.ts` with two functions:
+  - `findProjectRoot(startDir?)`: Walks up directory tree looking for `.saga/` directory
+  - `resolveProjectPath(explicitPath?)`: Uses explicit path or discovery, throws helpful error if not found
+- Created comprehensive test suite with 10 tests covering:
+  - Finding `.saga/` in current directory
+  - Finding `.saga/` in parent directories (walking up multiple levels)
+  - Returning null when no project found
+  - Using explicit path override
+  - Throwing descriptive errors when project not found
+- All 10 tests passing
+
+**Decisions:**
+- Used vitest for testing - fast, modern, TypeScript-native
+- Implemented path walking using `dirname()` to walk up tree
+- Stop condition: when parent equals current (filesystem root reached)
+- Error messages include hints about `saga init` and `--path` flag
+- Tests use temp directories with realpath normalization for macOS symlinks
+
+**Next steps:**
+- t3: Implement CLI entry point with argument parsing
+- t4-t8: Remaining tasks
