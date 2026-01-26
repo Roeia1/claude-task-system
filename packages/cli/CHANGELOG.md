@@ -5,6 +5,17 @@ All notable changes to the `@saga-ai/cli` package will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-01-26
+
+### Added
+- **worktree**: New `saga worktree <epic-slug> <story-slug>` command to create git worktrees for story isolation
+  - Creates branch: `story-<story-slug>-epic-<epic-slug>`
+  - Creates worktree at: `.saga/worktrees/<epic-slug>/<story-slug>/`
+  - Returns JSON with `worktreePath` and `branch` on success
+
+### Removed
+- **Python scripts**: Removed `identifier_resolver_v2.py` and `create_worktree.py` (replaced by `saga find` and `saga worktree`)
+
 ## [0.2.0] - 2026-01-26
 
 ### Added
