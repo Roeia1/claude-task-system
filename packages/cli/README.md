@@ -1,11 +1,11 @@
-# @saga/cli
+# @saga-ai/cli
 
 Command-line interface for SAGA (Structured Autonomous Goal Achievement) - a structured development workflow that combines human-guided epic planning with autonomous story execution.
 
 ## Installation
 
 ```bash
-npm install -g @saga/cli
+npm install -g @saga-ai/cli
 ```
 
 ## Requirements

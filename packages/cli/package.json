@@ -1,5 +1,5 @@
 {
-  "name": "@saga/cli",
+  "name": "@saga-ai/cli",
   "version": "0.1.0",
   "description": "CLI for SAGA - Structured Autonomous Goal Achievement",
   "type": "module",
