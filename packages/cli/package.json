@@ -31,11 +31,17 @@
   },
   "homepage": "https://github.com/Roeia1/saga#readme",
   "dependencies": {
+    "chokidar": "^5.0.0",
     "commander": "^12.1.0",
-    "fuse.js": "^7.1.0"
+    "express": "^5.2.1",
+    "fuse.js": "^7.1.0",
+    "gray-matter": "^4.0.3",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^22.10.0",
+    "@types/ws": "^8.18.1",
     "esbuild": "^0.24.0",
     "typescript": "^5.7.0",
     "vitest": "^3.2.4"
