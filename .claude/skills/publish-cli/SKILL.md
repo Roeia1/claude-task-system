@@ -27,11 +27,10 @@ Publish Progress:
 - [ ] Step 4: Update packages/cli/package.json version
 - [ ] Step 5: Update packages/cli/CHANGELOG.md
 - [ ] Step 6: Update packages/cli/README.md if needed
-- [ ] Step 7: Run build and tests
-- [ ] Step 8: Commit changes
-- [ ] Step 9: Publish to npm
-- [ ] Step 10: Create git tag
-- [ ] Step 11: Verify publication
+- [ ] Step 7: Commit changes
+- [ ] Step 8: Build, test, and publish to npm
+- [ ] Step 9: Create git tag
+- [ ] Step 10: Verify publication
 ```
 
 ### Step 1: Verify Prerequisites
@@ -135,24 +134,7 @@ Look for sections like:
 - Command reference
 - Usage examples
 
-### Step 7: Build and Test
-
-```bash
-cd packages/cli
-
-# Install dependencies
-pnpm install
-
-# Build
-pnpm build
-
-# Run tests
-pnpm test
-```
-
-If tests fail, stop and report the failure. Do not proceed until all tests pass.
-
-### Step 8: Commit Changes
+### Step 7: Commit Changes
 
 ```bash
 # Stage version files
@@ -167,18 +149,20 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 git push
 ```
 
-### Step 9: Publish to npm
+### Step 8: Build, Test, and Publish to npm
 
 ```bash
 cd packages/cli
 
-# Publish (already built in step 6)
-pnpm publish --access public --no-git-checks
+# This script builds, runs tests, and publishes in one command
+pnpm run publish:npm
 ```
 
-The `--no-git-checks` flag is used because we've already committed.
+The `publish:npm` script runs: `pnpm build && pnpm test && pnpm publish --access public`
 
-### Step 10: Create Git Tag
+If tests fail, the publish will not proceed. Fix the issues and retry.
+
+### Step 9: Create Git Tag
 
 ```bash
 # Create CLI-specific tag
@@ -188,7 +172,7 @@ git push origin "cli-vX.Y.Z"
 
 Note: CLI uses `cli-vX.Y.Z` tag format to distinguish from plugin releases (`vX.Y.Z`).
 
-### Step 11: Verify Publication
+### Step 10: Verify Publication
 
 ```bash
 # Check npm registry
