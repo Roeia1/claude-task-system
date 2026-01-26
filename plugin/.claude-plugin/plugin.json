@@ -16,5 +16,6 @@
     "autonomous-execution",
     "journaling"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "agents": "./agents/"
 }

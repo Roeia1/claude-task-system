@@ -4,7 +4,7 @@ description: Generate stories from an epic
 argument-hint: "[epic-slug]"
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Bash(python:*), Read, AskUserQuestion, Skill(generate-story)
+allowed-tools: Bash(python:*), Bash(git:*), Bash(gh:*), Read, Write, AskUserQuestion, Task
 ---
 
 # Generate Stories Skill
@@ -91,16 +91,38 @@ Would you like to:
 
 Use AskUserQuestion to get approval.
 
-### 5. Fork Each Story
+### 5. Spawn Story Generation Agents
 
-For each approved story, use the **Skill tool** to invoke `generate-story`.
+For each approved story, spawn a `generate-story` agent to create the story files and git infrastructure.
 
-Pass to each generate-story invocation:
+#### 5.1 Spawn Agents in Parallel
+
+Use the **Task tool** to spawn agents for all stories in parallel. For each story, pass:
+- `epic_slug`: The epic identifier
 - `story_title`: This story's title
+- `story_description`: This story's description
+- `other_stories`: Titles and descriptions of all OTHER approved stories (so this story knows its boundaries)
+
+```
+Task(
+  subagent_type: "generate-story",
+  description: "Generate story: <story_title>",
+  prompt: |
+    epic_slug: <epic_slug>
+    story_title: <story_title>
+    story_description: <story_description>
+
+    other_stories:
+      - <other story 1 title>: <description>
+      - <other story 2 title>: <description>
+)
+```
+
+**Important**: Spawn all story agents in a single message with multiple Task tool calls to maximize parallelism. The agent will read the epic.md and template files itself, including any epic-level exclusions.
 
 ### 6. Collect Results
 
-Collect results from each generate-story invocation.
+Wait for all Task agents to complete and collect their JSON results.
 
 ### 7. Report Completion
 

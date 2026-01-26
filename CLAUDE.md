@@ -63,6 +63,8 @@ When users install this plugin and run `/init`, the following structure is creat
 plugin/                         # Plugin source code
 ├── .claude-plugin/
 │   └── plugin.json            # Plugin manifest
+├── agents/                     # Claude Code agents
+│   └── generate-story.md      # Story generation agent
 ├── scripts/                    # Utility scripts
 │   └── identifier_resolver_v2.py
 ├── hooks/                      # Session hooks
@@ -72,10 +74,28 @@ plugin/                         # Plugin source code
 └── skills/                     # Core skills
     ├── init/                  # Initialize .saga/
     ├── create-epic/           # Create epic with vision + architecture
-    ├── generate-stories/      # Generate stories from epic
-    ├── generate-story/        # Create single story (internal)
+    ├── generate-stories/      # Generate stories from epic (spawns agents)
     ├── execute-story/         # Autonomous /implement
     └── resolve-blocker/       # Resolve blockers with /resolve
+```
+
+### Agents
+
+Agents are Claude Code subagents defined in `plugin/agents/`. They are registered in `plugin.json` and can be spawned via the Task tool.
+
+| Agent | Description |
+|-------|-------------|
+| `generate-story` | Creates a single story with full content and git infrastructure. Spawned by `/generate-stories` for each story in parallel. |
+
+Agent files use YAML frontmatter for configuration:
+
+```yaml
+---
+name: generate-story
+description: Creates a single story with full content and git infrastructure
+tools: Read, Write, Bash
+model: opus
+---
 ```
 
 ### Plugin Path References

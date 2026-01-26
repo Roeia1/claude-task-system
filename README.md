@@ -3,7 +3,8 @@
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
 [![Version](https://img.shields.io/badge/version-2.1.2-blue)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Skills](https://img.shields.io/badge/skills-6-green)](https://github.com/Roeia1/saga)
+[![Skills](https://img.shields.io/badge/skills-5-green)](https://github.com/Roeia1/saga)
+[![Agents](https://img.shields.io/badge/agents-1-blue)](https://github.com/Roeia1/saga)
 
 > **S**tructured **A**utonomous **G**oal **A**chievement - Transform epic ideas into shipped code through structured planning, autonomous execution, and continuous journaling.
 
@@ -220,11 +221,13 @@ All functionality is accessed through skills (slash commands):
 | Implement | `/implement [story-slug]` | Execute story autonomously |
 | Resolve | `/resolve [story-slug]` | Analyze and resolve blockers |
 
-### Internal Skills
+### Agents
 
-| Skill | Description |
+Agents are Claude Code subagents that run autonomously. They are spawned by skills via the Task tool.
+
+| Agent | Description |
 |-------|-------------|
-| Generate Story | Creates a single story (used by generate-stories) |
+| `generate-story` | Creates a single story with full content and git infrastructure. Spawned in parallel by `/generate-stories`. |
 
 ---
 
@@ -317,11 +320,12 @@ git commit -m "fix(cart-api): handle empty cart edge case"
 plugin/
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin manifest
+├── agents/                    # Claude Code agents
+│   └── generate-story.md     # Story generation agent
 ├── skills/                    # Core skills
 │   ├── init/                 # /init - Initialize structure
 │   ├── create-epic/          # /create-epic - Define epics
 │   ├── generate-stories/     # /generate-stories - Break down epics
-│   ├── generate-story/       # Internal - Create single story
 │   ├── execute-story/        # /implement - Autonomous execution
 │   └── resolve-blocker/      # /resolve - Handle blockers
 ├── scripts/
