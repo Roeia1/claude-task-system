@@ -93,3 +93,37 @@
 
 **Next steps:**
 - t4: Implement file watching with Chokidar (watcher.ts)
+
+## Session: 2026-01-27T00:42:00Z
+
+### Task: t4 - File Watching with Chokidar
+
+**What was done:**
+- Created `packages/cli/src/server/watcher.ts` with complete file watching logic:
+  - TypeScript interfaces: `WatcherEventType`, `WatcherEvent`, `SagaWatcher`
+  - `createSagaWatcher(sagaRoot)` - creates chokidar watcher for .saga/ directory
+  - Event types: `epic:added`, `epic:changed`, `epic:removed`, `story:added`, `story:changed`, `story:removed`
+  - `parseFilePath()` helper to extract epic/story slugs from file paths
+  - `createDebouncer()` helper for 100ms event debouncing
+- Created comprehensive test suite in `packages/cli/src/server/__tests__/watcher.test.ts` with 14 tests covering:
+  - Watcher creation and basic functionality
+  - Story change detection (story.md modification, journal.md creation)
+  - Epic change detection (epic.md modification)
+  - New epic/story addition detection
+  - Debouncing rapid changes into single events
+  - File filtering (only .md files)
+  - Archive story watching with `archived: true` flag
+  - Error handling for non-existent directories
+  - Watcher close functionality
+
+**Decisions:**
+- Used `usePolling: true` with 100ms interval for reliable cross-platform behavior (FSEvents issues in temp directories on macOS)
+- Watch entire `.saga` directory rather than separate epics/archive paths
+- 100ms debounce to batch rapid file changes
+- journal.md changes emit `story:changed` (not `story:added`) since it's a change to the story content
+- story.md add/unlink emit `story:added`/`story:removed`, changes emit `story:changed`
+- Watcher sets `ready` flag only after chokidar's `ready` event to prevent premature event processing
+- Events are forwarded through EventEmitter to allow user listeners to be added after watcher creation
+
+**Next steps:**
+- t5: Implement WebSocket server for real-time updates (websocket.ts)
