@@ -87,16 +87,19 @@ Agents are Claude Code subagents defined in `plugin/agents/`. They are registere
 |-------|-------------|
 | `generate-story` | Creates a single story with full content and git infrastructure. Spawned by `/generate-stories` for each story in parallel. |
 
-Agent files use YAML frontmatter for configuration:
+**Plugin agent format** (limited schema - only `description` and `capabilities` supported):
 
 ```yaml
 ---
-name: generate-story
-description: Creates a single story with full content and git infrastructure
-tools: Read, Write, Bash
-model: opus
+description: What this agent specializes in
+capabilities:
+  - "task1"
+  - "task2"
+  - "task3"
 ---
 ```
+
+> **Note:** Plugin agents have a simpler schema than custom agents (`.claude/agents/`). Custom agents support additional fields like `name`, `tools`, `model`, and `permissionMode`, but these are not available for plugin-bundled agents.
 
 ### Plugin Path References
 

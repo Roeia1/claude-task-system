@@ -1,13 +1,10 @@
 ---
-name: generate-story
 description: Creates a single story with full content and git infrastructure from an epic. Use when generating individual stories during story breakdown.
-tools: Read, Write, Bash
-model: opus
 capabilities:
-  - Generate URL-friendly story slugs from titles
-  - Create self-contained story.md files with tasks and acceptance criteria
-  - Set up git worktrees and branches for story isolation
-  - Create draft pull requests via GitHub CLI
+  - "Generate URL-friendly story slugs from titles"
+  - "Create self-contained story.md files with tasks and acceptance criteria"
+  - "Set up git worktrees and branches for story isolation"
+  - "Create draft pull requests via GitHub CLI"
 ---
 
 # Generate Story Agent
