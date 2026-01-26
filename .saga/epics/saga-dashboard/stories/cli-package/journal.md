@@ -254,3 +254,169 @@
 
 **Story completed:**
 All 8 tasks are now complete. The CLI package provides a unified interface for all SAGA operations.
+
+---
+
+## PR Review Sessions
+
+### Session: 2026-01-26T15:46:00Z
+
+**PR Review #1: Convert Python scripts to TypeScript**
+
+Reviewer requested converting `implement.py` and `init_structure.py` from Python to TypeScript.
+
+**What was done:**
+- Deleted `scripts/implement.py` (650 lines) and `scripts/init_structure.py` (63 lines)
+- Rewrote `src/commands/implement.ts` to include all orchestration logic natively:
+  - Worker spawning via Claude Code CLI
+  - Output parsing and validation
+  - Cycle loop management with MAX_CYCLES and MAX_TIME limits
+  - Journal updates after each worker cycle
+  - Scope validator hook configuration
+- Rewrote `src/commands/init.ts` to create `.saga/` directory structure natively:
+  - Creates directories: epics/, worktrees/
+  - Updates `.gitignore` with worktrees pattern
+- Updated tests to reflect TypeScript implementation
+- Removed Python3 dependency from CLI package
+
+**Decisions:**
+- Full TypeScript rewrite rather than wrapping Python
+- Bundled all worker orchestration logic into implement.ts
+- No external Python dependencies needed anymore
+
+### Session: 2026-01-26T16:00:00Z
+
+**PR Review #2: Package naming and npm publish preparation**
+
+**What was done:**
+- Added `packages/cli/README.md` with comprehensive documentation:
+  - Installation instructions
+  - Command reference for init, implement, dashboard
+  - Usage examples
+- Fixed `package.json` for npm publish (removed invalid field)
+- Renamed package from `@saga/cli` to `@saga-ai/cli` (scope availability)
+- Added `--dry-run` flag to implement command for testing without execution
+- Updated plugin skills to use `npx @saga-ai/cli` instead of direct node invocation
+- Added `publish:npm` script to package.json
+
+**Decisions:**
+- Used `@saga-ai` npm scope (available)
+- Added dry-run capability for safer testing
+- Changed from `node dist/cli.cjs` to `npx @saga-ai/cli` for portability
+
+### Session: 2026-01-26T16:15:00Z
+
+**PR Review #3: Remove redundant Python scripts from plugin**
+
+Reviewer noted that the old Python scripts in plugin skills were now redundant.
+
+**What was done:**
+- Removed `plugin/skills/init/scripts/init_structure.py`
+- Removed `plugin/skills/execute-story/scripts/implement.py`
+- Plugin skills now exclusively use the CLI package
+
+**Decisions:**
+- Clean break from Python - no backwards compatibility needed
+- Plugin skills fully depend on @saga-ai/cli
+
+### Session: 2026-01-26T16:30:00Z
+
+**PR Review #4: Switch to pnpm**
+
+**What was done:**
+- Switched from npm to pnpm as package manager
+- Deleted `package-lock.json`, created `pnpm-lock.yaml`
+- Added `.node-version` file pinning Node.js 23
+- Updated README with pnpm instructions
+
+**Decisions:**
+- pnpm for faster installs and better disk usage
+- Node 23 for latest features
+
+### Session: 2026-01-26T16:48:00Z
+
+**PR Review #5: Convert scope-validator to TypeScript**
+
+Reviewer noted scope_validator.py was only used by implement and should be converted.
+
+**What was done:**
+- Created `src/commands/scope-validator.ts` (157 lines) with full TypeScript implementation:
+  - Validates file operations stay within story scope
+  - Blocks access to archive directories
+  - Blocks access to other stories' directories
+  - Environment-based configuration (SAGA_EPIC_SLUG, SAGA_STORY_SLUG)
+- Created comprehensive test suite `src/commands/scope-validator.test.ts` (154 lines)
+- Deleted `plugin/skills/execute-story/scripts/scope_validator.py`
+- Deleted Python test files:
+  - `plugin/skills/execute-story/tests/test_implement.py`
+  - `plugin/skills/execute-story/tests/test_scope_validator.py`
+- Updated implement.ts to use new scope-validator
+- Registered scope-validator as CLI subcommand for hook invocation
+
+**Decisions:**
+- Scope validator exposed as `saga scope-validator` CLI command
+- Called by Claude Code PreToolUse hooks during worker execution
+- All Python test infrastructure removed
+
+### Session: 2026-01-26T17:00:00Z
+
+**PR Review #6: Add help command and cleanup**
+
+**What was done:**
+- Added explicit `saga help` command (aliases to `--help`)
+- Added tests for help command output
+- Removed stale Python3 executable test from implement.test.ts
+- All 70+ tests passing
+
+**Decisions:**
+- Explicit help command for discoverability
+- Cleaned up legacy Python-related tests
+
+### Session: 2026-01-26T17:10:00Z
+
+**Documentation and tooling additions**
+
+**What was done:**
+- Created `packages/cli/CLAUDE.md` development guide:
+  - Quick reference for build/test commands
+  - File structure overview
+  - Guide for adding new commands
+  - Testing patterns
+  - Key concepts (project discovery, implement orchestration, scope validator)
+- Created `.claude/skills/publish-cli/SKILL.md`:
+  - Skill for publishing new CLI versions to npm
+  - Handles version bumping, changelog updates, build, test, publish
+
+**Decisions:**
+- CLAUDE.md follows progressive discovery pattern
+- publish-cli skill automates release workflow
+
+---
+
+## Post-Merge: v0.1.1 Release
+
+### Session: 2026-01-26T17:16:00Z
+
+**PR #39 merged to master**
+
+**What was done:**
+- Released @saga-ai/cli v0.1.1 to npm
+- Created CHANGELOG.md documenting:
+  - v0.1.1: help command, scope-validator TypeScript conversion, CLAUDE.md
+  - v0.1.0: Initial release with init, implement, dashboard commands
+- Updated version in package.json to 0.1.1
+
+### Session: 2026-01-26T17:30:00Z
+
+**Post-merge documentation updates**
+
+**What was done:**
+- Added CLI package references to main repository README.md
+- Added CLI package references to main CLAUDE.md
+- Streamlined packages/cli/CLAUDE.md with progressive discovery pattern
+
+**Current status:**
+- Package published: `@saga-ai/cli@0.1.1`
+- All tests passing
+- Documentation complete
+- Plugin skills using CLI commands via npx
