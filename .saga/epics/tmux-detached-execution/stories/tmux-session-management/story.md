@@ -22,7 +22,7 @@ tasks:
 
 The SAGA CLI's `implement` command currently runs headless Claude workers synchronously, tying the execution to the interactive session that started it. If the initiating session terminates, times out, or loses connection, all worker progress is lost. This story implements tmux detached session management to decouple worker execution from the initiating process.
 
-This story creates a shared sessions library module (`src/lib/sessions.ts`) that can be imported by both the CLI and the dashboard server. The module provides functions to create, list, query status, stream logs from, and kill tmux sessions running SAGA workers. The CLI will expose these functions via `saga-ai sessions` subcommands, and the `implement` command will be updated to launch workers in detached tmux sessions by default.
+This story creates a shared sessions library module (`src/lib/sessions.ts`) that can be imported by both the CLI and the dashboard server. The module provides functions to create, list, query status, stream logs from, and kill tmux sessions running SAGA workers. The CLI will expose these functions via `saga sessions` subcommands, and the `implement` command will be updated to launch workers in detached tmux sessions by default.
 
 The implementation uses the `script` command to capture stdout to files in `/tmp/saga-sessions/`, enabling the dashboard to connect/disconnect freely via `tail -f` without blocking. Session names follow the pattern `saga-<epic-slug>-<story-slug>-<pane-pid>` for unique identification and easy discovery.
 
@@ -36,7 +36,7 @@ The implementation uses the `script` command to capture stdout to files in `/tmp
   - `streamLogs(sessionName)` - streams output file via tail -f
   - `killSession(sessionName)` - terminates session
   - `validateSlug(slug)` - validates slug contains only `[a-z0-9-]`
-- CLI commands under `saga-ai sessions`:
+- CLI commands under `saga sessions`:
   - `sessions list` - lists active SAGA sessions
   - `sessions status <name>` - shows session status
   - `sessions logs <name>` - streams session output
@@ -82,11 +82,11 @@ import { createSession, listSessions, getSessionStatus, streamLogs, killSession 
 ## Acceptance Criteria
 
 - [ ] Sessions module exports all functions: createSession, listSessions, getSessionStatus, streamLogs, killSession, validateSlug
-- [ ] `saga-ai sessions list` shows all saga-prefixed tmux sessions with name, status, and output file path
-- [ ] `saga-ai sessions status <name>` returns running/not_running status
-- [ ] `saga-ai sessions logs <name>` streams output file content in real-time
-- [ ] `saga-ai sessions kill <name>` terminates the session
-- [ ] `saga-ai implement <story>` creates a detached tmux session instead of running synchronously
+- [ ] `saga sessions list` shows all saga-prefixed tmux sessions with name, status, and output file path
+- [ ] `saga sessions status <name>` returns running/not_running status
+- [ ] `saga sessions logs <name>` streams output file content in real-time
+- [ ] `saga sessions kill <name>` terminates the session
+- [ ] `saga implement <story>` creates a detached tmux session instead of running synchronously
 - [ ] Sessions survive the initiating process terminating
 - [ ] Output files are created in `/tmp/saga-sessions/` with session-name.out naming
 - [ ] Slug validation rejects slugs with characters outside `[a-z0-9-]`
@@ -152,10 +152,10 @@ import { createSession, listSessions, getSessionStatus, streamLogs, killSession 
 - Using console.log for streaming (use process.stdout.write)
 
 **Done when:**
-- `saga-ai sessions list` returns JSON array of sessions
-- `saga-ai sessions status <name>` returns JSON with running status
-- `saga-ai sessions logs <name>` streams output until Ctrl+C
-- `saga-ai sessions kill <name>` terminates session and returns success
+- `saga sessions list` returns JSON array of sessions
+- `saga sessions status <name>` returns JSON with running status
+- `saga sessions logs <name>` streams output until Ctrl+C
+- `saga sessions kill <name>` terminates session and returns success
 
 ### t3: Update implement command for detached execution
 
@@ -182,9 +182,9 @@ import { createSession, listSessions, getSessionStatus, streamLogs, killSession 
 - Removing synchronous mode entirely (some users may want it)
 
 **Done when:**
-- `saga-ai implement <story>` creates detached session by default
-- `saga-ai implement <story> --attached` runs synchronously as before
-- `saga-ai implement <story> --attached --stream` streams output as before
+- `saga implement <story>` creates detached session by default
+- `saga implement <story> --attached` runs synchronously as before
+- `saga implement <story> --attached --stream` streams output as before
 - Session info JSON is output when running detached
 - Worker orchestration loop runs successfully in detached mode
 
