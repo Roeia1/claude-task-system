@@ -155,3 +155,52 @@
 
 **Next steps:**
 - t6: Create stories for EpicDetail page and subcomponents
+
+## Session: 2026-01-28 01:54 UTC
+
+### Task: t6 - Create stories for EpicDetail page and subcomponents
+
+**What was done:**
+- Created `packages/cli/src/client/src/pages/EpicDetail.stories.tsx` with comprehensive stories:
+  - **HeaderSkeleton stories** (1 story):
+    - `Skeleton`: Loading placeholder for epic header
+  - **StoryCardSkeleton stories** (2 stories):
+    - `CardSkeleton`: Single loading placeholder for story cards
+    - `CardSkeletonGrid`: Multiple skeletons in grid layout
+  - **StatusBadge stories** (5 stories) - EpicDetail variant without count:
+    - `BadgeReady`: Gray badge for ready status
+    - `BadgeInProgress`: Blue/primary badge for active work
+    - `BadgeBlocked`: Red/danger badge for blocked items
+    - `BadgeCompleted`: Green/success badge for completed items
+    - `AllBadges`: All four badges displayed together
+  - **StoryCard stories** (6 stories):
+    - `Card`: Default in-progress story card
+    - `CardReady`: Story not yet started
+    - `CardBlocked`: Blocked story requiring attention
+    - `CardCompleted`: Completed story
+    - `CardLongTitle`: Story with long title (text handling)
+    - `CardGrid`: Multiple cards showing all statuses
+  - **EpicDetail composite stories** (6 stories):
+    - `Loading`: Loading state with header and card skeletons
+    - `NotFound`: 404 state when epic doesn't exist
+    - `ErrorState`: Error state when fetch fails
+    - `Empty`: Epic with no stories
+    - `Populated`: Epic with stories in various statuses
+    - `AllCompleted`: Epic with all stories completed (100% progress)
+    - `WithBlockers`: Epic with multiple blocked stories
+- Exported `HeaderSkeleton`, `StoryCardSkeleton`, `StatusBadge`, and `StoryCard` from EpicDetail.tsx
+- All 530 existing tests still pass
+- Storybook build completes successfully
+
+**Decisions:**
+- Exported subcomponents directly from EpicDetail.tsx (same pattern as EpicList)
+- Created helper function `createSampleStory()` to reduce boilerplate in story definitions
+- StatusBadge in EpicDetail differs from EpicList (no count parameter) - both variants documented
+- Stories sorted by status priority (blocked first) matching actual component behavior
+
+**Files created/modified:**
+- `packages/cli/src/client/src/pages/EpicDetail.tsx` (added exports for HeaderSkeleton, StoryCardSkeleton, StatusBadge, StoryCard)
+- `packages/cli/src/client/src/pages/EpicDetail.stories.tsx` (new - comprehensive stories)
+
+**Next steps:**
+- t7: Create stories for StoryDetail page and subcomponents
