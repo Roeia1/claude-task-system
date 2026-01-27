@@ -209,3 +209,61 @@ Tests that verified dependencies were in `src/client/package.json` now verify th
 
 **Story Complete:**
 All tasks (t1-t6) have been verified complete. The package structure has been successfully flattened with a single package.json at `packages/cli/package.json` containing all CLI and client dependencies.
+
+## Session: 2026-01-28T00:55
+
+### PR Review and Refinements
+
+**Code Review Findings:**
+
+A thorough code review of PR #42 identified several improvements:
+
+1. **React dependencies in wrong category** - React, React-DOM, @radix-ui/*, and other UI dependencies were placed in `dependencies` but should be in `devDependencies` since they're bundled by Vite and not runtime deps of the CLI itself.
+
+2. **Unnecessary path prefix** - `tailwind.config.js` used `path.join(__dirname, "./index.html")` where the `./` prefix is unnecessary with `path.join()`.
+
+3. **Tests checking wrong location** - After moving deps to devDependencies, tests that only checked `dependencies` would fail.
+
+**Changes Made to Address Review:**
+
+1. **Moved 15 client dependencies to `devDependencies`:**
+   - @radix-ui/react-collapsible, @radix-ui/react-progress, @radix-ui/react-slot, @radix-ui/react-tabs, @radix-ui/react-toast
+   - @xstate/react, xstate
+   - class-variance-authority, clsx, lucide-react
+   - react, react-dom, react-router-dom
+   - tailwind-merge, tailwindcss-animate
+
+2. **Cleaned up `tailwind.config.js`:**
+   - Changed `path.join(__dirname, "./index.html")` to `path.join(__dirname, "index.html")`
+   - Changed `path.join(__dirname, "./src/**/*.{js,ts,jsx,tsx}")` to `path.join(__dirname, "src/**/*.{js,ts,jsx,tsx}")`
+
+3. **Updated 3 test files to check both deps and devDeps:**
+   - `shadcn.test.ts` - merged deps and devDeps before checking
+   - `router.test.ts` - merged deps and devDeps before checking
+   - `setup.test.ts` - check both locations for React
+
+**Verification:**
+- All 530 tests pass
+- `pnpm build` and `pnpm build:client` both succeed
+- Lockfile updated correctly
+
+**Commit:** `2a3c38b` - refactor(flatten-package-structure): address PR review feedback
+
+## Session: 2026-01-28T00:58
+
+### PR Merged
+
+**What was done:**
+- Marked PR #42 as ready for review
+- Squash-merged PR #42 into master
+- Remote branch deleted automatically
+
+**Merge Details:**
+- PR: https://github.com/Roeia1/SAGA/pull/42
+- Merge commit: `432b12b`
+- Method: Squash merge
+
+**Final State:**
+- Story implementation merged to master
+- All acceptance criteria met
+- Package structure successfully flattened with proper dependency categorization
