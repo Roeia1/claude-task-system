@@ -204,3 +204,59 @@
 
 **Next steps:**
 - t7: Create stories for StoryDetail page and subcomponents
+
+## Session: 2026-01-28 02:00 UTC
+
+### Task: t7 - Create stories for StoryDetail page and subcomponents
+
+**What was done:**
+- Created `packages/cli/src/client/src/pages/StoryDetail.stories.tsx` with comprehensive stories:
+  - **HeaderSkeleton stories** (1 story):
+    - `Skeleton`: Loading placeholder for story header
+  - **ContentSkeleton stories** (2 stories):
+    - `ContentLoading`: Single loading placeholder for content sections
+    - `ContentLoadingStacked`: Multiple skeletons stacked
+  - **TaskStatusIcon stories** (4 stories):
+    - `IconPending`: Muted circle icon for pending tasks
+    - `IconInProgress`: Primary blue filled circle for active tasks
+    - `IconCompleted`: Success green checkmark for finished tasks
+    - `AllTaskIcons`: All three icons displayed together
+  - **TaskItem stories** (5 stories):
+    - `TaskPending`: Pending task not yet started
+    - `TaskInProgress`: Active task being worked on
+    - `TaskCompleted`: Completed task with strikethrough text
+    - `TaskLongTitle`: Task with long title (text handling)
+    - `AllTaskStatuses`: Multiple tasks showing all status types
+  - **JournalEntryItem stories** (5 stories):
+    - `EntrySession`: Session entry (neutral color, collapsed)
+    - `EntrySessionExpanded`: Session entry expanded to show content
+    - `EntryBlocker`: Blocker entry (red color, indicates impediment)
+    - `EntryResolution`: Resolution entry (green color)
+    - `AllEntryTypes`: All entry types grouped as in the actual component
+  - **StatusBadge stories** (5 stories): Same as EpicDetail variant
+  - **StoryDetail composite stories** (8 stories):
+    - `Loading`: Loading state with header and content skeletons
+    - `NotFound`: 404 state when story doesn't exist
+    - `ErrorState`: Error state when fetch fails
+    - `Populated`: Story with tasks and journal (Tasks tab active)
+    - `EmptyTasks`: Story with no tasks defined
+    - `WithBlocker`: Blocked story showing Journal tab with blocker entry
+    - `Completed`: Completed story with all tasks done
+    - `WithContent`: Story Content tab showing markdown content
+    - `EmptyJournal`: Story with no journal entries yet
+- Exported subcomponents from StoryDetail.tsx: `HeaderSkeleton`, `ContentSkeleton`, `StatusBadge`, `TaskStatusIcon`, `TaskItem`, `JournalEntryItem`
+- All 530 existing tests still pass
+- Storybook build completes successfully
+
+**Decisions:**
+- Exported subcomponents directly from StoryDetail.tsx (same pattern as other pages)
+- Created helper functions `createTask()` and `createJournalEntry()` to reduce boilerplate
+- Showed all three tabs (Tasks, Story Content, Journal) across different stories
+- Blocker stories demonstrate the prominent red styling and alert icon
+
+**Files created/modified:**
+- `packages/cli/src/client/src/pages/StoryDetail.tsx` (added exports for subcomponents)
+- `packages/cli/src/client/src/pages/StoryDetail.stories.tsx` (new - comprehensive stories)
+
+**Next steps:**
+- t8: Create stories for status badges
