@@ -83,11 +83,16 @@ Set up Playwright for both integration and end-to-end testing:
    - Test UI interactions without backend dependency
 3. **E2E tests (real backend)**:
    - Create test fixtures with sample `.saga/` directory structure
-   - Test full user flows with real data:
+   - **Happy paths**:
      - Loading and displaying epic list
      - Navigating to epic detail
      - Navigating to story detail
      - Real-time updates via WebSocket
+   - **Error paths**:
+     - API failure handling (server unavailable)
+     - WebSocket disconnection and reconnection
+     - 404 for non-existent epic/story
+     - Empty state (no epics)
 4. Integrate with CI pipeline
 
 ### Phase 5: Visual Regression Testing
@@ -126,6 +131,19 @@ Set up visual regression testing to catch unintended UI changes:
   - **Integration tests (mocked)**: Component behavior, loading states, error handling, empty states
   - **E2E tests (real backend)**: Full user flows, WebSocket real-time updates, data persistence
 
+### Test Coverage Strategy
+
+- **Choice**: Cover all happy paths and main error paths in E2E tests
+- **Rationale**: Happy paths ensure core functionality works; error paths ensure graceful degradation and user feedback
+- **Happy paths**: Epic list loading, epic detail navigation, story detail navigation, real-time updates
+- **Error paths**: API failures, WebSocket disconnection, empty states, 404 handling
+
+### CI Strategy
+
+- **Choice**: Run all tests (unit, integration, E2E, visual regression) on every PR
+- **Rationale**: Playwright runs browsers in headless mode - fast and no GUI required. Catching regressions early prevents broken code from merging.
+- **Implementation**: GitHub Actions workflow with Playwright's official CI setup
+
 ## Data Models
 
 No new data models. Existing types remain:
@@ -158,5 +176,4 @@ No new data models. Existing types remain:
 
 ## Open Questions
 
-- Should Playwright tests run in CI on every PR, or only on main branch merges?
-- What specific user flows are highest priority for E2E coverage?
+None - all questions resolved.
