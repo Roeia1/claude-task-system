@@ -110,3 +110,48 @@
 
 **Next steps:**
 - t5: Create stories for EpicList page and subcomponents
+
+## Session: 2026-01-28 01:52 UTC
+
+### Task: t5 - Create stories for EpicList page and subcomponents
+
+**What was done:**
+- Created `packages/cli/src/client/src/pages/EpicList.stories.tsx` with comprehensive stories:
+  - **EpicCardSkeleton stories** (2 stories):
+    - `Skeleton`: Single loading placeholder
+    - `SkeletonGrid`: Multiple skeletons in grid layout (simulating loading state)
+  - **StatusBadge stories** (5 stories):
+    - `StatusReady`: Gray badge for ready status
+    - `StatusInProgress`: Blue/primary badge for active work
+    - `StatusBlocked`: Red/danger badge for blocked items
+    - `StatusCompleted`: Green/success badge for completed items
+    - `AllStatuses`: All four badges displayed together
+  - **EpicCard stories** (6 stories):
+    - `Card`: Default epic with mixed statuses
+    - `CardCompleted`: Fully completed epic (100% progress)
+    - `CardAllReady`: Epic with all stories ready to start
+    - `CardWithBlockers`: Epic with blocked work
+    - `CardLongTitle`: Epic with long title (text handling)
+    - `CardGrid`: Multiple cards in grid layout
+  - **EpicList composite stories** (5 stories):
+    - `Loading`: Loading state with skeleton cards
+    - `Empty`: Empty state with "No epics found" message
+    - `Populated`: Grid with 3 sample epics
+    - `WithArchivedEpics`: Shows "Show archived" toggle (unchecked)
+    - `WithArchivedVisible`: All epics including archived ones (toggle checked)
+- Exported `EpicCardSkeleton`, `StatusBadge`, and `EpicCard` from EpicList.tsx to enable direct story testing
+- All 530 existing tests still pass
+- Storybook build completes successfully
+
+**Decisions:**
+- Exported subcomponents directly from EpicList.tsx rather than creating separate files, keeping the codebase simple
+- Used render functions for composite stories to show static states, avoiding complex XState mock setup
+- Organized stories under `Pages/EpicList/` namespace with subcomponent stories nested
+- StatusBadge stories will be referenced by t8 which creates a dedicated StatusBadge.stories.tsx
+
+**Files created/modified:**
+- `packages/cli/src/client/src/pages/EpicList.tsx` (added exports for EpicCardSkeleton, StatusBadge, EpicCard)
+- `packages/cli/src/client/src/pages/EpicList.stories.tsx` (new - comprehensive stories)
+
+**Next steps:**
+- t6: Create stories for EpicDetail page and subcomponents
