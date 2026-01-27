@@ -46,7 +46,7 @@ export async function findCommand(query: string, options: FindOptions): Promise<
   if (type === 'epic') {
     result = findEpic(projectPath, query);
   } else {
-    result = findStory(projectPath, query);
+    result = await findStory(projectPath, query);
   }
 
   // Output JSON result
