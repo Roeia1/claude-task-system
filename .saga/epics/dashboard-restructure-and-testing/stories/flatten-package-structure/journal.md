@@ -175,3 +175,37 @@ Tests that verified dependencies were in `src/client/package.json` now verify th
 
 **Next steps:**
 - Task t6: Verify Build and Development Workflow
+
+## Session: 2026-01-28T00:39
+
+### Task: t6 - Verify Build and Development Workflow
+
+**What was done:**
+- Ran full test suite - all 530 tests pass
+- Verified `pnpm build` produces CLI bundle at `dist/cli.cjs` (1.66MB)
+- Verified `pnpm build:client` produces client at `src/client/dist/` with index.html and assets/
+- Tested `pnpm dev:client` - starts Vite dev server on http://localhost:5173/
+- Verified hot reload works - Vite correctly transforms and serves TypeScript modules
+- Checked for build warnings - none found related to restructuring
+- Tested `saga dashboard` API endpoints - health endpoint returns {"status":"ok"}
+
+**Verification Results:**
+1. ✅ `pnpm test` - All 530 tests pass
+2. ✅ `pnpm build` - CLI bundle at `dist/cli.cjs`
+3. ✅ `pnpm build:client` - Client at `src/client/dist/` (index.html + assets/)
+4. ✅ `pnpm dev:client` - Vite dev server with hot reload works
+5. ✅ No build warnings related to restructuring
+
+**Acceptance Criteria Status:**
+- [x] Single `package.json` exists at `packages/cli/package.json`
+- [x] All React, Vite, Radix, and Tailwind dependencies are in the main package.json
+- [x] `pnpm install` from packages/cli installs all dependencies
+- [x] `pnpm build` produces working CLI bundle at `dist/cli.cjs`
+- [x] Client build output is generated at `src/client/dist/`
+- [x] `pnpm test` passes all 530 existing tests
+- [x] Development workflow: `pnpm dev:client` starts Vite dev server with hot reload
+
+**Note:** The server does not serve static client files (pre-existing condition). The server implementation (`src/server/index.ts`) only provides API endpoints. Static file serving was not part of this story's scope which focused on flattening the package structure.
+
+**Story Complete:**
+All tasks (t1-t6) have been verified complete. The package structure has been successfully flattened with a single package.json at `packages/cli/package.json` containing all CLI and client dependencies.
