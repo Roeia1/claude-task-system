@@ -57,3 +57,29 @@
 
 **Next steps:**
 - t3: Create stories for Layout component
+
+## Session: 2026-01-28 01:45 UTC
+
+### Task: t3 - Create stories for Layout component
+
+**What was done:**
+- Created `packages/cli/src/client/src/components/Layout.stories.tsx` with four stories:
+  - `Default`: Basic layout showing header with "SAGA Dashboard" branding, breadcrumb (root path), and placeholder content area
+  - `WithPageContent`: Layout with sample page content (3 epic cards) demonstrating how pages render within the shell
+  - `EpicDetailView`: Layout as it appears on `/epic/:slug` route, showing breadcrumb with epic name
+  - `StoryDetailView`: Layout as it appears on `/epic/:epicSlug/story/:storySlug`, showing full breadcrumb trail
+- Used `MemoryRouter` from react-router-dom as a decorator to provide router context
+- Configured nested `Routes` structure to properly populate `useParams` for breadcrumb rendering
+- Verified Storybook builds successfully with new stories
+- All 530 existing tests still pass
+
+**Decisions:**
+- Used per-story decorators for different route contexts rather than a single shared decorator, as each story needs different route parameters
+- Used `layout: 'fullscreen'` parameter since Layout is a full-page component
+- Included placeholder content via Outlet to demonstrate the content area
+
+**Files created:**
+- `packages/cli/src/client/src/components/Layout.stories.tsx`
+
+**Next steps:**
+- t4: Create stories for Breadcrumb component
