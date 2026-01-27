@@ -214,3 +214,35 @@
 
 **Next steps:**
 - All tasks complete - story ready for review
+
+## Session: 2026-01-27T18:18:00Z
+
+### Final Verification
+
+**What was done:**
+- Verified all 6 tasks (t1-t6) are complete based on journal entries
+- Ran full test suite: all 233 tests pass
+- Verified git status is clean (all changes committed and pushed)
+- Reviewed implementation files in `packages/cli/src/server/`:
+  - `index.ts` - Server entry point with `startServer()` export
+  - `parser.ts` - File system parsing module
+  - `routes.ts` - REST API endpoints
+  - `watcher.ts` - Chokidar file watching
+  - `websocket.ts` - WebSocket server for real-time updates
+- Verified all acceptance criteria met:
+  - ✅ Express server starts on configurable port (default 3847)
+  - ✅ `GET /api/epics` returns list of epics with story counts
+  - ✅ `GET /api/epics/:slug` returns epic detail with full story list
+  - ✅ `GET /api/stories/:epicSlug/:storySlug` returns story detail with journal
+  - ✅ Server handles missing files gracefully (404)
+  - ✅ Server handles malformed YAML gracefully (logs warning, uses defaults)
+  - ✅ Chokidar watches `.saga/` directory
+  - ✅ WebSocket broadcasts `epics:updated` when epic structure changes
+  - ✅ WebSocket broadcasts `story:updated` when specific story files change
+  - ✅ File change updates reach clients within 1 second (integration test verified)
+  - ✅ Journal.md parsed into structured entries by type
+  - ✅ Archived stories included with `archived: true` flag
+  - ✅ Server exports `startServer` function
+
+**Story Status:**
+All tasks complete. Story implementation verified and ready for merge.
