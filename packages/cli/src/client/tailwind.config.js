@@ -8,8 +8,8 @@ const __dirname = path.dirname(__filename);
 export default {
   darkMode: ["class"],
   content: [
-    path.join(__dirname, "./index.html"),
-    path.join(__dirname, "./src/**/*.{js,ts,jsx,tsx}"),
+    path.join(__dirname, "index.html"),
+    path.join(__dirname, "src/**/*.{js,ts,jsx,tsx}"),
   ],
   theme: {
     extend: {

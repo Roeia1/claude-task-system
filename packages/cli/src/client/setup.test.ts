@@ -44,7 +44,8 @@ describe('Vite React TypeScript Project Setup', () => {
       const packageJson = JSON.parse(
         fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
       );
-      const reactVersion = packageJson.dependencies?.react;
+      // React may be in dependencies or devDependencies (devDeps since it's bundled by Vite)
+      const reactVersion = packageJson.dependencies?.react || packageJson.devDependencies?.react;
       expect(reactVersion).toBeDefined();
       // Version should be 18.x or higher (^18, ~18, 18.x, etc.)
       expect(reactVersion).toMatch(/^[\^~]?18\./);

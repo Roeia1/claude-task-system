@@ -10,29 +10,31 @@ const CLI_PACKAGE_JSON = path.join(CLI_DIR, 'package.json');
 describe('shadcn/ui setup', () => {
   describe('dependencies (in main CLI package.json)', () => {
     let packageJson: Record<string, unknown>;
+    let allDeps: Record<string, string>;
 
     beforeAll(() => {
       packageJson = JSON.parse(fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8'));
+      // Client dependencies may be in dependencies or devDependencies (devDeps since they're bundled)
+      allDeps = {
+        ...(packageJson.dependencies as Record<string, string> || {}),
+        ...(packageJson.devDependencies as Record<string, string> || {}),
+      };
     });
 
     it('should have class-variance-authority installed', () => {
-      const deps = packageJson.dependencies as Record<string, string>;
-      expect(deps['class-variance-authority']).toBeDefined();
+      expect(allDeps['class-variance-authority']).toBeDefined();
     });
 
     it('should have clsx installed', () => {
-      const deps = packageJson.dependencies as Record<string, string>;
-      expect(deps['clsx']).toBeDefined();
+      expect(allDeps['clsx']).toBeDefined();
     });
 
     it('should have tailwind-merge installed', () => {
-      const deps = packageJson.dependencies as Record<string, string>;
-      expect(deps['tailwind-merge']).toBeDefined();
+      expect(allDeps['tailwind-merge']).toBeDefined();
     });
 
     it('should have lucide-react installed', () => {
-      const deps = packageJson.dependencies as Record<string, string>;
-      expect(deps['lucide-react']).toBeDefined();
+      expect(allDeps['lucide-react']).toBeDefined();
     });
   });
 

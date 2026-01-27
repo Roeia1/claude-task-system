@@ -13,13 +13,18 @@ describe('React Router Setup', () => {
     const packageJson = JSON.parse(
       fs.readFileSync(cliPackageJson, 'utf-8'),
     );
+    // Client dependencies may be in dependencies or devDependencies (devDeps since they're bundled)
+    const allDeps = {
+      ...(packageJson.dependencies || {}),
+      ...(packageJson.devDependencies || {}),
+    };
 
     it('should have react-router-dom installed', () => {
-      expect(packageJson.dependencies).toHaveProperty('react-router-dom');
+      expect(allDeps).toHaveProperty('react-router-dom');
     });
 
     it('should use react-router-dom v6 or higher', () => {
-      const version = packageJson.dependencies['react-router-dom'];
+      const version = allDeps['react-router-dom'];
       // Version should be ^6.x or higher
       expect(version).toMatch(/^[\^~]?6\./);
     });
