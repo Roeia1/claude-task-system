@@ -35,7 +35,19 @@ The `saga find` command ran above. Handle the result:
   After selection, use the selected story's `epicSlug` and `slug`.
 - **If found=false with error**: Display the error. Suggest using `/task-list` to see available stories.
 
-### 2. Run Implementation Orchestrator
+### 2. Update Worktree Branch
+
+Before starting implementation, ensure the worktree branch has the latest changes from master.
+
+Run from within the worktree directory (`data.worktreePath`):
+
+```bash
+cd "<data.worktreePath>" && git fetch origin master && git merge origin/master -m "Merge origin/master into story branch" && cd "$SAGA_PROJECT_DIR"
+```
+
+This ensures workers start with the latest codebase, avoiding merge conflicts later. The final `cd` returns to the project root before running the orchestrator.
+
+### 3. Run Implementation Orchestrator
 
 Run the CLI command using Bash with `run_in_background: true`.
 
@@ -60,7 +72,7 @@ structured error messages if anything is missing.
 The `--stream` flag enables real-time output from the worker, so you can monitor
 progress by reading the background task output file.
 
-### 3. Report Status
+### 4. Report Status
 
 Display the execution status:
 
