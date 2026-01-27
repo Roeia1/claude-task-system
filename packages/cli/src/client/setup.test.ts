@@ -3,12 +3,14 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 const CLIENT_DIR = path.join(__dirname, '.');
+// After flattening package structure, dependencies are in the main CLI package.json
+const CLI_DIR = path.join(__dirname, '..', '..');
+const CLI_PACKAGE_JSON = path.join(CLI_DIR, 'package.json');
 
 describe('Vite React TypeScript Project Setup', () => {
   describe('Required files exist', () => {
-    it('should have package.json', () => {
-      const packageJsonPath = path.join(CLIENT_DIR, 'package.json');
-      expect(fs.existsSync(packageJsonPath)).toBe(true);
+    it('should have package.json (in main CLI package)', () => {
+      expect(fs.existsSync(CLI_PACKAGE_JSON)).toBe(true);
     });
 
     it('should have vite.config.ts', () => {
@@ -37,10 +39,10 @@ describe('Vite React TypeScript Project Setup', () => {
     });
   });
 
-  describe('Package configuration', () => {
+  describe('Package configuration (in main CLI package.json)', () => {
     it('should have React 18+ as dependency', () => {
       const packageJson = JSON.parse(
-        fs.readFileSync(path.join(CLIENT_DIR, 'package.json'), 'utf-8')
+        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
       );
       const reactVersion = packageJson.dependencies?.react;
       expect(reactVersion).toBeDefined();
@@ -50,30 +52,30 @@ describe('Vite React TypeScript Project Setup', () => {
 
     it('should have TypeScript as devDependency', () => {
       const packageJson = JSON.parse(
-        fs.readFileSync(path.join(CLIENT_DIR, 'package.json'), 'utf-8')
+        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
       );
       expect(packageJson.devDependencies?.typescript).toBeDefined();
     });
 
     it('should have Vite as devDependency', () => {
       const packageJson = JSON.parse(
-        fs.readFileSync(path.join(CLIENT_DIR, 'package.json'), 'utf-8')
+        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
       );
       expect(packageJson.devDependencies?.vite).toBeDefined();
     });
 
-    it('should have dev script', () => {
+    it('should have dev:client script for client development', () => {
       const packageJson = JSON.parse(
-        fs.readFileSync(path.join(CLIENT_DIR, 'package.json'), 'utf-8')
+        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
       );
-      expect(packageJson.scripts?.dev).toBeDefined();
+      expect(packageJson.scripts?.['dev:client']).toBeDefined();
     });
 
-    it('should have build script', () => {
+    it('should have build:client script for client build', () => {
       const packageJson = JSON.parse(
-        fs.readFileSync(path.join(CLIENT_DIR, 'package.json'), 'utf-8')
+        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
       );
-      expect(packageJson.scripts?.build).toBeDefined();
+      expect(packageJson.scripts?.['build:client']).toBeDefined();
     });
   });
 

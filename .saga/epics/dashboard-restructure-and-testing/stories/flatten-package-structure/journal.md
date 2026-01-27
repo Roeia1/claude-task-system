@@ -140,3 +140,38 @@ Dev dependencies:
 
 **Next steps:**
 - Task t5: Remove Nested package.json
+
+## Session: 2026-01-28T00:36
+
+### Task: t5 - Remove Nested package.json
+
+**What was done:**
+- Removed `packages/cli/src/client/package.json`
+- Removed `packages/cli/src/client/pnpm-lock.yaml`
+- Removed `packages/cli/src/client/node_modules/` directory
+- Ran `pnpm install` - succeeded (lockfile up to date)
+- Ran `pnpm build` and `pnpm build:client` - both succeed
+- Updated 5 test files that referenced the nested package.json to point to main CLI package.json:
+  - `setup.test.ts` - updated package.json checks and script name checks (`dev` → `dev:client`, `build` → `build:client`)
+  - `router.test.ts` - updated dependency checks to use CLI package.json
+  - `shadcn.test.ts` - updated dependency checks to use CLI package.json
+  - `tailwind.test.ts` - updated dependency checks to use CLI package.json
+  - `xstate.test.ts` - updated dependency checks to use CLI package.json
+- All 530 tests pass
+
+**Files Removed:**
+- `packages/cli/src/client/package.json`
+- `packages/cli/src/client/pnpm-lock.yaml`
+- `packages/cli/src/client/node_modules/`
+
+**Test File Updates:**
+Tests that verified dependencies were in `src/client/package.json` now verify they exist in the main `packages/cli/package.json`. This is necessary because the nested package.json no longer exists.
+
+**Verification:**
+- `pnpm install` - lockfile up to date, no issues
+- `pnpm build` - produces CLI bundle at `dist/cli.cjs`
+- `pnpm build:client` - produces client at `src/client/dist/`
+- `pnpm test` - all 530 tests pass
+
+**Next steps:**
+- Task t6: Verify Build and Development Workflow

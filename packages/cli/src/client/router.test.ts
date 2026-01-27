@@ -4,11 +4,14 @@ import * as path from 'node:path';
 
 const clientDir = path.join(__dirname, '.');
 const srcDir = path.join(clientDir, 'src');
+// After flattening package structure, dependencies are in the main CLI package.json
+const cliDir = path.join(__dirname, '..', '..');
+const cliPackageJson = path.join(cliDir, 'package.json');
 
 describe('React Router Setup', () => {
-  describe('dependencies', () => {
+  describe('dependencies (in main CLI package.json)', () => {
     const packageJson = JSON.parse(
-      fs.readFileSync(path.join(clientDir, 'package.json'), 'utf-8'),
+      fs.readFileSync(cliPackageJson, 'utf-8'),
     );
 
     it('should have react-router-dom installed', () => {

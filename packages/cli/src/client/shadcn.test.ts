@@ -3,14 +3,16 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 const CLIENT_DIR = path.dirname(new URL(import.meta.url).pathname);
+// After flattening package structure, dependencies are in the main CLI package.json
+const CLI_DIR = path.join(CLIENT_DIR, '..', '..');
+const CLI_PACKAGE_JSON = path.join(CLI_DIR, 'package.json');
 
 describe('shadcn/ui setup', () => {
-  describe('dependencies', () => {
+  describe('dependencies (in main CLI package.json)', () => {
     let packageJson: Record<string, unknown>;
 
     beforeAll(() => {
-      const packageJsonPath = path.join(CLIENT_DIR, 'package.json');
-      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+      packageJson = JSON.parse(fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8'));
     });
 
     it('should have class-variance-authority installed', () => {
