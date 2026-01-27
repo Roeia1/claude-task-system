@@ -21,7 +21,7 @@ tasks:
     status: completed
   - id: t6
     title: Implement WebSocket client for real-time updates
-    status: pending
+    status: completed
   - id: t7
     title: Build Epic List view
     status: pending

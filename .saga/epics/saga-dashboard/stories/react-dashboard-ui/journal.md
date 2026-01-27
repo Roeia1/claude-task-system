@@ -237,3 +237,49 @@
 
 **Next steps:**
 - t6: Implement WebSocket client for real-time updates (integrate websocket actor with app)
+
+## Session: 2026-01-27T23:08:00Z
+
+### Task: t6 - Implement WebSocket client for real-time updates
+
+**What was done:**
+- Enhanced WebSocket actor in `dashboardMachine.ts` with:
+  - SUBSCRIBE_STORY and UNSUBSCRIBE_STORY event types for story-level watching
+  - `subscribe:story` and `unsubscribe:story` message sending to server
+  - Heartbeat mechanism with 30-second interval (`HEARTBEAT_INTERVAL`)
+  - `ping` message sending and `pong` response handling for stale connection detection
+  - `lastPong` timestamp tracking to detect connection timeouts (2x heartbeat interval)
+  - `subscribedStories` array in context to track active subscriptions
+  - `addSubscription` and `removeSubscription` actions to manage subscriptions
+  - `receive()` handler in WebSocket actor to process SUBSCRIBE/UNSUBSCRIBE events
+  - Proper cleanup with `clearInterval` for heartbeat on actor stop
+- Updated `DashboardContext.tsx` with:
+  - `subscribedStories` exposed in useDashboard hook
+  - `subscribeToStory(epicSlug, storySlug)` helper function
+  - `unsubscribeFromStory(epicSlug, storySlug)` helper function
+- Added `StorySubscription` interface for type-safe subscription tracking
+- Wrote 21 comprehensive tests in `websocket.test.ts` verifying:
+  - WebSocket actor structure (fromCallback, event handlers)
+  - Server to Client message handling (epics:updated, story:updated)
+  - Client to Server message handling (subscribe:story, unsubscribe:story events)
+  - Heartbeat/ping mechanism (setInterval, clearInterval, pong handling)
+  - WebSocket URL configuration (default port 3847)
+  - Subscription tracking in context (subscribedStories)
+  - React hooks for subscriptions (subscribeToStory, unsubscribeFromStory)
+  - Connection cleanup (ws.close, clearInterval)
+
+**Verification:**
+- All 21 WebSocket tests pass
+- All 311 tests pass (290 existing + 21 new)
+- `npm run build` produces optimized dist/ (225KB JS, 17KB CSS)
+- TypeScript compiles without errors
+
+**Decisions:**
+- Used 30-second heartbeat interval for balance between responsiveness and efficiency
+- Stale connection detected after 2x heartbeat interval (60 seconds) without pong
+- Exposed `getWebSocketSend()` function for potential direct WebSocket access if needed
+- Subscription state tracked in machine context for persistence across reconnections
+- Used `receive()` from XState actor to handle outgoing events
+
+**Next steps:**
+- t7: Build Epic List view

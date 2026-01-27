@@ -47,6 +47,7 @@ export function useDashboard() {
     currentStory: context.currentStory,
     error: context.error,
     retryCount: context.retryCount,
+    subscribedStories: context.subscribedStories,
 
     // Actions
     connect: () => actorRef.send({ type: 'CONNECT' }),
@@ -60,6 +61,12 @@ export function useDashboard() {
       actorRef.send({ type: 'STORY_LOADED', story }),
     clearCurrentEpic: () => actorRef.send({ type: 'CLEAR_EPIC' }),
     clearCurrentStory: () => actorRef.send({ type: 'CLEAR_STORY' }),
+
+    // Subscription actions for real-time story updates
+    subscribeToStory: (epicSlug: string, storySlug: string) =>
+      actorRef.send({ type: 'SUBSCRIBE_STORY', epicSlug, storySlug }),
+    unsubscribeFromStory: (epicSlug: string, storySlug: string) =>
+      actorRef.send({ type: 'UNSUBSCRIBE_STORY', epicSlug, storySlug }),
 
     // Actor ref for advanced usage
     actorRef,

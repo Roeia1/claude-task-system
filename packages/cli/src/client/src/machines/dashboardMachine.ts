@@ -7,9 +7,18 @@ const MAX_RETRIES = 5;
 /** Base delay for exponential backoff (ms) */
 const BASE_DELAY = 1000;
 
+/** Heartbeat interval in ms (30 seconds) */
+const HEARTBEAT_INTERVAL = 30000;
+
 /** Calculate exponential backoff delay */
 function getBackoffDelay(retryCount: number): number {
   return Math.min(BASE_DELAY * Math.pow(2, retryCount), 30000);
+}
+
+/** Story subscription identifier */
+export interface StorySubscription {
+  epicSlug: string;
+  storySlug: string;
 }
 
 /** Dashboard machine context */
@@ -20,6 +29,7 @@ export interface DashboardContext {
   error: string | null;
   retryCount: number;
   wsUrl: string;
+  subscribedStories: StorySubscription[];
 }
 
 /** Dashboard machine events */
@@ -40,20 +50,67 @@ export type DashboardEvent =
   | { type: 'LOAD_STORY'; epicSlug: string; storySlug: string }
   | { type: 'CLEAR_EPIC' }
   | { type: 'CLEAR_STORY' }
-  | { type: 'ERROR'; error: string };
+  | { type: 'ERROR'; error: string }
+  | { type: 'SUBSCRIBE_STORY'; epicSlug: string; storySlug: string }
+  | { type: 'UNSUBSCRIBE_STORY'; epicSlug: string; storySlug: string };
 
-/** WebSocket actor logic */
+/** WebSocket send function type for external access */
+type WebSocketSendFn = (message: object) => void;
+
+/** Global reference to WebSocket send function (set by actor) */
+let wsSendFn: WebSocketSendFn | null = null;
+
+/** Get the current WebSocket send function */
+export function getWebSocketSend(): WebSocketSendFn | null {
+  return wsSendFn;
+}
+
+/** WebSocket actor logic with heartbeat and subscription support */
 const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
-  ({ sendBack, input }) => {
+  ({ sendBack, input, receive }) => {
     let ws: WebSocket | null = null;
     let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+    let lastPong = Date.now();
+
+    const sendMessage = (message: object) => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+      }
+    };
+
+    // Expose send function globally
+    wsSendFn = sendMessage;
+
+    const startHeartbeat = () => {
+      // Clear any existing heartbeat
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+
+      heartbeatInterval = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          // Send ping message
+          sendMessage({ type: 'ping' });
+
+          // Check if we've received a pong recently (within 2 heartbeat intervals)
+          const now = Date.now();
+          if (now - lastPong > HEARTBEAT_INTERVAL * 2) {
+            // Connection is stale, trigger reconnection
+            sendBack({ type: 'WS_ERROR', error: 'Heartbeat timeout' });
+          }
+        }
+      }, HEARTBEAT_INTERVAL);
+    };
 
     const connect = () => {
       try {
         ws = new WebSocket(input.wsUrl);
 
         ws.onopen = () => {
+          lastPong = Date.now();
           sendBack({ type: 'WS_CONNECTED' });
+          startHeartbeat();
         };
 
         ws.onclose = () => {
@@ -67,6 +124,13 @@ const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
         ws.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
+
+            // Handle pong response for heartbeat
+            if (message.type === 'pong') {
+              lastPong = Date.now();
+              return;
+            }
+
             if (message.type === 'epics:updated' && message.data) {
               sendBack({ type: 'EPICS_UPDATED', epics: message.data });
             } else if (message.type === 'story:updated' && message.data) {
@@ -81,9 +145,32 @@ const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
       }
     };
 
+    // Handle incoming events from the machine
+    receive((event) => {
+      if (event.type === 'SUBSCRIBE_STORY') {
+        sendMessage({
+          type: 'subscribe:story',
+          epicSlug: event.epicSlug,
+          storySlug: event.storySlug,
+        });
+      } else if (event.type === 'UNSUBSCRIBE_STORY') {
+        sendMessage({
+          type: 'unsubscribe:story',
+          epicSlug: event.epicSlug,
+          storySlug: event.storySlug,
+        });
+      }
+    });
+
     connect();
 
     return () => {
+      // Cleanup global reference
+      wsSendFn = null;
+
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
       if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
       }
@@ -146,6 +233,28 @@ export const dashboardMachine = setup({
         return context.currentStory;
       },
     }),
+    addSubscription: assign({
+      subscribedStories: (
+        { context },
+        params: { epicSlug: string; storySlug: string }
+      ) => {
+        const exists = context.subscribedStories.some(
+          (s) => s.epicSlug === params.epicSlug && s.storySlug === params.storySlug
+        );
+        if (exists) return context.subscribedStories;
+        return [...context.subscribedStories, params];
+      },
+    }),
+    removeSubscription: assign({
+      subscribedStories: (
+        { context },
+        params: { epicSlug: string; storySlug: string }
+      ) => {
+        return context.subscribedStories.filter(
+          (s) => !(s.epicSlug === params.epicSlug && s.storySlug === params.storySlug)
+        );
+      },
+    }),
   },
   guards: {
     canRetry: ({ context }) => context.retryCount < MAX_RETRIES,
@@ -164,6 +273,7 @@ export const dashboardMachine = setup({
     error: null,
     retryCount: 0,
     wsUrl: `ws://localhost:3847`,
+    subscribedStories: [],
   },
   states: {
     idle: {
@@ -177,6 +287,7 @@ export const dashboardMachine = setup({
     loading: {
       entry: ['clearError'],
       invoke: {
+        id: 'websocket',
         src: 'websocket',
         input: ({ context }) => ({ wsUrl: context.wsUrl }),
       },
@@ -201,6 +312,7 @@ export const dashboardMachine = setup({
     },
     connected: {
       invoke: {
+        id: 'websocket',
         src: 'websocket',
         input: ({ context }) => ({ wsUrl: context.wsUrl }),
       },
@@ -271,6 +383,28 @@ export const dashboardMachine = setup({
             {
               type: 'setError',
               params: ({ event }) => ({ error: event.error }),
+            },
+          ],
+        },
+        SUBSCRIBE_STORY: {
+          actions: [
+            {
+              type: 'addSubscription',
+              params: ({ event }) => ({
+                epicSlug: event.epicSlug,
+                storySlug: event.storySlug,
+              }),
+            },
+          ],
+        },
+        UNSUBSCRIBE_STORY: {
+          actions: [
+            {
+              type: 'removeSubscription',
+              params: ({ event }) => ({
+                epicSlug: event.epicSlug,
+                storySlug: event.storySlug,
+              }),
             },
           ],
         },
