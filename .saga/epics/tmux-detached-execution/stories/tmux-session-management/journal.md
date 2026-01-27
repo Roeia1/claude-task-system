@@ -52,3 +52,28 @@
 **Next steps:**
 - t3: Update implement command for detached execution
 - t4: Add comprehensive integration tests
+
+## Session: 2026-01-28T01:55Z
+
+### Task: t3 - Update implement command for detached execution
+
+**What was done:**
+- Added `--attached` option to implement command (default: false)
+- When running in detached mode (default):
+  - Creates a tmux session using `sessions.createSession()`
+  - Outputs session info JSON with `sessionName`, `outputFile`, `epicSlug`, `storySlug`, `worktreePath`
+  - Exits immediately (worker runs in background)
+- When running in attached mode (`--attached` flag):
+  - Keeps existing synchronous/streaming behavior unchanged
+  - Prints "Starting story implementation..." followed by story details
+- Added warning when `--stream` is used without `--attached` (ignored in detached mode)
+- Added 5 new tests for detached mode behavior
+- All 573 tests pass (568 original + 5 new)
+
+**Decisions:**
+- Detached mode always uses `--stream` internally so output is captured to file
+- The detached command runs `saga implement <story> --attached` inside the tmux session
+- Session info JSON includes `mode: 'detached'` to distinguish from attached mode output
+
+**Next steps:**
+- t4: Add comprehensive integration tests
