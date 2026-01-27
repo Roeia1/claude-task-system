@@ -1,6 +1,6 @@
 {
   "name": "@saga-ai/cli",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "packageManager": "pnpm@9.15.0",
   "description": "CLI for SAGA - Structured Autonomous Goal Achievement",
   "type": "module",
@@ -9,7 +9,7 @@
   },
   "main": "./dist/cli.cjs",
   "scripts": {
-    "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.cjs --format=cjs --banner:js='#!/usr/bin/env node'",
+    "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.cjs --format=cjs --banner:js='#!/usr/bin/env node' --external:express --external:ws --external:chokidar --external:gray-matter --external:fuse.js --external:commander",
     "build:client": "vite build --config src/client/vite.config.ts",
     "build:all": "pnpm build && pnpm build:client",
     "dev": "npm run build && node dist/cli.js",

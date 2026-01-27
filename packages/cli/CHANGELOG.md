@@ -5,6 +5,23 @@ All notable changes to the `@saga-ai/cli` package will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-01-28
+
+### Added
+- **dashboard**: Backend HTTP server API with Express.js
+  - REST endpoints for epics, stories, and execution status
+  - WebSocket support for real-time updates
+  - File watcher for live status changes
+- **dashboard**: React dashboard UI with Tailwind CSS
+  - Epic and story overview pages
+  - Real-time execution monitoring
+  - Responsive design with Radix UI components
+- **build**: Separate client build (`pnpm build:client`) for dashboard assets
+
+### Changed
+- **package**: Flattened package structure for cleaner imports
+- **dependencies**: Added React, Vite, and UI component libraries
+
 ## [0.5.0] - 2026-01-27
 
 ### Added
