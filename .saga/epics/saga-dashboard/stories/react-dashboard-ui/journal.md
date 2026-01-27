@@ -66,3 +66,56 @@
 
 **Next steps:**
 - t3: Set up shadcn/ui components
+
+## Session: 2026-01-27T22:56:00Z
+
+### Task: t3 - Set up shadcn/ui components
+
+**What was done:**
+- Installed shadcn/ui dependencies using pnpm:
+  - Core: `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`
+  - Radix primitives: `@radix-ui/react-tabs`, `@radix-ui/react-collapsible`, `@radix-ui/react-progress`, `@radix-ui/react-toast`, `@radix-ui/react-slot`
+  - Animation: `tailwindcss-animate`
+- Created directory structure: `src/lib/`, `src/components/ui/`, `src/hooks/`
+- Created `src/lib/utils.ts` with `cn()` utility function for class merging
+- Created `components.json` configuration file for shadcn/ui CLI compatibility
+- Updated `tailwind.config.js` with:
+  - shadcn/ui compatible color mappings (`background`, `foreground`, `card`, `popover`, `muted`, `accent`, `destructive`, etc.)
+  - Border radius variables using `--radius`
+  - Accordion animation keyframes
+  - `tailwindcss-animate` plugin
+- Updated `src/index.css` with shadcn/ui compatible CSS variables mapped to SAGA theme colors
+- Created required UI components (adapted for Tailwind v3):
+  - Button (`button.tsx`) - with variants: default, destructive, outline, secondary, ghost, link
+  - Card (`card.tsx`) - Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+  - Badge (`badge.tsx`) - with variants: default, secondary, destructive, outline
+  - Progress (`progress.tsx`) - using @radix-ui/react-progress
+  - Tabs (`tabs.tsx`) - Tabs, TabsList, TabsTrigger, TabsContent
+  - Toast (`toast.tsx`) - Toast, ToastTitle, ToastDescription, ToastClose, ToastAction, ToastProvider, ToastViewport
+  - Toaster (`toaster.tsx`) - Root Toaster component for app
+  - Collapsible (`collapsible.tsx`) - using @radix-ui/react-collapsible
+- Created `src/hooks/use-toast.ts` hook for toast state management
+- Updated `App.tsx` to include `<Toaster />` provider at app root
+- Wrote 35 comprehensive tests verifying:
+  - Dependency installation (class-variance-authority, clsx, tailwind-merge, lucide-react)
+  - Utility function presence
+  - components.json configuration
+  - All required UI components exist with correct exports
+  - CSS variables for shadcn/ui theming
+  - Tailwind config extensions (animate plugin, borderRadius)
+  - Toaster in App root
+
+**Verification:**
+- All 35 shadcn tests pass
+- All 218 tests pass (no regressions)
+- `npm run build` produces optimized dist/ folder (200KB JS, 16KB CSS)
+- `npm run dev` starts Vite dev server successfully
+
+**Decisions:**
+- Used manual component installation instead of shadcn CLI to maintain Tailwind v3 compatibility
+- Created shadcn variables as aliases to SAGA theme variables (e.g., `--background: var(--bg)`) to keep both systems in sync
+- Kept body styles using explicit CSS properties (`background-color: var(--bg)`) to maintain compatibility with existing tests
+- Used new-york style for shadcn components (rounded, clean look)
+
+**Next steps:**
+- t4: Implement React Router with route structure

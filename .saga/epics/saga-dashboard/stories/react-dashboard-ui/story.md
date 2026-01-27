@@ -12,7 +12,7 @@ tasks:
     status: completed
   - id: t3
     title: Set up shadcn/ui components
-    status: pending
+    status: completed
   - id: t4
     title: Implement React Router with route structure
     status: pending
