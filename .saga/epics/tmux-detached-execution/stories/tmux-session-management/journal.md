@@ -27,3 +27,28 @@
 - t2: Add sessions CLI subcommands (`saga sessions list/status/logs/kill`)
 - t3: Update implement command for detached execution
 - t4: Add comprehensive integration tests
+
+## Session: 2026-01-28T01:51Z
+
+### Task: t2 - Add sessions CLI subcommands
+
+**What was done:**
+- Created `src/commands/sessions/index.ts` with 4 command functions:
+  - `sessionsListCommand()` - lists all SAGA sessions, outputs JSON array
+  - `sessionsStatusCommand(name)` - shows session status, outputs JSON `{running: boolean}`
+  - `sessionsLogsCommand(name)` - streams output via `tail -f`, raw output (not JSON)
+  - `sessionsKillCommand(name)` - terminates session, outputs JSON `{killed: boolean}`
+- Created `src/commands/sessions/index.test.ts` with 8 unit tests
+- Registered `sessions` subcommand group in `src/cli.ts` using Commander.js
+- All 568 tests pass (560 original + 8 new)
+- Build succeeds and CLI commands work correctly
+
+**Decisions:**
+- Followed existing CLI patterns from other commands (init.ts, etc.)
+- Used Commander.js subcommand groups to organize sessions commands
+- Outputs are JSON except for `logs` which streams raw stdout
+- Error handling for `logs` command exits with code 1 and prints error message
+
+**Next steps:**
+- t3: Update implement command for detached execution
+- t4: Add comprehensive integration tests

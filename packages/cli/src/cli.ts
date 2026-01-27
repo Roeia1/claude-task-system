@@ -16,6 +16,12 @@ import { dashboardCommand } from './commands/dashboard.js';
 import { scopeValidatorCommand } from './commands/scope-validator.js';
 import { findCommand } from './commands/find.js';
 import { worktreeCommand } from './commands/worktree.js';
+import {
+  sessionsListCommand,
+  sessionsStatusCommand,
+  sessionsLogsCommand,
+  sessionsKillCommand,
+} from './commands/sessions/index.js';
 
 // Read version from package.json
 // In the bundled CJS output, __dirname will be available
@@ -106,6 +112,39 @@ program
   .description('Validate file operations against story scope (internal)')
   .action(async () => {
     await scopeValidatorCommand();
+  });
+
+// sessions command group
+const sessionsCommand = program
+  .command('sessions')
+  .description('Manage SAGA tmux sessions');
+
+sessionsCommand
+  .command('list')
+  .description('List all SAGA sessions')
+  .action(async () => {
+    await sessionsListCommand();
+  });
+
+sessionsCommand
+  .command('status <name>')
+  .description('Show session status')
+  .action(async (name: string) => {
+    await sessionsStatusCommand(name);
+  });
+
+sessionsCommand
+  .command('logs <name>')
+  .description('Stream session output')
+  .action(async (name: string) => {
+    await sessionsLogsCommand(name);
+  });
+
+sessionsCommand
+  .command('kill <name>')
+  .description('Terminate a session')
+  .action(async (name: string) => {
+    await sessionsKillCommand(name);
   });
 
 // Error handling for unknown commands
