@@ -283,3 +283,51 @@
 
 **Next steps:**
 - t7: Build Epic List view
+
+## Session: 2026-01-27T21:14:00Z
+
+### Task: t7 - Build Epic List view
+
+**What was done:**
+- Wrote 30 comprehensive tests in `epic-list.test.ts` verifying:
+  - Component structure (imports for useDashboard, useEffect, Link, Card, Badge, Progress)
+  - Data fetching (fetch from /api/epics, useEffect for mount, setEpics usage)
+  - Epic card display (CardTitle, storyCounts, Progress bar, completion percentage)
+  - Status badges (ready, in_progress, blocked, completed badges)
+  - Archived epics toggle (showArchived state, toggle UI, filtering logic)
+  - Empty state (message "No epics found", /create-epic mention, conditional rendering)
+  - Loading state (skeleton/loading indicators)
+  - Navigation (Link to epic detail page, /epic/:slug route pattern)
+  - Component existence (EpicCard, StatusBadge components)
+- Implemented full `EpicList.tsx` component with:
+  - `EpicCardSkeleton` component for loading state with animate-pulse
+  - `StatusBadge` component with status-specific colors (ready=muted, in_progress=primary, blocked=danger, completed=success)
+  - `EpicCard` component with:
+    - Link to `/epic/${epic.slug}` route
+    - CardTitle for epic title
+    - Progress bar showing completion percentage (completed/total * 100)
+    - Status badges showing count for each status
+    - Hover effect for interactivity
+  - Main `EpicList` component with:
+    - `useDashboard` hook for epics and setEpics
+    - `useEffect` to fetch from `/api/epics` on mount
+    - `showArchived` state with checkbox toggle
+    - Filtering to hide archived epics by default
+    - Empty state: "No epics found. Run `/create-epic` to get started."
+    - Grid layout with responsive columns (1/2/3 columns at different breakpoints)
+
+**Verification:**
+- All 30 epic-list tests pass
+- All 341 tests pass (311 existing + 30 new)
+- `npm run build` produces optimized dist/ (283KB JS, 18KB CSS)
+- TypeScript compiles without errors
+
+**Decisions:**
+- Used local `isFetching` state alongside `isLoading` from dashboard context for better loading UX
+- Implemented filtering with `filteredEpics` array rather than modifying original epics
+- Only show archived toggle when there are archived epics to avoid UI clutter
+- Used inline StatusBadge and EpicCard components in the same file for cohesion (not separate files)
+- Used Tailwind color classes with opacity (e.g., `bg-primary/20`) for badge backgrounds
+
+**Next steps:**
+- t8: Build Epic Detail view
