@@ -28,3 +28,32 @@
 
 **Next steps:**
 - t2: Configure Tailwind CSS and theme integration (import global CSS, set dark mode)
+
+## Session: 2026-01-28 01:43 UTC
+
+### Task: t2 - Configure Tailwind CSS and theme integration
+
+**What was done:**
+- Updated `.storybook/preview.tsx` (renamed from .ts for JSX support) to:
+  - Import global CSS file (`../src/index.css`) which includes Tailwind directives
+  - Added `withDarkTheme` decorator that wraps all stories in a dark theme container
+  - Disabled Storybook's background addon since we use our own dark theme
+- Created `ThemeTest.stories.tsx` as a verification story demonstrating:
+  - Background colors (bg-dark, bg, bg-light)
+  - Text colors (text, text-muted)
+  - Status colors (ready/gray, in_progress/primary, blocked/danger, completed/success)
+  - Card component styling with proper theme colors
+- Verified both Storybook dev server and build work correctly
+- All 530 existing tests still pass
+
+**Decisions:**
+- Renamed preview.ts to preview.tsx to support JSX in the decorator
+- Used a decorator-based approach for dark theme rather than modifying Storybook's default body styles, as this gives more control per-story if needed
+- Disabled Storybook's built-in background switcher since the dashboard only uses dark mode
+
+**Files created/modified:**
+- `packages/cli/src/client/.storybook/preview.tsx` (renamed from preview.ts, added CSS import and decorator)
+- `packages/cli/src/client/src/components/ThemeTest.stories.tsx` (new - theme verification story)
+
+**Next steps:**
+- t3: Create stories for Layout component
