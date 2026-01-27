@@ -106,8 +106,8 @@ const WORKER_OUTPUT_SCHEMA = {
  *
  * Returns the story info if a single match is found, null otherwise.
  */
-function findStory(projectPath: string, storySlug: string): StoryInfo | null {
-  const result = findStoryUtil(projectPath, storySlug);
+async function findStory(projectPath: string, storySlug: string): Promise<StoryInfo | null> {
+  const result = await findStoryUtil(projectPath, storySlug);
 
   if (!result.found) {
     return null;
@@ -628,7 +628,7 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
   }
 
   // Find the story
-  const storyInfo = findStory(projectPath, storySlug);
+  const storyInfo = await findStory(projectPath, storySlug);
   if (!storyInfo) {
     console.error(`Error: Story '${storySlug}' not found in SAGA project.`);
     console.error(`\nSearched in: ${join(projectPath, '.saga', 'worktrees')}`);

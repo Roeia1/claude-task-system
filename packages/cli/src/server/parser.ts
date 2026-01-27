@@ -2,12 +2,19 @@
  * File System Parsing Module
  *
  * Parses .saga/ directory structure including epic.md, story.md, and journal.md files.
- * Uses gray-matter for YAML frontmatter parsing.
+ * Uses the shared saga-scanner for directory traversal and adds rich parsing
+ * for tasks and journal entries.
  */
 
-import { readFile, readdir, stat } from 'fs/promises';
-import { join, dirname, relative } from 'path';
+import { readFile } from 'fs/promises';
+import { relative } from 'path';
 import matter from 'gray-matter';
+import {
+  scanAllStories,
+  scanEpics,
+  type ScannedStory,
+  type ScannedEpic,
+} from '../utils/saga-scanner.js';
 
 /**
  * Story counts by status
@@ -75,76 +82,33 @@ export interface Epic extends EpicSummary {
 }
 
 /**
- * Check if a file exists
+ * Convert ScannedStory to StoryDetail with rich parsing
  */
-async function fileExists(path: string): Promise<boolean> {
+async function toStoryDetail(story: ScannedStory, sagaRoot: string): Promise<StoryDetail> {
+  // Parse tasks from frontmatter using gray-matter for complex YAML
+  let tasks: Task[] = [];
   try {
-    await stat(path);
-    return true;
+    const content = await readFile(story.storyPath, 'utf-8');
+    const parsed = matter(content);
+    tasks = parseTasks(parsed.data.tasks);
   } catch {
-    return false;
+    // Use simple frontmatter if gray-matter fails
+    tasks = parseTasks(story.frontmatter.tasks);
   }
-}
 
-/**
- * Check if a path is a directory
- */
-async function isDirectory(path: string): Promise<boolean> {
-  try {
-    const stats = await stat(path);
-    return stats.isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Parse a story.md file
- *
- * @param storyPath - Full path to the story.md file
- * @param epicSlug - The slug of the parent epic
- * @returns StoryDetail or null if file doesn't exist
- */
-export async function parseStory(storyPath: string, epicSlug: string): Promise<StoryDetail | null> {
-  try {
-    const content = await readFile(storyPath, 'utf-8');
-    const storyDir = dirname(storyPath);
-    const slug = storyDir.split('/').pop() || 'unknown';
-
-    let frontmatter: Record<string, unknown> = {};
-
-    try {
-      const parsed = matter(content);
-      frontmatter = parsed.data as Record<string, unknown>;
-    } catch (e) {
-      // Log warning but continue with defaults
-      console.warn(`Warning: Failed to parse YAML frontmatter in ${storyPath}`);
-    }
-
-    // Extract values with defaults for missing/invalid data
-    const title = typeof frontmatter.title === 'string' ? frontmatter.title : slug;
-    const status = validateStatus(frontmatter.status);
-    const tasks = parseTasks(frontmatter.tasks);
-
-    // Check for journal.md
-    const journalPath = join(storyDir, 'journal.md');
-    const hasJournal = await fileExists(journalPath);
-
-    return {
-      slug: typeof frontmatter.id === 'string' ? frontmatter.id : slug,
-      epicSlug,
-      title,
-      status,
-      tasks,
-      paths: {
-        storyMd: storyPath,
-        ...(hasJournal ? { journalMd: journalPath } : {}),
-      },
-    };
-  } catch (e) {
-    // File doesn't exist or can't be read
-    return null;
-  }
+  return {
+    slug: story.slug,
+    epicSlug: story.epicSlug,
+    title: story.title,
+    status: validateStatus(story.status),
+    tasks,
+    archived: story.archived,
+    paths: {
+      storyMd: relative(sagaRoot, story.storyPath),
+      ...(story.journalPath ? { journalMd: relative(sagaRoot, story.journalPath) } : {}),
+      ...(story.worktreePath ? { worktree: relative(sagaRoot, story.worktreePath) } : {}),
+    },
+  };
 }
 
 /**
@@ -184,6 +148,68 @@ function validateTaskStatus(status: unknown): 'pending' | 'in_progress' | 'compl
     return status as 'pending' | 'in_progress' | 'completed';
   }
   return 'pending'; // default
+}
+
+/**
+ * Parse a story.md file into StoryDetail
+ *
+ * Used by websocket for real-time updates when a specific story file changes.
+ *
+ * @param storyPath - Full path to the story.md file
+ * @param epicSlug - The slug of the parent epic
+ * @returns StoryDetail or null if file doesn't exist
+ */
+export async function parseStory(storyPath: string, epicSlug: string): Promise<StoryDetail | null> {
+  const { join } = await import('path');
+  const { stat } = await import('fs/promises');
+
+  let content: string;
+  try {
+    content = await readFile(storyPath, 'utf-8');
+  } catch {
+    // File doesn't exist
+    return null;
+  }
+
+  const storyDir = storyPath.replace(/\/story\.md$/, '');
+  const dirName = storyDir.split('/').pop() || 'unknown';
+
+  // Try to parse frontmatter, use defaults if invalid
+  let frontmatter: Record<string, unknown> = {};
+  try {
+    const parsed = matter(content);
+    frontmatter = parsed.data as Record<string, unknown>;
+  } catch {
+    // Invalid YAML, continue with empty frontmatter
+  }
+
+  // Extract values with defaults
+  const slug = (frontmatter.id as string) || (frontmatter.slug as string) || dirName;
+  const title = (frontmatter.title as string) || dirName;
+  const status = validateStatus(frontmatter.status);
+  const tasks = parseTasks(frontmatter.tasks);
+
+  // Check for journal.md
+  const journalPath = join(storyDir, 'journal.md');
+  let hasJournal = false;
+  try {
+    await stat(journalPath);
+    hasJournal = true;
+  } catch {
+    // No journal
+  }
+
+  return {
+    slug,
+    epicSlug,
+    title,
+    status,
+    tasks,
+    paths: {
+      storyMd: storyPath,
+      ...(hasJournal ? { journalMd: journalPath } : {}),
+    },
+  };
 }
 
 /**
@@ -267,98 +293,37 @@ export async function parseJournal(journalPath: string): Promise<JournalEntry[]>
 /**
  * Scan the .saga/ directory and return complete data structure
  *
+ * Uses the shared saga-scanner for directory traversal and adds rich parsing
+ * for tasks and journal entries.
+ *
  * @param sagaRoot - Path to the project root containing .saga/ directory
  * @returns Array of Epic objects with nested stories
  */
 export async function scanSagaDirectory(sagaRoot: string): Promise<Epic[]> {
-  const sagaDir = join(sagaRoot, '.saga');
-  const epicsDir = join(sagaDir, 'epics');
-  const archiveDir = join(sagaDir, 'archive');
+  // Use shared scanner to get all epics and stories
+  const [scannedEpics, scannedStories] = await Promise.all([
+    scanEpics(sagaRoot),
+    scanAllStories(sagaRoot),
+  ]);
 
-  const epics: Epic[] = [];
-
-  // Check if epics directory exists
-  if (!(await isDirectory(epicsDir))) {
-    return epics;
+  // Group stories by epic
+  const storiesByEpic = new Map<string, ScannedStory[]>();
+  for (const story of scannedStories) {
+    const existing = storiesByEpic.get(story.epicSlug) || [];
+    existing.push(story);
+    storiesByEpic.set(story.epicSlug, existing);
   }
 
-  // Get all epic directories
-  const epicEntries = await readdir(epicsDir);
+  // Build Epic objects with rich story details
+  const epics: Epic[] = [];
 
-  for (const epicSlug of epicEntries) {
-    const epicPath = join(epicsDir, epicSlug);
+  for (const scannedEpic of scannedEpics) {
+    const epicStories = storiesByEpic.get(scannedEpic.slug) || [];
 
-    // Skip non-directories
-    if (!(await isDirectory(epicPath))) {
-      continue;
-    }
-
-    // Parse epic.md
-    const epicMdPath = join(epicPath, 'epic.md');
-    const title = await parseEpic(epicMdPath);
-    let content = '';
-
-    try {
-      content = await readFile(epicMdPath, 'utf-8');
-    } catch {
-      // No content if file doesn't exist
-    }
-
-    // Scan active stories
-    const stories: StoryDetail[] = [];
-    const storiesDir = join(epicPath, 'stories');
-
-    if (await isDirectory(storiesDir)) {
-      const storyEntries = await readdir(storiesDir);
-
-      for (const storySlug of storyEntries) {
-        const storyDir = join(storiesDir, storySlug);
-
-        if (!(await isDirectory(storyDir))) {
-          continue;
-        }
-
-        const storyMdPath = join(storyDir, 'story.md');
-        const story = await parseStory(storyMdPath, epicSlug);
-
-        if (story) {
-          // Make paths relative to saga root
-          story.paths.storyMd = relative(sagaRoot, story.paths.storyMd);
-          if (story.paths.journalMd) {
-            story.paths.journalMd = relative(sagaRoot, story.paths.journalMd);
-          }
-          stories.push(story);
-        }
-      }
-    }
-
-    // Scan archived stories for this epic
-    const archiveEpicDir = join(archiveDir, epicSlug);
-
-    if (await isDirectory(archiveEpicDir)) {
-      const archivedStoryEntries = await readdir(archiveEpicDir);
-
-      for (const storySlug of archivedStoryEntries) {
-        const storyDir = join(archiveEpicDir, storySlug);
-
-        if (!(await isDirectory(storyDir))) {
-          continue;
-        }
-
-        const storyMdPath = join(storyDir, 'story.md');
-        const story = await parseStory(storyMdPath, epicSlug);
-
-        if (story) {
-          story.archived = true;
-          // Make paths relative to saga root
-          story.paths.storyMd = relative(sagaRoot, story.paths.storyMd);
-          if (story.paths.journalMd) {
-            story.paths.journalMd = relative(sagaRoot, story.paths.journalMd);
-          }
-          stories.push(story);
-        }
-      }
-    }
+    // Convert scanned stories to StoryDetail with tasks
+    const stories = await Promise.all(
+      epicStories.map((s) => toStoryDetail(s, sagaRoot))
+    );
 
     // Calculate story counts
     const storyCounts: StoryCounts = {
@@ -370,12 +335,12 @@ export async function scanSagaDirectory(sagaRoot: string): Promise<Epic[]> {
     };
 
     epics.push({
-      slug: epicSlug,
-      title: title || epicSlug, // Fallback to slug if no title
-      content,
+      slug: scannedEpic.slug,
+      title: scannedEpic.title,
+      content: scannedEpic.content,
       storyCounts,
       stories,
-      path: relative(sagaRoot, epicPath),
+      path: relative(sagaRoot, scannedEpic.epicPath),
     });
   }
 

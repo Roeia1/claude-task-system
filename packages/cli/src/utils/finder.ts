@@ -3,11 +3,21 @@
  *
  * This module provides functions to find epics and stories by slug or title
  * with fuzzy matching support powered by Fuse.js.
+ *
+ * Uses the shared saga-scanner for directory traversal.
  */
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import Fuse from 'fuse.js';
+import {
+  scanAllStories,
+  scanEpics,
+  epicsDirectoryExists,
+  worktreesDirectoryExists,
+  parseFrontmatter,
+  type ScannedStory,
+} from './saga-scanner.js';
 
 // ============================================================================
 // Types
@@ -32,11 +42,6 @@ export type FindResult<T> =
   | { found: false; matches: T[] }
   | { found: false; error: string };
 
-interface ParsedContent {
-  frontmatter: Record<string, string>;
-  body: string;
-}
-
 // ============================================================================
 // Fuse.js Configuration
 // ============================================================================
@@ -52,52 +57,8 @@ const MATCH_THRESHOLD = 0.6;
 // If multiple matches have scores within this range of the best, return all as ambiguous
 const SCORE_SIMILARITY_THRESHOLD = 0.1;
 
-// ============================================================================
-// Frontmatter Parser
-// ============================================================================
-
-/**
- * Parse YAML frontmatter from markdown content
- *
- * Implements a minimal parser for simple key: value pairs.
- * Handles quoted values and values containing colons.
- */
-export function parseFrontmatter(content: string): ParsedContent {
-  if (!content || !content.startsWith('---')) {
-    return { frontmatter: {}, body: content };
-  }
-
-  const endIndex = content.indexOf('\n---', 3);
-  if (endIndex === -1) {
-    return { frontmatter: {}, body: content };
-  }
-
-  const frontmatterBlock = content.slice(4, endIndex);
-  const body = content.slice(endIndex + 4).trim();
-
-  const frontmatter: Record<string, string> = {};
-
-  for (const line of frontmatterBlock.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-
-    const colonIndex = trimmed.indexOf(':');
-    if (colonIndex === -1) continue;
-
-    const key = trimmed.slice(0, colonIndex).trim();
-    let value = trimmed.slice(colonIndex + 1).trim();
-
-    // Handle quoted values
-    if ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-
-    frontmatter[key] = value;
-  }
-
-  return { frontmatter, body };
-}
+// Re-export parseFrontmatter for backward compatibility
+export { parseFrontmatter } from './saga-scanner.js';
 
 // ============================================================================
 // Context Extraction
@@ -141,6 +102,22 @@ function normalize(str: string): string {
 }
 
 // ============================================================================
+// Helper: Convert ScannedStory to StoryInfo
+// ============================================================================
+
+function toStoryInfo(story: ScannedStory): StoryInfo {
+  return {
+    slug: story.slug,
+    title: story.title,
+    status: story.status,
+    context: extractContext(story.body),
+    epicSlug: story.epicSlug,
+    storyPath: story.storyPath,
+    worktreePath: story.worktreePath || '',
+  };
+}
+
+// ============================================================================
 // Epic Resolution
 // ============================================================================
 
@@ -157,7 +134,7 @@ function normalize(str: string): string {
 export function findEpic(projectPath: string, query: string): FindResult<EpicInfo> {
   const epicsDir = join(projectPath, '.saga', 'epics');
 
-  if (!existsSync(epicsDir)) {
+  if (!epicsDirectoryExists(projectPath)) {
     return {
       found: false,
       error: 'No .saga/epics/ directory found',
@@ -250,91 +227,37 @@ export function findEpic(projectPath: string, query: string): FindResult<EpicInf
 /**
  * Find a story by slug or title using fuzzy matching
  *
- * Story resolution searches for stories in worktrees, reading YAML front matter
- * from story.md files to match on slug/id and title fields.
+ * Story resolution searches for stories in all locations:
+ * - .saga/worktrees/<epic>/<story>/ (worktrees)
+ * - .saga/epics/<epic>/stories/<story>/ (main epics)
+ * - .saga/archive/<epic>/<story>/ (archived)
  *
- * Stories are located at:
- * .saga/worktrees/<epic>/<story>/.saga/epics/<epic>/stories/<story>/story.md
+ * Uses the shared saga-scanner for directory traversal.
  *
  * @param projectPath - Path to the project root
  * @param query - The identifier to resolve
- * @returns FindResult with story info or matches/error
+ * @returns Promise resolving to FindResult with story info or matches/error
  */
-export function findStory(projectPath: string, query: string): FindResult<StoryInfo> {
-  const worktreesDir = join(projectPath, '.saga', 'worktrees');
-
-  if (!existsSync(worktreesDir)) {
+export async function findStory(projectPath: string, query: string): Promise<FindResult<StoryInfo>> {
+  if (!worktreesDirectoryExists(projectPath) && !epicsDirectoryExists(projectPath)) {
     return {
       found: false,
-      error: 'No .saga/worktrees/ directory found. Run /generate-stories first.',
+      error: 'No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first.',
     };
   }
 
-  // Collect all stories
-  const allStories: StoryInfo[] = [];
+  // Use shared scanner to get all stories
+  const scannedStories = await scanAllStories(projectPath);
 
-  // Search all worktrees: .saga/worktrees/<epic>/<story>/
-  const epicDirs = readdirSync(worktreesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name);
-
-  for (const epicSlug of epicDirs) {
-    const epicWorktreeDir = join(worktreesDir, epicSlug);
-
-    const storyDirs = readdirSync(epicWorktreeDir, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name);
-
-    for (const storySlugFromDir of storyDirs) {
-      const worktreePath = join(epicWorktreeDir, storySlugFromDir);
-
-      // Story file is at: <worktree>/.saga/epics/<epic>/stories/<story>/story.md
-      const storyPath = join(
-        worktreePath,
-        '.saga',
-        'epics',
-        epicSlug,
-        'stories',
-        storySlugFromDir,
-        'story.md'
-      );
-
-      if (!existsSync(storyPath)) {
-        continue;
-      }
-
-      try {
-        const content = readFileSync(storyPath, 'utf-8');
-        const { frontmatter, body } = parseFrontmatter(content);
-
-        // Support both "id" and "slug" fields, fallback to directory name
-        const storySlug =
-          frontmatter.id || frontmatter.slug || storySlugFromDir;
-        const title = frontmatter.title || '';
-        const status = frontmatter.status || '';
-
-        allStories.push({
-          slug: storySlug,
-          title,
-          status,
-          context: extractContext(body),
-          epicSlug,
-          storyPath,
-          worktreePath,
-        });
-      } catch {
-        // Skip stories with invalid files
-        continue;
-      }
-    }
-  }
-
-  if (allStories.length === 0) {
+  if (scannedStories.length === 0) {
     return {
       found: false,
       error: `No story found matching '${query}'`,
     };
   }
+
+  // Convert to StoryInfo format
+  const allStories = scannedStories.map(toStoryInfo);
 
   // Normalize query for exact matching
   const queryNormalized = normalize(query);
