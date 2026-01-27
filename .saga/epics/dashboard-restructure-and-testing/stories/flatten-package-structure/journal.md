@@ -82,3 +82,32 @@ Dev dependencies:
 
 **Next steps:**
 - Task t3: Update Vite Configuration
+
+## Session: 2026-01-28T00:31
+
+### Task: t3 - Update Vite Configuration
+
+**What was done:**
+- Added `root: __dirname` to vite.config.ts so Vite finds index.html regardless of cwd
+- Configured PostCSS inline in vite.config.ts with explicit path to tailwind.config.js
+- Updated tailwind.config.js to use absolute paths via `path.join(__dirname, ...)`
+- Verified build succeeds from `packages/cli` directory: `pnpm exec vite build --config src/client/vite.config.ts`
+- Build produces correct output in `src/client/dist/` (index.html + assets/)
+- All 530 tests still pass
+
+**Changes to vite.config.ts:**
+- Added `root: __dirname` - ensures Vite resolves index.html from the config file's directory
+- Added inline PostCSS config with `css.postcss.plugins` array
+- Explicitly pass tailwind.config.js path to tailwindcss plugin
+
+**Changes to tailwind.config.js:**
+- Added imports for `path` and `fileURLToPath` to compute `__dirname` in ESM
+- Changed `content` array to use `path.join(__dirname, ...)` for absolute paths
+
+**Decisions:**
+- Kept postcss.config.js file even though it's now unused (a test expects it to exist)
+- PostCSS inline config in vite.config.ts takes precedence
+- Proxy configuration unchanged (still needed for API/WebSocket in dev mode)
+
+**Next steps:**
+- Task t4: Update Build Scripts
