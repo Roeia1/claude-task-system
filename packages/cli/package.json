@@ -10,7 +10,10 @@
   "main": "./dist/cli.cjs",
   "scripts": {
     "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.cjs --format=cjs --banner:js='#!/usr/bin/env node'",
+    "build:client": "vite build --config src/client/vite.config.ts",
+    "build:all": "pnpm build && pnpm build:client",
     "dev": "npm run build && node dist/cli.js",
+    "dev:client": "vite --config src/client/vite.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "publish:npm": "pnpm build && pnpm test && pnpm publish --access public"

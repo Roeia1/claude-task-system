@@ -111,3 +111,32 @@ Dev dependencies:
 
 **Next steps:**
 - Task t4: Update Build Scripts
+
+## Session: 2026-01-28T00:35
+
+### Task: t4 - Update Build Scripts
+
+**What was done:**
+- Added new npm scripts to package.json for client development and build
+- Verified all scripts run correctly from `packages/cli` directory
+- All 530 tests pass
+
+**Scripts Added:**
+- `build:client`: `vite build --config src/client/vite.config.ts` - builds client
+- `build:all`: `pnpm build && pnpm build:client` - builds both CLI and client
+- `dev:client`: `vite --config src/client/vite.config.ts` - starts Vite dev server with hot reload
+
+**Verification:**
+- `pnpm build` produces CLI bundle at `dist/cli.cjs` (unchanged)
+- `pnpm build:client` produces client at `src/client/dist/` (index.html + assets/)
+- `pnpm build:all` builds both successfully
+- `pnpm dev:client` starts Vite dev server on http://localhost:5173/
+- All 530 tests pass
+
+**Decisions:**
+- Kept existing `build` script unchanged (CLI only) to not break existing workflows
+- Added `build:all` for convenience when building everything
+- Used `--config` flag to specify Vite config location
+
+**Next steps:**
+- Task t5: Remove Nested package.json
