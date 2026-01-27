@@ -36,3 +36,49 @@ Client package.json (15 deps, 8 devDeps):
 
 **Next steps:**
 - Task t2: Move client dependencies to CLI package.json
+
+## Session: 2026-01-28T00:29
+
+### Task: t2 - Move Client Dependencies to CLI package.json
+
+**What was done:**
+- Added all 15 client production dependencies to CLI's `dependencies` section
+- Added 7 client devDependencies to CLI's `devDependencies` section (excluding typescript)
+- Kept typescript at ^5.7.0 (CLI's newer version)
+- Ran `pnpm install` - succeeded with no version conflicts
+- Ran full test suite - all 530 tests pass
+
+**Dependencies Added:**
+
+Production dependencies:
+- @radix-ui/react-collapsible ^1.1.12
+- @radix-ui/react-progress ^1.1.8
+- @radix-ui/react-slot ^1.2.4
+- @radix-ui/react-tabs ^1.1.13
+- @radix-ui/react-toast ^1.2.15
+- @xstate/react ^6.0.0
+- class-variance-authority ^0.7.1
+- clsx ^2.1.1
+- lucide-react ^0.563.0
+- react ^18.3.1
+- react-dom ^18.3.1
+- react-router-dom ^6.30.0
+- tailwind-merge ^3.4.0
+- tailwindcss-animate ^1.0.7
+- xstate ^5.26.0
+
+Dev dependencies:
+- @types/react ^18.3.17
+- @types/react-dom ^18.3.5
+- @vitejs/plugin-react ^4.3.4
+- autoprefixer ^10.4.23
+- postcss ^8.5.6
+- tailwindcss ^3.4.19
+- vite ^6.0.5
+
+**Decisions:**
+- Kept dependencies alphabetized and organized logically
+- Used exact versions from client package.json
+
+**Next steps:**
+- Task t3: Update Vite Configuration
