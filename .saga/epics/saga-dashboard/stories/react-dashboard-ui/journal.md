@@ -119,3 +119,55 @@
 
 **Next steps:**
 - t4: Implement React Router with route structure
+
+## Session: 2026-01-27T22:58:00Z
+
+### Task: t4 - Implement React Router with route structure
+
+**What was done:**
+- Installed `react-router-dom` v6.30.3
+- Created route structure following epic specification:
+  - `/` - Epic list (home page)
+  - `/epic/:slug` - Epic detail page
+  - `/epic/:epicSlug/story/:storySlug` - Story detail page
+- Created page components in `src/pages/`:
+  - `EpicList.tsx` - Placeholder component for epic list view
+  - `EpicDetail.tsx` - Uses `useParams` to access `:slug` parameter
+  - `StoryDetail.tsx` - Uses `useParams` to access `:epicSlug` and `:storySlug` parameters
+- Created `src/components/Layout.tsx`:
+  - Header with "SAGA Dashboard" branding
+  - Breadcrumb navigation
+  - `<Outlet />` for nested route content
+  - Toaster provider at root
+- Created `src/components/Breadcrumb.tsx`:
+  - Dynamic breadcrumb based on route params
+  - Home icon for root link
+  - Chevron separators
+  - Active/inactive link styling
+- Created `src/router.tsx`:
+  - `BrowserRouter` configuration (clean URLs, no hash router)
+  - Route definitions with nested routes via Layout
+  - Exported `AppRouter` component
+- Updated `src/main.tsx` to use `AppRouter` instead of `App`
+- Wrote 25 comprehensive tests verifying:
+  - Dependencies installed (react-router-dom v6)
+  - Router configuration (BrowserRouter, route definitions)
+  - Layout component (header, Outlet)
+  - Breadcrumb component (route hooks, Link component)
+  - Page components (existence, exports, useParams usage)
+  - App integration (main.tsx uses AppRouter)
+
+**Verification:**
+- All 25 router tests pass
+- All 243 tests pass (no regressions)
+- `npm run build` produces optimized dist/ folder (225KB JS, 17KB CSS)
+- TypeScript compiles without errors
+
+**Decisions:**
+- Used flat route paths (`epic/:epicSlug/story/:storySlug`) instead of deeply nested routes for simpler configuration
+- Breadcrumb derives path from useParams rather than useLocation for cleaner implementation
+- Layout includes Toaster, so App.tsx is no longer the entry point
+- Placeholder page components ready for implementation in future tasks
+
+**Next steps:**
+- t5: Create XState machine for dashboard state

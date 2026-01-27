@@ -15,7 +15,7 @@ tasks:
     status: completed
   - id: t4
     title: Implement React Router with route structure
-    status: pending
+    status: completed
   - id: t5
     title: Create XState machine for dashboard state
     status: pending
