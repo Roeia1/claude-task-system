@@ -331,3 +331,59 @@
 
 **Next steps:**
 - t8: Build Epic Detail view
+
+## Session: 2026-01-27T21:16:00Z
+
+### Task: t8 - Build Epic Detail view
+
+**What was done:**
+- Wrote 24 comprehensive tests in `epic-detail.test.ts` verifying:
+  - Component structure (imports for useDashboard, useParams, Link, useEffect, Card, Badge, Progress)
+  - Data fetching (fetch from /api/epics/:slug, useEffect for mount, setCurrentEpic usage)
+  - Epic header (title display, overall progress bar, completion percentage)
+  - Story cards (StoryCard component, story title, status badges, task progress count)
+  - Story sorting (blocked first, then in_progress, then ready, then completed)
+  - Navigation (Link to story detail page at /epic/:epicSlug/story/:storySlug)
+  - Error handling (404/not found state)
+  - Loading state (skeleton indicators, conditional rendering)
+  - Component exports (named and default exports)
+- Implemented full `EpicDetail.tsx` component with:
+  - `HeaderSkeleton` component for loading state
+  - `StoryCardSkeleton` component for loading state
+  - `StatusBadge` component with status-specific colors
+  - `StoryCard` component with:
+    - Link to `/epic/${epicSlug}/story/${story.slug}` route
+    - CardTitle for story title
+    - Status badge for story status
+    - Task progress display (completed/total tasks)
+    - Hover effect for interactivity
+  - `getTaskProgress` helper to calculate completed tasks
+  - `statusPriority` mapping for sorting stories (blocked=0, in_progress=1, ready=2, completed=3)
+  - Main `EpicDetail` component with:
+    - `useParams` to get slug from URL
+    - `useDashboard` hook for currentEpic, setCurrentEpic, clearCurrentEpic
+    - `useEffect` to fetch from `/api/epics/${slug}` on mount
+    - Local state for `isFetching`, `notFound`, `error`
+    - 404 state with "Epic not found" message and link back to list
+    - Error state with error message and link back to list
+    - Loading state with skeleton placeholders
+    - Epic header with title, progress bar, and completion stats
+    - Story grid with sorted stories by status priority
+    - Empty state when no stories exist
+
+**Verification:**
+- All 24 epic-detail tests pass
+- All 365 tests pass (341 existing + 24 new)
+- `npm run build` produces optimized dist/ (287KB JS, 18KB CSS)
+- TypeScript compiles without errors
+
+**Decisions:**
+- Used statusPriority object for sorting to make the priority explicit and configurable
+- Separated skeleton components for header and story cards for fine-grained loading states
+- Used clearCurrentEpic in useEffect cleanup to reset state when navigating away
+- Implemented both notFound (404) and error states for comprehensive error handling
+- Calculated task progress inline in StoryCard for simplicity
+- Followed same patterns as EpicList.tsx for consistency (inline components, status badge colors, etc.)
+
+**Next steps:**
+- t9: Build Story Detail view with journal
