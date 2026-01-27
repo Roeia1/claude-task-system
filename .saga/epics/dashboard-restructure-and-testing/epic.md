@@ -169,7 +169,7 @@ No new data models. Existing types remain:
 
 ## Tech Stack
 
-- **Storybook 8.x**: Component documentation and isolated development
+- **Storybook 10.x**: Component documentation and isolated development (ESM-only)
 - **Playwright**: E2E browser testing, integration tests, and visual regression (built-in screenshot comparison)
 - **Vite**: Existing build tool, will configure for Storybook integration
 - **React Testing Library**: Component integration tests (with Playwright for E2E)
