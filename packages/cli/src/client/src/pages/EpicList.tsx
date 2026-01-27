@@ -77,8 +77,8 @@ function EpicCard({ epic }: { epic: EpicSummary }) {
             {storyCounts.ready > 0 && (
               <StatusBadge status="ready" count={storyCounts.ready} />
             )}
-            {storyCounts.in_progress > 0 && (
-              <StatusBadge status="in_progress" count={storyCounts.in_progress} />
+            {storyCounts.inProgress > 0 && (
+              <StatusBadge status="in_progress" count={storyCounts.inProgress} />
             )}
             {storyCounts.blocked > 0 && (
               <StatusBadge status="blocked" count={storyCounts.blocked} />

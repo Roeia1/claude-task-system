@@ -30,7 +30,7 @@ export interface JournalEntry {
 /** Story counts per status for epic summary */
 export interface StoryCounts {
   ready: number;
-  in_progress: number;
+  inProgress: number;
   blocked: number;
   completed: number;
   total: number;

@@ -512,3 +512,27 @@ All 10 tasks (t1-t10) have been completed successfully. The React Dashboard UI i
 - Epic Detail view with story cards sorted by status priority
 - Story Detail view with tasks, content, and collapsible journal entries
 - Toast notifications for WebSocket and API errors with retry actions
+
+## Session: 2026-01-28T00:00:00Z
+
+### Post-Implementation Fixes
+
+**Issues discovered:**
+1. **Missing DashboardProvider** - The app crashed because `DashboardProvider` was exported but never used to wrap the app. The autonomous workers' tests only verified file content patterns (regex matching), not actual rendering behavior.
+
+2. **Missing Vite proxy** - Frontend on port 5173 couldn't reach backend on port 3847. Added proxy configuration for `/api` and `/ws` routes.
+
+3. **Property name mismatch** - API returns `storyCounts.inProgress` (camelCase) but frontend expected `storyCounts.in_progress` (snake_case). Updated frontend types to match API.
+
+**Fixes applied:**
+- Added `<DashboardProvider>` wrapper in `main.tsx`
+- Added Vite proxy config for `/api` → `http://localhost:3847` and `/ws` → `ws://localhost:3847`
+- Changed `StoryCounts.in_progress` to `StoryCounts.inProgress` in types and components
+
+**Root cause analysis:**
+The autonomous workers wrote 432 tests, but all were static file content analysis (checking imports, exports, patterns via regex). None were actual rendering or integration tests. This allowed structural bugs to pass undetected:
+- Provider not wrapping app
+- API/frontend contract mismatch
+
+**Lesson learned:**
+TDD with file content tests verifies code structure, not behavior. Future stories should include at least basic rendering tests using React Testing Library or similar.
