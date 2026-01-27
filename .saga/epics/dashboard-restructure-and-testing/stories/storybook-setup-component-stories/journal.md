@@ -83,3 +83,30 @@
 
 **Next steps:**
 - t4: Create stories for Breadcrumb component
+
+## Session: 2026-01-28 01:47 UTC
+
+### Task: t4 - Create stories for Breadcrumb component
+
+**What was done:**
+- Created `packages/cli/src/client/src/components/Breadcrumb.stories.tsx` with five stories:
+  - `Root`: Shows home icon + "Epics" label at the root path (`/`)
+  - `EpicDetail`: Shows breadcrumb trail "Epics > epic-slug" for epic detail page (`/epic/:slug`)
+  - `StoryDetail`: Shows full breadcrumb trail "Epics > epic-slug > story-slug" for story detail page
+  - `LongEpicSlug`: Demonstrates handling of longer epic names
+  - `LongSlugs`: Shows both epic and story with longer slugs
+- Used `MemoryRouter` from react-router-dom to provide router context with different route parameters
+- Each story has its own decorator to set the appropriate route and provide route parameters via `useParams`
+- Verified Storybook builds successfully with new stories
+- All 530 existing tests still pass
+
+**Decisions:**
+- Created per-story decorators to control route parameters, as each story requires different URL context
+- Added stories for long slugs to demonstrate text handling edge cases
+- Links are visually distinguishable: muted text for links, font-medium for current page indicator
+
+**Files created:**
+- `packages/cli/src/client/src/components/Breadcrumb.stories.tsx`
+
+**Next steps:**
+- t5: Create stories for EpicList page and subcomponents
