@@ -5,12 +5,15 @@ import { join } from 'path';
 const clientDir = join(__dirname);
 const srcDir = join(clientDir, 'src');
 const packagesDir = join(__dirname, '..');
+// After flattening package structure, dependencies are in the main CLI package.json
+const cliDir = join(__dirname, '..', '..');
+const cliPackageJson = join(cliDir, 'package.json');
 
 describe('XState Dashboard State Machine - t5', () => {
-  describe('dependencies', () => {
+  describe('dependencies (in main CLI package.json)', () => {
     it('should have xstate installed', () => {
       const packageJson = JSON.parse(
-        readFileSync(join(clientDir, 'package.json'), 'utf-8')
+        readFileSync(cliPackageJson, 'utf-8')
       );
       const hasDependency =
         packageJson.dependencies?.xstate || packageJson.devDependencies?.xstate;
@@ -19,7 +22,7 @@ describe('XState Dashboard State Machine - t5', () => {
 
     it('should have @xstate/react installed', () => {
       const packageJson = JSON.parse(
-        readFileSync(join(clientDir, 'package.json'), 'utf-8')
+        readFileSync(cliPackageJson, 'utf-8')
       );
       const hasDependency =
         packageJson.dependencies?.['@xstate/react'] ||
