@@ -18,7 +18,7 @@ tasks:
     status: completed
   - id: t5
     title: Create XState machine for dashboard state
-    status: pending
+    status: completed
   - id: t6
     title: Implement WebSocket client for real-time updates
     status: pending

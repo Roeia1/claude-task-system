@@ -171,3 +171,69 @@
 
 **Next steps:**
 - t5: Create XState machine for dashboard state
+
+## Session: 2026-01-27T21:02:00Z
+
+### Task: t5 - Create XState machine for dashboard state
+
+**What was done:**
+- Installed XState v5.26.0 and @xstate/react v6.0.0 as dependencies
+- Created TypeScript types file `src/types/dashboard.ts` with:
+  - `TaskStatus`, `StoryStatus`, `JournalEntryType` type aliases
+  - `Task` interface with id, title, status
+  - `JournalEntry` interface with type, title, content, timestamp
+  - `StoryCounts` interface for epic summary stats
+  - `EpicSummary` interface for list view data
+  - `StoryDetail` interface with tasks and journal
+  - `Epic` interface with nested stories
+- Created `src/machines/` directory with:
+  - `dashboardMachine.ts` - XState v5 machine using `setup()` pattern
+  - `index.ts` - barrel export for machine and types
+- Implemented dashboard state machine with:
+  - **States**: idle, loading, connected, error, reconnecting
+  - **Context**: epics[], currentEpic, currentStory, error, retryCount, wsUrl
+  - **Events**: CONNECT, DISCONNECT, EPICS_LOADED, EPIC_LOADED, STORY_LOADED, WS_CONNECTED, WS_DISCONNECTED, WS_ERROR, RETRY, EPICS_UPDATED, STORY_UPDATED, LOAD_EPICS, LOAD_EPIC, LOAD_STORY, CLEAR_EPIC, CLEAR_STORY, ERROR
+  - **Actors**: websocketActor using fromCallback for WebSocket connection
+  - **Guards**: canRetry, hasMaxRetries
+  - **Delays**: backoffDelay with exponential backoff calculation
+- Implemented WebSocket actor with:
+  - Connection lifecycle (open, close, error handlers)
+  - Message handling for `epics:updated` and `story:updated` events
+  - Cleanup on actor stop
+- Implemented retry logic with:
+  - MAX_RETRIES constant (5 attempts)
+  - Exponential backoff: `min(1000 * 2^retryCount, 30000)` ms
+  - Automatic retry from reconnecting state
+  - Manual retry via RETRY event
+- Created `src/context/DashboardContext.tsx` with:
+  - `createActorContext` from @xstate/react for global state
+  - `DashboardProvider` component
+  - `useDashboardActorRef` hook for actor reference
+  - `useDashboardSelector` hook for state selection
+  - `useDashboard` convenience hook with state flags and actions
+- Wrote 47 tests in `xstate.test.ts` verifying:
+  - Dependencies installed (xstate, @xstate/react)
+  - Machine file structure (machines directory, dashboardMachine.ts, index.ts)
+  - Machine configuration (setup(), all 5 states)
+  - Context types (epics, currentEpic, currentStory, error, retryCount)
+  - Events (all 11 event types)
+  - State transitions (idle→loading, entry actions, connected/error transitions)
+  - Retry logic (retryCount, MAX_RETRIES, exponential backoff)
+  - TypeScript types (EpicSummary, Epic, StoryDetail, Task, JournalEntry)
+  - React integration (DashboardContext, DashboardProvider, useDashboard)
+
+**Verification:**
+- All 47 XState tests pass
+- All 290 tests pass (no regressions)
+- `npm run build` produces optimized dist/ (225KB JS, 17KB CSS)
+- TypeScript compiles without errors
+
+**Decisions:**
+- Used XState v5 `setup()` pattern for better type inference and cleaner organization
+- Used `fromCallback` for WebSocket actor instead of `fromPromise` for continuous connection
+- Created convenience `useDashboard` hook that wraps selector and actor ref for simpler component usage
+- Separated WebSocket actor logic to allow for testability and future mocking
+- Set default WebSocket URL to `ws://localhost:3847` matching epic specification
+
+**Next steps:**
+- t6: Implement WebSocket client for real-time updates (integrate websocket actor with app)
