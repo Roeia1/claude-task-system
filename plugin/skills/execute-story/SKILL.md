@@ -42,10 +42,10 @@ Before starting implementation, ensure the worktree branch has the latest change
 Run from within the worktree directory (`data.worktreePath`):
 
 ```bash
-cd "<data.worktreePath>" && git fetch origin master && git merge origin/master -m "Merge origin/master into story branch"
+cd "<data.worktreePath>" && git fetch origin master && git merge origin/master -m "Merge origin/master into story branch" && cd "$SAGA_PROJECT_DIR"
 ```
 
-This ensures workers start with the latest codebase, avoiding merge conflicts later.
+This ensures workers start with the latest codebase, avoiding merge conflicts later. The final `cd` returns to the project root before running the orchestrator.
 
 ### 3. Run Implementation Orchestrator
 
