@@ -17,6 +17,5 @@
     "journaling"
   ],
   "skills": "./skills/",
-  "agents": ["./agents/generate-story.md"],
-  "hooks": "./hooks/hooks.json"
+  "agents": ["./agents/generate-story.md"]
 }
