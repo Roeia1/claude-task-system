@@ -16,7 +16,9 @@
     "dev:client": "vite --config src/client/vite.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "publish:npm": "pnpm build && pnpm test && pnpm publish --access public"
+    "publish:npm": "pnpm build && pnpm test && pnpm publish --access public",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "keywords": [
     "claude",
@@ -71,7 +73,16 @@
     "typescript": "^5.7.0",
     "vite": "^6.0.5",
     "vitest": "^3.2.4",
-    "xstate": "^5.26.0"
+    "xstate": "^5.26.0",
+    "storybook": "^10.2.1",
+    "@storybook/react-vite": "^10.2.1",
+    "@chromatic-com/storybook": "^5.0.0",
+    "@storybook/addon-vitest": "^10.2.1",
+    "@storybook/addon-a11y": "^10.2.1",
+    "@storybook/addon-docs": "^10.2.1",
+    "@storybook/addon-onboarding": "^10.2.1",
+    "playwright": "^1.58.0",
+    "@vitest/browser": "^3.2.4"
   },
   "engines": {
     "node": ">=18.0.0"
