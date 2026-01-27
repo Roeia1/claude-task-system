@@ -18,26 +18,13 @@ import {
 import { join } from 'path';
 
 /**
- * Cache for parsed saga data
- */
-interface DataCache {
-  epics: Epic[];
-  lastScan: number;
-}
-
-let cache: DataCache | null = null;
-
-/**
- * Get or refresh the data cache
+ * Get epics by scanning the saga directory
+ *
+ * Note: The file watcher triggers WebSocket updates on changes,
+ * so fresh scanning on each request ensures data consistency.
  */
 async function getEpics(sagaRoot: string): Promise<Epic[]> {
-  // For now, scan fresh each time (caching will be added with file watcher)
-  const epics = await scanSagaDirectory(sagaRoot);
-  cache = {
-    epics,
-    lastScan: Date.now(),
-  };
-  return epics;
+  return scanSagaDirectory(sagaRoot);
 }
 
 /**
@@ -142,11 +129,4 @@ export function createApiRouter(sagaRoot: string): Router {
   });
 
   return router;
-}
-
-/**
- * Clear the cache (useful for file watcher to trigger refresh)
- */
-export function clearCache(): void {
-  cache = null;
 }
