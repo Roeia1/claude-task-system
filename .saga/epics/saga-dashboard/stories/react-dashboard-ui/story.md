@@ -9,7 +9,7 @@ tasks:
     status: completed
   - id: t2
     title: Configure Tailwind CSS and dark theme
-    status: pending
+    status: completed
   - id: t3
     title: Set up shadcn/ui components
     status: pending

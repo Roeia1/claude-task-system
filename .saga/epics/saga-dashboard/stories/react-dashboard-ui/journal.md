@@ -33,3 +33,36 @@
 **Next steps:**
 - t2: Configure Tailwind CSS and dark theme with oklch colors
 - t3: Set up shadcn/ui components
+
+## Session: 2026-01-27T22:50:00Z
+
+### Task: t2 - Configure Tailwind CSS and dark theme
+
+**What was done:**
+- Installed Tailwind CSS v3.4.19 with PostCSS and Autoprefixer as devDependencies
+- Created `tailwind.config.js` with content paths for React/TypeScript files
+- Created `postcss.config.js` with tailwindcss and autoprefixer plugins
+- Added Tailwind directives (`@tailwind base`, `@tailwind components`, `@tailwind utilities`) to index.css
+- Configured all 14 CSS variables with oklch colors matching epic specification:
+  - Background colors: `--bg-dark`, `--bg`, `--bg-light` (hue 264)
+  - Text colors: `--text`, `--text-muted` (hue 264)
+  - UI colors: `--highlight`, `--border`, `--border-muted` (hue 264)
+  - Accent colors: `--primary` (hue 264), `--secondary` (hue 84)
+  - Status colors: `--danger` (hue 30), `--warning` (hue 100), `--success` (hue 160), `--info` (hue 260)
+- Extended Tailwind theme to map colors to CSS variables (e.g., `bg-bg`, `text-primary`, etc.)
+- Applied dark theme to body element with `background-color: var(--bg)` and `color: var(--text)`
+- Wrote 27 tests verifying Tailwind setup, CSS directives, CSS variables, and base styles
+
+**Verification:**
+- All 27 tailwind tests pass
+- Full test suite (183 tests) passes
+- `npm run build` compiles successfully with Tailwind
+- `npm run dev` starts dev server successfully
+
+**Decisions:**
+- Used Tailwind CSS v3 instead of v4 for stability and established patterns (v4 has breaking changes to configuration)
+- Mapped Tailwind colors to CSS variables for consistent theming across components
+- Dark theme applied as default (no light mode toggle per epic scope)
+
+**Next steps:**
+- t3: Set up shadcn/ui components
