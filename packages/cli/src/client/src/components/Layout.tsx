@@ -1,8 +1,12 @@
 import { Outlet } from 'react-router-dom';
 import { Breadcrumb } from './Breadcrumb';
 import { Toaster } from '@/components/ui/toaster';
+import { useDashboardToasts } from '@/hooks/use-dashboard-toasts';
 
 export function Layout() {
+  // Set up toast notifications for dashboard state changes
+  useDashboardToasts();
+
   return (
     <div className="min-h-screen bg-bg">
       <header className="border-b border-border-muted bg-bg-dark">

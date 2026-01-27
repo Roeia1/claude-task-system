@@ -447,3 +447,68 @@
 
 **Next steps:**
 - t10: Add toast notifications for errors
+
+## Session: 2026-01-27T21:27:00Z
+
+### Task: t10 - Add toast notifications for errors
+
+**What was done:**
+- Wrote 27 comprehensive tests in `toast-notifications.test.ts` verifying:
+  - Toast utility functions (showErrorToast, showReconnectingToast, showConnectionErrorToast)
+  - Import and usage of toast from use-toast hook
+  - Error toast integration in EpicList, EpicDetail, and StoryDetail pages
+  - WebSocket error toast notifications via use-dashboard-toasts hook
+  - Dashboard toasts integration in Layout component
+  - Toast dismissal behavior (different durations for error vs info toasts)
+  - Toast retry action support with ToastAction component
+  - Duplicate toast prevention with activeToasts tracking
+- Created `src/lib/toast-utils.ts` with:
+  - `activeToasts` Set for duplicate toast prevention
+  - `ERROR_TOAST_DURATION = Infinity` for error toasts (stay until dismissed)
+  - `INFO_TOAST_DURATION = 5000` for info toasts like reconnecting
+  - `showErrorToast(title, description)` - generic error toast with destructive variant
+  - `showReconnectingToast(retryCount)` - info toast for reconnection attempts
+  - `showConnectionErrorToast(error, onRetry)` - error toast with optional retry action button
+  - `showApiErrorToast(endpoint, error)` - API-specific error toast
+  - `clearActiveToasts()` - utility for cleanup
+- Created `src/hooks/use-dashboard-toasts.ts`:
+  - Hook for displaying WebSocket-related toasts
+  - Reacts to `isError` state changes → shows connection error toast with retry action
+  - Reacts to `isReconnecting` state changes → shows reconnecting toast with attempt count
+  - Uses `useRef` to track previous state and prevent duplicate toasts
+- Updated `src/hooks/use-toast.ts`:
+  - Added `duration?: number` to `ToasterToast` type for custom toast durations
+- Updated `src/components/Layout.tsx`:
+  - Added import for `useDashboardToasts` hook
+  - Called `useDashboardToasts()` in Layout to set up WebSocket toast notifications
+- Updated page components to show API error toasts:
+  - `src/pages/EpicList.tsx` - shows toast on /api/epics fetch failure
+  - `src/pages/EpicDetail.tsx` - shows toast on /api/epics/:slug fetch failure
+  - `src/pages/StoryDetail.tsx` - shows toast on /api/stories/:epicSlug/:storySlug fetch failure
+
+**Verification:**
+- All 27 toast-notifications tests pass
+- All 432 tests pass (405 existing + 27 new)
+- `npm run build` produces optimized dist/ (305KB JS, 19KB CSS)
+- TypeScript compiles without errors
+
+**Decisions:**
+- Used `Set<string>` for activeToasts to efficiently track and prevent duplicate toasts
+- Error toasts use `Infinity` duration (stay until manually dismissed) for better visibility
+- Info toasts (reconnecting) use 5000ms duration for temporary notifications
+- Retry action uses `React.createElement` instead of JSX due to module context
+- WebSocket toasts handled centrally in Layout via dedicated hook rather than in machine
+- API errors show descriptive messages including endpoint path
+
+**Story completion:**
+All 10 tasks (t1-t10) have been completed successfully. The React Dashboard UI is fully implemented with:
+- Vite + React 18 + TypeScript project setup
+- Tailwind CSS dark theme with oklch colors
+- shadcn/ui components (Button, Card, Badge, Progress, Tabs, Toast, Collapsible)
+- React Router with three routes (/, /epic/:slug, /epic/:epicSlug/story/:storySlug)
+- XState dashboard state machine with WebSocket actor
+- WebSocket client with subscribe/unsubscribe and heartbeat
+- Epic List view with cards, progress bars, status badges, and archived toggle
+- Epic Detail view with story cards sorted by status priority
+- Story Detail view with tasks, content, and collapsible journal entries
+- Toast notifications for WebSocket and API errors with retry actions

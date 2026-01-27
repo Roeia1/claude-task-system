@@ -4,6 +4,7 @@ import { useDashboard } from '@/context/DashboardContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { showApiErrorToast } from '@/lib/toast-utils';
 import type { EpicSummary, StoryStatus } from '@/types/dashboard';
 
 /** Skeleton loading component for epic cards */
@@ -106,7 +107,8 @@ export function EpicList() {
           setEpics(data);
         }
       } catch (error) {
-        console.error('Failed to fetch epics:', error);
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        showApiErrorToast('/api/epics', message);
       } finally {
         setIsFetching(false);
       }

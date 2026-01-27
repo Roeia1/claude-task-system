@@ -1,7 +1,7 @@
 ---
 id: react-dashboard-ui
 title: React Dashboard with Full UI
-status: ready
+status: completed
 epic: saga-dashboard
 tasks:
   - id: t1
@@ -24,16 +24,16 @@ tasks:
     status: completed
   - id: t7
     title: Build Epic List view
-    status: pending
+    status: completed
   - id: t8
     title: Build Epic Detail view
-    status: pending
+    status: completed
   - id: t9
     title: Build Story Detail view with journal
-    status: pending
+    status: completed
   - id: t10
     title: Add toast notifications for errors
-    status: pending
+    status: completed
 ---
 
 ## Context

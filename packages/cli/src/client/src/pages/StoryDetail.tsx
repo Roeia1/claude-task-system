@@ -9,6 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { showApiErrorToast } from '@/lib/toast-utils';
 import type { StoryDetail as StoryDetailType, StoryStatus, TaskStatus, JournalEntry, JournalEntryType } from '@/types/dashboard';
 import { ChevronDown, ChevronRight, CheckCircle, Circle, AlertCircle } from 'lucide-react';
 
@@ -195,7 +196,8 @@ export function StoryDetail() {
         setCurrentStory(data);
       } catch (err) {
         setError('Failed to load story');
-        console.error('Failed to fetch story:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        showApiErrorToast(`/api/stories/${epicSlug}/${storySlug}`, message);
       } finally {
         setIsFetching(false);
       }

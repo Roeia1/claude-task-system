@@ -4,6 +4,7 @@ import { useDashboard } from '@/context/DashboardContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { showApiErrorToast } from '@/lib/toast-utils';
 import type { Epic, StoryDetail, StoryStatus } from '@/types/dashboard';
 
 /** Status priority for sorting (lower = higher priority) */
@@ -120,7 +121,8 @@ export function EpicDetail() {
         setCurrentEpic(data);
       } catch (err) {
         setError('Failed to load epic');
-        console.error('Failed to fetch epic:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        showApiErrorToast(`/api/epics/${slug}`, message);
       } finally {
         setIsFetching(false);
       }
