@@ -5,13 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.9.1] - 2026-01-27
+## [2.9.2] - 2026-01-27
 
 ### Fixed
 
-- **plugin**: Add missing `hooks` field to plugin manifest, restoring SessionStart hook functionality
-  - The hooks field was incorrectly removed in a previous refactor
-  - This fix restores `SAGA_*` environment variables being set at session start
+- **plugin**: Remove explicit hooks reference that caused duplicate load error
+  - Claude Code auto-loads `hooks/hooks.json` from plugin root
+  - v2.9.1 incorrectly added explicit reference causing "Duplicate hooks file detected" error
+
+## [2.9.1] - 2026-01-27 [YANKED]
+
+### Fixed
+
+- ~~**plugin**: Add missing `hooks` field to plugin manifest~~ (caused duplicate hooks error)
 
 ## [2.9.0] - 2026-01-27
 
