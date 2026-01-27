@@ -6,7 +6,7 @@ epic: saga-dashboard
 tasks:
   - id: t1
     title: Initialize Vite React TypeScript project
-    status: pending
+    status: completed
   - id: t2
     title: Configure Tailwind CSS and dark theme
     status: pending
