@@ -387,3 +387,63 @@
 
 **Next steps:**
 - t9: Build Story Detail view with journal
+
+## Session: 2026-01-27T23:20:00Z
+
+### Task: t9 - Build Story Detail view with journal
+
+**What was done:**
+- Wrote 40 comprehensive tests in `story-detail.test.ts` verifying:
+  - Component structure (imports for useDashboard, useParams, Link, useEffect, Card, Badge, Tabs, Collapsible)
+  - Data fetching (fetch from /api/stories/:epicSlug/:storySlug, useEffect, setCurrentStory)
+  - Story metadata (title, status badge, link back to epic)
+  - Task list (task mapping, task titles, status indicators, visual-only checkboxes)
+  - Tabs component (Tabs, TabsList, TabsTrigger, TabsContent for Tasks/Content/Journal views)
+  - Journal entries (Collapsible sections, entry types, blocker highlighting, entry title/content)
+  - WebSocket subscription (subscribeToStory on mount, unsubscribeFromStory on unmount, cleanup)
+  - Loading and error states (skeleton, notFound, link back to epic)
+  - Component exports (named and default)
+- Implemented full `StoryDetail.tsx` component with:
+  - `HeaderSkeleton` and `ContentSkeleton` components for loading state
+  - `StatusBadge` component with status-specific colors
+  - `TaskStatusIcon` component with visual-only icons (CheckCircle, Circle with pointer-events-none)
+  - `TaskItem` component displaying task title, status icon, and status badge
+  - `getEntryTypeStyle` helper for journal entry type styling (session, blocker, resolution)
+  - `JournalEntryItem` component with:
+    - Collapsible wrapper using @radix-ui/react-collapsible
+    - CollapsibleTrigger with chevron icons for expand/collapse
+    - CollapsibleContent with entry content in monospace font
+    - Type-specific styling (blockers: danger, resolutions: success, sessions: default)
+    - AlertCircle icon for blocker entries
+  - Main `StoryDetail` component with:
+    - `useParams` to get epicSlug and storySlug from URL
+    - `useDashboard` hook for currentStory, setCurrentStory, clearCurrentStory, subscribeToStory, unsubscribeFromStory
+    - `useEffect` to fetch from `/api/stories/${epicSlug}/${storySlug}` on mount
+    - WebSocket subscription on mount, unsubscription in cleanup
+    - Local state for `isFetching`, `notFound`, `error`
+    - 404 state with "Story not found" message and link back to epic
+    - Error state with error message and link back to epic
+    - Loading state with skeleton placeholders
+    - Story header with breadcrumb (epicSlug / storySlug), title, status badge, task progress
+    - Tabs component with three tabs: Tasks, Story Content, Journal
+    - Tasks tab with task list showing status icons and badges
+    - Story Content tab with markdown content display
+    - Journal tab with entries grouped by type (Blockers first, then Resolutions, then Sessions)
+    - Blocker entries highlighted prominently with danger styling and AlertCircle icon
+
+**Verification:**
+- All 40 story-detail tests pass
+- All 405 tests pass (365 existing + 40 new)
+- `npm run build` produces optimized dist/ (304KB JS, 19KB CSS)
+- TypeScript compiles without errors
+
+**Decisions:**
+- Used lucide-react icons (ChevronDown, ChevronRight, CheckCircle, Circle, AlertCircle) for visual indicators
+- Journal entries grouped by type with blockers shown first (most important) and open by default
+- Used pointer-events-none and cursor-default on task status icons to indicate read-only
+- Tasks displayed in own tab rather than alongside journal for cleaner UX
+- Used monospace font for content display to preserve formatting from markdown
+- Collapsible sections use open state for individual entries, blockers default to open
+
+**Next steps:**
+- t10: Add toast notifications for errors
