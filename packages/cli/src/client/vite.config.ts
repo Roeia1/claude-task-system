@@ -14,4 +14,16 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3847',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'ws://localhost:3847',
+        ws: true,
+      },
+    },
+  },
 });
