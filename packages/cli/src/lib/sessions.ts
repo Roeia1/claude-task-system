@@ -4,12 +4,12 @@
  * Provides functions to create, list, monitor, and kill tmux sessions
  * running SAGA workers. This module is shared between the CLI and dashboard.
  *
- * Session naming convention: saga-<epic-slug>-<story-slug>-<pane-pid>
+ * Session naming convention: saga-<epic-slug>-<story-slug>-<timestamp>
  * Output files stored in: /tmp/saga-sessions/<session-name>.out
  */
 
 import { spawn, spawnSync, ChildProcess } from 'node:child_process';
-import { existsSync, mkdirSync, renameSync, writeFileSync, chmodSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -111,12 +111,8 @@ function checkTmuxAvailable(): void {
 /**
  * Create a new detached tmux session for running a command
  *
- * Flow:
- * 1. Validate slugs
- * 2. Create output directory if needed
- * 3. Start tmux session with a temporary name
- * 4. Get the pane PID for unique naming
- * 5. Rename session to final name: saga-<epic>-<story>-<pane-pid>
+ * Creates a tmux session named: saga-<epic>-<story>-<timestamp>
+ * Output is captured to: /tmp/saga-sessions/<session-name>.out
  *
  * @param epicSlug - The epic slug (validated)
  * @param storySlug - The story slug (validated)
@@ -144,26 +140,25 @@ export async function createSession(
     mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
-  // Generate a temporary session name (will be renamed after we get the pane PID)
-  const tempName = `saga-temp-${Date.now()}`;
-  const pendingOutputFile = join(OUTPUT_DIR, `${tempName}.out`);
+  // Generate session name with timestamp for uniqueness
+  const timestamp = Date.now();
+  const sessionName = `saga-${epicSlug}-${storySlug}-${timestamp}`;
+  const outputFile = join(OUTPUT_DIR, `${sessionName}.out`);
 
   // Write command to a separate file to avoid shell injection vulnerabilities
-  // The command file contains the raw command, and the wrapper script reads it safely
-  const commandFilePath = join(OUTPUT_DIR, `${tempName}.cmd`);
-  const wrapperScriptPath = join(OUTPUT_DIR, `${tempName}.sh`);
+  const commandFilePath = join(OUTPUT_DIR, `${sessionName}.cmd`);
+  const wrapperScriptPath = join(OUTPUT_DIR, `${sessionName}.sh`);
 
   // Write the raw command to a file (no shell interpretation)
   writeFileSync(commandFilePath, command, { mode: 0o600 });
 
   // Create wrapper script that reads the command file safely
-  // Using bash's mapfile/read to safely read the command preserves special characters
   const wrapperScriptContent = `#!/bin/bash
 # Auto-generated wrapper script for SAGA session
 set -e
 
 COMMAND_FILE="${commandFilePath}"
-OUTPUT_FILE="${pendingOutputFile}"
+OUTPUT_FILE="${outputFile}"
 SCRIPT_FILE="${wrapperScriptPath}"
 
 # Read the command from file
@@ -175,15 +170,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Touch output file immediately so it exists for rename operation
-touch "\$OUTPUT_FILE"
-
 # Execute the command with output capture
 # script syntax differs between macOS and Linux:
-#   macOS (Darwin): script -q <file> -c <command>
+#   macOS (Darwin): script -q <file> <shell> -c <command>
 #   Linux:          script -q -c <command> <file>
 if [[ "\$(uname)" == "Darwin" ]]; then
-  exec script -q "\$OUTPUT_FILE" -c "\$COMMAND"
+  # -F: flush output after each write (ensures immediate visibility)
+  exec script -qF "\$OUTPUT_FILE" /bin/bash -c "\$COMMAND"
 else
   exec script -q -c "\$COMMAND" "\$OUTPUT_FILE"
 fi
@@ -195,7 +188,7 @@ fi
   const createResult = spawnSync('tmux', [
     'new-session',
     '-d',              // detached
-    '-s', tempName,    // session name (temporary)
+    '-s', sessionName, // session name
     wrapperScriptPath, // run the wrapper script
   ], { encoding: 'utf-8' });
 
@@ -203,73 +196,9 @@ fi
     throw new Error(`Failed to create tmux session: ${createResult.stderr || 'unknown error'}`);
   }
 
-  // Get the pane PID for unique naming
-  const listResult = spawnSync('tmux', [
-    'list-panes',
-    '-t', tempName,
-    '-F', '#{pane_id}:#{pane_current_command}:#{pane_pid}',
-  ], { encoding: 'utf-8' });
-
-  if (listResult.status !== 0) {
-    // Cleanup: kill the session we just created
-    spawnSync('tmux', ['kill-session', '-t', tempName]);
-    throw new Error(`Failed to get pane info: ${listResult.stderr || 'unknown error'}`);
-  }
-
-  // Parse pane PID from output (format: %0:bash:1234)
-  const rawOutput = listResult.stdout.trim();
-  if (!rawOutput) {
-    spawnSync('tmux', ['kill-session', '-t', tempName]);
-    throw new Error('Failed to get pane info: tmux list-panes returned empty output');
-  }
-
-  const paneInfo = rawOutput.split(':');
-  if (paneInfo.length < 3) {
-    spawnSync('tmux', ['kill-session', '-t', tempName]);
-    throw new Error(`Failed to parse pane info: unexpected format '${rawOutput}'`);
-  }
-
-  const panePid = paneInfo[2];
-  if (!panePid || !/^\d+$/.test(panePid)) {
-    spawnSync('tmux', ['kill-session', '-t', tempName]);
-    throw new Error(`Failed to get pane PID: invalid PID '${panePid}' from '${rawOutput}'`);
-  }
-
-  // Build final session name
-  const finalName = `saga-${epicSlug}-${storySlug}-${panePid}`;
-  const finalOutputFile = join(OUTPUT_DIR, `${finalName}.out`);
-
-  // Rename session to final name
-  const renameResult = spawnSync('tmux', [
-    'rename-session',
-    '-t', tempName,
-    finalName,
-  ], { encoding: 'utf-8' });
-
-  if (renameResult.status !== 0) {
-    spawnSync('tmux', ['kill-session', '-t', tempName]);
-    throw new Error(`Failed to rename session: ${renameResult.stderr || 'unknown error'}`);
-  }
-
-  // Rename output file to match session name
-  // Wait for the script command to create the output file (may take a moment)
-  const maxWaitMs = 2000;
-  const pollIntervalMs = 50;
-  let waited = 0;
-  while (!existsSync(pendingOutputFile) && waited < maxWaitMs) {
-    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
-    waited += pollIntervalMs;
-  }
-
-  if (existsSync(pendingOutputFile)) {
-    renameSync(pendingOutputFile, finalOutputFile);
-  }
-  // If file still doesn't exist, the session is running but output capture may be delayed
-  // The finalOutputFile path is still correct - it will be created by the script command
-
   return {
-    sessionName: finalName,
-    outputFile: finalOutputFile,
+    sessionName,
+    outputFile,
   };
 }
 

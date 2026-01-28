@@ -43,6 +43,17 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Helper to wait for a file to exist with polling
+async function waitForFile(filePath: string, maxWaitMs = 2000): Promise<boolean> {
+  const pollInterval = 50;
+  let waited = 0;
+  while (!existsSync(filePath) && waited < maxWaitMs) {
+    await sleep(pollInterval);
+    waited += pollInterval;
+  }
+  return existsSync(filePath);
+}
+
 describe.skipIf(!hasTmux)('sessions integration', () => {
   const testEpic = 'test-epic';
   const testStory = 'test-story';
@@ -81,18 +92,19 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
     it('should create output file in /tmp/saga-sessions/', async () => {
       const result = await createSession(testEpic, testStory, 'echo "hello world" && sleep 1');
 
-      // Wait for script to create output file
-      await sleep(200);
+      // Wait for script to create output file (poll with timeout)
+      const fileExists = await waitForFile(result.outputFile, 2000);
 
-      expect(existsSync(result.outputFile)).toBe(true);
+      expect(fileExists).toBe(true);
     });
 
     it('should capture command output to file', async () => {
       const testMessage = `test-output-${Date.now()}`;
       const result = await createSession(testEpic, testStory, `echo "${testMessage}" && sleep 1`);
 
-      // Wait for command to execute and output to be written
-      await sleep(500);
+      // Wait for output file to exist, then wait a bit more for content
+      await waitForFile(result.outputFile, 2000);
+      await sleep(100);
 
       const output = readFileSync(result.outputFile, 'utf-8');
       expect(output).toContain(testMessage);

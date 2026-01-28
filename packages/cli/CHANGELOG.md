@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **implement**: Default behavior now runs detached; use `--attached` for synchronous mode
+- **sessions**: Session naming now uses timestamp instead of PID for uniqueness
+
+### Fixed
+- **sessions**: Fixed macOS `script` command syntax for output capture
 
 ## [0.6.0] - 2026-01-28
 

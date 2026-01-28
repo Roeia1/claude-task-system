@@ -40,19 +40,17 @@ vi.mock('node:fs', async () => {
     ...actual,
     existsSync: vi.fn(),
     mkdirSync: vi.fn(),
-    renameSync: vi.fn(),
     readFileSync: vi.fn(),
     writeFileSync: vi.fn(),
   };
 });
 
-import { existsSync, mkdirSync, renameSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const mockSpawn = spawn as ReturnType<typeof vi.fn>;
 const mockSpawnSync = spawnSync as ReturnType<typeof vi.fn>;
 const mockExistsSync = existsSync as ReturnType<typeof vi.fn>;
 const mockMkdirSync = mkdirSync as ReturnType<typeof vi.fn>;
-const mockRenameSync = renameSync as ReturnType<typeof vi.fn>;
 const mockReadFileSync = readFileSync as ReturnType<typeof vi.fn>;
 const mockWriteFileSync = writeFileSync as ReturnType<typeof vi.fn>;
 
@@ -213,13 +211,10 @@ describe('sessions', () => {
     });
 
     it('should create output directory if it does not exist', async () => {
-      // existsSync returns false for OUTPUT_DIR (triggering mkdir), then true for output file rename
       mockExistsSync.mockReturnValueOnce(false).mockReturnValue(true);
       mockSpawnSync
         .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
-        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
-        .mockReturnValueOnce({ status: 0, stdout: '%0:bash:1234' }) // tmux list-panes
-        .mockReturnValueOnce({ status: 0, stdout: '' }); // tmux rename-session
+        .mockReturnValueOnce({ status: 0, stdout: '' }); // tmux new-session
 
       await createSession('my-epic', 'my-story', 'echo hello');
 
@@ -230,14 +225,13 @@ describe('sessions', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync
         .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
-        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
-        .mockReturnValueOnce({ status: 0, stdout: '%0:bash:1234' }) // tmux list-panes (pane pid is 1234)
-        .mockReturnValueOnce({ status: 0, stdout: '' }); // tmux rename-session
+        .mockReturnValueOnce({ status: 0, stdout: '' }); // tmux new-session
 
       const result = await createSession('my-epic', 'my-story', 'echo hello');
 
-      expect(result.sessionName).toBe('saga-my-epic-my-story-1234');
-      expect(result.outputFile).toBe('/tmp/saga-sessions/saga-my-epic-my-story-1234.out');
+      // Session name should match pattern: saga-<epic>-<story>-<timestamp>
+      expect(result.sessionName).toMatch(/^saga-my-epic-my-story-\d+$/);
+      expect(result.outputFile).toBe(`/tmp/saga-sessions/${result.sessionName}.out`);
     });
 
     it('should throw error if tmux is not available', async () => {
@@ -256,42 +250,6 @@ describe('sessions', () => {
 
       await expect(createSession('my-epic', 'my-story', 'echo hello'))
         .rejects.toThrow(/failed to create.*session/i);
-    });
-
-    it('should throw error if list-panes returns empty output', async () => {
-      mockExistsSync.mockReturnValue(true);
-      mockSpawnSync
-        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
-        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
-        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux list-panes returns empty
-        .mockReturnValueOnce({ status: 0 }); // tmux kill-session (cleanup)
-
-      await expect(createSession('my-epic', 'my-story', 'echo hello'))
-        .rejects.toThrow(/empty output/i);
-    });
-
-    it('should throw error if list-panes returns malformed output', async () => {
-      mockExistsSync.mockReturnValue(true);
-      mockSpawnSync
-        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
-        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
-        .mockReturnValueOnce({ status: 0, stdout: 'malformed' }) // tmux list-panes malformed
-        .mockReturnValueOnce({ status: 0 }); // tmux kill-session (cleanup)
-
-      await expect(createSession('my-epic', 'my-story', 'echo hello'))
-        .rejects.toThrow(/unexpected format/i);
-    });
-
-    it('should throw error if pane PID is not a number', async () => {
-      mockExistsSync.mockReturnValue(true);
-      mockSpawnSync
-        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
-        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
-        .mockReturnValueOnce({ status: 0, stdout: '%0:bash:notanumber' }) // tmux list-panes with invalid PID
-        .mockReturnValueOnce({ status: 0 }); // tmux kill-session (cleanup)
-
-      await expect(createSession('my-epic', 'my-story', 'echo hello'))
-        .rejects.toThrow(/invalid PID/i);
     });
   });
 
