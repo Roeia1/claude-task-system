@@ -35,7 +35,8 @@ test.describe('Error States', () => {
 
       await page.goto('/');
 
-      // Toast notification should appear with error - look for the toast title (use first() to avoid strict mode)
+      // Toast notification should appear - use .first() as defensive measure
+      // since toast deduplication should prevent duplicates but edge cases exist
       const toast = page.getByText('API Error', { exact: true }).first();
       await expect(toast).toBeVisible({ timeout: 5000 });
     });
@@ -89,7 +90,8 @@ test.describe('Error States', () => {
 
       await page.goto('/epic/network-error-epic');
 
-      // Toast notification should appear - look for the toast title (use first() to avoid strict mode)
+      // Toast notification should appear - use .first() as defensive measure
+      // since toast deduplication should prevent duplicates but edge cases exist
       const toast = page.getByText('API Error', { exact: true }).first();
       await expect(toast).toBeVisible({ timeout: 5000 });
 
@@ -150,7 +152,8 @@ test.describe('Error States', () => {
 
       await page.goto('/epic/test-epic/story/network-error-story');
 
-      // Toast notification should appear - look for the toast title (use first() to avoid strict mode)
+      // Toast notification should appear - use .first() as defensive measure
+      // since toast deduplication should prevent duplicates but edge cases exist
       const toast = page.getByText('API Error', { exact: true }).first();
       await expect(toast).toBeVisible({ timeout: 5000 });
 

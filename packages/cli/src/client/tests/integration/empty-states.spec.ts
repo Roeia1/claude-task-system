@@ -333,8 +333,9 @@ test.describe('Empty States', () => {
       await expect(page.getByText('Ready')).toBeVisible();
       await expect(page.getByText('0/0 tasks completed')).toBeVisible();
 
-      // Verify breadcrumb navigation is present (use first to handle multiple links)
-      await expect(page.getByRole('link', { name: 'test-epic' }).first()).toBeVisible();
+      // Verify breadcrumb navigation is present (target breadcrumb specifically to avoid matching header link)
+      const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
+      await expect(breadcrumb.getByRole('link', { name: 'test-epic' })).toBeVisible();
     });
   });
 

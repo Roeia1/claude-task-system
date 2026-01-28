@@ -33,8 +33,8 @@ test.describe('Loading States', () => {
       // Navigate to the epic list page
       await page.goto('/');
 
-      // Verify skeleton loaders are visible (they have animate-pulse class)
-      const skeletons = page.locator('.animate-pulse');
+      // Verify skeleton loaders are visible using data-testid
+      const skeletons = page.locator('[data-testid="epic-card-skeleton"]');
       await expect(skeletons.first()).toBeVisible();
 
       // Wait for the data to load
@@ -57,7 +57,7 @@ test.describe('Loading States', () => {
       await page.goto('/');
 
       // The EpicList shows 3 skeleton cards during loading
-      const skeletons = page.locator('.animate-pulse');
+      const skeletons = page.locator('[data-testid="epic-card-skeleton"]');
       await expect(skeletons).toHaveCount(3);
     });
 
@@ -77,8 +77,8 @@ test.describe('Loading States', () => {
       await expect(page.getByText('Test Epic')).toBeVisible({ timeout: 5000 });
 
       // Skeleton loaders should be gone after data loads
-      // Check that the main loading skeleton state is not present
-      await expect(page.locator('[data-testid="epic-skeleton"]')).toHaveCount(0);
+      // Check that the epic card skeletons are not present
+      await expect(page.locator('[data-testid="epic-card-skeleton"]')).toHaveCount(0);
     });
   });
 
@@ -101,9 +101,9 @@ test.describe('Loading States', () => {
 
       await page.goto('/epic/test-epic');
 
-      // Should show skeleton loaders during loading
-      const skeletons = page.locator('.animate-pulse');
-      await expect(skeletons.first()).toBeVisible();
+      // Should show skeleton loaders during loading using data-testid
+      const headerSkeleton = page.locator('[data-testid="epic-header-skeleton"]');
+      await expect(headerSkeleton).toBeVisible();
 
       // Wait for data to load
       await expect(page.getByRole('heading', { name: 'Test Epic Detail' })).toBeVisible({ timeout: 5000 });
@@ -123,8 +123,8 @@ test.describe('Loading States', () => {
 
       await page.goto('/epic/loading-epic');
 
-      // HeaderSkeleton should be visible (contains animated placeholders)
-      await expect(page.locator('.animate-pulse').first()).toBeVisible();
+      // HeaderSkeleton should be visible using data-testid
+      await expect(page.locator('[data-testid="epic-header-skeleton"]')).toBeVisible();
 
       // Wait for real content
       await expect(page.getByRole('heading', { name: 'Loading Epic' })).toBeVisible({ timeout: 5000 });
@@ -149,9 +149,9 @@ test.describe('Loading States', () => {
 
       await page.goto('/epic/test-epic/story/test-story');
 
-      // Should show skeleton loaders during loading
-      const skeletons = page.locator('.animate-pulse');
-      await expect(skeletons.first()).toBeVisible();
+      // Should show skeleton loaders during loading using data-testid
+      const headerSkeleton = page.locator('[data-testid="story-header-skeleton"]');
+      await expect(headerSkeleton).toBeVisible();
 
       // Wait for data to load
       await expect(page.getByRole('heading', { name: 'Test Story Detail' })).toBeVisible({ timeout: 5000 });
@@ -172,9 +172,9 @@ test.describe('Loading States', () => {
 
       await page.goto('/epic/my-epic/story/story-with-tasks');
 
-      // HeaderSkeleton and ContentSkeleton should be visible
-      const skeletons = page.locator('.animate-pulse');
-      await expect(skeletons).toHaveCount(2);
+      // HeaderSkeleton and ContentSkeleton should be visible using data-testid
+      await expect(page.locator('[data-testid="story-header-skeleton"]')).toBeVisible();
+      await expect(page.locator('[data-testid="story-content-skeleton"]')).toBeVisible();
 
       // Wait for real content
       await expect(page.getByRole('heading', { name: 'Story With Tasks' })).toBeVisible({ timeout: 5000 });
@@ -196,8 +196,8 @@ test.describe('Loading States', () => {
 
       await page.goto('/epic/transition-epic/story/transition-story');
 
-      // Initially should show loading state
-      await expect(page.locator('.animate-pulse').first()).toBeVisible();
+      // Initially should show loading state using data-testid
+      await expect(page.locator('[data-testid="story-header-skeleton"]')).toBeVisible();
 
       // After loading, should show the story details
       await expect(page.getByRole('heading', { name: 'Transition Story' })).toBeVisible({ timeout: 5000 });

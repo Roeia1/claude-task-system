@@ -128,24 +128,32 @@ export function createMockEpic(overrides: Partial<Epic> = {}): Epic {
 // ============================================================================
 // API Route Mocking Helpers
 // ============================================================================
+//
+// Pattern Strategy:
+// - Specialized mocks (mockEpicList, mockEpicDetail, mockStoryDetail) use
+//   function matchers for precise URL matching and to avoid conflicts.
+// - General-purpose mocks (mockApiError, mockApiDelay, mockNetworkFailure)
+//   accept glob patterns from the caller for flexibility.
 
 /**
  * Mocks the GET /api/epics endpoint to return a list of epic summaries.
- * Uses a regex to match exactly /api/epics without a trailing slug.
+ * Uses a function matcher to match exactly /api/epics (with optional trailing slash)
+ * but NOT /api/epics/some-slug.
  */
 export async function mockEpicList(
   page: Page,
   epics: EpicSummary[]
 ): Promise<void> {
-  // Use regex to match exactly /api/epics (with optional trailing slash)
-  // but NOT /api/epics/some-slug
-  await page.route(/\/api\/epics\/?$/, async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(epics),
-    });
-  });
+  await page.route(
+    (url) => url.pathname === '/api/epics' || url.pathname === '/api/epics/',
+    async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(epics),
+      });
+    }
+  );
 }
 
 /**
@@ -185,17 +193,20 @@ export async function mockStoryDetail(
   );
 }
 
+/** Route pattern type - accepts glob strings, regex, or function matchers */
+type RoutePattern = string | RegExp | ((url: URL) => boolean);
+
 /**
  * Mocks an API route to return an error response.
  *
  * @param page - Playwright page object
- * @param routePattern - URL pattern to match (e.g., `**\/api/epics`)
+ * @param routePattern - URL pattern to match (glob like `**\/api/epics`, regex, or function)
  * @param status - HTTP status code (e.g., 500, 404)
  * @param message - Error message to include in response body
  */
 export async function mockApiError(
   page: Page,
-  routePattern: string,
+  routePattern: RoutePattern,
   status: number,
   message: string
 ): Promise<void> {
@@ -222,13 +233,13 @@ export interface FulfillOptions {
  * Useful for testing loading states.
  *
  * @param page - Playwright page object
- * @param routePattern - URL pattern to match
+ * @param routePattern - URL pattern to match (glob like `**\/api/epics`, regex, or function)
  * @param delayMs - Delay in milliseconds before responding
  * @param fulfillOptions - Options for the response (status, contentType, body)
  */
 export async function mockApiDelay(
   page: Page,
-  routePattern: string,
+  routePattern: RoutePattern,
   delayMs: number,
   fulfillOptions: FulfillOptions = {}
 ): Promise<void> {
@@ -245,10 +256,13 @@ export async function mockApiDelay(
 /**
  * Mocks an API route to simulate a network failure.
  * The request will be aborted, simulating a connection refused or timeout.
+ *
+ * @param page - Playwright page object
+ * @param routePattern - URL pattern to match (glob like `**\/api/epics`, regex, or function)
  */
 export async function mockNetworkFailure(
   page: Page,
-  routePattern: string
+  routePattern: RoutePattern
 ): Promise<void> {
   await page.route(routePattern, async (route: Route) => {
     await route.abort('connectionrefused');
