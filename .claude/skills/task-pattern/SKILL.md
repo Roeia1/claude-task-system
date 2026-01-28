@@ -1,6 +1,6 @@
 ---
 name: task-pattern
-description: "Guidance for writing or refactoring agents and skills using structured task patterns. Use when creating new agents, refactoring existing ones, or designing skill workflows."
+description: "Guidance for writing or refactoring agents and skills using structured task patterns. Use when creating new agents or skills, or refactoring existing ones."
 allowed-tools: Read, Edit, Write, Glob, Grep
 ---
 
