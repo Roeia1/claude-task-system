@@ -161,3 +161,56 @@
 
 **Next steps:**
 - Add play functions to StoryDetail stories (task t7)
+
+## Session: 2026-01-28T07:30:00Z
+
+### Task: t7 - Add play functions to StoryDetail stories
+
+**What was done:**
+- Added `expect` and `within` imports from `storybook/test` to StoryDetail.stories.tsx
+- Added play functions to HeaderSkeleton story:
+  - Skeleton: verifies animate-pulse class and bg-bg-light placeholder elements
+- Added play functions to ContentSkeleton stories:
+  - ContentLoading: verifies animate-pulse class and bg-bg-light placeholder elements
+  - ContentLoadingStacked: verifies two stacked content skeletons
+- Added play functions to TaskStatusIcon stories:
+  - IconPending: verifies "Pending task" text and circle icon with text-muted color
+  - IconInProgress: verifies "In progress task" text and circle icon with primary color and fill
+  - IconCompleted: verifies "Completed task" text and check-circle icon with success color
+  - AllTaskIcons: verifies all three status labels and icons (2 circles + 1 check-circle)
+- Added play functions to TaskItem stories:
+  - TaskPending: verifies task title, pending badge with muted styling, and circle icon
+  - TaskInProgress: verifies task title, in_progress badge with primary styling, and circle icon
+  - TaskCompleted: verifies task title with strikethrough and text-muted, completed badge with success styling, check-circle icon
+  - TaskLongTitle: verifies long title renders correctly
+  - AllTaskStatuses: verifies all task titles, badges (1 completed, 1 in_progress, 2 pending), and icons
+- Added play functions to JournalEntryItem stories:
+  - EntrySession: verifies title, session badge, collapsed state (chevron-right), and bg-bg-light styling
+  - EntrySessionExpanded: verifies title, expanded state (chevron-down), and content visible
+  - EntryBlocker: verifies title, blocker badge with danger styling, alert icon, content, and bg-danger styling
+  - EntryResolution: verifies title, resolution badge with success styling, content, and bg-success styling
+  - AllEntryTypes: verifies section headers, all entry types and badges
+- Added play functions to StatusBadge stories (StoryDetail variant):
+  - BadgeReady, BadgeInProgress, BadgeBlocked, BadgeCompleted: verify text and styling classes
+  - AllBadges: verifies all four status badges present
+- Added play functions to StoryDetail composite stories:
+  - Loading: verifies header and content skeletons (2 animate-pulse elements)
+  - NotFound: verifies "Story not found" title, error message, and back link with href
+  - ErrorState: verifies "Error" title with danger styling, error message, and back link
+  - Populated: verifies story header (epic link, story slug), title, status badge, task progress, tabs, and task items
+  - EmptyTasks: verifies story title, Ready badge, 0/0 tasks progress, and empty message
+  - WithBlocker: verifies title, Blocked badge, task progress, journal tab badge, Blockers/Sessions sections
+  - Completed: verifies title, Completed badge, 4/4 tasks, all task items with completed badges and check icons
+  - WithContent: verifies title, Story Content tab, content card title, and markdown content
+  - EmptyJournal: verifies title, Ready badge, task progress, and "No journal entries yet" message
+- Verified Storybook builds successfully with all new play functions
+
+**Decisions:**
+- Used consistent assertion patterns from EpicDetail stories for maintainability
+- Used `toHaveClass()` for styling verification to align with component implementation
+- Verified task status icons by checking for lucide icon classes (lucide-circle, lucide-check-circle)
+- Verified journal entry types by checking for type badges and appropriate styling classes
+- Tested metadata section content through text presence rather than exact DOM structure
+
+**Next steps:**
+- Add accessibility tests to key interactive stories (task t8)
