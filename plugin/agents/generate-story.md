@@ -23,7 +23,7 @@ You will receive:
 
 ### 1. Create Task List
 
-Use `TaskCreate` to create all tasks below. For each task, use `TaskUpdate` to set status to `in_progress` before starting, then `completed` when done.
+Use `TaskCreate` to create all tasks below, then execute them in order.
 
 | Subject | Description | Active Form |
 |---------|-------------|-------------|
