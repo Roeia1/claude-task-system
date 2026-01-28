@@ -118,3 +118,46 @@
 
 **Next steps:**
 - Add play functions to EpicDetail stories (task t6)
+
+## Session: 2026-01-28T07:00:00Z
+
+### Task: t6 - Add play functions to EpicDetail stories
+
+**What was done:**
+- Added `expect` and `within` imports from `storybook/test` to EpicDetail.stories.tsx
+- Added play functions to HeaderSkeleton story:
+  - Skeleton: verifies animate-pulse class and bg-bg-light placeholder elements
+- Added play functions to StoryCardSkeleton stories:
+  - CardSkeleton: verifies animate-pulse class and bg-bg-light placeholder elements
+  - CardSkeletonGrid: verifies grid layout and three skeleton cards
+- Added play functions to StatusBadge stories (EpicDetail variant without count):
+  - BadgeReady: verifies "Ready" text and muted styling classes
+  - BadgeInProgress: verifies "In Progress" text and primary styling classes
+  - BadgeBlocked: verifies "Blocked" text and danger styling classes
+  - BadgeCompleted: verifies "Completed" text and success styling classes
+  - AllBadges: verifies all four status badges are present
+- Added play functions to StoryCard stories:
+  - Card: verifies title, status badge, task progress, and link href
+  - CardReady: verifies "Add Visual Regression Testing" title, Ready badge, and 0/3 tasks
+  - CardBlocked: verifies "API Integration" title, Blocked badge, and 1/3 tasks
+  - CardCompleted: verifies "Setup Project Structure" title, Completed badge, and 3/3 tasks
+  - CardLongTitle: verifies long title renders and correct link href
+  - CardGrid: verifies all four story cards with different statuses and links
+- Added play functions to EpicDetail composite stories:
+  - Loading: verifies header skeleton and three story card skeletons
+  - NotFound: verifies "Epic not found" title, error message, and back link
+  - ErrorState: verifies "Error" title with danger styling, error message, and back link
+  - Empty: verifies epic title, 0/0 progress, "No stories" message, and /generate-stories guidance
+  - Populated: verifies epic title, 1/4 progress, Stories section, all four story cards with status badges
+  - AllCompleted: verifies epic title, 3/3 progress, all three completed story cards with "Completed" badges
+  - WithBlockers: verifies epic title, 0/4 progress, all story cards, two "Blocked" badges, and other statuses
+- Verified Storybook builds successfully with all new play functions
+
+**Decisions:**
+- Used `toHaveClass()` assertions to verify styling classes on badges for consistency with other stories
+- Used `canvas.getByRole('link')` for link queries to align with accessibility best practices
+- Tested href attributes to verify navigation targets without actually navigating
+- Verified task progress text (e.g., "2/4 tasks completed") to ensure correct calculation
+
+**Next steps:**
+- Add play functions to StoryDetail stories (task t7)
