@@ -1,13 +1,13 @@
 ---
 name: publish-plugin
-description: "Releases new versions of the Claude Task System plugin. Bumps version numbers in CHANGELOG.md, README.md, plugin.json, and marketplace.json, then creates git tags and GitHub releases. Use when the user says 'release', 'new version', 'version bump', or 'publish release'."
+description: "Releases new versions of the SAGA plugin. Bumps version numbers in CHANGELOG.md, README.md, plugin.json, and marketplace.json, then creates git tags and GitHub releases. Use when the user says 'release', 'new version', 'version bump', or 'publish release'."
 user-invocable: true
 allowed-tools: Read, Edit, Bash, Glob, Grep, TaskCreate, TaskUpdate, TaskList, TaskGet, AskUserQuestion
 ---
 
 # Releasing Versions
 
-This skill releases new versions of the Claude Task System plugin.
+This skill releases new versions of the SAGA plugin.
 
 ## Tasks
 
@@ -23,7 +23,7 @@ This skill releases new versions of the Claude Task System plugin.
 | Commit changes | Run: `git add CHANGELOG.md README.md CLAUDE.md plugin/.claude-plugin/plugin.json .claude-plugin/marketplace.json` then commit with message format: `chore: release vX.Y.Z` followed by blank line and `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`. Then run `git push` to push to remote. | Committing changes | Update marketplace.json | Create git tag |
 | Create git tag | Run: `git tag vX.Y.Z` then `git push origin vX.Y.Z`. Note: Plugin uses `vX.Y.Z` tag format (without prefix) to distinguish from CLI releases which use `cli-vX.Y.Z` format. | Creating git tag | Commit changes | Create GitHub release |
 | Create GitHub release | Run: `gh release create vX.Y.Z --title "vX.Y.Z: Brief Title" --notes "$(cat <<'EOF'` followed by the changelog content for this version (## Added, ## Changed, ## Fixed, ## Removed sections as applicable), then `EOF` and `)`. Use the categorized changes from the changelog for the release notes. Replace "Brief Title" with a short summary of the main change. | Creating GitHub release | Create git tag | Verify release |
-| Verify release | Run `gh release view vX.Y.Z` to confirm the release was created. Check the release page: https://github.com/Roeia1/claude-task-system/releases. Instruct user to test install with: `/plugin install claude-task-system@claude-task-system`. Report success to user with: (1) Released version number, (2) Link to the release page, (3) Installation command. | Verifying release | Create GitHub release | - |
+| Verify release | Run `gh release view vX.Y.Z` to confirm the release was created. Check the release page: https://github.com/Roeia1/SAGA/releases. Instruct user to test install with: `/plugin install Roeia1/SAGA`. Report success to user with: (1) Released version number, (2) Link to the release page, (3) Installation command. | Verifying release | Create GitHub release | - |
 
 ## Quick Reference
 
