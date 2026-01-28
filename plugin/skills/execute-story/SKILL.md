@@ -13,7 +13,7 @@ allowed-tools:
 
 # Implement Story Skill
 
-!`npx @saga-ai/cli --path "${SAGA_PROJECT_DIR}" find "$0" --type story`
+!`npx @saga-ai/cli --path "${SAGA_PROJECT_DIR}" find "$0" --type story --status ready`
 
 ## Process
 

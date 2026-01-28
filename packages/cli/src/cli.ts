@@ -78,11 +78,13 @@ program
   .command('find <query>')
   .description('Find an epic or story by slug/title')
   .option('--type <type>', 'Type to search for: epic or story (default: story)')
-  .action(async (query: string, options: { type?: 'epic' | 'story' }) => {
+  .option('--status <status>', 'Filter stories by status (e.g., ready, in-progress, completed)')
+  .action(async (query: string, options: { type?: 'epic' | 'story'; status?: string }) => {
     const globalOpts = program.opts();
     await findCommand(query, {
       path: globalOpts.path,
       type: options.type,
+      status: options.status,
     });
   });
 
