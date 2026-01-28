@@ -25,14 +25,24 @@ When an agent or skill has multiple steps, define them in a structured table usi
 ```markdown
 | Subject | Description | Active Form | Blocked By | Blocks |
 |---------|-------------|-------------|------------|--------|
-| Read config | Read `config.json` from project root | Reading config | - | Validate config |
-| Validate config | Check required fields exist and types are correct | Validating config | Read config | Apply changes |
-| Apply changes | Update target files based on config values | Applying changes | Validate config | - |
+| Read config | Read `config.json` from project root using the Read tool. Expected structure: `{ "name": string, "version": string, "targets": string[] }`. If file doesn't exist, report error and stop. | Reading config | - | Validate config |
+| Validate config | Check that all required fields exist: (1) `name` must be non-empty string, (2) `version` must match semver format `X.Y.Z`, (3) `targets` must be non-empty array. Report all validation errors before stopping. | Validating config | Read config | Apply changes |
+| Apply changes | For each path in `targets` array: read the file, replace `{{NAME}}` with config name and `{{VERSION}}` with config version, write the file back. Log each file updated. | Applying changes | Validate config | - |
 ```
 
 ## Description Column
 
-The description column must be self-contained with all information needed to execute the task. Include commands, code snippets, and formats directly in the description. References to external files (other documents in the repo) are acceptable, but never reference sections within the same file.
+The description column must be self-contained with ALL information needed to execute the task:
+
+- **Commands**: Include full command syntax with all flags and placeholders
+- **Code snippets**: Embed directly, don't summarize or abbreviate
+- **Output formats**: Specify exact structure with example field values
+- **Step sequences**: Use numbered lists for multi-step procedures
+- **Context**: Explain what things are (e.g., "review body comments are general feedback not tied to specific lines")
+
+Never reduce or summarize existing content when converting to task table format. If the original documentation had examples, include them. If it had explanations, keep them.
+
+References to external files (other documents in the repo) are acceptable, but never reference sections within the same file.
 
 ## Dependency Design
 
@@ -60,4 +70,6 @@ Design dependencies to maximize parallel execution where possible:
 
 - [ ] Steps defined in a task table
 - [ ] Each task has subject, description, and active form
+- [ ] Descriptions contain ALL original information (commands, examples, formats, context)
+- [ ] No internal section references (no `[see X](#section)` within same file)
 - [ ] Dependencies defined where applicable
