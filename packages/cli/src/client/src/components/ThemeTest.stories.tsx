@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { expect, within } from 'storybook/test'
 
 /**
  * Test component to verify Tailwind CSS and SAGA theme integration in Storybook.
@@ -73,4 +74,33 @@ const meta: Meta<typeof ThemeTest> = {
 export default meta
 type Story = StoryObj<typeof ThemeTest>
 
-export const AllColors: Story = {}
+export const AllColors: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Verify Background Colors section
+    await expect(canvas.getByText('Background Colors')).toBeInTheDocument()
+    await expect(canvas.getByText('bg-dark')).toBeInTheDocument()
+    await expect(canvas.getByText('bg')).toBeInTheDocument()
+    await expect(canvas.getByText('bg-light')).toBeInTheDocument()
+
+    // Verify Text Colors section
+    await expect(canvas.getByText('Text Colors')).toBeInTheDocument()
+    await expect(canvas.getByText('Default text color')).toBeInTheDocument()
+    await expect(canvas.getByText('Muted text color')).toBeInTheDocument()
+
+    // Verify Status Colors section
+    await expect(canvas.getByText('Status Colors')).toBeInTheDocument()
+    await expect(canvas.getByText('Ready (Gray)')).toBeInTheDocument()
+    await expect(canvas.getByText('In Progress (Primary)')).toBeInTheDocument()
+    await expect(canvas.getByText('Blocked (Danger)')).toBeInTheDocument()
+    await expect(canvas.getByText('Completed (Success)')).toBeInTheDocument()
+
+    // Verify Card Component section
+    await expect(canvas.getByText('Card Component')).toBeInTheDocument()
+    await expect(canvas.getByText('Card Title')).toBeInTheDocument()
+    await expect(
+      canvas.getByText('Card content with muted text')
+    ).toBeInTheDocument()
+  },
+}
