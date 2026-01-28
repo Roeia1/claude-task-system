@@ -270,6 +270,7 @@ const createSampleStory = (
  * Default story card with an in-progress story.
  */
 export const Card: StoryCardStory = {
+  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
   render: () => (
     <StoryCard story={createSampleStory()} epicSlug="dashboard-restructure" />
   ),
@@ -297,6 +298,7 @@ export const Card: StoryCardStory = {
  * Story card for a ready story (not started).
  */
 export const CardReady: StoryCardStory = {
+  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
   render: () => (
     <StoryCard
       story={createSampleStory({
@@ -329,6 +331,7 @@ export const CardReady: StoryCardStory = {
  * Story card for a blocked story.
  */
 export const CardBlocked: StoryCardStory = {
+  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
   render: () => (
     <StoryCard
       story={createSampleStory({
@@ -361,6 +364,7 @@ export const CardBlocked: StoryCardStory = {
  * Story card for a completed story.
  */
 export const CardCompleted: StoryCardStory = {
+  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
   render: () => (
     <StoryCard
       story={createSampleStory({
@@ -393,6 +397,7 @@ export const CardCompleted: StoryCardStory = {
  * Story card with a long title demonstrating text handling.
  */
 export const CardLongTitle: StoryCardStory = {
+  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
   render: () => (
     <StoryCard
       story={createSampleStory({
@@ -425,6 +430,7 @@ export const CardLongTitle: StoryCardStory = {
  * Multiple story cards in a grid layout showing different statuses.
  */
 export const CardGrid: StoryCardStory = {
+  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
   render: () => (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <StoryCard
