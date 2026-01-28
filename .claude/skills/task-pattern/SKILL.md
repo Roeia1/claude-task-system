@@ -54,24 +54,9 @@ After all tasks are completed, output the result in this exact JSON format:
 \`\`\`
 ```
 
-## Description Best Practices
+## Description Column
 
-The description column must contain **all information** needed to execute the task:
-
-- **Commands**: Include exact bash commands with placeholders
-- **Paths**: Use environment variables like `${SAGA_PROJECT_DIR}` or `${SAGA_PLUGIN_ROOT}`
-- **Logic**: Include decision criteria and edge cases
-- **Output**: Specify what to capture or return
-
-**Good example:**
-```
-Run `npx @saga-ai/cli worktree "<epic_slug>" "<story_slug>" --path "${SAGA_PROJECT_DIR}"`. Capture JSON output to get `worktree_path` and `branch` values.
-```
-
-**Bad example:**
-```
-Create the worktree for the story.
-```
+The description column should contain all information needed to execute the task. Referencing external files or documentation is acceptable.
 
 ## Dependency Design
 
