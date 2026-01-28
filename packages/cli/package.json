@@ -17,8 +17,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "publish:npm": "pnpm build && pnpm test && pnpm publish --access public",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "storybook": "storybook dev -p 6006 -c src/client/.storybook",
+    "build-storybook": "storybook build -c src/client/.storybook -o storybook-static"
   },
   "keywords": [
     "claude",

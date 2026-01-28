@@ -301,3 +301,45 @@
 
 **Next steps:**
 - t9: Add Storybook scripts and verify build
+
+## Session: 2026-01-28 02:04 UTC
+
+### Task: t9 - Add Storybook scripts and verify build
+
+**What was done:**
+- Updated `packages/cli/package.json` scripts to include config directory path:
+  - `"storybook": "storybook dev -p 6006 -c src/client/.storybook"`
+  - `"build-storybook": "storybook build -c src/client/.storybook -o storybook-static"`
+- Verified `storybook-static` is already in root `.gitignore`
+- Verified `pnpm storybook` starts dev server on port 6006 (returns valid HTML)
+- Verified `pnpm build-storybook` creates `storybook-static/` directory without errors:
+  - Build completed in ~3 seconds
+  - Generated iframe.html, index.html, index.json, and assets
+  - All story files compiled successfully
+- All 530 existing tests still pass
+
+**Decisions:**
+- The scripts already existed in package.json but without the config directory path; updated to use `-c src/client/.storybook` flag
+- Output directory set to `storybook-static` at the package root for easy access
+
+**Files modified:**
+- `packages/cli/package.json` (updated storybook and build-storybook scripts)
+
+**Story Completion:**
+All 9 tasks have been completed:
+- t1: Storybook 10.x installed and configured ✓
+- t2: Tailwind CSS and theme integration configured ✓
+- t3: Layout component stories created ✓
+- t4: Breadcrumb component stories created ✓
+- t5: EpicList page and subcomponent stories created ✓
+- t6: EpicDetail page and subcomponent stories created ✓
+- t7: StoryDetail page and subcomponent stories created ✓
+- t8: StatusBadge component stories created ✓
+- t9: Storybook scripts added and build verified ✓
+
+All acceptance criteria are met:
+- Storybook 10.x is installed and configured for React + Vite
+- `pnpm storybook` starts the Storybook dev server
+- `pnpm build-storybook` produces a static build without errors
+- Tailwind CSS styles render correctly in Storybook
+- All component stories created with proper documentation
