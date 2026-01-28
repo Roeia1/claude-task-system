@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.1] - 2026-01-28
+
+### Added
+
+- **task-pattern skill**: New skill (renamed from author-agent) for writing structured agents and skills using task table pattern
+- **generate-story agent**: Added Blocks column to task dependencies for better workflow management
+- **generate-story agent**: Added dependency install step for projects with package.json
+
+### Changed
+
+- **skills**: Converted all skills to task table pattern for improved structure and consistency
+  - execute-story, generate-stories, create-epic, publish-plugin, publish-cli, pr-review
+- **branding**: Renamed remaining "Claude Task System" references to "SAGA"
+- **cli**: Replaced `--attached` flag with `SAGA_INTERNAL_SESSION` environment variable
+- **cli**: Removed `--stream` option, always use streaming in attached mode
+
+### Fixed
+
+- **execute-story**: Corrected `/resolve-blocker` command reference in notes
+- **pr-review**: Restored full details in task descriptions
+- **skills**: Made task descriptions self-contained without internal references
+- **publish-cli**: Merged prerequisites into first task
+- **cli**: Extract structured output from tool call as fallback
+
 ## [2.11.0] - 2026-01-28
 
 ### Added

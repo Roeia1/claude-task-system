@@ -85,15 +85,12 @@ saga implement my-story
 saga implement my-story --max-cycles 5
 saga implement my-story --max-time 30
 saga implement my-story --model sonnet
-saga implement my-story --attached --stream
 ```
 
 Options:
 - `--max-cycles <n>` - Maximum number of worker cycles (default: 10)
 - `--max-time <n>` - Maximum time in minutes (default: 60)
 - `--model <name>` - Model to use (default: opus)
-- `--attached` - Run in attached mode (synchronous). Default is detached (runs in tmux session)
-- `--stream` - Stream worker output to stdout (only works with `--attached`)
 
 By default, `implement` runs in **detached mode** using a tmux session. This allows the worker to continue running even if your terminal disconnects. Use `saga sessions` to monitor detached sessions.
 
