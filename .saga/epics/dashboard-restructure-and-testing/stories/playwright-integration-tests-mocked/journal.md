@@ -313,4 +313,19 @@ All 7 tasks completed:
 
 **Notes:**
 - Chromium browser needs to be installed before running tests: `pnpm exec playwright install chromium`
-- CI workflow will handle browser installation automatically
+
+## Session: 2026-01-28T11:00:00Z
+
+### Scope Change: Remove GitHub Actions CI
+
+**Decision:**
+Removed GitHub Actions workflow from the story scope. npm scripts are sufficient for this story - CI integration can be handled separately if needed.
+
+**Changes made to story.md:**
+- Removed "Basic CI configuration for running tests in GitHub Actions" from scope
+- Removed "GitHub Actions workflow update for CI" from outputs
+- Removed "CI workflow runs integration tests on every PR" from acceptance criteria
+- Simplified task t7 to focus only on npm scripts (renamed from "Add npm scripts and CI configuration" to "Add npm scripts")
+
+**Rationale:**
+The core value of this story is the Playwright integration tests with mocked API responses. The npm scripts (`test:integration` and `test:integration:ui`) are sufficient to run tests locally. CI workflow configuration is an orthogonal concern that can be addressed in a separate story or added to an existing CI pipeline later.

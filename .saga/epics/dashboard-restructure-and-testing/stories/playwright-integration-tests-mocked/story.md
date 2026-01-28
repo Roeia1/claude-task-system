@@ -23,7 +23,7 @@ tasks:
     title: Write UI interaction tests
     status: pending
   - id: t7
-    title: Add npm scripts and CI configuration
+    title: Add npm scripts
     status: pending
 ---
 
@@ -50,7 +50,6 @@ This complements the E2E tests (covered in a separate story) that test the full 
 - Tests for empty states (no epics, no stories)
 - Tests for UI interactions (navigation, toggles, collapsibles)
 - npm scripts for running integration tests
-- Basic CI configuration for running tests in GitHub Actions
 
 **Out of scope:**
 - E2E tests with real backend (covered in "Playwright E2E Tests (Real Backend)" story)
@@ -75,7 +74,6 @@ This complements the E2E tests (covered in a separate story) that test the full 
 - Test utilities for API mocking (`tests/utils/mock-api.ts`)
 - Integration test files in `tests/integration/` directory
 - npm scripts: `test:integration`, `test:integration:ui`
-- GitHub Actions workflow update for CI
 
 ## Acceptance Criteria
 
@@ -88,7 +86,6 @@ This complements the E2E tests (covered in a separate story) that test the full 
 - [ ] All tests pass consistently without flakiness
 - [ ] Tests can run in under 30 seconds for fast feedback
 - [ ] npm scripts exist to run integration tests locally
-- [ ] CI workflow runs integration tests on every PR
 
 ## Tasks
 
@@ -255,29 +252,20 @@ This complements the E2E tests (covered in a separate story) that test the full 
 - Tests verify archive toggle filters epics correctly
 - All UI interaction tests pass consistently
 
-### t7: Add npm scripts and CI configuration
+### t7: Add npm scripts
 
 **Guidance:**
 - Add npm scripts to `packages/cli/package.json`:
   - `test:integration` - run Playwright tests in headless mode
   - `test:integration:ui` - run Playwright tests with UI mode for debugging
-- Update or create GitHub Actions workflow to run integration tests:
-  - Install Playwright browsers in CI
-  - Run tests after build step
-  - Upload test results as artifacts on failure
-- Ensure tests run in CI environment (headless, no GPU)
+- Ensure tests can run in headless mode for future CI integration if needed
 
 **References:**
-- Playwright CI docs: https://playwright.dev/docs/ci-github-actions
-- Existing CI workflow (if any) in `.github/workflows/`
+- Playwright configuration docs: https://playwright.dev/docs/test-configuration
 
 **Avoid:**
-- Running tests on every push to every branch - limit to PRs
-- Installing unnecessary browsers in CI - Chromium only
-- Long CI timeouts - tests should complete quickly
+- Installing unnecessary browsers - Chromium only is sufficient
 
 **Done when:**
 - `pnpm test:integration` runs integration tests from packages/cli
 - `pnpm test:integration:ui` opens Playwright UI mode
-- CI workflow runs integration tests on PRs
-- Test results are visible in CI output
