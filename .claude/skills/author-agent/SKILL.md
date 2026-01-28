@@ -4,9 +4,9 @@ description: "Guidance for writing or refactoring agents and skills using struct
 allowed-tools: Read, Edit, Write, Glob, Grep
 ---
 
-# Author Agent/Skill Guidance
+# Authoring Agents and Skills
 
-This skill provides patterns and best practices for writing agents and skills that leverage structured task tracking.
+Patterns and best practices for writing or refactoring agents and skills using structured task tracking.
 
 ## Task Table Pattern
 
