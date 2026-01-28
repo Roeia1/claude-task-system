@@ -21,119 +21,24 @@ You will receive:
 
 ## Process
 
-### 1. Generate Story Slug
+### 1. Create Task List
 
-Create a URL-friendly slug from the story title:
-- Lowercase
-- Replace spaces with hyphens
-- Remove special characters
-- Keep it concise (3-5 words max)
+Use `TaskCreate` to create all tasks below. For each task, use `TaskUpdate` to set status to `in_progress` before starting, then `completed` when done.
 
-Example: "Login Form Component" → `login-form-component`
+| Subject | Description | Active Form |
+|---------|-------------|-------------|
+| Generate story slug | Create URL-friendly slug from story title: lowercase, replace spaces with hyphens, remove special characters, keep concise (3-5 words max). Example: "Login Form Component" → `login-form-component` | Generating story slug |
+| Create git infrastructure | Run `npx @saga-ai/cli worktree "<epic_slug>" "<generated-slug>" --path "${SAGA_PROJECT_DIR}"`. Capture JSON output to get `worktree_path` and `branch` values. Creates branch `story-<generated-slug>-epic-<epic_slug>` and worktree `.saga/worktrees/<epic_slug>/<generated-slug>/` | Creating git infrastructure |
+| Install dependencies | Run package manager install in worktree. Determine package manager from project's package.json (e.g., `packageManager` field, scripts, or lock files): `cd <worktree_path> && <package-manager> install` | Installing dependencies |
+| Read epic context | Read `${SAGA_PROJECT_DIR}/.saga/epics/<epic_slug>/epic.md` to understand full context | Reading epic context |
+| Read story template | Read template from `${SAGA_PLUGIN_ROOT}/skills/generate-stories/templates/story-template.md` | Reading story template |
+| Generate story content | Generate complete story.md following template. Story must be self-contained (understandable without reading epic). Use `other_stories` to avoid overlap, respect epic's "Out of scope" sections. Include: clear context, specific scope boundaries, well-defined interfaces, verifiable acceptance criteria, detailed tasks with guidance/references/pitfalls/done-when criteria | Generating story content |
+| Write story file | Create directory `mkdir -p <worktree_path>/.saga/epics/<epic_slug>/stories/<generated-slug>/` and write story.md to `<worktree_path>/.saga/epics/<epic_slug>/stories/<generated-slug>/story.md` | Writing story file |
+| Commit and create PR | In worktree: `git add` the story.md, `git commit -m "docs(<generated-slug>): add story definition"` with epic/story in body, `git push -u origin <branch>`. Then `gh pr create --draft --title "Story: <epic_slug>/<generated-slug>"` with body containing story title, epic, story slug, and `/implement` instructions. Capture PR URL | Committing and creating PR |
 
-### 2. Create Git Infrastructure
+### 2. Return Result
 
-Run the saga worktree command to create the branch and worktree:
-
-```bash
-npx @saga-ai/cli worktree "<epic_slug>" "<generated-slug>" --path "${SAGA_PROJECT_DIR}"
-```
-
-This creates:
-- Branch: `story-<generated-slug>-epic-<epic_slug>`
-- Worktree: `.saga/worktrees/<epic_slug>/<generated-slug>/`
-
-Capture the JSON output to get the `worktree_path` and `branch` values.
-
-### 3. Install Dependencies
-
-Install dependencies in the worktree. Determine the package manager from the project's package.json (e.g., `packageManager` field, scripts, or lock files present):
-
-```bash
-cd <worktree_path> && <package-manager> install
-```
-
-### 4. Read Epic Context
-
-Read the epic file to understand the full context:
-```
-${SAGA_PROJECT_DIR}/.saga/epics/<epic_slug>/epic.md
-```
-
-### 5. Read Story Template
-
-Read the template from: `${SAGA_PLUGIN_ROOT}/skills/generate-stories/templates/story-template.md`
-
-### 6. Generate Full Story Content
-
-Generate complete story.md content following the template structure.
-
-**Critical**: The story must be **self-contained** - understandable without reading the epic. Use the epic context to inform the story but write it so it stands alone.
-
-**Scope discipline**:
-- Use `other_stories` from the prompt to ensure this story doesn't overlap with sibling stories
-- Respect any "Out of scope" or "Non-goals" sections from the epic.md
-- Explicitly list other stories and epic exclusions in the story's "Out of scope" section
-
-Include:
-- Clear context explaining what and why
-- Specific scope boundaries (use out_of_scope to define boundaries)
-- Well-defined interfaces (inputs/outputs)
-- Verifiable acceptance criteria
-- Detailed tasks with guidance, references, pitfalls to avoid, and done-when criteria
-
-### 7. Write Story File to Worktree
-
-Create the story directory in the worktree and write story.md:
-
-```bash
-mkdir -p <worktree_path>/.saga/epics/<epic_slug>/stories/<generated-slug>/
-```
-
-Write the generated content to:
-```
-<worktree_path>/.saga/epics/<epic_slug>/stories/<generated-slug>/story.md
-```
-
-### 8. Commit, Push, and Create PR
-
-From within the worktree directory, commit and push the story.md:
-
-```bash
-cd <worktree_path>
-git add .saga/epics/<epic_slug>/stories/<generated-slug>/story.md
-git commit -m "docs(<generated-slug>): add story definition
-
-Epic: <epic_slug>
-Story: <generated-slug>"
-git push -u origin <branch>
-```
-
-Then create a draft PR:
-
-```bash
-gh pr create --draft \
-  --title "Story: <epic_slug>/<generated-slug>" \
-  --body "## Story: <story_title>
-
-**Epic**: <epic_slug>
-**Story**: <generated-slug>
-
----
-
-This is a draft PR for tracking story progress.
-
-To implement this story, run:
-\`\`\`
-/implement <generated-slug>
-\`\`\`"
-```
-
-Capture the PR URL from the output.
-
-### 9. Return Result
-
-After completing all steps, output the result in this exact JSON format:
+After all tasks are completed, output the result in this exact JSON format:
 
 ```json
 {
