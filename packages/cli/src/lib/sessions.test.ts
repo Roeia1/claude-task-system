@@ -1,0 +1,464 @@
+/**
+ * Unit tests for the sessions library module
+ *
+ * Tests the tmux session management functions:
+ * - shellEscape
+ * - shellEscapeArgs
+ * - validateSlug
+ * - createSession
+ * - listSessions
+ * - getSessionStatus
+ * - streamLogs
+ * - killSession
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { spawn, spawnSync, ChildProcess } from 'node:child_process';
+import { EventEmitter } from 'node:events';
+import {
+  shellEscape,
+  shellEscapeArgs,
+  validateSlug,
+  createSession,
+  listSessions,
+  getSessionStatus,
+  streamLogs,
+  killSession,
+  OUTPUT_DIR,
+} from './sessions.js';
+
+// Mock child_process
+vi.mock('node:child_process', () => ({
+  spawn: vi.fn(),
+  spawnSync: vi.fn(),
+}));
+
+// Mock fs
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual('node:fs');
+  return {
+    ...actual,
+    existsSync: vi.fn(),
+    mkdirSync: vi.fn(),
+    renameSync: vi.fn(),
+    readFileSync: vi.fn(),
+    writeFileSync: vi.fn(),
+  };
+});
+
+import { existsSync, mkdirSync, renameSync, readFileSync, writeFileSync } from 'node:fs';
+
+const mockSpawn = spawn as ReturnType<typeof vi.fn>;
+const mockSpawnSync = spawnSync as ReturnType<typeof vi.fn>;
+const mockExistsSync = existsSync as ReturnType<typeof vi.fn>;
+const mockMkdirSync = mkdirSync as ReturnType<typeof vi.fn>;
+const mockRenameSync = renameSync as ReturnType<typeof vi.fn>;
+const mockReadFileSync = readFileSync as ReturnType<typeof vi.fn>;
+const mockWriteFileSync = writeFileSync as ReturnType<typeof vi.fn>;
+
+describe('sessions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('shellEscape', () => {
+    it('should wrap simple strings in single quotes', () => {
+      expect(shellEscape('hello')).toBe("'hello'");
+      expect(shellEscape('test123')).toBe("'test123'");
+    });
+
+    it('should escape single quotes within strings', () => {
+      expect(shellEscape("it's")).toBe("'it'\\''s'");
+      expect(shellEscape("hello 'world'")).toBe("'hello '\\''world'\\'''");
+    });
+
+    it('should handle empty strings', () => {
+      expect(shellEscape('')).toBe("''");
+    });
+
+    it('should preserve spaces', () => {
+      expect(shellEscape('hello world')).toBe("'hello world'");
+      expect(shellEscape('path with spaces')).toBe("'path with spaces'");
+    });
+
+    it('should handle shell metacharacters safely', () => {
+      // These should all be safely quoted
+      expect(shellEscape('$HOME')).toBe("'$HOME'");
+      expect(shellEscape('$(whoami)')).toBe("'$(whoami)'");
+      expect(shellEscape('`whoami`')).toBe("'`whoami`'");
+      expect(shellEscape('a && b')).toBe("'a && b'");
+      expect(shellEscape('a || b')).toBe("'a || b'");
+      expect(shellEscape('a; b')).toBe("'a; b'");
+      expect(shellEscape('a | b')).toBe("'a | b'");
+      expect(shellEscape('a > b')).toBe("'a > b'");
+      expect(shellEscape('a < b')).toBe("'a < b'");
+      expect(shellEscape('*')).toBe("'*'");
+      expect(shellEscape('?')).toBe("'?'");
+      expect(shellEscape('[abc]')).toBe("'[abc]'");
+      expect(shellEscape('~')).toBe("'~'");
+      expect(shellEscape('!')).toBe("'!'");
+      expect(shellEscape('#comment')).toBe("'#comment'");
+    });
+
+    it('should handle newlines and special whitespace', () => {
+      expect(shellEscape('line1\nline2')).toBe("'line1\nline2'");
+      expect(shellEscape('tab\there')).toBe("'tab\there'");
+    });
+
+    it('should handle double quotes', () => {
+      expect(shellEscape('"quoted"')).toBe("'\"quoted\"'");
+    });
+
+    it('should handle backslashes', () => {
+      expect(shellEscape('back\\slash')).toBe("'back\\slash'");
+    });
+  });
+
+  describe('shellEscapeArgs', () => {
+    it('should escape and join multiple arguments', () => {
+      expect(shellEscapeArgs(['echo', 'hello', 'world']))
+        .toBe("'echo' 'hello' 'world'");
+    });
+
+    it('should handle arguments with spaces', () => {
+      expect(shellEscapeArgs(['command', '--path', '/some path/with spaces']))
+        .toBe("'command' '--path' '/some path/with spaces'");
+    });
+
+    it('should handle mixed safe and unsafe arguments', () => {
+      expect(shellEscapeArgs(['saga', 'implement', 'my-story', '--path', "/Users/test's folder"]))
+        .toBe("'saga' 'implement' 'my-story' '--path' '/Users/test'\\''s folder'");
+    });
+
+    it('should handle empty array', () => {
+      expect(shellEscapeArgs([])).toBe('');
+    });
+
+    it('should handle single argument', () => {
+      expect(shellEscapeArgs(['command'])).toBe("'command'");
+    });
+
+    it('should prevent command injection', () => {
+      // An attacker might try to inject commands via the path
+      const maliciousPath = '/tmp/path; rm -rf /';
+      const escaped = shellEscapeArgs(['command', '--path', maliciousPath]);
+      expect(escaped).toBe("'command' '--path' '/tmp/path; rm -rf /'");
+      // The semicolon is safely within single quotes
+    });
+  });
+
+  describe('validateSlug', () => {
+    it('should accept valid slugs with lowercase letters', () => {
+      expect(validateSlug('abc')).toBe(true);
+      expect(validateSlug('hello')).toBe(true);
+    });
+
+    it('should accept valid slugs with numbers', () => {
+      expect(validateSlug('abc123')).toBe(true);
+      expect(validateSlug('123')).toBe(true);
+    });
+
+    it('should accept valid slugs with hyphens', () => {
+      expect(validateSlug('my-story')).toBe(true);
+      expect(validateSlug('epic-1-story-2')).toBe(true);
+    });
+
+    it('should accept valid slugs with all allowed characters', () => {
+      expect(validateSlug('my-story-123')).toBe(true);
+      expect(validateSlug('auth-system-v2')).toBe(true);
+    });
+
+    it('should reject slugs with uppercase letters', () => {
+      expect(validateSlug('MyStory')).toBe(false);
+      expect(validateSlug('ABC')).toBe(false);
+    });
+
+    it('should reject slugs with underscores', () => {
+      expect(validateSlug('my_story')).toBe(false);
+      expect(validateSlug('auth_system')).toBe(false);
+    });
+
+    it('should reject slugs with spaces', () => {
+      expect(validateSlug('my story')).toBe(false);
+      expect(validateSlug(' test')).toBe(false);
+    });
+
+    it('should reject slugs with special characters', () => {
+      expect(validateSlug('my.story')).toBe(false);
+      expect(validateSlug('story@1')).toBe(false);
+      expect(validateSlug('test!')).toBe(false);
+      expect(validateSlug('name#1')).toBe(false);
+    });
+
+    it('should reject empty slugs', () => {
+      expect(validateSlug('')).toBe(false);
+    });
+
+    it('should reject slugs starting or ending with hyphen', () => {
+      expect(validateSlug('-story')).toBe(false);
+      expect(validateSlug('story-')).toBe(false);
+      expect(validateSlug('-')).toBe(false);
+    });
+  });
+
+  describe('createSession', () => {
+    it('should reject invalid epic slug', async () => {
+      await expect(createSession('Invalid_Epic', 'valid-story', 'echo hello'))
+        .rejects.toThrow(/invalid epic slug/i);
+    });
+
+    it('should reject invalid story slug', async () => {
+      await expect(createSession('valid-epic', 'Invalid_Story', 'echo hello'))
+        .rejects.toThrow(/invalid story slug/i);
+    });
+
+    it('should create output directory if it does not exist', async () => {
+      // existsSync returns false for OUTPUT_DIR (triggering mkdir), then true for output file rename
+      mockExistsSync.mockReturnValueOnce(false).mockReturnValue(true);
+      mockSpawnSync
+        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
+        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
+        .mockReturnValueOnce({ status: 0, stdout: '%0:bash:1234' }) // tmux list-panes
+        .mockReturnValueOnce({ status: 0, stdout: '' }); // tmux rename-session
+
+      await createSession('my-epic', 'my-story', 'echo hello');
+
+      expect(mockMkdirSync).toHaveBeenCalledWith(OUTPUT_DIR, { recursive: true });
+    });
+
+    it('should return session name and output file path on success', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync
+        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
+        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
+        .mockReturnValueOnce({ status: 0, stdout: '%0:bash:1234' }) // tmux list-panes (pane pid is 1234)
+        .mockReturnValueOnce({ status: 0, stdout: '' }); // tmux rename-session
+
+      const result = await createSession('my-epic', 'my-story', 'echo hello');
+
+      expect(result.sessionName).toBe('saga-my-epic-my-story-1234');
+      expect(result.outputFile).toBe('/tmp/saga-sessions/saga-my-epic-my-story-1234.out');
+    });
+
+    it('should throw error if tmux is not available', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync.mockReturnValueOnce({ status: 1, stdout: '' }); // which tmux fails
+
+      await expect(createSession('my-epic', 'my-story', 'echo hello'))
+        .rejects.toThrow(/tmux.*not found|not installed/i);
+    });
+
+    it('should throw error if tmux session creation fails', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync
+        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
+        .mockReturnValueOnce({ status: 1, stderr: 'session creation failed' }); // tmux new-session fails
+
+      await expect(createSession('my-epic', 'my-story', 'echo hello'))
+        .rejects.toThrow(/failed to create.*session/i);
+    });
+
+    it('should throw error if list-panes returns empty output', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync
+        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
+        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
+        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux list-panes returns empty
+        .mockReturnValueOnce({ status: 0 }); // tmux kill-session (cleanup)
+
+      await expect(createSession('my-epic', 'my-story', 'echo hello'))
+        .rejects.toThrow(/empty output/i);
+    });
+
+    it('should throw error if list-panes returns malformed output', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync
+        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
+        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
+        .mockReturnValueOnce({ status: 0, stdout: 'malformed' }) // tmux list-panes malformed
+        .mockReturnValueOnce({ status: 0 }); // tmux kill-session (cleanup)
+
+      await expect(createSession('my-epic', 'my-story', 'echo hello'))
+        .rejects.toThrow(/unexpected format/i);
+    });
+
+    it('should throw error if pane PID is not a number', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync
+        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
+        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
+        .mockReturnValueOnce({ status: 0, stdout: '%0:bash:notanumber' }) // tmux list-panes with invalid PID
+        .mockReturnValueOnce({ status: 0 }); // tmux kill-session (cleanup)
+
+      await expect(createSession('my-epic', 'my-story', 'echo hello'))
+        .rejects.toThrow(/invalid PID/i);
+    });
+  });
+
+  describe('listSessions', () => {
+    it('should return empty array when no sessions exist', async () => {
+      mockSpawnSync.mockReturnValue({ status: 1, stdout: '' }); // tmux ls returns non-zero when no sessions
+
+      const result = await listSessions();
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return only saga-prefixed sessions', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync.mockReturnValue({
+        status: 0,
+        stdout: 'saga-epic1-story1-1234: 1 windows\nother-session: 1 windows\nsaga-epic2-story2-5678: 2 windows\n',
+      });
+
+      const result = await listSessions();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe('saga-epic1-story1-1234');
+      expect(result[1].name).toBe('saga-epic2-story2-5678');
+    });
+
+    it('should include status for each session', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync.mockReturnValue({
+        status: 0,
+        stdout: 'saga-epic1-story1-1234: 1 windows\n',
+      });
+
+      const result = await listSessions();
+
+      expect(result[0].status).toBe('running');
+    });
+
+    it('should include output file path for each session', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync.mockReturnValue({
+        status: 0,
+        stdout: 'saga-epic1-story1-1234: 1 windows\n',
+      });
+
+      const result = await listSessions();
+
+      expect(result[0].outputFile).toBe('/tmp/saga-sessions/saga-epic1-story1-1234.out');
+    });
+  });
+
+  describe('getSessionStatus', () => {
+    it('should return running: true when session exists', async () => {
+      mockSpawnSync.mockReturnValue({ status: 0 }); // tmux has-session returns 0 when session exists
+
+      const result = await getSessionStatus('saga-epic1-story1-1234');
+
+      expect(result.running).toBe(true);
+    });
+
+    it('should return running: false when session does not exist', async () => {
+      mockSpawnSync.mockReturnValue({ status: 1 }); // tmux has-session returns non-zero when not found
+
+      const result = await getSessionStatus('saga-epic1-story1-1234');
+
+      expect(result.running).toBe(false);
+    });
+
+    it('should call tmux has-session with correct session name', async () => {
+      mockSpawnSync.mockReturnValue({ status: 0 });
+
+      await getSessionStatus('saga-epic1-story1-1234');
+
+      expect(mockSpawnSync).toHaveBeenCalledWith(
+        'tmux',
+        ['has-session', '-t', 'saga-epic1-story1-1234'],
+        expect.any(Object)
+      );
+    });
+  });
+
+  describe('killSession', () => {
+    it('should return killed: true when session is killed', async () => {
+      mockSpawnSync.mockReturnValue({ status: 0 }); // tmux kill-session returns 0 on success
+
+      const result = await killSession('saga-epic1-story1-1234');
+
+      expect(result.killed).toBe(true);
+    });
+
+    it('should return killed: false when session does not exist', async () => {
+      mockSpawnSync.mockReturnValue({ status: 1 }); // tmux kill-session returns non-zero when not found
+
+      const result = await killSession('saga-epic1-story1-1234');
+
+      expect(result.killed).toBe(false);
+    });
+
+    it('should call tmux kill-session with correct session name', async () => {
+      mockSpawnSync.mockReturnValue({ status: 0 });
+
+      await killSession('saga-epic1-story1-1234');
+
+      expect(mockSpawnSync).toHaveBeenCalledWith(
+        'tmux',
+        ['kill-session', '-t', 'saga-epic1-story1-1234'],
+        expect.any(Object)
+      );
+    });
+  });
+
+  describe('streamLogs', () => {
+    let mockChildProcess: ChildProcess & EventEmitter;
+
+    beforeEach(() => {
+      mockChildProcess = new EventEmitter() as ChildProcess & EventEmitter;
+      mockChildProcess.stdout = new EventEmitter() as any;
+      mockChildProcess.stderr = new EventEmitter() as any;
+      mockChildProcess.kill = vi.fn();
+    });
+
+    it('should throw error when output file does not exist', async () => {
+      mockExistsSync.mockReturnValue(false);
+
+      await expect(streamLogs('saga-epic1-story1-1234'))
+        .rejects.toThrow(/output file.*not found/i);
+    });
+
+    it('should spawn tail -f on the output file', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawn.mockReturnValue(mockChildProcess);
+
+      // Start streaming
+      const streamPromise = streamLogs('saga-epic1-story1-1234');
+
+      // Simulate process close
+      setTimeout(() => {
+        mockChildProcess.emit('close', 0);
+      }, 10);
+
+      await streamPromise;
+
+      expect(mockSpawn).toHaveBeenCalledWith(
+        'tail',
+        ['-f', '/tmp/saga-sessions/saga-epic1-story1-1234.out'],
+        expect.objectContaining({ stdio: ['ignore', 'pipe', 'pipe'] })
+      );
+    });
+
+    it('should resolve when process exits', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawn.mockReturnValue(mockChildProcess);
+
+      const streamPromise = streamLogs('saga-epic1-story1-1234');
+
+      // Simulate process close
+      setTimeout(() => {
+        mockChildProcess.emit('close', 0);
+      }, 10);
+
+      await expect(streamPromise).resolves.toBeUndefined();
+    });
+  });
+
+  describe('OUTPUT_DIR constant', () => {
+    it('should be /tmp/saga-sessions', () => {
+      expect(OUTPUT_DIR).toBe('/tmp/saga-sessions');
+    });
+  });
+});
