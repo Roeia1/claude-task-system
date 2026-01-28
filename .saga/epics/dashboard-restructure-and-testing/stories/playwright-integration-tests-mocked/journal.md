@@ -267,3 +267,50 @@
 
 **Next steps:**
 - Task t7: Add npm scripts and CI configuration
+
+## Session: 2026-01-28T10:00:00Z
+
+### Task: t7 - Add npm scripts and CI configuration
+
+**What was done:**
+- Verified npm scripts already exist in `packages/cli/package.json`:
+  - `test:integration` - runs Playwright tests in headless mode
+  - `test:integration:ui` - runs Playwright tests with UI mode for debugging
+- Created `.github/workflows/integration-tests.yml` with:
+  - Triggers on PRs to master/main branches
+  - Path filtering to only run on relevant changes (client code, package.json, workflow file)
+  - pnpm v9 and Node.js 20 setup with caching
+  - Chromium browser installation with system dependencies (`--with-deps`)
+  - Integration tests execution from packages/cli directory
+  - Artifact uploads on failure (playwright-report and test-results/traces)
+  - 10-minute job timeout for fast feedback
+
+**Decisions:**
+- Used path filtering to avoid running integration tests on unrelated changes
+- Used `pnpm/action-setup@v4` and `actions/setup-node@v4` for latest action versions
+- Installed only Chromium browser (per story guidance) with `--with-deps` for CI headless mode
+- Set reasonable timeout of 10 minutes (tests should run in under 30 seconds as per acceptance criteria)
+- Upload both playwright-report (HTML report) and test-results (traces/screenshots) on failure
+- Set retention to 7 days for artifacts
+
+**Verification:**
+- Workflow file created at `.github/workflows/integration-tests.yml`
+- YAML syntax is valid
+- Playwright discovers all 77 tests correctly
+- npm scripts verified in package.json
+
+**Story completion status:**
+All 7 tasks completed:
+- t1: Install and configure Playwright ✓
+- t2: Create API mocking infrastructure ✓
+- t3: Write loading state tests (10 tests) ✓
+- t4: Write error state tests (17 tests) ✓
+- t5: Write empty state tests (14 tests) ✓
+- t6: Write UI interaction tests (27 tests) ✓
+- t7: Add npm scripts and CI configuration ✓
+
+**Total: 77 integration tests created**
+
+**Notes:**
+- Chromium browser needs to be installed before running tests: `pnpm exec playwright install chromium`
+- CI workflow will handle browser installation automatically
