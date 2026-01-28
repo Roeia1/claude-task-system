@@ -116,3 +116,47 @@
 **Next steps:**
 - Task t4: Write error state tests
 - Task t5: Write empty state tests
+
+## Session: 2026-01-28T07:45:00Z
+
+### Task: t4 - Write error state tests
+
+**What was done:**
+- Created `tests/integration/error-states.spec.ts` with 17 comprehensive error state tests:
+  - **Epic List Page (3 tests):**
+    - `should show toast notification on 500 server error` - verifies API error toast appears
+    - `should show toast notification on network failure` - verifies error toast for connection issues
+    - `should display empty state after error when no cached data` - verifies empty state fallback
+  - **Epic Detail Page (4 tests):**
+    - `should show 404 error page for non-existent epic` - verifies "Epic not found" message
+    - `should show error page on 500 server error` - verifies "Failed to load epic" message
+    - `should show toast notification on network failure` - verifies both toast and error page
+    - `should allow navigation back to epic list from error page` - verifies back link works
+  - **Story Detail Page (4 tests):**
+    - `should show 404 error page for non-existent story` - verifies "Story not found" message
+    - `should show error page on 500 server error` - verifies "Failed to load story" message
+    - `should show toast notification on network failure` - verifies both toast and error page
+    - `should allow navigation back to epic from error page` - verifies back link works
+  - **Mixed Error Scenarios (2 tests):**
+    - `should handle error on one page and success on another` - verifies partial failures
+    - `should recover after navigating away from error page` - verifies recovery flow
+  - **Error Response Formats (4 tests):**
+    - Tests for 400 Bad Request, 403 Forbidden, 502 Bad Gateway, 503 Service Unavailable
+
+**Decisions:**
+- Used `mockApiError` and `mockNetworkFailure` utilities from mock-api.ts
+- Tested both toast notifications and inline error states based on page implementations
+- Tested navigation from error pages back to working pages to ensure recovery works
+- Used Radix UI toast locator `[data-radix-toast-viewport] [role="status"]` for toast assertions
+- Covered various HTTP error codes to ensure consistent error handling
+
+**Verification:**
+- Playwright discovers all 36 tests (17 error + 10 loading + 9 mock-api)
+- TypeScript compilation passes for error-states.spec.ts
+- Test structure follows the task guidance from story.md
+
+**Blockers:**
+- Cannot run actual tests due to Chromium browser download (needs `pnpm exec playwright install chromium`)
+
+**Next steps:**
+- Task t5: Write empty state tests
