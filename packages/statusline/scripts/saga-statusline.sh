@@ -25,7 +25,7 @@ show_help() {
     cat << 'EOF'
 Usage: task-status [OPTIONS]
 
-Display Claude Task System context information for terminal statuslines.
+Display SAGA context information for terminal statuslines.
 
 Options:
   --help        Show this help message and exit

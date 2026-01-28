@@ -157,6 +157,9 @@ export async function createSession(
 # Auto-generated wrapper script for SAGA session
 set -e
 
+# Mark this as an internal SAGA session (used by CLI to detect it's running inside tmux)
+export SAGA_INTERNAL_SESSION=1
+
 COMMAND_FILE="${commandFilePath}"
 OUTPUT_FILE="${outputFile}"
 SCRIPT_FILE="${wrapperScriptPath}"

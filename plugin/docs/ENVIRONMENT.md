@@ -50,6 +50,14 @@ Set when `SAGA_TASK_CONTEXT="story-worktree"`:
 | `SAGA_STORY_SLUG` | Story identifier | `"login-flow"` |
 | `SAGA_STORY_DIR` | Relative path to story files | `".saga/epics/user-auth/stories/login-flow"` |
 
+### Internal Variables (Set by CLI)
+
+These are set by the SAGA CLI for internal use. They are not set during normal interactive sessions.
+
+| Variable | Description | Values |
+|----------|-------------|--------|
+| `SAGA_INTERNAL_SESSION` | Indicates CLI is running inside a tmux session spawned by `saga implement`. Used to prevent creating nested tmux sessions. | `"1"` when inside tmux session |
+
 ### Detection Logic
 
 The SessionStart hook determines context based on filesystem:
