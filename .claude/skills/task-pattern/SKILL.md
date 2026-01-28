@@ -1,10 +1,10 @@
 ---
-name: author-agent
+name: task-pattern
 description: "Guidance for writing or refactoring agents and skills using structured task patterns. Use when creating new agents, refactoring existing ones, or designing skill workflows."
 allowed-tools: Read, Edit, Write, Glob, Grep
 ---
 
-# Authoring Agents and Skills
+# Task Pattern for Agents and Skills
 
 Patterns and best practices for writing or refactoring agents and skills using structured task tracking.
 
