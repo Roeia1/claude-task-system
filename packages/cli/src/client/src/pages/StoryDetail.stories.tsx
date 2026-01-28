@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { expect, within } from 'storybook/test'
 import { MemoryRouter, Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -47,7 +48,16 @@ type HeaderSkeletonStory = StoryObj<typeof HeaderSkeleton>
 /**
  * Default header skeleton showing the animated loading state.
  */
-export const Skeleton: HeaderSkeletonStory = {}
+export const Skeleton: HeaderSkeletonStory = {
+  play: async ({ canvasElement }) => {
+    // Verify animate-pulse class for loading animation
+    const pulseContainer = canvasElement.querySelector('.animate-pulse')
+    await expect(pulseContainer).toBeInTheDocument()
+    // Verify bg-bg-light placeholder elements
+    const placeholders = canvasElement.querySelectorAll('.bg-bg-light')
+    await expect(placeholders.length).toBeGreaterThanOrEqual(3)
+  },
+}
 
 // ============================================================================
 // ContentSkeleton Stories
@@ -76,6 +86,14 @@ type ContentSkeletonStory = StoryObj<typeof ContentSkeleton>
  */
 export const ContentLoading: ContentSkeletonStory = {
   render: () => <ContentSkeleton />,
+  play: async ({ canvasElement }) => {
+    // Verify animate-pulse class for loading animation
+    const pulseContainer = canvasElement.querySelector('.animate-pulse')
+    await expect(pulseContainer).toBeInTheDocument()
+    // Verify bg-bg-light placeholder elements
+    const placeholders = canvasElement.querySelectorAll('.bg-bg-light')
+    await expect(placeholders.length).toBeGreaterThanOrEqual(3)
+  },
 }
 
 /**
@@ -88,6 +106,14 @@ export const ContentLoadingStacked: ContentSkeletonStory = {
       <ContentSkeleton />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // Verify two stacked content skeletons
+    const pulseContainers = canvasElement.querySelectorAll('.animate-pulse')
+    await expect(pulseContainers.length).toBe(2)
+    // Verify space-y-6 container
+    const container = canvasElement.querySelector('.space-y-6')
+    await expect(container).toBeInTheDocument()
+  },
 }
 
 // ============================================================================
@@ -129,6 +155,15 @@ export const IconPending: TaskStatusIconStory = {
       <span className="text-text-muted">Pending task</span>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify pending text is displayed
+    await expect(canvas.getByText('Pending task')).toBeInTheDocument()
+    // Verify circle icon with text-muted color
+    const icon = canvasElement.querySelector('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
+    await expect(icon).toBeInTheDocument()
+    await expect(icon).toHaveClass('text-text-muted')
+  },
 }
 
 /**
@@ -141,24 +176,45 @@ export const IconInProgress: TaskStatusIconStory = {
       <span className="text-primary">In progress task</span>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify in progress text is displayed
+    await expect(canvas.getByText('In progress task')).toBeInTheDocument()
+    // Verify circle icon with primary color and fill
+    const icon = canvasElement.querySelector('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
+    await expect(icon).toBeInTheDocument()
+    await expect(icon).toHaveClass('text-primary')
+    await expect(icon).toHaveClass('fill-primary/20')
+  },
 }
 
 /**
  * Completed status - success green checkmark for finished tasks.
  */
 export const IconCompleted: TaskStatusIconStory = {
+
   render: () => (
     <div className="flex items-center gap-2">
       <TaskStatusIcon status="completed" />
       <span className="text-success">Completed task</span>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify completed text is displayed
+    await expect(canvas.getByText('Completed task')).toBeInTheDocument()
+    // Verify check-circle icon with success color
+    const icon = canvasElement.querySelector('svg[class*="check"][class*="circle"]')
+    await expect(icon).toBeInTheDocument()
+    await expect(icon).toHaveClass('text-success')
+  },
 }
 
 /**
  * All task status icons displayed together for comparison.
  */
 export const AllTaskIcons: TaskStatusIconStory = {
+
   render: () => (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -175,6 +231,18 @@ export const AllTaskIcons: TaskStatusIconStory = {
       </div>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify all three status labels are present
+    await expect(canvas.getByText('Pending')).toBeInTheDocument()
+    await expect(canvas.getByText('In Progress')).toBeInTheDocument()
+    await expect(canvas.getByText('Completed')).toBeInTheDocument()
+    // Verify icons are present (2 circles + 1 check-circle)
+    const circleIcons = canvasElement.querySelectorAll('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
+    await expect(circleIcons.length).toBe(2)
+    const checkIcon = canvasElement.querySelector('svg[class*="check"][class*="circle"]')
+    await expect(checkIcon).toBeInTheDocument()
+  },
 }
 
 // ============================================================================
@@ -211,6 +279,18 @@ const createTask = (overrides: Partial<Task> = {}): Task => ({
  */
 export const TaskPending: TaskItemStory = {
   render: () => <TaskItem task={createTask({ status: 'pending' })} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify task title
+    await expect(canvas.getByText('Write unit tests for API endpoints')).toBeInTheDocument()
+    // Verify pending status badge
+    const badge = canvas.getByText('pending')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-text-muted/20')
+    // Verify pending icon (circle)
+    const icon = canvasElement.querySelector('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
+    await expect(icon).toBeInTheDocument()
+  },
 }
 
 /**
@@ -225,12 +305,26 @@ export const TaskInProgress: TaskItemStory = {
       })}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify task title
+    await expect(canvas.getByText('Implement authentication flow')).toBeInTheDocument()
+    // Verify in_progress status badge
+    const badge = canvas.getByText('in progress')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-primary/20')
+    // Verify in_progress icon (circle with fill)
+    const icon = canvasElement.querySelector('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
+    await expect(icon).toBeInTheDocument()
+    await expect(icon).toHaveClass('text-primary')
+  },
 }
 
 /**
  * Completed task - shows strikethrough text.
  */
 export const TaskCompleted: TaskItemStory = {
+
   render: () => (
     <TaskItem
       task={createTask({
@@ -239,6 +333,22 @@ export const TaskCompleted: TaskItemStory = {
       })}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify task title with strikethrough styling
+    const titleElement = canvas.getByText('Setup project structure')
+    await expect(titleElement).toBeInTheDocument()
+    await expect(titleElement).toHaveClass('line-through')
+    await expect(titleElement).toHaveClass('text-text-muted')
+    // Verify completed status badge
+    const badge = canvas.getByText('completed')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-success/20')
+    // Verify completed icon (check-circle)
+    const icon = canvasElement.querySelector('svg[class*="check"][class*="circle"]')
+    await expect(icon).toBeInTheDocument()
+    await expect(icon).toHaveClass('text-success')
+  },
 }
 
 /**
@@ -254,12 +364,24 @@ export const TaskLongTitle: TaskItemStory = {
       })}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify long task title is displayed
+    await expect(
+      canvas.getByText(
+        'This is a very long task title that demonstrates how text wrapping works in the task item component when the content exceeds normal length'
+      )
+    ).toBeInTheDocument()
+    // Verify status badge
+    await expect(canvas.getByText('in progress')).toBeInTheDocument()
+  },
 }
 
 /**
  * Multiple tasks showing all status types.
  */
 export const AllTaskStatuses: TaskItemStory = {
+
   render: () => (
     <div className="divide-y divide-border-muted">
       <TaskItem
@@ -292,6 +414,24 @@ export const AllTaskStatuses: TaskItemStory = {
       />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify all task titles
+    await expect(canvas.getByText('Setup project structure')).toBeInTheDocument()
+    await expect(canvas.getByText('Implement core functionality')).toBeInTheDocument()
+    await expect(canvas.getByText('Write documentation')).toBeInTheDocument()
+    await expect(canvas.getByText('Add integration tests')).toBeInTheDocument()
+    // Verify all status badges (1 completed, 1 in_progress, 2 pending)
+    await expect(canvas.getByText('completed')).toBeInTheDocument()
+    await expect(canvas.getByText('in progress')).toBeInTheDocument()
+    const pendingBadges = canvas.getAllByText('pending')
+    await expect(pendingBadges.length).toBe(2)
+    // Verify icons (1 check-circle, 3 circles)
+    const checkIcons = canvasElement.querySelectorAll('svg[class*="check"][class*="circle"]')
+    await expect(checkIcons.length).toBe(1)
+    const circleIcons = canvasElement.querySelectorAll('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
+    await expect(circleIcons.length).toBe(3)
+  },
 }
 
 // ============================================================================
@@ -341,6 +481,20 @@ const createJournalEntry = (overrides: Partial<JournalEntry> = {}): JournalEntry
  */
 export const EntrySession: JournalEntryStory = {
   render: () => <JournalEntryItem entry={createJournalEntry()} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify entry title
+    await expect(canvas.getByText('Session: 2026-01-28 01:00 UTC')).toBeInTheDocument()
+    // Verify session type badge
+    const badge = canvas.getByText('session')
+    await expect(badge).toBeInTheDocument()
+    // Verify collapsed state (chevron-right visible, content hidden)
+    const chevronRight = canvasElement.querySelector('svg[class*="chevron-right"]')
+    await expect(chevronRight).toBeInTheDocument()
+    // Verify bg-bg-light neutral styling for session type
+    const card = canvasElement.querySelector('.bg-bg-light')
+    await expect(card).toBeInTheDocument()
+  },
 }
 
 /**
@@ -348,12 +502,24 @@ export const EntrySession: JournalEntryStory = {
  */
 export const EntrySessionExpanded: JournalEntryStory = {
   render: () => <JournalEntryItem entry={createJournalEntry()} defaultOpen={true} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify entry title
+    await expect(canvas.getByText('Session: 2026-01-28 01:00 UTC')).toBeInTheDocument()
+    // Verify expanded state (chevron-down visible)
+    const chevronDown = canvasElement.querySelector('svg[class*="chevron-down"]')
+    await expect(chevronDown).toBeInTheDocument()
+    // Verify content is visible (check for specific text from content)
+    await expect(canvas.getByText(/What was done:/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Used Vite for faster development builds/)).toBeInTheDocument()
+  },
 }
 
 /**
  * Blocker entry - red color, indicates impediment.
  */
 export const EntryBlocker: JournalEntryStory = {
+
   render: () => (
     <JournalEntryItem
       entry={createJournalEntry({
@@ -375,6 +541,24 @@ export const EntryBlocker: JournalEntryStory = {
       defaultOpen={true}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify blocker title
+    await expect(canvas.getByText('Blocked: Missing API credentials')).toBeInTheDocument()
+    // Verify blocker type badge with danger styling
+    const badge = canvas.getByText('blocker')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('text-danger')
+    // Verify alert icon for blocker
+    const alertIcon = canvasElement.querySelector('svg[class*="alert"][class*="circle"]')
+    await expect(alertIcon).toBeInTheDocument()
+    // Verify blocker content is visible
+    await expect(canvas.getByText(/Cannot access external API/)).toBeInTheDocument()
+    await expect(canvas.getByText(/What I need/)).toBeInTheDocument()
+    // Verify bg-danger/10 styling for blocker type
+    const card = canvasElement.querySelector('[class*="bg-danger"]')
+    await expect(card).toBeInTheDocument()
+  },
 }
 
 /**
@@ -398,6 +582,21 @@ export const EntryResolution: JournalEntryStory = {
       defaultOpen={true}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify resolution title
+    await expect(canvas.getByText('Resolution: API credentials received')).toBeInTheDocument()
+    // Verify resolution type badge with success styling
+    const badge = canvas.getByText('resolution')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('text-success')
+    // Verify resolution content is visible
+    await expect(canvas.getByText(/Blocker resolved/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Action taken/)).toBeInTheDocument()
+    // Verify bg-success/10 styling for resolution type
+    const card = canvasElement.querySelector('[class*="bg-success"]')
+    await expect(card).toBeInTheDocument()
+  },
 }
 
 /**
@@ -452,6 +651,24 @@ export const AllEntryTypes: JournalEntryStory = {
       </div>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify section headers
+    await expect(canvas.getByText('Blockers (1)')).toBeInTheDocument()
+    await expect(canvas.getByText('Resolutions (1)')).toBeInTheDocument()
+    await expect(canvas.getByText('Sessions (2)')).toBeInTheDocument()
+    // Verify blocker entry
+    await expect(canvas.getByText('Blocked: Database schema unclear')).toBeInTheDocument()
+    await expect(canvas.getByText('blocker')).toBeInTheDocument()
+    // Verify resolution entry
+    await expect(canvas.getByText('Resolution: Schema finalized')).toBeInTheDocument()
+    await expect(canvas.getByText('resolution')).toBeInTheDocument()
+    // Verify session entries
+    await expect(canvas.getByText('Session: 2026-01-28 09:00 UTC')).toBeInTheDocument()
+    await expect(canvas.getByText('Session: 2026-01-27 14:00 UTC')).toBeInTheDocument()
+    const sessionBadges = canvas.getAllByText('session')
+    await expect(sessionBadges.length).toBe(2)
+  },
 }
 
 // ============================================================================
@@ -488,6 +705,13 @@ type StatusBadgeStory = StoryObj<typeof StatusBadge>
  */
 export const BadgeReady: StatusBadgeStory = {
   render: () => <StatusBadge status="ready" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Ready')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-text-muted/20')
+    await expect(badge).toHaveClass('text-text-muted')
+  },
 }
 
 /**
@@ -495,6 +719,13 @@ export const BadgeReady: StatusBadgeStory = {
  */
 export const BadgeInProgress: StatusBadgeStory = {
   render: () => <StatusBadge status="in_progress" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('In Progress')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-primary/20')
+    await expect(badge).toHaveClass('text-primary')
+  },
 }
 
 /**
@@ -502,6 +733,13 @@ export const BadgeInProgress: StatusBadgeStory = {
  */
 export const BadgeBlocked: StatusBadgeStory = {
   render: () => <StatusBadge status="blocked" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Blocked')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-danger/20')
+    await expect(badge).toHaveClass('text-danger')
+  },
 }
 
 /**
@@ -509,6 +747,13 @@ export const BadgeBlocked: StatusBadgeStory = {
  */
 export const BadgeCompleted: StatusBadgeStory = {
   render: () => <StatusBadge status="completed" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Completed')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-success/20')
+    await expect(badge).toHaveClass('text-success')
+  },
 }
 
 /**
@@ -523,6 +768,14 @@ export const AllBadges: StatusBadgeStory = {
       <StatusBadge status="completed" />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify all four status badges are present
+    await expect(canvas.getByText('Ready')).toBeInTheDocument()
+    await expect(canvas.getByText('In Progress')).toBeInTheDocument()
+    await expect(canvas.getByText('Blocked')).toBeInTheDocument()
+    await expect(canvas.getByText('Completed')).toBeInTheDocument()
+  },
 }
 
 // ============================================================================
@@ -558,6 +811,14 @@ export const Loading: StoryDetailStory = {
       <ContentSkeleton />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // Verify header and content skeletons are present
+    const skeletons = canvasElement.querySelectorAll('.animate-pulse')
+    await expect(skeletons.length).toBe(2) // 1 header + 1 content
+    // Verify bg-bg-light placeholder elements
+    const placeholders = canvasElement.querySelectorAll('.bg-bg-light')
+    await expect(placeholders.length).toBeGreaterThanOrEqual(5)
+  },
 }
 
 /**
@@ -578,6 +839,29 @@ export const NotFound: StoryDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  // Enable a11y tests for back link
+  parameters: {
+    a11y: {
+      test: 'error',
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify error title
+    await expect(canvas.getByText('Story not found')).toBeInTheDocument()
+    // Verify error message with story and epic names
+    await expect(
+      canvas.getByText(/The story "non-existent-story" does not exist/)
+    ).toBeInTheDocument()
+    await expect(canvas.getByText(/dashboard-restructure/)).toBeInTheDocument()
+    // Verify back link
+    const backLink = canvas.getByRole('link', { name: /back to epic/i })
+    await expect(backLink).toBeInTheDocument()
+    await expect(backLink).toHaveAttribute('href', '/epic/dashboard-restructure')
+
+    // Accessibility: Verify back link has accessible name
+    await expect(backLink).toHaveAccessibleName()
+  },
 }
 
 /**
@@ -595,6 +879,28 @@ export const ErrorState: StoryDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  // Enable a11y tests for back link
+  parameters: {
+    a11y: {
+      test: 'error',
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify error heading with danger styling
+    const errorHeading = canvas.getByText('Error')
+    await expect(errorHeading).toBeInTheDocument()
+    await expect(errorHeading).toHaveClass('text-danger')
+    // Verify error message
+    await expect(canvas.getByText('Failed to load story')).toBeInTheDocument()
+    // Verify back link
+    const backLink = canvas.getByRole('link', { name: /back to epic/i })
+    await expect(backLink).toBeInTheDocument()
+    await expect(backLink).toHaveAttribute('href', '/epic/dashboard-restructure')
+
+    // Accessibility: Verify back link has accessible name
+    await expect(backLink).toHaveAccessibleName()
+  },
 }
 
 const sampleStory: StoryDetailType = {
@@ -701,12 +1007,53 @@ export const Populated: StoryDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  // Enable a11y tests for interactive elements (tabs, links)
+  parameters: {
+    a11y: {
+      test: 'error',
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify story header - epic link and story slug
+    const epicLink = canvas.getByRole('link', { name: 'dashboard-restructure' })
+    await expect(epicLink).toBeInTheDocument()
+    await expect(epicLink).toHaveAttribute('href', '/epic/dashboard-restructure')
+    await expect(canvas.getByText('storybook-setup-component-stories')).toBeInTheDocument()
+    // Verify story title
+    await expect(canvas.getByText('Storybook Setup and Component Stories')).toBeInTheDocument()
+    // Verify status badge
+    await expect(canvas.getByText('In Progress')).toBeInTheDocument()
+    // Verify task progress
+    await expect(canvas.getByText('6/9 tasks completed')).toBeInTheDocument()
+    // Verify tabs are present
+    await expect(canvas.getByRole('tab', { name: 'Tasks' })).toBeInTheDocument()
+    await expect(canvas.getByRole('tab', { name: 'Story Content' })).toBeInTheDocument()
+    await expect(canvas.getByRole('tab', { name: 'Journal' })).toBeInTheDocument()
+    // Verify tasks card title
+    await expect(canvas.getByText('Tasks', { selector: '.text-lg' })).toBeInTheDocument()
+    // Verify some task items are rendered
+    await expect(canvas.getByText('Install and configure Storybook 10.x')).toBeInTheDocument()
+    await expect(canvas.getByText('Create stories for StoryDetail page')).toBeInTheDocument()
+
+    // Accessibility: Verify epic link has accessible name
+    await expect(epicLink).toHaveAccessibleName()
+    // Verify tablist has proper ARIA role
+    const tabList = canvasElement.querySelector('[role="tablist"]')
+    await expect(tabList).toBeInTheDocument()
+    // Verify all tabs have accessible names
+    const tabs = canvas.getAllByRole('tab')
+    for (const tab of tabs) {
+      await expect(tab).toHaveAccessibleName()
+    }
+  },
 }
 
 /**
  * Story with no tasks defined.
  */
 export const EmptyTasks: StoryDetailStory = {
+
   render: () => (
     <MemoryRouter>
       <div className="space-y-6">
@@ -748,6 +1095,19 @@ export const EmptyTasks: StoryDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify story title
+    await expect(canvas.getByText('New Story')).toBeInTheDocument()
+    // Verify Ready status badge
+    const badge = canvas.getByText('Ready')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-text-muted/20')
+    // Verify 0/0 tasks progress
+    await expect(canvas.getByText('0/0 tasks completed')).toBeInTheDocument()
+    // Verify empty tasks message
+    await expect(canvas.getByText('No tasks defined for this story.')).toBeInTheDocument()
+  },
 }
 
 const storyWithBlocker: StoryDetailType = {
@@ -855,6 +1215,28 @@ export const WithBlocker: StoryDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify story title
+    await expect(canvas.getByText('API Integration')).toBeInTheDocument()
+    // Verify Blocked status badge
+    const badge = canvas.getByText('Blocked')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-danger/20')
+    // Verify task progress
+    await expect(canvas.getByText('1/4 tasks completed')).toBeInTheDocument()
+    // Verify Journal tab has blocker count badge
+    const journalTabBadge = canvasElement.querySelector('[data-state="active"] .bg-danger\\/20')
+    await expect(journalTabBadge).toBeInTheDocument()
+    // Verify Blockers section header
+    await expect(canvas.getByText('Blockers (1)')).toBeInTheDocument()
+    // Verify blocker entry is displayed
+    await expect(canvas.getByText('Blocked: Missing API credentials')).toBeInTheDocument()
+    // Verify Sessions section header
+    await expect(canvas.getByText('Sessions (1)')).toBeInTheDocument()
+    // Verify session entry title
+    await expect(canvas.getByText('Session: 2026-01-28 09:00 UTC')).toBeInTheDocument()
+  },
 }
 
 const completedStory: StoryDetailType = {
@@ -900,6 +1282,7 @@ const completedStory: StoryDetailType = {
  * Completed story - all tasks done.
  */
 export const Completed: StoryDetailStory = {
+
   render: () => (
     <MemoryRouter>
       <div className="space-y-6">
@@ -945,6 +1328,28 @@ export const Completed: StoryDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify story title
+    await expect(canvas.getByText('Setup Project Structure')).toBeInTheDocument()
+    // Verify Completed status badge
+    const badge = canvas.getByText('Completed')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-success/20')
+    // Verify task progress (all completed)
+    await expect(canvas.getByText('4/4 tasks completed')).toBeInTheDocument()
+    // Verify all tasks are rendered with completed status
+    await expect(canvas.getByText('Initialize repository')).toBeInTheDocument()
+    await expect(canvas.getByText('Configure build tools')).toBeInTheDocument()
+    await expect(canvas.getByText('Setup linting and formatting')).toBeInTheDocument()
+    await expect(canvas.getByText('Add CI pipeline')).toBeInTheDocument()
+    // Verify all task badges show "completed"
+    const completedBadges = canvas.getAllByText('completed')
+    await expect(completedBadges.length).toBe(4)
+    // Verify all tasks have check-circle icons
+    const checkIcons = canvasElement.querySelectorAll('svg[class*="check"][class*="circle"]')
+    await expect(checkIcons.length).toBe(4)
+  },
 }
 
 /**
@@ -997,6 +1402,23 @@ export const WithContent: StoryDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify story title
+    await expect(canvas.getByText('Storybook Setup and Component Stories')).toBeInTheDocument()
+    // Verify Story Content tab is active
+    const contentTab = canvas.getByRole('tab', { name: 'Story Content' })
+    await expect(contentTab).toBeInTheDocument()
+    // Verify Story Content card title
+    await expect(canvas.getByText('Story Content', { selector: '.text-lg' })).toBeInTheDocument()
+    // Verify markdown content is displayed (check for specific text from content)
+    await expect(canvas.getByText(/Context/)).toBeInTheDocument()
+    await expect(canvas.getByText(/The SAGA Dashboard needs Storybook/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Acceptance Criteria/)).toBeInTheDocument()
+    // Verify pre element for content display
+    const preElement = canvasElement.querySelector('pre.bg-bg-dark')
+    await expect(preElement).toBeInTheDocument()
+  },
 }
 
 /**
@@ -1039,4 +1461,18 @@ export const EmptyJournal: StoryDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify story title
+    await expect(canvas.getByText('New Story')).toBeInTheDocument()
+    // Verify Ready status badge
+    await expect(canvas.getByText('Ready')).toBeInTheDocument()
+    // Verify task progress
+    await expect(canvas.getByText('0/3 tasks completed')).toBeInTheDocument()
+    // Verify Journal tab is active (defaultValue="journal")
+    const journalTab = canvas.getByRole('tab', { name: 'Journal' })
+    await expect(journalTab).toBeInTheDocument()
+    // Verify empty journal message
+    await expect(canvas.getByText('No journal entries yet.')).toBeInTheDocument()
+  },
 }

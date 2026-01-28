@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { expect, within } from 'storybook/test'
 import { Badge } from '@/components/ui/badge'
 import type { StoryStatus } from '@/types/dashboard'
 
@@ -96,6 +97,13 @@ type Story = StoryObj<typeof StatusBadge>
  */
 export const Ready: Story = {
   render: () => <StatusBadge status="ready" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Ready')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-text-muted/20')
+    await expect(badge).toHaveClass('text-text-muted')
+  },
 }
 
 /**
@@ -104,6 +112,13 @@ export const Ready: Story = {
  */
 export const InProgress: Story = {
   render: () => <StatusBadge status="in_progress" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('In Progress')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-primary/20')
+    await expect(badge).toHaveClass('text-primary')
+  },
 }
 
 /**
@@ -112,6 +127,13 @@ export const InProgress: Story = {
  */
 export const Blocked: Story = {
   render: () => <StatusBadge status="blocked" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Blocked')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-danger/20')
+    await expect(badge).toHaveClass('text-danger')
+  },
 }
 
 /**
@@ -120,6 +142,13 @@ export const Blocked: Story = {
  */
 export const Completed: Story = {
   render: () => <StatusBadge status="completed" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Completed')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-success/20')
+    await expect(badge).toHaveClass('text-success')
+  },
 }
 
 /**
@@ -135,6 +164,14 @@ export const AllVariants: Story = {
       <StatusBadge status="completed" />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify all four status badges are present
+    await expect(canvas.getByText('Ready')).toBeInTheDocument()
+    await expect(canvas.getByText('In Progress')).toBeInTheDocument()
+    await expect(canvas.getByText('Blocked')).toBeInTheDocument()
+    await expect(canvas.getByText('Completed')).toBeInTheDocument()
+  },
 }
 
 // ============================================================================
@@ -175,6 +212,12 @@ type WithCountStory = StoryObj<typeof StatusBadgeWithCount>
  */
 export const ReadyWithCount: WithCountStory = {
   render: () => <StatusBadgeWithCount status="ready" count={5} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Ready: 5')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-text-muted/20')
+  },
 }
 
 /**
@@ -182,6 +225,12 @@ export const ReadyWithCount: WithCountStory = {
  */
 export const InProgressWithCount: WithCountStory = {
   render: () => <StatusBadgeWithCount status="in_progress" count={3} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('In Progress: 3')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-primary/20')
+  },
 }
 
 /**
@@ -189,6 +238,12 @@ export const InProgressWithCount: WithCountStory = {
  */
 export const BlockedWithCount: WithCountStory = {
   render: () => <StatusBadgeWithCount status="blocked" count={1} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Blocked: 1')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-danger/20')
+  },
 }
 
 /**
@@ -196,6 +251,12 @@ export const BlockedWithCount: WithCountStory = {
  */
 export const CompletedWithCount: WithCountStory = {
   render: () => <StatusBadgeWithCount status="completed" count={8} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Completed: 8')
+    await expect(badge).toBeInTheDocument()
+    await expect(badge).toHaveClass('bg-success/20')
+  },
 }
 
 /**
@@ -210,6 +271,14 @@ export const AllVariantsWithCount: WithCountStory = {
       <StatusBadgeWithCount status="completed" count={8} />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify all four status badges with counts are present
+    await expect(canvas.getByText('Ready: 5')).toBeInTheDocument()
+    await expect(canvas.getByText('In Progress: 3')).toBeInTheDocument()
+    await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument()
+    await expect(canvas.getByText('Completed: 8')).toBeInTheDocument()
+  },
 }
 
 // ============================================================================
@@ -248,6 +317,24 @@ export const BadgeComparison: Story = {
       </div>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify section headers
+    await expect(
+      canvas.getByText('Without Count (EpicDetail/StoryDetail)')
+    ).toBeInTheDocument()
+    await expect(canvas.getByText('With Count (EpicList)')).toBeInTheDocument()
+    // Verify badges without count
+    await expect(canvas.getByText('Ready')).toBeInTheDocument()
+    await expect(canvas.getByText('In Progress')).toBeInTheDocument()
+    await expect(canvas.getByText('Blocked')).toBeInTheDocument()
+    await expect(canvas.getByText('Completed')).toBeInTheDocument()
+    // Verify badges with count
+    await expect(canvas.getByText('Ready: 5')).toBeInTheDocument()
+    await expect(canvas.getByText('In Progress: 3')).toBeInTheDocument()
+    await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument()
+    await expect(canvas.getByText('Completed: 8')).toBeInTheDocument()
+  },
 }
 
 /**
@@ -283,4 +370,20 @@ export const EdgeCases: Story = {
       </div>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify section headers
+    await expect(canvas.getByText('Zero Counts')).toBeInTheDocument()
+    await expect(canvas.getByText('Large Counts')).toBeInTheDocument()
+    await expect(canvas.getByText('Single Story Count')).toBeInTheDocument()
+    // Verify zero counts
+    await expect(canvas.getByText('Ready: 0')).toBeInTheDocument()
+    await expect(canvas.getByText('Blocked: 0')).toBeInTheDocument()
+    // Verify large counts
+    await expect(canvas.getByText('Ready: 42')).toBeInTheDocument()
+    await expect(canvas.getByText('Completed: 100')).toBeInTheDocument()
+    // Verify single counts
+    await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument()
+    await expect(canvas.getByText('In Progress: 1')).toBeInTheDocument()
+  },
 }
