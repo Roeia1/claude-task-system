@@ -74,3 +74,45 @@
 **Next steps:**
 - Once browser is installed, run tests to verify mocking works end-to-end
 - Task t3: Write loading state tests using the mock infrastructure
+
+## Session: 2026-01-28T07:00:00Z
+
+### Task: t3 - Write loading state tests
+
+**What was done:**
+- Created `tests/integration/loading-states.spec.ts` with 10 comprehensive loading state tests:
+  - **Epic List Page (3 tests):**
+    - `should show skeleton loaders while loading epics` - verifies skeleton loaders appear during API fetch
+    - `should show multiple skeleton cards while loading` - verifies 3 skeleton cards are shown
+    - `should hide skeleton loaders after data arrives` - verifies skeletons disappear after data loads
+  - **Epic Detail Page (2 tests):**
+    - `should show header and story card skeletons while loading` - verifies HeaderSkeleton and StoryCardSkeleton
+    - `should show progress skeleton in header while loading` - verifies progress bar skeleton
+  - **Story Detail Page (3 tests):**
+    - `should show header and content skeletons while loading` - verifies HeaderSkeleton and ContentSkeleton
+    - `should show skeleton placeholders for header elements` - verifies 2 skeleton components
+    - `should transition from loading to loaded state correctly` - verifies full loading->loaded transition
+  - **Fast Responses (2 tests):**
+    - `should handle immediate response without visible loading state` - tests instant API responses
+    - `should handle quick sequence of navigations` - tests navigation with fast responses
+- Fixed Vitest/Playwright conflict by creating `vitest.config.ts` that excludes Playwright tests from Vitest
+- All tests use `mockApiDelay` to simulate slow API responses and observe loading states
+- Tests use Playwright's auto-waiting with `toBeVisible()` to avoid flaky timing assertions
+
+**Decisions:**
+- Used `.animate-pulse` class to detect skeleton loaders (matches the actual implementation in EpicList.tsx, EpicDetail.tsx, StoryDetail.tsx)
+- Used short delays (100-2000ms) to keep tests fast while still being able to observe loading states
+- Created separate test sections for each page type for clarity
+- Added "Fast Responses" section to test edge cases where loading states may not be visible
+
+**Verification:**
+- TypeScript compilation passes: `tsc --noEmit` succeeds
+- Playwright discovers all 19 tests (10 loading + 9 mock-api)
+- Test structure follows the task guidance from story.md
+
+**Blockers:**
+- Cannot run actual tests due to Chromium browser download timeout (ongoing network issue)
+
+**Next steps:**
+- Task t4: Write error state tests
+- Task t5: Write empty state tests
