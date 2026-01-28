@@ -834,6 +834,12 @@ export const NotFound: StoryDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  // Enable a11y tests for back link
+  parameters: {
+    a11y: {
+      test: 'error',
+    },
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     // Verify error title
@@ -847,6 +853,9 @@ export const NotFound: StoryDetailStory = {
     const backLink = canvas.getByRole('link', { name: /back to epic/i })
     await expect(backLink).toBeInTheDocument()
     await expect(backLink).toHaveAttribute('href', '/epic/dashboard-restructure')
+
+    // Accessibility: Verify back link has accessible name
+    await expect(backLink).toHaveAccessibleName()
   },
 }
 
@@ -865,6 +874,12 @@ export const ErrorState: StoryDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  // Enable a11y tests for back link
+  parameters: {
+    a11y: {
+      test: 'error',
+    },
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     // Verify error heading with danger styling
@@ -877,6 +892,9 @@ export const ErrorState: StoryDetailStory = {
     const backLink = canvas.getByRole('link', { name: /back to epic/i })
     await expect(backLink).toBeInTheDocument()
     await expect(backLink).toHaveAttribute('href', '/epic/dashboard-restructure')
+
+    // Accessibility: Verify back link has accessible name
+    await expect(backLink).toHaveAccessibleName()
   },
 }
 
@@ -984,6 +1002,12 @@ export const Populated: StoryDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  // Enable a11y tests for interactive elements (tabs, links)
+  parameters: {
+    a11y: {
+      test: 'error',
+    },
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     // Verify story header - epic link and story slug
@@ -1006,6 +1030,17 @@ export const Populated: StoryDetailStory = {
     // Verify some task items are rendered
     await expect(canvas.getByText('Install and configure Storybook 10.x')).toBeInTheDocument()
     await expect(canvas.getByText('Create stories for StoryDetail page')).toBeInTheDocument()
+
+    // Accessibility: Verify epic link has accessible name
+    await expect(epicLink).toHaveAccessibleName()
+    // Verify tablist has proper ARIA role
+    const tabList = canvasElement.querySelector('[role="tablist"]')
+    await expect(tabList).toBeInTheDocument()
+    // Verify all tabs have accessible names
+    const tabs = canvas.getAllByRole('tab')
+    for (const tab of tabs) {
+      await expect(tab).toHaveAccessibleName()
+    }
   },
 }
 

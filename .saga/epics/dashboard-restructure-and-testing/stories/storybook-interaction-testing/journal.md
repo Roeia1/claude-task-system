@@ -214,3 +214,45 @@
 
 **Next steps:**
 - Add accessibility tests to key interactive stories (task t8)
+
+## Session: 2026-01-28T08:00:00Z
+
+### Task: t8 - Add accessibility tests to key interactive stories
+
+**What was done:**
+- Added `parameters.a11y.test: 'error'` to key interactive component story metas to enable a11y test failures on accessibility violations:
+  - Breadcrumb stories (Components/Breadcrumb): navigation links must have accessible names
+  - EpicCard stories (Pages/EpicList/EpicCard): clickable card links must have accessible names
+  - StoryCard stories (Pages/EpicDetail/StoryCard): clickable card links must have accessible names
+- Added accessibility assertions to play functions for key interactive elements:
+  - **Breadcrumb stories**:
+    - Root: verifies nav has aria-label="Breadcrumb"
+    - EpicDetail: verifies links have accessible names, nav has aria-label
+    - StoryDetail: verifies all links have accessible names, nav has aria-label
+  - **EpicCard stories**:
+    - Card: verifies link has accessible name
+    - CardGrid: verifies all links have accessible names
+  - **EpicList composite stories**:
+    - WithArchivedEpics: enabled a11y tests, verifies checkbox has accessible name "Show archived"
+    - WithArchivedVisible: enabled a11y tests, verifies checkbox has accessible name "Show archived"
+  - **StoryCard stories**:
+    - Card: verifies link has accessible name
+    - CardGrid: verifies all links have accessible names
+  - **EpicDetail composite stories**:
+    - NotFound: enabled a11y tests, verifies back link has accessible name
+    - ErrorState: enabled a11y tests, verifies back link has accessible name
+  - **StoryDetail composite stories**:
+    - NotFound: enabled a11y tests, verifies back link has accessible name
+    - ErrorState: enabled a11y tests, verifies back link has accessible name
+    - Populated: enabled a11y tests, verifies epic link has accessible name, tablist has proper ARIA role, all tabs have accessible names
+- Verified Storybook builds successfully with all accessibility test additions
+
+**Decisions:**
+- Used `toHaveAccessibleName()` assertion to verify elements have proper accessible names for screen readers
+- Added `parameters.a11y.test: 'error'` at the component meta level for EpicCard, StoryCard, and Breadcrumb to ensure all their stories run a11y tests
+- Added `parameters.a11y.test: 'error'` at the story level for specific composite stories that have interactive elements (error states with back links, toggle checkboxes)
+- Verified ARIA roles for navigation elements (nav with aria-label, tablist role)
+- Did not add extensive a11y tests to skeleton/loading stories since they don't have interactive elements
+
+**Next steps:**
+- Verify all tests pass with pnpm storybook test (task t9)

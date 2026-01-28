@@ -240,6 +240,10 @@ export const storyCardMeta: Meta<typeof StoryCard> = {
           'Card component for displaying a single story with title, status badge, and task progress. Clickable to navigate to story detail.',
       },
     },
+    // Enable a11y tests for clickable card links - must have accessible names
+    a11y: {
+      test: 'error',
+    },
   },
 }
 
@@ -283,6 +287,9 @@ export const Card: StoryCardStory = {
       'href',
       '/epic/dashboard-restructure/story/setup-testing-framework'
     )
+
+    // Accessibility: Verify the link has an accessible name (the story title)
+    await expect(link).toHaveAccessibleName()
   },
 }
 
@@ -484,6 +491,11 @@ export const CardGrid: StoryCardStory = {
     // Verify four links
     const links = canvas.getAllByRole('link')
     await expect(links.length).toBe(4)
+
+    // Accessibility: Verify all links have accessible names
+    for (const link of links) {
+      await expect(link).toHaveAccessibleName()
+    }
   },
 }
 
@@ -554,6 +566,12 @@ export const NotFound: EpicDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  // Enable a11y tests for back link
+  parameters: {
+    a11y: {
+      test: 'error',
+    },
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     // Verify error title
@@ -566,6 +584,9 @@ export const NotFound: EpicDetailStory = {
     const backLink = canvas.getByRole('link', { name: /back to epic list/i })
     await expect(backLink).toBeInTheDocument()
     await expect(backLink).toHaveAttribute('href', '/')
+
+    // Accessibility: Verify back link has accessible name
+    await expect(backLink).toHaveAccessibleName()
   },
 }
 
@@ -584,6 +605,12 @@ export const ErrorState: EpicDetailStory = {
       </div>
     </MemoryRouter>
   ),
+  // Enable a11y tests for back link
+  parameters: {
+    a11y: {
+      test: 'error',
+    },
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     // Verify error heading with danger styling
@@ -596,6 +623,9 @@ export const ErrorState: EpicDetailStory = {
     const backLink = canvas.getByRole('link', { name: /back to epic list/i })
     await expect(backLink).toBeInTheDocument()
     await expect(backLink).toHaveAttribute('href', '/')
+
+    // Accessibility: Verify back link has accessible name
+    await expect(backLink).toHaveAccessibleName()
   },
 }
 

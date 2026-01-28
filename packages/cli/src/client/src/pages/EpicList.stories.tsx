@@ -197,6 +197,10 @@ export const epicCardMeta: Meta<typeof EpicCard> = {
           'Card component for displaying a single epic with title, progress bar, and status badges. Clickable to navigate to epic detail.',
       },
     },
+    // Enable a11y tests for clickable card links - must have accessible names
+    a11y: {
+      test: 'error',
+    },
   },
 }
 
@@ -234,6 +238,9 @@ export const Card: EpicCardStory = {
     // Verify the card is a link
     const link = canvas.getByRole('link')
     await expect(link).toHaveAttribute('href', '/epic/dashboard-restructure')
+
+    // Accessibility: Verify the link has an accessible name (the epic title)
+    await expect(link).toHaveAccessibleName()
   },
 }
 
@@ -416,6 +423,11 @@ export const CardGrid: EpicCardStory = {
     // Verify all three links are present
     const links = canvas.getAllByRole('link')
     await expect(links.length).toBe(3)
+
+    // Accessibility: Verify all links have accessible names
+    for (const link of links) {
+      await expect(link).toHaveAccessibleName()
+    }
   },
 }
 
@@ -658,6 +670,12 @@ export const WithArchivedEpics: EpicListStory = {
       </div>
     </div>
   ),
+  // Enable a11y tests for toggle checkbox
+  parameters: {
+    a11y: {
+      test: 'error',
+    },
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     // Verify page title
@@ -671,6 +689,9 @@ export const WithArchivedEpics: EpicListStory = {
     // Verify only non-archived epics are visible (3 epics)
     const links = canvas.getAllByRole('link')
     await expect(links.length).toBe(3)
+
+    // Accessibility: Verify checkbox has accessible name via label
+    await expect(checkbox).toHaveAccessibleName('Show archived')
   },
 }
 
@@ -694,6 +715,12 @@ export const WithArchivedVisible: EpicListStory = {
       </div>
     </div>
   ),
+  // Enable a11y tests for toggle checkbox
+  parameters: {
+    a11y: {
+      test: 'error',
+    },
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     // Verify page title
@@ -708,5 +735,8 @@ export const WithArchivedVisible: EpicListStory = {
     // Verify archived epics are present
     await expect(canvas.getByText('Legacy Code Cleanup')).toBeInTheDocument()
     await expect(canvas.getByText('Old Feature (Archived)')).toBeInTheDocument()
+
+    // Accessibility: Verify checkbox has accessible name via label
+    await expect(checkbox).toHaveAccessibleName('Show archived')
   },
 }

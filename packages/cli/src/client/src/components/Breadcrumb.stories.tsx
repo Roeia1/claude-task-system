@@ -23,6 +23,10 @@ const meta: Meta<typeof Breadcrumb> = {
           'Navigation breadcrumbs that adapt to the current route. Shows the hierarchical path through the dashboard.',
       },
     },
+    // Enable a11y tests for breadcrumb navigation - links must have accessible names
+    a11y: {
+      test: 'error',
+    },
   },
   decorators: [
     (Story) => (
@@ -55,6 +59,9 @@ export const Root: Story = {
     // Verify no separators since this is the only item
     const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right')
     await expect(separators.length).toBe(0)
+
+    // Accessibility: Verify nav has proper aria-label for screen readers
+    await expect(nav).toHaveAttribute('aria-label', 'Breadcrumb')
   },
 }
 
@@ -87,6 +94,12 @@ export const EpicDetail: Story = {
     const epicSlug = canvas.getByText('dashboard-restructure')
     await expect(epicSlug).toBeInTheDocument()
     await expect(epicSlug).toHaveClass('font-medium')
+
+    // Accessibility: Verify links have accessible names
+    await expect(epicsLink).toHaveAccessibleName()
+    // Verify nav has proper aria-label
+    const nav = canvasElement.querySelector('nav[aria-label="Breadcrumb"]')
+    await expect(nav).toBeInTheDocument()
   },
 }
 
@@ -129,6 +142,13 @@ export const StoryDetail: Story = {
     const storySlug = canvas.getByText('storybook-setup')
     await expect(storySlug).toBeInTheDocument()
     await expect(storySlug).toHaveClass('font-medium')
+
+    // Accessibility: Verify all links have accessible names
+    await expect(epicsLink).toHaveAccessibleName()
+    await expect(epicSlugLink).toHaveAccessibleName()
+    // Verify nav has proper aria-label
+    const nav = canvasElement.querySelector('nav[aria-label="Breadcrumb"]')
+    await expect(nav).toBeInTheDocument()
   },
 }
 
