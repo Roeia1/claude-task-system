@@ -82,7 +82,7 @@ test.describe('API Mocking Infrastructure', () => {
       await mockEpicList(page, [createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic Detail' })]);
       await mockEpicDetail(page, epic);
 
-      await page.goto('/epics/test-epic');
+      await page.goto('/epic/test-epic');
       await page.waitForLoadState('networkidle');
 
       // The page should show the epic detail
@@ -99,7 +99,7 @@ test.describe('API Mocking Infrastructure', () => {
       // Mock the story detail endpoint
       await mockStoryDetail(page, story);
 
-      await page.goto('/epics/test-epic/stories/test-story');
+      await page.goto('/epic/test-epic/story/test-story');
       await page.waitForLoadState('networkidle');
 
       // The page should show the story detail

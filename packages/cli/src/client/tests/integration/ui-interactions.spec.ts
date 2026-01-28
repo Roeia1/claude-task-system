@@ -32,7 +32,7 @@ test.describe('UI Interactions', () => {
 
       // Navigate to epic list
       await page.goto('/');
-      await expect(page.getByText('Epics')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
       await expect(page.getByText('Test Epic')).toBeVisible();
 
       // Click on the epic card to navigate
@@ -511,7 +511,8 @@ test.describe('UI Interactions', () => {
 
       // Switch to Journal
       await page.getByRole('tab', { name: /Journal/ }).click();
-      await expect(page.getByText('Session')).toBeVisible();
+      // Look for the journal section heading indicating sessions exist
+      await expect(page.getByRole('heading', { name: /Sessions/ })).toBeVisible();
 
       // Switch back to Tasks
       await page.getByRole('tab', { name: 'Tasks' }).click();
