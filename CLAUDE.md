@@ -33,6 +33,7 @@ saga/
 | `/generate-stories` | [`plugin/skills/generate-stories/SKILL.md`](plugin/skills/generate-stories/SKILL.md) |
 | `/execute-story` | [`plugin/skills/execute-story/SKILL.md`](plugin/skills/execute-story/SKILL.md) |
 | `/resolve-blocker` | [`plugin/skills/resolve-blocker/SKILL.md`](plugin/skills/resolve-blocker/SKILL.md) |
+| `/list-sessions` | [`plugin/skills/list-sessions/SKILL.md`](plugin/skills/list-sessions/SKILL.md) |
 
 ## Agents
 
