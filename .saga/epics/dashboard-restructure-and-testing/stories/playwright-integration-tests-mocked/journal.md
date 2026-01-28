@@ -37,3 +37,40 @@
 
 **Next steps:**
 - Task t2: Create API mocking infrastructure in `tests/utils/mock-api.ts`
+
+## Session: 2026-01-28T06:30:00Z
+
+### Task: t2 - Create API mocking infrastructure
+
+**What was done:**
+- Created `tests/utils/mock-api.ts` with comprehensive API mocking utilities:
+  - Mock data factories: `createMockStoryCounts`, `createMockTask`, `createMockJournalEntry`, `createMockEpicSummary`, `createMockStoryDetail`, `createMockEpic`
+  - API route mocking helpers: `mockEpicList`, `mockEpicDetail`, `mockStoryDetail`, `mockApiError`, `mockApiDelay`, `mockNetworkFailure`
+  - Convenience helper: `setupMockDashboard` for quick test setup with sample data
+- Created `tests/integration/mock-api.spec.ts` with tests verifying:
+  - Mock data factories create valid typed objects
+  - Factory overrides work correctly
+  - API route mocking intercepts requests correctly
+  - Error mocking returns proper error responses
+  - Delay mocking adds configurable latency
+- Removed placeholder `sample.spec.ts` (replaced by comprehensive mock-api.spec.ts)
+- All TypeScript types are properly imported from `src/types/dashboard.ts`
+
+**Decisions:**
+- Used Playwright's `page.route()` API as recommended in task guidance
+- Created typed factories that match dashboard TypeScript interfaces exactly
+- Included `setupMockDashboard` helper for convenient test setup with realistic sample data
+- Added `mockNetworkFailure` utility for testing connection errors (using `route.abort('connectionrefused')`)
+- Used generic URL patterns (e.g., `**/api/epics`) for flexibility
+
+**Verification:**
+- TypeScript compilation passes for `mock-api.ts` and `mock-api.spec.ts`
+- All factory functions return properly typed objects matching dashboard.ts interfaces
+- All mock utilities use Playwright's recommended route API
+
+**Blockers:**
+- Cannot run actual tests yet due to Chromium browser download timeout (same network issue from t1)
+
+**Next steps:**
+- Once browser is installed, run tests to verify mocking works end-to-end
+- Task t3: Write loading state tests using the mock infrastructure
