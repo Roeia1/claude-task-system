@@ -26,7 +26,7 @@ import { join } from 'node:path';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolveProjectPath } from '../utils/project-discovery.js';
 import { findStory as findStoryUtil, type StoryInfo as FinderStoryInfo } from '../utils/finder.js';
-import { createSession } from '../lib/sessions.js';
+import { createSession, shellEscapeArgs } from '../lib/sessions.js';
 
 /**
  * Options for the implement command
@@ -794,6 +794,8 @@ async function runLoop(
 /**
  * Build the command string to run in detached mode
  * Uses the same CLI with --attached flag to run synchronously inside tmux
+ *
+ * All arguments are properly shell-escaped to prevent command injection
  */
 function buildDetachedCommand(
   storySlug: string,
@@ -824,7 +826,8 @@ function buildDetachedCommand(
     parts.push('--stream');
   }
 
-  return parts.join(' ');
+  // Use shell escaping to prevent command injection
+  return shellEscapeArgs(parts);
 }
 
 /**

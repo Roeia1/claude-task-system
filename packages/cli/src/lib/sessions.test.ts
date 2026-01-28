@@ -2,6 +2,8 @@
  * Unit tests for the sessions library module
  *
  * Tests the tmux session management functions:
+ * - shellEscape
+ * - shellEscapeArgs
  * - validateSlug
  * - createSession
  * - listSessions
@@ -14,6 +16,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { spawn, spawnSync, ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import {
+  shellEscape,
+  shellEscapeArgs,
   validateSlug,
   createSession,
   listSessions,
@@ -38,10 +42,11 @@ vi.mock('node:fs', async () => {
     mkdirSync: vi.fn(),
     renameSync: vi.fn(),
     readFileSync: vi.fn(),
+    writeFileSync: vi.fn(),
   };
 });
 
-import { existsSync, mkdirSync, renameSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync, readFileSync, writeFileSync } from 'node:fs';
 
 const mockSpawn = spawn as ReturnType<typeof vi.fn>;
 const mockSpawnSync = spawnSync as ReturnType<typeof vi.fn>;
@@ -49,10 +54,97 @@ const mockExistsSync = existsSync as ReturnType<typeof vi.fn>;
 const mockMkdirSync = mkdirSync as ReturnType<typeof vi.fn>;
 const mockRenameSync = renameSync as ReturnType<typeof vi.fn>;
 const mockReadFileSync = readFileSync as ReturnType<typeof vi.fn>;
+const mockWriteFileSync = writeFileSync as ReturnType<typeof vi.fn>;
 
 describe('sessions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('shellEscape', () => {
+    it('should wrap simple strings in single quotes', () => {
+      expect(shellEscape('hello')).toBe("'hello'");
+      expect(shellEscape('test123')).toBe("'test123'");
+    });
+
+    it('should escape single quotes within strings', () => {
+      expect(shellEscape("it's")).toBe("'it'\\''s'");
+      expect(shellEscape("hello 'world'")).toBe("'hello '\\''world'\\'''");
+    });
+
+    it('should handle empty strings', () => {
+      expect(shellEscape('')).toBe("''");
+    });
+
+    it('should preserve spaces', () => {
+      expect(shellEscape('hello world')).toBe("'hello world'");
+      expect(shellEscape('path with spaces')).toBe("'path with spaces'");
+    });
+
+    it('should handle shell metacharacters safely', () => {
+      // These should all be safely quoted
+      expect(shellEscape('$HOME')).toBe("'$HOME'");
+      expect(shellEscape('$(whoami)')).toBe("'$(whoami)'");
+      expect(shellEscape('`whoami`')).toBe("'`whoami`'");
+      expect(shellEscape('a && b')).toBe("'a && b'");
+      expect(shellEscape('a || b')).toBe("'a || b'");
+      expect(shellEscape('a; b')).toBe("'a; b'");
+      expect(shellEscape('a | b')).toBe("'a | b'");
+      expect(shellEscape('a > b')).toBe("'a > b'");
+      expect(shellEscape('a < b')).toBe("'a < b'");
+      expect(shellEscape('*')).toBe("'*'");
+      expect(shellEscape('?')).toBe("'?'");
+      expect(shellEscape('[abc]')).toBe("'[abc]'");
+      expect(shellEscape('~')).toBe("'~'");
+      expect(shellEscape('!')).toBe("'!'");
+      expect(shellEscape('#comment')).toBe("'#comment'");
+    });
+
+    it('should handle newlines and special whitespace', () => {
+      expect(shellEscape('line1\nline2')).toBe("'line1\nline2'");
+      expect(shellEscape('tab\there')).toBe("'tab\there'");
+    });
+
+    it('should handle double quotes', () => {
+      expect(shellEscape('"quoted"')).toBe("'\"quoted\"'");
+    });
+
+    it('should handle backslashes', () => {
+      expect(shellEscape('back\\slash')).toBe("'back\\slash'");
+    });
+  });
+
+  describe('shellEscapeArgs', () => {
+    it('should escape and join multiple arguments', () => {
+      expect(shellEscapeArgs(['echo', 'hello', 'world']))
+        .toBe("'echo' 'hello' 'world'");
+    });
+
+    it('should handle arguments with spaces', () => {
+      expect(shellEscapeArgs(['command', '--path', '/some path/with spaces']))
+        .toBe("'command' '--path' '/some path/with spaces'");
+    });
+
+    it('should handle mixed safe and unsafe arguments', () => {
+      expect(shellEscapeArgs(['saga', 'implement', 'my-story', '--path', "/Users/test's folder"]))
+        .toBe("'saga' 'implement' 'my-story' '--path' '/Users/test'\\''s folder'");
+    });
+
+    it('should handle empty array', () => {
+      expect(shellEscapeArgs([])).toBe('');
+    });
+
+    it('should handle single argument', () => {
+      expect(shellEscapeArgs(['command'])).toBe("'command'");
+    });
+
+    it('should prevent command injection', () => {
+      // An attacker might try to inject commands via the path
+      const maliciousPath = '/tmp/path; rm -rf /';
+      const escaped = shellEscapeArgs(['command', '--path', maliciousPath]);
+      expect(escaped).toBe("'command' '--path' '/tmp/path; rm -rf /'");
+      // The semicolon is safely within single quotes
+    });
   });
 
   describe('validateSlug', () => {

@@ -9,7 +9,7 @@
  */
 
 import { spawn, spawnSync, ChildProcess } from 'node:child_process';
-import { existsSync, mkdirSync, renameSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync, writeFileSync, chmodSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -46,6 +46,31 @@ export interface SessionStatus {
  */
 export interface KillSessionResult {
   killed: boolean;
+}
+
+/**
+ * Escape a string for safe use in a shell command.
+ * Uses single quotes and escapes any embedded single quotes.
+ *
+ * Example: "hello 'world'" becomes "'hello '\''world'\'''"
+ *
+ * @param str - The string to escape
+ * @returns Shell-safe escaped string
+ */
+export function shellEscape(str: string): string {
+  // Wrap in single quotes and escape any single quotes within
+  // The pattern 'text'\''more' closes the quote, adds an escaped quote, reopens
+  return "'" + str.replace(/'/g, "'\\''") + "'";
+}
+
+/**
+ * Escape an array of arguments for safe use as a shell command.
+ *
+ * @param args - Array of command arguments
+ * @returns Shell-safe command string
+ */
+export function shellEscapeArgs(args: string[]): string {
+  return args.map(shellEscape).join(' ');
 }
 
 /**
@@ -123,16 +148,46 @@ export async function createSession(
   const tempName = `saga-temp-${Date.now()}`;
   const pendingOutputFile = join(OUTPUT_DIR, `${tempName}.out`);
 
-  // Build the command that captures output using script
-  // script -q <file> -c <command> captures stdout to file
-  const scriptCommand = `script -q ${pendingOutputFile} -c '${command.replace(/'/g, "'\\''")}'`;
+  // Write command to a separate file to avoid shell injection vulnerabilities
+  // The command file contains the raw command, and the wrapper script reads it safely
+  const commandFilePath = join(OUTPUT_DIR, `${tempName}.cmd`);
+  const wrapperScriptPath = join(OUTPUT_DIR, `${tempName}.sh`);
 
-  // Create detached tmux session with the command
+  // Write the raw command to a file (no shell interpretation)
+  writeFileSync(commandFilePath, command, { mode: 0o600 });
+
+  // Create wrapper script that reads the command file safely
+  // Using bash's mapfile/read to safely read the command preserves special characters
+  const wrapperScriptContent = `#!/bin/bash
+# Auto-generated wrapper script for SAGA session
+set -e
+
+COMMAND_FILE="${commandFilePath}"
+OUTPUT_FILE="${pendingOutputFile}"
+SCRIPT_FILE="${wrapperScriptPath}"
+
+# Read the command from file
+COMMAND="\$(cat "\$COMMAND_FILE")"
+
+# Cleanup temporary files on exit
+cleanup() {
+  rm -f "\$COMMAND_FILE" "\$SCRIPT_FILE"
+}
+trap cleanup EXIT
+
+# Execute the command with output capture
+# script -q <file> -c <command> captures stdout to file (macOS syntax)
+exec script -q "\$OUTPUT_FILE" -c "\$COMMAND"
+`;
+
+  writeFileSync(wrapperScriptPath, wrapperScriptContent, { mode: 0o700 });
+
+  // Create detached tmux session that runs the wrapper script
   const createResult = spawnSync('tmux', [
     'new-session',
     '-d',              // detached
     '-s', tempName,    // session name (temporary)
-    scriptCommand,     // command to run
+    wrapperScriptPath, // run the wrapper script
   ], { encoding: 'utf-8' });
 
   if (createResult.status !== 0) {
