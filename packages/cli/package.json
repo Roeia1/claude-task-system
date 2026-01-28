@@ -16,8 +16,8 @@
     "dev:client": "vite --config src/client/vite.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:storybook": "test-storybook -c src/client/.storybook",
-    "storybook:test": "test-storybook -c src/client/.storybook",
+    "test-storybook": "vitest --project=storybook",
+    "test:storybook": "vitest run --project=storybook",
     "publish:npm": "pnpm build && pnpm test && pnpm publish --access public",
     "storybook": "storybook dev -p 6006 -c src/client/.storybook",
     "build-storybook": "storybook build -c src/client/.storybook -o storybook-static"

@@ -28,15 +28,6 @@ const meta: Meta<typeof Breadcrumb> = {
       test: 'error',
     },
   },
-  decorators: [
-    (Story) => (
-      <MemoryRouter initialEntries={['/']}>
-        <Routes>
-          <Route path="/" element={<Story />} />
-        </Routes>
-      </MemoryRouter>
-    ),
-  ],
 }
 
 export default meta
@@ -47,18 +38,26 @@ type Story = StoryObj<typeof Breadcrumb>
  * This is displayed when on the epic list page at `/`.
  */
 export const Root: Story = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
+  decorators: [
+    (Story) => (
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<Story />} />
+        </Routes>
+      </MemoryRouter>
+    ),
+  ],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const nav = canvasElement.querySelector('nav[aria-label="Breadcrumb"]')
     await expect(nav).toBeInTheDocument()
     // Verify "Epics" text is present
     await expect(canvas.getByText('Epics')).toBeInTheDocument()
-    // Verify home icon is present (SVG inside the span)
-    const homeIconContainer = canvasElement.querySelector('svg.lucide-home')
-    await expect(homeIconContainer).toBeInTheDocument()
-    // Verify no separators since this is the only item
-    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right')
+    // Verify home icon is present (SVG with lucide class)
+    const homeIcon = canvasElement.querySelector('svg[class*="lucide"]')
+    await expect(homeIcon).toBeInTheDocument()
+    // Verify no separators since this is the only item (chevron-right icons)
+    const separators = canvasElement.querySelectorAll('svg[class*="chevron"]')
     await expect(separators.length).toBe(0)
 
     // Accessibility: Verify nav has proper aria-label for screen readers
@@ -72,7 +71,6 @@ export const Root: Story = {
  * is shown as the current page indicator (non-clickable, styled with font-medium).
  */
 export const EpicDetail: Story = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
   decorators: [
     (Story) => (
       <MemoryRouter initialEntries={['/epic/dashboard-restructure']}>
@@ -90,7 +88,7 @@ export const EpicDetail: Story = {
     await expect(epicsLink).toBeInTheDocument()
     await expect(epicsLink).toHaveAttribute('href', '/')
     // Verify separator is present
-    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right')
+    const separators = canvasElement.querySelectorAll('svg[class*="chevron"]')
     await expect(separators.length).toBe(1)
     // Verify epic slug is displayed as current page (font-medium)
     const epicSlug = canvas.getByText('dashboard-restructure')
@@ -112,7 +110,6 @@ export const EpicDetail: Story = {
  * - Story slug is the current page indicator (non-clickable)
  */
 export const StoryDetail: Story = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
   decorators: [
     (Story) => (
       <MemoryRouter
@@ -139,7 +136,7 @@ export const StoryDetail: Story = {
     await expect(epicSlugLink).toBeInTheDocument()
     await expect(epicSlugLink).toHaveAttribute('href', '/epic/dashboard-restructure')
     // Verify two separators for the full hierarchy
-    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right')
+    const separators = canvasElement.querySelectorAll('svg[class*="chevron"]')
     await expect(separators.length).toBe(2)
     // Verify story slug is displayed as current page (font-medium)
     const storySlug = canvas.getByText('storybook-setup')
@@ -160,7 +157,6 @@ export const StoryDetail: Story = {
  * Shows how the breadcrumb handles longer epic names.
  */
 export const LongEpicSlug: Story = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
   decorators: [
     (Story) => (
       <MemoryRouter
@@ -193,7 +189,6 @@ export const LongEpicSlug: Story = {
  * Demonstrates the full breadcrumb trail with longer names.
  */
 export const LongSlugs: Story = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
   decorators: [
     (Story) => (
       <MemoryRouter

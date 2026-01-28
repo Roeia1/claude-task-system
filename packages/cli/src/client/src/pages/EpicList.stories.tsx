@@ -661,7 +661,6 @@ const epicsWithArchived: EpicSummary[] = [
  * Archived epics are hidden by default but can be revealed.
  */
 export const WithArchivedEpics: EpicListStory = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
   decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
   render: () => (
     <div className="space-y-6">
@@ -708,7 +707,6 @@ export const WithArchivedEpics: EpicListStory = {
  * State showing all epics including archived ones (toggle enabled).
  */
 export const WithArchivedVisible: EpicListStory = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
   decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
   render: () => (
     <div className="space-y-6">

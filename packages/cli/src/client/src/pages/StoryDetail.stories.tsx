@@ -160,7 +160,7 @@ export const IconPending: TaskStatusIconStory = {
     // Verify pending text is displayed
     await expect(canvas.getByText('Pending task')).toBeInTheDocument()
     // Verify circle icon with text-muted color
-    const icon = canvasElement.querySelector('svg.lucide-circle')
+    const icon = canvasElement.querySelector('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
     await expect(icon).toBeInTheDocument()
     await expect(icon).toHaveClass('text-text-muted')
   },
@@ -181,7 +181,7 @@ export const IconInProgress: TaskStatusIconStory = {
     // Verify in progress text is displayed
     await expect(canvas.getByText('In progress task')).toBeInTheDocument()
     // Verify circle icon with primary color and fill
-    const icon = canvasElement.querySelector('svg.lucide-circle')
+    const icon = canvasElement.querySelector('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
     await expect(icon).toBeInTheDocument()
     await expect(icon).toHaveClass('text-primary')
     await expect(icon).toHaveClass('fill-primary/20')
@@ -192,7 +192,7 @@ export const IconInProgress: TaskStatusIconStory = {
  * Completed status - success green checkmark for finished tasks.
  */
 export const IconCompleted: TaskStatusIconStory = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
+
   render: () => (
     <div className="flex items-center gap-2">
       <TaskStatusIcon status="completed" />
@@ -204,7 +204,7 @@ export const IconCompleted: TaskStatusIconStory = {
     // Verify completed text is displayed
     await expect(canvas.getByText('Completed task')).toBeInTheDocument()
     // Verify check-circle icon with success color
-    const icon = canvasElement.querySelector('svg.lucide-check-circle')
+    const icon = canvasElement.querySelector('svg[class*="check"][class*="circle"]')
     await expect(icon).toBeInTheDocument()
     await expect(icon).toHaveClass('text-success')
   },
@@ -214,7 +214,7 @@ export const IconCompleted: TaskStatusIconStory = {
  * All task status icons displayed together for comparison.
  */
 export const AllTaskIcons: TaskStatusIconStory = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
+
   render: () => (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -238,9 +238,9 @@ export const AllTaskIcons: TaskStatusIconStory = {
     await expect(canvas.getByText('In Progress')).toBeInTheDocument()
     await expect(canvas.getByText('Completed')).toBeInTheDocument()
     // Verify icons are present (2 circles + 1 check-circle)
-    const circleIcons = canvasElement.querySelectorAll('svg.lucide-circle')
+    const circleIcons = canvasElement.querySelectorAll('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
     await expect(circleIcons.length).toBe(2)
-    const checkIcon = canvasElement.querySelector('svg.lucide-check-circle')
+    const checkIcon = canvasElement.querySelector('svg[class*="check"][class*="circle"]')
     await expect(checkIcon).toBeInTheDocument()
   },
 }
@@ -288,7 +288,7 @@ export const TaskPending: TaskItemStory = {
     await expect(badge).toBeInTheDocument()
     await expect(badge).toHaveClass('bg-text-muted/20')
     // Verify pending icon (circle)
-    const icon = canvasElement.querySelector('svg.lucide-circle')
+    const icon = canvasElement.querySelector('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
     await expect(icon).toBeInTheDocument()
   },
 }
@@ -314,7 +314,7 @@ export const TaskInProgress: TaskItemStory = {
     await expect(badge).toBeInTheDocument()
     await expect(badge).toHaveClass('bg-primary/20')
     // Verify in_progress icon (circle with fill)
-    const icon = canvasElement.querySelector('svg.lucide-circle')
+    const icon = canvasElement.querySelector('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
     await expect(icon).toBeInTheDocument()
     await expect(icon).toHaveClass('text-primary')
   },
@@ -324,7 +324,7 @@ export const TaskInProgress: TaskItemStory = {
  * Completed task - shows strikethrough text.
  */
 export const TaskCompleted: TaskItemStory = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
+
   render: () => (
     <TaskItem
       task={createTask({
@@ -345,7 +345,7 @@ export const TaskCompleted: TaskItemStory = {
     await expect(badge).toBeInTheDocument()
     await expect(badge).toHaveClass('bg-success/20')
     // Verify completed icon (check-circle)
-    const icon = canvasElement.querySelector('svg.lucide-check-circle')
+    const icon = canvasElement.querySelector('svg[class*="check"][class*="circle"]')
     await expect(icon).toBeInTheDocument()
     await expect(icon).toHaveClass('text-success')
   },
@@ -381,7 +381,7 @@ export const TaskLongTitle: TaskItemStory = {
  * Multiple tasks showing all status types.
  */
 export const AllTaskStatuses: TaskItemStory = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
+
   render: () => (
     <div className="divide-y divide-border-muted">
       <TaskItem
@@ -427,9 +427,9 @@ export const AllTaskStatuses: TaskItemStory = {
     const pendingBadges = canvas.getAllByText('pending')
     await expect(pendingBadges.length).toBe(2)
     // Verify icons (1 check-circle, 3 circles)
-    const checkIcons = canvasElement.querySelectorAll('svg.lucide-check-circle')
+    const checkIcons = canvasElement.querySelectorAll('svg[class*="check"][class*="circle"]')
     await expect(checkIcons.length).toBe(1)
-    const circleIcons = canvasElement.querySelectorAll('svg.lucide-circle')
+    const circleIcons = canvasElement.querySelectorAll('svg[class*="circle"]:not([class*="check"]):not([class*="alert"])')
     await expect(circleIcons.length).toBe(3)
   },
 }
@@ -489,7 +489,7 @@ export const EntrySession: JournalEntryStory = {
     const badge = canvas.getByText('session')
     await expect(badge).toBeInTheDocument()
     // Verify collapsed state (chevron-right visible, content hidden)
-    const chevronRight = canvasElement.querySelector('svg.lucide-chevron-right')
+    const chevronRight = canvasElement.querySelector('svg[class*="chevron-right"]')
     await expect(chevronRight).toBeInTheDocument()
     // Verify bg-bg-light neutral styling for session type
     const card = canvasElement.querySelector('.bg-bg-light')
@@ -507,7 +507,7 @@ export const EntrySessionExpanded: JournalEntryStory = {
     // Verify entry title
     await expect(canvas.getByText('Session: 2026-01-28 01:00 UTC')).toBeInTheDocument()
     // Verify expanded state (chevron-down visible)
-    const chevronDown = canvasElement.querySelector('svg.lucide-chevron-down')
+    const chevronDown = canvasElement.querySelector('svg[class*="chevron-down"]')
     await expect(chevronDown).toBeInTheDocument()
     // Verify content is visible (check for specific text from content)
     await expect(canvas.getByText(/What was done:/)).toBeInTheDocument()
@@ -519,7 +519,7 @@ export const EntrySessionExpanded: JournalEntryStory = {
  * Blocker entry - red color, indicates impediment.
  */
 export const EntryBlocker: JournalEntryStory = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
+
   render: () => (
     <JournalEntryItem
       entry={createJournalEntry({
@@ -550,7 +550,7 @@ export const EntryBlocker: JournalEntryStory = {
     await expect(badge).toBeInTheDocument()
     await expect(badge).toHaveClass('text-danger')
     // Verify alert icon for blocker
-    const alertIcon = canvasElement.querySelector('svg.lucide-alert-circle')
+    const alertIcon = canvasElement.querySelector('svg[class*="alert"][class*="circle"]')
     await expect(alertIcon).toBeInTheDocument()
     // Verify blocker content is visible
     await expect(canvas.getByText(/Cannot access external API/)).toBeInTheDocument()
@@ -1053,7 +1053,7 @@ export const Populated: StoryDetailStory = {
  * Story with no tasks defined.
  */
 export const EmptyTasks: StoryDetailStory = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
+
   render: () => (
     <MemoryRouter>
       <div className="space-y-6">
@@ -1282,7 +1282,7 @@ const completedStory: StoryDetailType = {
  * Completed story - all tasks done.
  */
 export const Completed: StoryDetailStory = {
-  tags: ['!test'], // Skip - test runner mismatches play functions in multi-story files
+
   render: () => (
     <MemoryRouter>
       <div className="space-y-6">
@@ -1347,7 +1347,7 @@ export const Completed: StoryDetailStory = {
     const completedBadges = canvas.getAllByText('completed')
     await expect(completedBadges.length).toBe(4)
     // Verify all tasks have check-circle icons
-    const checkIcons = canvasElement.querySelectorAll('svg.lucide-check-circle')
+    const checkIcons = canvasElement.querySelectorAll('svg[class*="check"][class*="circle"]')
     await expect(checkIcons.length).toBe(4)
   },
 }

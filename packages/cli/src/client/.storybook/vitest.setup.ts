@@ -5,4 +5,6 @@ import * as previewAnnotations from './preview';
 const annotations = setProjectAnnotations([previewAnnotations]);
 
 // Run Storybook's beforeAll hook
-beforeAll(annotations.beforeAll);
+if (annotations.beforeAll) {
+  beforeAll(annotations.beforeAll);
+}
