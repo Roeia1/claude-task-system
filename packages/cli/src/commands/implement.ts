@@ -26,6 +26,7 @@ import { join } from 'node:path';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolveProjectPath } from '../utils/project-discovery.js';
 import { findStory as findStoryUtil, type StoryInfo as FinderStoryInfo } from '../utils/finder.js';
+import { createSession, shellEscapeArgs } from '../lib/sessions.js';
 
 /**
  * Options for the implement command
@@ -37,6 +38,7 @@ export interface ImplementOptions {
   model?: string;
   dryRun?: boolean;
   stream?: boolean;
+  attached?: boolean;
 }
 
 /**
@@ -519,8 +521,36 @@ function formatStreamLine(line: string): string | null {
 }
 
 /**
+ * Extract StructuredOutput tool call input from streaming output
+ * Searches for assistant messages containing a StructuredOutput tool_use block
+ * Returns the input object if found, null otherwise
+ */
+function extractStructuredOutputFromToolCall(
+  lines: string[]
+): Record<string, unknown> | null {
+  // Search backwards to find the most recent StructuredOutput tool call
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try {
+      const data = JSON.parse(lines[i]);
+      if (data.type === 'assistant' && data.message?.content) {
+        for (const block of data.message.content) {
+          if (block.type === 'tool_use' && block.name === 'StructuredOutput') {
+            return block.input as Record<string, unknown>;
+          }
+        }
+      }
+    } catch {
+      // Not valid JSON, continue
+    }
+  }
+  return null;
+}
+
+/**
  * Parse the final result from stream-json output
- * Looks for the {"type":"result",...} line and extracts structured_output
+ * Looks for the {"type":"result",...} line and extracts structured_output.
+ * Falls back to extracting from StructuredOutput tool call if structured_output
+ * is missing (can happen with error_during_execution subtype).
  */
 function parseStreamingResult(buffer: string): WorkerOutput {
   const lines = buffer.split('\n').filter(line => line.trim());
@@ -534,20 +564,27 @@ function parseStreamingResult(buffer: string): WorkerOutput {
           throw new Error(`Worker failed: ${data.result || 'Unknown error'}`);
         }
 
-        if (!data.structured_output) {
+        // Try to get structured_output from result, fall back to tool call
+        let output = data.structured_output;
+        if (!output) {
+          // Fallback: extract from StructuredOutput tool call
+          // This handles error_during_execution cases where structured_output
+          // is missing from the result but the tool was called successfully
+          output = extractStructuredOutputFromToolCall(lines);
+        }
+
+        if (!output) {
           throw new Error('Worker result missing structured_output');
         }
 
-        const output = data.structured_output;
-
-        if (!VALID_STATUSES.has(output.status)) {
+        if (!VALID_STATUSES.has(output.status as string)) {
           throw new Error(`Invalid status: ${output.status}`);
         }
 
         return {
-          status: output.status,
-          summary: output.summary || '',
-          blocker: output.blocker ?? null,
+          status: output.status as WorkerOutput['status'],
+          summary: (output.summary as string) || '',
+          blocker: (output.blocker as string | null) ?? null,
         };
       }
     } catch (e) {
@@ -790,6 +827,45 @@ async function runLoop(
 }
 
 /**
+ * Build the command string to run in detached mode
+ * Uses the same CLI with --attached flag to run synchronously inside tmux
+ *
+ * All arguments are properly shell-escaped to prevent command injection
+ */
+function buildDetachedCommand(
+  storySlug: string,
+  projectPath: string,
+  options: {
+    maxCycles?: number;
+    maxTime?: number;
+    model?: string;
+    stream?: boolean;
+  }
+): string {
+  const parts = ['saga', 'implement', storySlug, '--attached'];
+
+  // Add project path
+  parts.push('--path', projectPath);
+
+  // Add options if specified
+  if (options.maxCycles !== undefined) {
+    parts.push('--max-cycles', String(options.maxCycles));
+  }
+  if (options.maxTime !== undefined) {
+    parts.push('--max-time', String(options.maxTime));
+  }
+  if (options.model !== undefined) {
+    parts.push('--model', options.model);
+  }
+  if (options.stream) {
+    parts.push('--stream');
+  }
+
+  // Use shell escaping to prevent command injection
+  return shellEscapeArgs(parts);
+}
+
+/**
  * Execute the implement command
  */
 export async function implementCommand(storySlug: string, options: ImplementOptions): Promise<void> {
@@ -845,7 +921,49 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
   const maxTime = options.maxTime ?? DEFAULT_MAX_TIME;
   const model = options.model ?? DEFAULT_MODEL;
   const stream = options.stream ?? false;
+  const attached = options.attached ?? false;
 
+  // Detached mode (default): create tmux session
+  if (!attached) {
+    // Warn if --stream is used with detached mode
+    if (stream) {
+      console.error('Warning: --stream is ignored in detached mode. Use --attached --stream for streaming output.');
+    }
+
+    // Build the command to run inside the tmux session
+    const detachedCommand = buildDetachedCommand(storySlug, projectPath, {
+      maxCycles: options.maxCycles,
+      maxTime: options.maxTime,
+      model: options.model,
+      stream: true, // Always use streaming in detached mode so output is captured
+    });
+
+    try {
+      const sessionResult = await createSession(
+        storyInfo.epicSlug,
+        storyInfo.storySlug,
+        detachedCommand
+      );
+
+      // Output session info as JSON
+      console.log(JSON.stringify({
+        mode: 'detached',
+        sessionName: sessionResult.sessionName,
+        outputFile: sessionResult.outputFile,
+        epicSlug: storyInfo.epicSlug,
+        storySlug: storyInfo.storySlug,
+        worktreePath: storyInfo.worktreePath,
+      }, null, 2));
+
+      // Exit immediately - worker runs in background
+      return;
+    } catch (error: any) {
+      console.error(`Error: Failed to create detached session: ${error.message}`);
+      process.exit(1);
+    }
+  }
+
+  // Attached mode: run synchronously
   console.log('Starting story implementation...');
   console.log(`  Epic: ${storyInfo.epicSlug}`);
   console.log(`  Story: ${storyInfo.storySlug}`);

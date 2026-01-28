@@ -173,7 +173,7 @@ You have a limited context window. Watch for these signals:
 
 ## Exit Protocol
 
-When ready to exit (tasks done, blocked, or context concerns):
+When ready to exit (task done, blocked, or context concerns):
 
 ### 1. Ensure Clean State
 
@@ -185,19 +185,7 @@ git status  # Should show clean working tree
 
 Add session summary to journal.md.
 
-### 3. Output Status JSON
-
-Your final output MUST be valid JSON matching this schema:
-
-```json
-{
-  "status": "ONGOING",
-  "summary": "what you accomplished this session",
-  "blocker": null
-}
-```
-
-### Status Values
+### 3. Exit with Appropriate Status
 
 | Status | When to Use |
 |--------|-------------|
@@ -206,16 +194,6 @@ Your final output MUST be valid JSON matching this schema:
 | `BLOCKED` | Need human decision. Will not respawn until resolved. |
 
 **Remember: After completing ONE task, you MUST exit with ONGOING.** Do not continue to the next task.
-
-### Exit JSON Schema
-
-```json
-{
-  "status": "ONGOING" | "FINISH" | "BLOCKED",
-  "summary": "string - what you accomplished this session",
-  "blocker": null | "string - description if BLOCKED"
-}
-```
 
 ## Scope Rules
 
@@ -236,4 +214,3 @@ The scope validator hook enforces these restrictions.
 5. **If blocked** - Document clearly, commit, exit BLOCKED
 6. **Never modify tests without approval** - Unless they have bugs
 7. **Leave codebase working** - No broken builds
-8. **Valid JSON exit** - Schema is validated

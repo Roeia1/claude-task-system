@@ -16,7 +16,7 @@ Decouple SAGA CLI implementation script execution from the initiating Claude Cod
 - Implementation scripts continue running even if the CLI session terminates
 - Dashboard can discover running sessions via `saga-` naming convention
 - Dashboard can connect/disconnect to stdout streams freely using `tail -f` on output files
-- Output files persist in `/tmp/saga-sessions/` (macOS auto-cleans after 3 days)
+- Output files persist in `/tmp/saga-sessions/` (OS manages cleanup)
 
 ## Scope
 
@@ -26,7 +26,9 @@ Decouple SAGA CLI implementation script execution from the initiating Claude Cod
 - Stdout capture using `script` command to `/tmp/saga-sessions/`
 - Session naming convention: `saga-<epic-slug>-<story-slug>-<pane-pid>` (PID guarantees uniqueness)
 - Output file naming: identical to session name (`/tmp/saga-sessions/<session-name>.out`)
+- Exit information written to output file before script terminates (success or failure)
 - Session discovery via `tmux ls` with saga- prefix filtering
+- Shared session management module (importable by CLI and dashboard server)
 
 ### Out of Scope
 
@@ -45,7 +47,7 @@ Decouple SAGA CLI implementation script execution from the initiating Claude Cod
 
 ## Technical Approach
 
-The implementation script launcher will be modified to:
+The `saga-ai` CLI's `implement` command (invoked by the `/execute-story` skill) will be modified to:
 
 1. Create output capture file in `/tmp/saga-sessions/`
 2. Start a tmux detached session with the `script` command wrapping the execution
@@ -75,10 +77,11 @@ echo "Session started: $SESSION_NAME"
 echo "Output file: $OUTPUT_FILE"
 ```
 
-Dashboard can then:
-- List sessions: `tmux ls | grep ^saga-`
-- Stream output: `tail -f /tmp/saga-sessions/<session-name>.out`
-- Check if running: `tmux has-session -t <session-name>`
+Dashboard can then use CLI commands:
+- List sessions: `saga-ai sessions list`
+- Stream output: `saga-ai sessions logs <session-name>`
+- Check if running: `saga-ai sessions status <session-name>`
+- Kill session: `saga-ai sessions kill <session-name>`
 
 ## Key Decisions
 
@@ -91,13 +94,14 @@ Dashboard can then:
 ### Use `/tmp/saga-sessions/` for Output Files
 
 - **Choice**: Store output files in `/tmp/saga-sessions/`
-- **Rationale**: Standard location for ephemeral data. macOS auto-cleans files older than 3 days. No need for manual cleanup management.
+- **Rationale**: Standard location for ephemeral data. OS manages cleanup per system configuration. No need for manual cleanup management.
 - **Alternatives Considered**: `.saga/tmp/` (clutters project), `.saga/logs/` (persistent overhead)
 
 ### Session Naming Convention
 
 - **Choice**: `saga-<epic-slug>-<story-slug>-<pane-pid>` pattern
 - **Rationale**: `saga-` prefix enables simple discovery via `tmux ls | grep ^saga-`. Epic slug provides context for which epic the session belongs to. Pane PID guarantees uniqueness and correlates with system process monitoring. Output file uses identical name (`<session-name>.out`).
+- **Slug Validation**: CLI must verify slugs contain only lowercase alphanumeric characters and hyphens (`[a-z0-9-]`). Reject if special characters are present.
 - **Implementation**: Create session without a name (tmux auto-assigns `0`, `1`, `2`... handling collision internally), then use `-P -F` flags to get the auto-assigned name and pane PID, then rename to our `saga-` prefixed format.
 - **Alternatives Considered**: Random suffix (not meaningful), timestamp (collision risk), full UUID (too long), manual temp names (unnecessary complexity)
 
@@ -110,32 +114,40 @@ Available via tmux and filesystem inspection:
 ```
 Session Name: saga-<epic-slug>-<story-slug>-<pane-pid>
 Output File: /tmp/saga-sessions/<session-name>.out (identical to session name)
-Status: running | completed (derived from tmux has-session - if session exists, running; if not, completed)
+Status: running | not running (derived from tmux has-session - exit code 0 means running)
+Exit Info: Written to output file before script exits (success or failure reason in the output stream)
 Pane PID: The PID of the process running inside the tmux pane (correlates with system ps)
 ```
 
 ## Interface Contracts
 
+Session management logic is implemented in a shared module that can be imported by both the `saga-ai` CLI and the dashboard server directly (no shell execution required). The CLI provides a command-line interface to this module.
+
 ### Session Creation
 
-- **Implementation**: Modify existing CLI execution command to use tmux detached mode
-- **Input**: Epic slug, story slug, implementation script path
+- **Command**: `saga-ai implement <epic-slug> <story-slug>`
 - **Output**: Session name, output file path (identical to session name with `.out` extension)
+- **Note**: Files named `*-pending.out` are transient during setup and should be ignored
 
 ### Session Discovery
 
-- **Command**: `tmux ls | grep ^saga-`
-- **Output**: List of active SAGA sessions
+- **Command**: `saga-ai sessions list`
+- **Output**: List of active SAGA sessions (name, status, output file path)
 
 ### Session Output Streaming
 
-- **Command**: `tail -f /tmp/saga-sessions/<session-name>.out`
-- **Output**: Real-time stdout from the session
+- **Command**: `saga-ai sessions logs <session-name>`
+- **Output**: Real-time stdout from the session (streams until interrupted)
 
 ### Session Status Check
 
-- **Command**: `tmux has-session -t <session-name>`
-- **Output**: Exit code 0 if running, non-zero if not
+- **Command**: `saga-ai sessions status <session-name>`
+- **Output**: Session status (running or not running)
+
+### Session Kill
+
+- **Command**: `saga-ai sessions kill <session-name>`
+- **Output**: Terminates the session immediately
 
 ## Tech Stack
 
@@ -143,6 +155,25 @@ Pane PID: The PID of the process running inside the tmux pane (correlates with s
 - **script**: Stdout capture to file (built-in macOS/Linux)
 - **bash**: Wrapper scripts for session lifecycle
 
+## Architecture
+
+Session management is implemented as a shared module within the `@saga-ai/cli` package:
+
+```
+packages/cli/src/
+├── commands/
+│   ├── implement.ts      # Uses sessions module
+│   └── sessions/         # CLI commands wrapping the module
+│       ├── list.ts
+│       ├── status.ts
+│       ├── logs.ts
+│       └── kill.ts
+└── lib/
+    └── sessions.ts       # Shared module (exported for dashboard server)
+```
+
+The dashboard server imports the sessions module directly instead of shelling out to the CLI.
+
 ## Open Questions
 
-- Should session management commands (list/attach/kill) be added to CLI, or is dashboard-only sufficient?
+None - all questions resolved.
