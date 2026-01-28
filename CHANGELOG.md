@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.0] - 2026-01-28
+
+### Added
+
+- **list-sessions**: New skill to display running tmux sessions
+  - Shows session status (running/stopped) and output file locations
+  - Uses `saga sessions list` CLI command
+
+### Fixed
+
+- **worker-prompt**: Remove JSON output instructions that confused workers
+  - The `--json-schema` flag handles structured output automatically
+  - Workers no longer try to call non-existent `StructuredOutput` tool
+
 ## [2.10.1] - 2026-01-28
 
 ### Changed
