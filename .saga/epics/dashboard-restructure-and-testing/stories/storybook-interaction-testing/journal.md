@@ -17,3 +17,19 @@
 
 **Next steps:**
 - Configure the a11y addon in `.storybook/main.ts` (task t2)
+
+## Session: 2026-01-28T04:55:00Z
+
+### Task: t2 - Configure a11y addon in Storybook
+
+**What was done:**
+- Added `@storybook/addon-a11y` to the addons array in `packages/cli/src/client/.storybook/main.ts`
+- The addon is added after `@storybook/addon-docs` as recommended
+- Ran Storybook smoke test to verify configuration loads without errors
+
+**Decisions:**
+- Kept configuration minimal - just added the addon without any custom a11y rules or disabled checks
+- The addon will be enabled by default for all stories, providing the Accessibility panel in Storybook
+
+**Next steps:**
+- Add play functions to StatusBadge stories (task t3)
