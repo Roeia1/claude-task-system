@@ -4,99 +4,45 @@ description: Start autonomous story implementation
 argument-hint: "<story-slug>"
 user-invocable: true
 disable-model-invocation: true
-allowed-tools:
-  - Bash
-  - Read
-  - Task
-  - AskUserQuestion
+allowed-tools: Bash, Read, Task, AskUserQuestion, TaskCreate, TaskUpdate, TaskList, TaskGet
 ---
 
-# Implement Story Skill
+# Execute Story Skill
 
 !`npx @saga-ai/cli --path "${SAGA_PROJECT_DIR}" find "$0" --type story --status ready`
 
-## Process
+## Tasks
 
-### 1. Check Resolution Result
+| Subject | Description | Active Form | Blocked By | Blocks |
+|---------|-------------|-------------|------------|--------|
+| Resolve story | The `saga find` command ran above and output a JSON result. Handle the result based on its structure: (1) **If found=true**: Extract `data.epicSlug`, `data.slug`, and `data.worktreePath` and proceed. (2) **If found=false with matches array**: Use AskUserQuestion to disambiguate with question "Which story do you want to implement?", header "Story", multiSelect false, and options array where each item has label "<slug>" and description "<title> (Epic: <epicSlug>, Status: <status>)" for each story in the matches array. After selection, use the selected story's `epicSlug`, `slug`, and `worktreePath`. (3) **If found=false with error**: Display the error message and suggest using `/task-list` to see available stories, then stop. | Resolving story | - | Update worktree branch |
+| Update worktree branch | Before starting implementation, ensure the worktree branch has the latest changes from master. Run using Bash: `cd "<worktreePath>" && git fetch origin master && git merge origin/master -m "Merge origin/master into story branch" && cd "$SAGA_PROJECT_DIR"` where `<worktreePath>` is `data.worktreePath` from the resolved story. This ensures workers start with the latest codebase, avoiding merge conflicts later. The final `cd` returns to the project root before running the orchestrator. | Updating worktree | Resolve story | Run implementation orchestrator |
+| Run implementation orchestrator | Run the CLI command using Bash: `npx @saga-ai/cli@latest implement "<slug>" --path "$SAGA_PROJECT_DIR" --max-cycles 10 --max-time 60 --model opus` where `<slug>` is `data.slug` from the resolved story. The CLI creates a detached tmux session and returns immediately with JSON output containing: `mode` ("detached"), `sessionName` (tmux session name), `outputFile` (path to .out file for monitoring), `epicSlug`, `storySlug`, `worktreePath`. The CLI handles all validation (worktree exists, story.md exists) and returns structured error messages if anything is missing. Parse the JSON output and save `sessionName` and `outputFile` for the status report. | Running orchestrator | Update worktree branch | Report status |
+| Report status | Output the execution status to the user using the format shown in the Status Output Format section below. Use the `epicSlug`, `storySlug`, `sessionName`, and `outputFile` from previous tasks. | Reporting status | Run implementation orchestrator | - |
 
-The `saga find` command ran above. Handle the result:
-
-- **If found=true**: Extract `data.epicSlug` and `data.slug`. Continue to step 2.
-- **If found=false with matches array**: Use AskUserQuestion to disambiguate:
-  ```
-  question: "Which story do you want to implement?"
-  header: "Story"
-  multiSelect: false
-  options: [
-    {label: "<slug>", description: "<title> (Epic: <epicSlug>, Status: <status>)"}
-    ...for each story in the matches array
-  ]
-  ```
-  After selection, use the selected story's `epicSlug` and `slug`.
-- **If found=false with error**: Display the error. Suggest using `/task-list` to see available stories.
-
-### 2. Update Worktree Branch
-
-Before starting implementation, ensure the worktree branch has the latest changes from master.
-
-Run from within the worktree directory (`data.worktreePath`):
-
-```bash
-cd "<data.worktreePath>" && git fetch origin master && git merge origin/master -m "Merge origin/master into story branch" && cd "$SAGA_PROJECT_DIR"
-```
-
-This ensures workers start with the latest codebase, avoiding merge conflicts later. The final `cd` returns to the project root before running the orchestrator.
-
-### 3. Run Implementation Orchestrator
-
-Run the CLI command using Bash with `run_in_background: true`.
-
-Use `data.slug` from the resolution result:
-
-```bash
-npx @saga-ai/cli@latest implement "<story.slug>" \
-    --path "$SAGA_PROJECT_DIR" \
-    --max-cycles 10 \
-    --max-time 60 \
-    --model opus \
-    --stream
-```
-
-The CLI handles all validation (worktree exists, story.md exists) and returns
-structured error messages if anything is missing.
-
-**Important:** Use these Bash tool parameters:
-- `run_in_background: true` - runs the script as a background task
-- `timeout: 3660000` - 61 minute timeout (slightly longer than --max-time)
-
-The `--stream` flag enables real-time output from the worker, so you can monitor
-progress by reading the background task output file.
-
-### 4. Report Status
-
-Display the execution status:
+## Status Output Format
 
 ```
 ===============================================================
 Starting Autonomous Story Implementation
 ===============================================================
 
-Epic: <epic_slug>
-Story: <story_slug>
-Worktree: .saga/worktrees/<epic_slug>/<story_slug>/
-Task ID: <task_id from Bash tool>
+Epic: <epicSlug>
+Story: <storySlug>
+Worktree: .saga/worktrees/<epicSlug>/<storySlug>/
+Session: <sessionName>
+Output: <outputFile>
 
-The implementation script is now running in the background.
+The implementation is now running in a detached tmux session.
 Workers will implement tasks following TDD practices.
 
 Monitor progress:
-  - Worker output streams in real-time to the task output file
-  - Check status: Use TaskOutput tool with task_id
-  - Or read the output file directly with Read tool
+  - tail -f <outputFile>
+  - tmux attach -t <sessionName>
 
 The script will exit with one of these statuses:
   FINISH     - All tasks completed successfully
-  BLOCKED    - Human input needed (run /resolve)
+  BLOCKED    - Human input needed (run /resolve-blocker)
   TIMEOUT    - Max time exceeded
   MAX_CYCLES - Max worker spawns reached
 
@@ -107,5 +53,5 @@ The script will exit with one of these statuses:
 
 - The orchestrator script handles worker spawning and output parsing
 - Workers operate within the worktree context with scope enforcement
-- If workers get blocked, use `/resolve <story-slug>` to provide guidance
+- If workers get blocked, use `/resolve-blocker <story-slug>` to provide guidance
 - The orchestrator enforces max 10 cycles and 60 minutes by default

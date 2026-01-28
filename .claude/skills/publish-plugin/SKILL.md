@@ -1,117 +1,29 @@
 ---
 name: publish-plugin
-description: "Releases new versions of the Claude Task System plugin. Bumps version numbers in CHANGELOG.md, README.md, plugin.json, and marketplace.json, then creates git tags and GitHub releases. Use when the user says 'release', 'new version', 'version bump', or 'publish release'."
-allowed-tools: Read, Edit, Bash, Glob, Grep, TaskCreate, TaskUpdate, TaskList, TaskGet
+description: "Releases new versions of the SAGA plugin. Bumps version numbers in CHANGELOG.md, README.md, plugin.json, and marketplace.json, then creates git tags and GitHub releases. Use when the user says 'release', 'new version', 'version bump', or 'publish release'."
+user-invocable: true
+allowed-tools: Read, Edit, Bash, Glob, Grep, TaskCreate, TaskUpdate, TaskList, TaskGet, AskUserQuestion
 ---
 
 # Releasing Versions
 
-## Release Workflow
+This skill releases new versions of the SAGA plugin.
 
-**IMPORTANT**: At the start, use the `TaskCreate` tool to create all tasks below. As you complete each task, use `TaskUpdate` to mark it `completed`.
+## Tasks
 
-### Tasks to Create
-
-1. **Gather changes since last release**
-
-   Run these commands:
-   ```bash
-   git log --oneline --grep="chore: release" | head -1
-   # Note the HASH from output, then:
-   git log HASH..HEAD --oneline
-   ```
-
-   Review all commits since the last release. Categorize changes as: Added, Changed, Fixed, Removed. This categorization will be used for the changelog and GitHub release notes.
-
-2. **Determine version number with user**
-
-   Ask user for version or suggest based on changes:
-   - **MAJOR** (X.0.0): Breaking changes
-   - **MINOR** (0.X.0): New features, backward-compatible
-   - **PATCH** (0.0.X): Bug fixes, docs
-
-   Current version: `grep '"version"' plugin/.claude-plugin/plugin.json`
-
-3. **Update CHANGELOG.md**
-
-   Add new version section at top of file:
-   ```markdown
-   ## [X.Y.Z] - YYYY-MM-DD
-
-   ### Added
-   - **feature**: Description
-
-   ### Changed
-   - **component**: Description
-
-   ### Fixed
-   - **component**: Description
-   ```
-
-4. **Update README.md version badge**
-
-   Find and update the version badge:
-   ```markdown
-   [![Version](https://img.shields.io/badge/version-X.Y.Z-blue)](CHANGELOG.md)
-   ```
-
-5. **Update documentation content**
-
-   Based on the commits gathered in task 1, read README.md and CLAUDE.md and update any content that is now outdated due to the changes. Look for:
-   - Feature descriptions that changed
-   - New skills or agents that need documenting
-   - Removed or renamed functionality
-   - Updated workflow instructions
-
-6. **Update plugin/.claude-plugin/plugin.json**
-
-   Update `"version": "X.Y.Z"` to the new version.
-
-7. **Update .claude-plugin/marketplace.json**
-
-   Update `"version": "X.Y.Z"` in the plugins array.
-
-8. **Commit and push changes**
-
-   ```bash
-   git add CHANGELOG.md README.md CLAUDE.md plugin/.claude-plugin/plugin.json .claude-plugin/marketplace.json
-   git commit -m "chore: release vX.Y.Z
-
-   Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-   git push
-   ```
-
-9. **Create and push git tag**
-
-   ```bash
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
-
-10. **Create GitHub release**
-
-    ```bash
-    gh release create vX.Y.Z --title "vX.Y.Z: Brief Title" --notes "$(cat <<'EOF'
-    ## Added
-    - Description
-
-    ## Changed
-    - Description
-
-    ## Fixed
-    - Description
-    EOF
-    )"
-    ```
-
-    Use the changelog content for the release notes.
-
-11. **Verify release**
-
-    1. Check release page: https://github.com/Roeia1/claude-task-system/releases
-    2. Test install: `/plugin install claude-task-system@claude-task-system`
-
-    Report success to user with link to the release.
+| Subject | Description | Active Form | Blocked By | Blocks |
+|---------|-------------|-------------|------------|--------|
+| Gather changes | First run `git status --porcelain` to check for uncommitted changes. If there are uncommitted changes, ask the user to commit them first so they appear in the changelog - stop and wait for user to commit. Once clean, run: `git log --oneline --grep="chore: release" \| head -1` to find the last release commit hash. Note the HASH from output, then run: `git log HASH..HEAD --oneline` to see all commits since that release. Also run `grep '"version"' plugin/.claude-plugin/plugin.json` to get current version. Review all commits and categorize changes as: Added (new features/skills/agents), Changed (modified behavior), Fixed (bug fixes), Removed (deprecated/removed). This categorization will be used for the changelog and GitHub release notes. | Gathering changes | - | Determine version |
+| Determine version | Use AskUserQuestion to ask user for version bump type. Present current version and suggest based on changes: MAJOR (X.0.0) for breaking changes or removed skills, MINOR (0.X.0) for new features, new skills/agents, or backward-compatible changes, PATCH (0.0.X) for bug fixes, docs, or internal improvements. Calculate and confirm the new version number with user. | Determining version | Gather changes | Update CHANGELOG |
+| Update CHANGELOG | Edit `CHANGELOG.md` to add new version section at top of file (after header). Format: `## [X.Y.Z] - YYYY-MM-DD` followed by sections for each change category. Use `### Added` for new features with format `- **feature**: Description`. Use `### Changed` for modified behavior. Use `### Fixed` for bug fixes. Use `### Removed` for removed features. Only include sections that have changes. | Updating CHANGELOG | Determine version | Update README badge |
+| Update README badge | Edit `README.md` to update the version badge. Find and update: `[![Version](https://img.shields.io/badge/version-X.Y.Z-blue)](CHANGELOG.md)` replacing X.Y.Z with the new version number. | Updating README badge | Update CHANGELOG | Update documentation |
+| Update documentation | Based on the commits gathered earlier, read `README.md` and `CLAUDE.md` and update any content that is now outdated due to the changes. Look for: (1) Feature descriptions that changed, (2) New skills or agents that need documenting, (3) Removed or renamed functionality, (4) Updated workflow instructions. If no documentation updates are needed, skip editing but still mark complete. | Updating documentation | Update README badge | Update plugin.json |
+| Update plugin.json | Edit `plugin/.claude-plugin/plugin.json` to update the `"version"` field to the new version number. The field should look like: `"version": "X.Y.Z"` where X.Y.Z is the version determined earlier. | Updating plugin.json | Update documentation | Update marketplace.json |
+| Update marketplace.json | Edit `.claude-plugin/marketplace.json` to update the `"version"` field in the plugins array to the new version number X.Y.Z. | Updating marketplace.json | Update plugin.json | Commit changes |
+| Commit changes | Run: `git add CHANGELOG.md README.md CLAUDE.md plugin/.claude-plugin/plugin.json .claude-plugin/marketplace.json` then commit with message format: `chore: release vX.Y.Z` followed by blank line and `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`. Then run `git push` to push to remote. | Committing changes | Update marketplace.json | Create git tag |
+| Create git tag | Run: `git tag vX.Y.Z` then `git push origin vX.Y.Z`. Note: Plugin uses `vX.Y.Z` tag format (without prefix) to distinguish from CLI releases which use `cli-vX.Y.Z` format. | Creating git tag | Commit changes | Create GitHub release |
+| Create GitHub release | Run: `gh release create vX.Y.Z --title "vX.Y.Z: Brief Title" --notes "$(cat <<'EOF'` followed by the changelog content for this version (## Added, ## Changed, ## Fixed, ## Removed sections as applicable), then `EOF` and `)`. Use the categorized changes from the changelog for the release notes. Replace "Brief Title" with a short summary of the main change. | Creating GitHub release | Create git tag | Verify release |
+| Verify release | Run `gh release view vX.Y.Z` to confirm the release was created. Check the release page: https://github.com/Roeia1/SAGA/releases. Instruct user to test install with: `/plugin install Roeia1/SAGA`. Report success to user with: (1) Released version number, (2) Link to the release page, (3) Installation command. | Verifying release | Create GitHub release | - |
 
 ## Quick Reference
 
