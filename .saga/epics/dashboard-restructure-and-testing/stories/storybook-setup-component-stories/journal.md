@@ -260,3 +260,44 @@
 
 **Next steps:**
 - t8: Create stories for status badges
+
+## Session: 2026-01-28 02:03 UTC
+
+### Task: t8 - Create stories for status badges
+
+**What was done:**
+- Created dedicated `packages/cli/src/client/src/components/StatusBadge.stories.tsx` with comprehensive stories:
+  - **StatusBadge stories (without count)** - used in EpicDetail and StoryDetail:
+    - `Ready`: Gray badge for not-yet-started items
+    - `InProgress`: Primary blue badge for active work
+    - `Blocked`: Danger red badge for items with impediments
+    - `Completed`: Success green badge for finished items
+    - `AllVariants`: All four badges displayed together
+  - **StatusBadgeWithCount stories** - used in EpicList:
+    - `ReadyWithCount`: Gray badge with count
+    - `InProgressWithCount`: Blue badge with count
+    - `BlockedWithCount`: Red badge with count
+    - `CompletedWithCount`: Green badge with count
+    - `AllVariantsWithCount`: All four badges with counts
+  - **Comparison and edge case stories**:
+    - `BadgeComparison`: Side-by-side comparison of both badge variants
+    - `EdgeCases`: Badges with zero counts, large counts, single counts
+- Created story-only versions of both StatusBadge variants rather than extracting to a shared component file (following option 2 from the task guidance)
+- Documented color tokens in the component description:
+  - Ready: `bg-text-muted/20 text-text-muted`
+  - In Progress: `bg-primary/20 text-primary`
+  - Blocked: `bg-danger/20 text-danger`
+  - Completed: `bg-success/20 text-success`
+- All 530 existing tests still pass
+- Storybook build completes successfully
+
+**Decisions:**
+- Created story-only versions of both StatusBadge variants rather than extracting components, to avoid breaking changes to existing code
+- Organized under `Components/StatusBadge` namespace for the main variant and `Components/StatusBadge/WithCount` for the counted variant
+- Added comprehensive documentation in the component description explaining the two variants and their usage contexts
+
+**Files created:**
+- `packages/cli/src/client/src/components/StatusBadge.stories.tsx`
+
+**Next steps:**
+- t9: Add Storybook scripts and verify build
