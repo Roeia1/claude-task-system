@@ -58,9 +58,8 @@ program
   .option('--max-time <n>', 'Maximum time in minutes', parseInt)
   .option('--model <name>', 'Model to use for implementation')
   .option('--dry-run', 'Validate dependencies without running implementation')
-  .option('--stream', 'Stream worker output in real-time')
-  .option('--attached', 'Run in attached mode (synchronous, tied to terminal)')
-  .action(async (storySlug: string, options: { maxCycles?: number; maxTime?: number; model?: string; dryRun?: boolean; stream?: boolean; attached?: boolean }) => {
+  .option('--attached', 'internal: run synchronously inside tmux session')
+  .action(async (storySlug: string, options: { maxCycles?: number; maxTime?: number; model?: string; dryRun?: boolean; attached?: boolean }) => {
     const globalOpts = program.opts();
     await implementCommand(storySlug, {
       path: globalOpts.path,
@@ -68,7 +67,6 @@ program
       maxTime: options.maxTime,
       model: options.model,
       dryRun: options.dryRun,
-      stream: options.stream,
       attached: options.attached,
     });
   });

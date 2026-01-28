@@ -261,33 +261,6 @@ Test story for implement command testing.
       expect(result.stdout).not.toContain('outputFile');
     });
 
-    it('should allow --stream with --attached', () => {
-      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
-
-      const result = runCli(['implement', 'test-story', '--attached', '--stream', '--path', testDir]);
-
-      // Should not fail due to option parsing
-      expect(result.stderr).not.toContain("unknown option");
-    });
-
-    it('should warn when --stream is used without --attached', () => {
-      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
-
-      // Create mock plugin
-      const pluginDir = join(testDir, 'mock-plugin');
-      const skillDir = join(pluginDir, 'skills', 'execute-story');
-      mkdirSync(skillDir, { recursive: true });
-      writeFileSync(join(skillDir, 'worker-prompt.md'), '# Worker Prompt\nTest prompt content');
-
-      const result = runCli(['implement', 'test-story', '--stream', '--path', testDir], {
-        env: { SAGA_PLUGIN_ROOT: pluginDir },
-      });
-
-      // Should warn that --stream is ignored in detached mode
-      // The warning may be in stdout or stderr
-      const combinedOutput = result.stdout + result.stderr;
-      expect(combinedOutput).toMatch(/--stream.*ignored|ignored.*--stream|detached/i);
-    });
   });
 
   describe('dry-run mode', () => {
