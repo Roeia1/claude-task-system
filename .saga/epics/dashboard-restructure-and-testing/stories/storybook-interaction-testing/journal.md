@@ -33,3 +33,30 @@
 
 **Next steps:**
 - Add play functions to StatusBadge stories (task t3)
+
+## Session: 2026-01-28T05:25:00Z
+
+### Task: t3 - Add play functions to StatusBadge stories
+
+**What was done:**
+- Added `expect` and `within` imports from `storybook/test` to StatusBadge.stories.tsx
+- Added play functions to all StatusBadge stories (without count):
+  - Ready: verifies "Ready" text and `bg-text-muted/20`, `text-text-muted` classes
+  - InProgress: verifies "In Progress" text and `bg-primary/20`, `text-primary` classes
+  - Blocked: verifies "Blocked" text and `bg-danger/20`, `text-danger` classes
+  - Completed: verifies "Completed" text and `bg-success/20`, `text-success` classes
+  - AllVariants: verifies all four status badges are present
+- Added play functions to all StatusBadgeWithCount stories:
+  - ReadyWithCount, InProgressWithCount, BlockedWithCount, CompletedWithCount: verify text with count and styling classes
+  - AllVariantsWithCount: verifies all four badges with their counts
+- Added play functions to comparison/edge case stories:
+  - BadgeComparison: verifies both badge variants render correctly
+  - EdgeCases: verifies zero counts, large counts, and single counts
+
+**Decisions:**
+- Used `toHaveClass()` assertions to verify styling classes rather than computed styles, as this is more maintainable and directly reflects the component's implementation
+- Tested both text content and styling to ensure correct rendering and visual distinction between status variants
+- Verified Storybook builds successfully with all new play functions
+
+**Next steps:**
+- Add play functions to Breadcrumb stories (task t4)
