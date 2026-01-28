@@ -203,3 +203,67 @@
 
 **Next steps:**
 - Task t6: Write UI interaction tests
+
+## Session: 2026-01-28T09:15:00Z
+
+### Task: t6 - Write UI interaction tests
+
+**What was done:**
+- Created `tests/integration/ui-interactions.spec.ts` with 27 comprehensive UI interaction tests:
+  - **Navigation - Epic List to Epic Detail (3 tests):**
+    - `should navigate from epic list to epic detail when clicking an epic card`
+    - `should display epic progress after navigation`
+    - `should navigate to correct epic when multiple epics exist`
+  - **Navigation - Epic Detail to Story Detail (2 tests):**
+    - `should navigate from epic detail to story detail when clicking a story card`
+    - `should show story status badge after navigation`
+  - **Breadcrumb Navigation (4 tests):**
+    - `should show breadcrumb on epic detail page`
+    - `should navigate back to epic list via breadcrumb`
+    - `should show full breadcrumb path on story detail page`
+    - `should navigate to epic detail via breadcrumb from story detail`
+  - **Archive Toggle (6 tests):**
+    - `should show archive toggle when archived epics exist`
+    - `should not show archive toggle when no archived epics exist`
+    - `should hide archived epics by default`
+    - `should show archived epics when toggle is enabled`
+    - `should hide archived epics again when toggle is disabled`
+    - `should show only archived epics when all epics are archived and toggle is on`
+  - **Tab Switching - Story Detail (5 tests):**
+    - `should show Tasks tab by default on story detail`
+    - `should switch to Story Content tab and display content`
+    - `should switch to Journal tab and display entries`
+    - `should show blocker count badge on Journal tab when blockers exist`
+    - `should persist tab selection when switching between tabs`
+  - **Collapsible Sections - Journal Entries (4 tests):**
+    - `should expand journal entry when clicked`
+    - `should collapse journal entry when clicked again`
+    - `should show blocker entries expanded by default`
+    - `should allow multiple entries to be expanded independently`
+  - **Full Navigation Flow (3 tests):**
+    - `should complete full navigation flow: list -> epic -> story -> back to epic -> back to list`
+    - `should handle browser back/forward navigation`
+    - `should navigate correctly via links in story header`
+
+**Decisions:**
+- Organized tests by interaction category for maintainability
+- Used existing mock utilities from mock-api.ts for all test setup
+- Tested both click navigation and programmatic URL navigation
+- Tested browser history (back/forward) support
+- Verified tab persistence during tab switching
+- Tested collapsible behavior with default expanded (blockers) vs collapsed (sessions)
+- Used `page.locator('nav[aria-label="Breadcrumb"]')` for accessible breadcrumb targeting
+- Used `page.getByRole('tab', ...)` for accessible tab targeting
+- Verified archive toggle state transitions (on/off/on again)
+
+**Verification:**
+- TypeScript compilation passes for ui-interactions.spec.ts
+- Playwright discovers all 77 tests (27 ui-interactions + 14 empty + 17 error + 10 loading + 9 mock-api)
+- Test structure follows the task guidance from story.md
+
+**Blockers:**
+- Cannot run actual tests due to Chromium browser download timeout (ongoing network issue)
+- Note: User will need to run `npx playwright install chromium` once network is available
+
+**Next steps:**
+- Task t7: Add npm scripts and CI configuration
