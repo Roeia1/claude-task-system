@@ -175,9 +175,18 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Touch output file immediately so it exists for rename operation
+touch "\$OUTPUT_FILE"
+
 # Execute the command with output capture
-# script -q <file> -c <command> captures stdout to file (macOS syntax)
-exec script -q "\$OUTPUT_FILE" -c "\$COMMAND"
+# script syntax differs between macOS and Linux:
+#   macOS (Darwin): script -q <file> -c <command>
+#   Linux:          script -q -c <command> <file>
+if [[ "\$(uname)" == "Darwin" ]]; then
+  exec script -q "\$OUTPUT_FILE" -c "\$COMMAND"
+else
+  exec script -q -c "\$COMMAND" "\$OUTPUT_FILE"
+fi
 `;
 
   writeFileSync(wrapperScriptPath, wrapperScriptContent, { mode: 0o700 });
@@ -208,12 +217,22 @@ exec script -q "\$OUTPUT_FILE" -c "\$COMMAND"
   }
 
   // Parse pane PID from output (format: %0:bash:1234)
-  const paneInfo = listResult.stdout.trim().split(':');
-  const panePid = paneInfo[2];
-
-  if (!panePid) {
+  const rawOutput = listResult.stdout.trim();
+  if (!rawOutput) {
     spawnSync('tmux', ['kill-session', '-t', tempName]);
-    throw new Error('Failed to get pane PID');
+    throw new Error('Failed to get pane info: tmux list-panes returned empty output');
+  }
+
+  const paneInfo = rawOutput.split(':');
+  if (paneInfo.length < 3) {
+    spawnSync('tmux', ['kill-session', '-t', tempName]);
+    throw new Error(`Failed to parse pane info: unexpected format '${rawOutput}'`);
+  }
+
+  const panePid = paneInfo[2];
+  if (!panePid || !/^\d+$/.test(panePid)) {
+    spawnSync('tmux', ['kill-session', '-t', tempName]);
+    throw new Error(`Failed to get pane PID: invalid PID '${panePid}' from '${rawOutput}'`);
   }
 
   // Build final session name
@@ -233,9 +252,20 @@ exec script -q "\$OUTPUT_FILE" -c "\$COMMAND"
   }
 
   // Rename output file to match session name
+  // Wait for the script command to create the output file (may take a moment)
+  const maxWaitMs = 2000;
+  const pollIntervalMs = 50;
+  let waited = 0;
+  while (!existsSync(pendingOutputFile) && waited < maxWaitMs) {
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+    waited += pollIntervalMs;
+  }
+
   if (existsSync(pendingOutputFile)) {
     renameSync(pendingOutputFile, finalOutputFile);
   }
+  // If file still doesn't exist, the session is running but output capture may be delayed
+  // The finalOutputFile path is still correct - it will be created by the script command
 
   return {
     sessionName: finalName,
@@ -261,7 +291,10 @@ export async function listSessions(): Promise<SessionInfo[]> {
 
   for (const line of lines) {
     // tmux ls output format: "session-name: N windows ..."
-    const match = line.match(/^(saga-[a-z0-9-]+):/);
+    // Session name format: saga-<epic>-<story>-<pid>
+    // - epic/story slugs contain only [a-z0-9] with hyphens between (no leading/trailing hyphens)
+    // - pid is always numeric
+    const match = line.match(/^(saga-[a-z0-9]+(?:-[a-z0-9]+)*-\d+):/);
     if (match) {
       const name = match[1];
       sessions.push({

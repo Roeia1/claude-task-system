@@ -257,6 +257,42 @@ describe('sessions', () => {
       await expect(createSession('my-epic', 'my-story', 'echo hello'))
         .rejects.toThrow(/failed to create.*session/i);
     });
+
+    it('should throw error if list-panes returns empty output', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync
+        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
+        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
+        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux list-panes returns empty
+        .mockReturnValueOnce({ status: 0 }); // tmux kill-session (cleanup)
+
+      await expect(createSession('my-epic', 'my-story', 'echo hello'))
+        .rejects.toThrow(/empty output/i);
+    });
+
+    it('should throw error if list-panes returns malformed output', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync
+        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
+        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
+        .mockReturnValueOnce({ status: 0, stdout: 'malformed' }) // tmux list-panes malformed
+        .mockReturnValueOnce({ status: 0 }); // tmux kill-session (cleanup)
+
+      await expect(createSession('my-epic', 'my-story', 'echo hello'))
+        .rejects.toThrow(/unexpected format/i);
+    });
+
+    it('should throw error if pane PID is not a number', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockSpawnSync
+        .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
+        .mockReturnValueOnce({ status: 0, stdout: '' }) // tmux new-session
+        .mockReturnValueOnce({ status: 0, stdout: '%0:bash:notanumber' }) // tmux list-panes with invalid PID
+        .mockReturnValueOnce({ status: 0 }); // tmux kill-session (cleanup)
+
+      await expect(createSession('my-epic', 'my-story', 'echo hello'))
+        .rejects.toThrow(/invalid PID/i);
+    });
   });
 
   describe('listSessions', () => {
