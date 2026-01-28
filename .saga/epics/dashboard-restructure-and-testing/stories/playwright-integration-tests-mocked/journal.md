@@ -160,3 +160,46 @@
 
 **Next steps:**
 - Task t5: Write empty state tests
+
+## Session: 2026-01-28T08:30:00Z
+
+### Task: t5 - Write empty state tests
+
+**What was done:**
+- Created `tests/integration/empty-states.spec.ts` with 14 comprehensive empty state tests:
+  - **Epic List Page (3 tests):**
+    - `should show empty state message when no epics exist` - verifies "No epics found." message and /create-epic guidance
+    - `should show empty state when all epics are archived and toggle is off` - verifies archived epics are hidden by default
+    - `should show archived epics when toggle is enabled` - verifies toggle shows hidden archived epics
+  - **Epic Detail Page (3 tests):**
+    - `should show empty state when epic has no stories` - verifies "No stories in this epic." and /generate-stories guidance
+    - `should show epic header even when no stories exist` - verifies header displays with 0/0 progress
+    - `should show 0% progress when no stories exist` - verifies progress bar is present and shows zero
+  - **Story Detail Page (5 tests):**
+    - `should show empty state when story has no tasks` - verifies "No tasks defined for this story." message
+    - `should show empty state when story has no content` - verifies "No story content available." message
+    - `should show empty state when story has no journal entries` - verifies "No journal entries yet." message
+    - `should show 0/0 tasks completed for story with no tasks` - verifies task count in header
+    - `should display story header correctly even with all empty states` - verifies header elements with completely empty story
+  - **Multiple Empty States Combined (3 tests):**
+    - `should navigate from empty epic list to create epic guidance` - verifies /create-epic code element
+    - `should navigate from empty story list to generate stories guidance` - verifies /generate-stories code element
+    - `should handle transition from data to empty state on navigation` - verifies navigation between populated and empty pages
+
+**Decisions:**
+- Used existing mock utilities (`mockEpicList`, `mockEpicDetail`, `mockStoryDetail`, etc.) for test setup
+- Tested tab switching to verify empty states in Story Content and Journal tabs
+- Included tests for the archive toggle behavior with archived-only epics
+- Verified both primary empty state messages and guidance commands (/create-epic, /generate-stories)
+- Used Playwright's `getByText`, `getByRole`, and `locator` for element assertions
+
+**Verification:**
+- TypeScript compilation passes for empty-states.spec.ts
+- Playwright discovers all 50 tests (14 empty + 17 error + 10 loading + 9 mock-api)
+- Test structure follows the task guidance from story.md
+
+**Blockers:**
+- Cannot run actual tests due to Chromium browser download timeout (ongoing network issue)
+
+**Next steps:**
+- Task t6: Write UI interaction tests
