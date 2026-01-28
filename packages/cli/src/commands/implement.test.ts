@@ -202,15 +202,6 @@ Test story for implement command testing.
   });
 
   describe('detached mode', () => {
-    it('should accept --attached option', () => {
-      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
-
-      const result = runCli(['implement', 'test-story', '--attached', '--path', testDir]);
-
-      // Should not fail due to unknown option
-      expect(result.stderr).not.toContain("unknown option");
-    });
-
     it('should run detached by default (requires tmux)', () => {
       createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
 
@@ -238,7 +229,7 @@ Test story for implement command testing.
       }
     });
 
-    it('should run in attached mode with --attached flag', () => {
+    it('should run in internal session mode with SAGA_INTERNAL_SESSION env var', () => {
       createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
 
       // Create mock plugin
@@ -248,12 +239,12 @@ Test story for implement command testing.
       writeFileSync(join(skillDir, 'worker-prompt.md'), '# Worker Prompt\nTest prompt content');
 
       // Use a shorter timeout since we just want to see if it starts correctly
-      const result = runCli(['implement', 'test-story', '--attached', '--path', testDir], {
-        env: { SAGA_PLUGIN_ROOT: pluginDir },
+      const result = runCli(['implement', 'test-story', '--path', testDir], {
+        env: { SAGA_PLUGIN_ROOT: pluginDir, SAGA_INTERNAL_SESSION: '1' },
         timeout: 2000, // Short timeout - we just want to see the initial output
       });
 
-      // Attached mode should print "Starting story implementation..." followed by story info
+      // Internal session mode should print "Starting story implementation..." followed by story info
       // (It will fail/timeout later because claude CLI may not respond, but it should get past the mode selection)
       // The important thing is we DON'T see the detached mode output (sessionName/outputFile)
       expect(result.stdout).toContain('Starting story implementation');

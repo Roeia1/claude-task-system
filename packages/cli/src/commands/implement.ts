@@ -37,7 +37,6 @@ export interface ImplementOptions {
   maxTime?: number;
   model?: string;
   dryRun?: boolean;
-  attached?: boolean;
 }
 
 /**
@@ -704,7 +703,7 @@ async function runLoop(
 
 /**
  * Build the command string to run in detached mode
- * Uses the same CLI with --attached flag to run synchronously inside tmux
+ * The CLI detects it's inside a tmux session via SAGA_INTERNAL_SESSION env var
  *
  * All arguments are properly shell-escaped to prevent command injection
  */
@@ -717,7 +716,7 @@ function buildDetachedCommand(
     model?: string;
   }
 ): string {
-  const parts = ['saga', 'implement', storySlug, '--attached'];
+  const parts = ['saga', 'implement', storySlug];
 
   // Add project path
   parts.push('--path', projectPath);
@@ -792,10 +791,12 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTime = options.maxTime ?? DEFAULT_MAX_TIME;
   const model = options.model ?? DEFAULT_MODEL;
-  const attached = options.attached ?? false;
+
+  // Check if we're running inside a SAGA tmux session (set by wrapper script)
+  const isInternalSession = process.env.SAGA_INTERNAL_SESSION === '1';
 
   // Detached mode (default): create tmux session
-  if (!attached) {
+  if (!isInternalSession) {
     // Build the command to run inside the tmux session
     const detachedCommand = buildDetachedCommand(storySlug, projectPath, {
       maxCycles: options.maxCycles,
@@ -828,7 +829,7 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
     }
   }
 
-  // Attached mode: run synchronously (used internally by detached mode)
+  // Internal session mode: run synchronously (inside tmux, SAGA_INTERNAL_SESSION=1)
   console.log('Starting story implementation...');
   console.log(`  Epic: ${storyInfo.epicSlug}`);
   console.log(`  Story: ${storyInfo.storySlug}`);
