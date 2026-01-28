@@ -53,5 +53,5 @@ The script will exit with one of these statuses:
 
 - The orchestrator script handles worker spawning and output parsing
 - Workers operate within the worktree context with scope enforcement
-- If workers get blocked, use `/resolve <story-slug>` to provide guidance
+- If workers get blocked, use `/resolve-blocker <story-slug>` to provide guidance
 - The orchestrator enforces max 10 cycles and 60 minutes by default
