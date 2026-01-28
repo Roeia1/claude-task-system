@@ -45,18 +45,26 @@ This creates:
 
 Capture the JSON output to get the `worktree_path` and `branch` values.
 
-### 3. Read Epic Context
+### 3. Install Dependencies
+
+Install dependencies in the worktree. Determine the package manager from the project's package.json (e.g., `packageManager` field, scripts, or lock files present):
+
+```bash
+cd <worktree_path> && <package-manager> install
+```
+
+### 4. Read Epic Context
 
 Read the epic file to understand the full context:
 ```
 ${SAGA_PROJECT_DIR}/.saga/epics/<epic_slug>/epic.md
 ```
 
-### 4. Read Story Template
+### 5. Read Story Template
 
 Read the template from: `${SAGA_PLUGIN_ROOT}/skills/generate-stories/templates/story-template.md`
 
-### 5. Generate Full Story Content
+### 6. Generate Full Story Content
 
 Generate complete story.md content following the template structure.
 
@@ -74,7 +82,7 @@ Include:
 - Verifiable acceptance criteria
 - Detailed tasks with guidance, references, pitfalls to avoid, and done-when criteria
 
-### 6. Write Story File to Worktree
+### 7. Write Story File to Worktree
 
 Create the story directory in the worktree and write story.md:
 
@@ -87,7 +95,7 @@ Write the generated content to:
 <worktree_path>/.saga/epics/<epic_slug>/stories/<generated-slug>/story.md
 ```
 
-### 7. Commit, Push, and Create PR
+### 8. Commit, Push, and Create PR
 
 From within the worktree directory, commit and push the story.md:
 
@@ -123,7 +131,7 @@ To implement this story, run:
 
 Capture the PR URL from the output.
 
-### 8. Return Result
+### 9. Return Result
 
 After completing all steps, output the result in this exact JSON format:
 
