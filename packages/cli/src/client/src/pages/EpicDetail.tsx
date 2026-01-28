@@ -16,7 +16,7 @@ const statusPriority: Record<StoryStatus, number> = {
 };
 
 /** Skeleton loading component for the epic header */
-function HeaderSkeleton() {
+export function HeaderSkeleton() {
   return (
     <div className="animate-pulse space-y-4">
       <div className="h-8 w-64 bg-bg-light rounded" />
@@ -32,7 +32,7 @@ function HeaderSkeleton() {
 }
 
 /** Skeleton loading component for story cards */
-function StoryCardSkeleton() {
+export function StoryCardSkeleton() {
   return (
     <Card className="animate-pulse">
       <CardHeader>
@@ -47,7 +47,7 @@ function StoryCardSkeleton() {
 }
 
 /** Status badge with appropriate color based on story status */
-function StatusBadge({ status }: { status: StoryStatus }) {
+export function StatusBadge({ status }: { status: StoryStatus }) {
   const variants: Record<StoryStatus, string> = {
     ready: 'bg-text-muted/20 text-text-muted',
     in_progress: 'bg-primary/20 text-primary',
@@ -72,7 +72,7 @@ function getTaskProgress(tasks: StoryDetail['tasks']) {
 }
 
 /** Card component for displaying a single story */
-function StoryCard({ story, epicSlug }: { story: StoryDetail; epicSlug: string }) {
+export function StoryCard({ story, epicSlug }: { story: StoryDetail; epicSlug: string }) {
   const taskProgress = getTaskProgress(story.tasks);
 
   return (
