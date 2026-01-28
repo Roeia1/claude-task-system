@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { expect, within } from 'storybook/test'
 import { MemoryRouter } from 'react-router-dom'
 import { createActor } from 'xstate'
 import { DashboardProvider } from '@/context/DashboardContext'
@@ -34,7 +35,17 @@ type SkeletonStory = StoryObj<typeof EpicCardSkeleton>
  * Default skeleton showing the animated loading state with
  * placeholder areas for title, progress bar, and status badges.
  */
-export const Skeleton: SkeletonStory = {}
+export const Skeleton: SkeletonStory = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify skeleton card structure exists - the card should have animate-pulse class
+    const card = canvasElement.querySelector('.animate-pulse')
+    await expect(card).toBeInTheDocument()
+    // Verify skeleton has placeholder elements with bg-bg-light class
+    const placeholders = canvasElement.querySelectorAll('.bg-bg-light')
+    await expect(placeholders.length).toBeGreaterThanOrEqual(3) // title, progress bar, badges
+  },
+}
 
 /**
  * Multiple skeletons arranged in a grid, simulating the loading
@@ -48,6 +59,14 @@ export const SkeletonGrid: SkeletonStory = {
       <EpicCardSkeleton />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // Verify grid container exists
+    const grid = canvasElement.querySelector('.grid')
+    await expect(grid).toBeInTheDocument()
+    // Verify three skeleton cards are rendered
+    const skeletonCards = canvasElement.querySelectorAll('.animate-pulse')
+    await expect(skeletonCards.length).toBe(3)
+  },
 }
 
 // ============================================================================
@@ -89,6 +108,11 @@ type StatusBadgeStory = StoryObj<typeof StatusBadge>
  */
 export const StatusReady: StatusBadgeStory = {
   render: () => <StatusBadge status="ready" count={5} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Ready: 5')
+    await expect(badge).toBeInTheDocument()
+  },
 }
 
 /**
@@ -96,6 +120,11 @@ export const StatusReady: StatusBadgeStory = {
  */
 export const StatusInProgress: StatusBadgeStory = {
   render: () => <StatusBadge status="in_progress" count={3} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('In Progress: 3')
+    await expect(badge).toBeInTheDocument()
+  },
 }
 
 /**
@@ -103,6 +132,11 @@ export const StatusInProgress: StatusBadgeStory = {
  */
 export const StatusBlocked: StatusBadgeStory = {
   render: () => <StatusBadge status="blocked" count={1} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Blocked: 1')
+    await expect(badge).toBeInTheDocument()
+  },
 }
 
 /**
@@ -110,6 +144,11 @@ export const StatusBlocked: StatusBadgeStory = {
  */
 export const StatusCompleted: StatusBadgeStory = {
   render: () => <StatusBadge status="completed" count={8} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const badge = canvas.getByText('Completed: 8')
+    await expect(badge).toBeInTheDocument()
+  },
 }
 
 /**
@@ -124,6 +163,14 @@ export const AllStatuses: StatusBadgeStory = {
       <StatusBadge status="completed" count={8} />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify all four status badges are present
+    await expect(canvas.getByText('Ready: 5')).toBeInTheDocument()
+    await expect(canvas.getByText('In Progress: 3')).toBeInTheDocument()
+    await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument()
+    await expect(canvas.getByText('Completed: 8')).toBeInTheDocument()
+  },
 }
 
 // ============================================================================
@@ -172,6 +219,22 @@ const sampleEpic: EpicSummary = {
  */
 export const Card: EpicCardStory = {
   render: () => <EpicCard epic={sampleEpic} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify epic title
+    await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument()
+    // Verify progress text
+    await expect(canvas.getByText('Progress')).toBeInTheDocument()
+    await expect(canvas.getByText('4/10 stories')).toBeInTheDocument()
+    // Verify status badges are present
+    await expect(canvas.getByText('Ready: 3')).toBeInTheDocument()
+    await expect(canvas.getByText('In Progress: 2')).toBeInTheDocument()
+    await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument()
+    await expect(canvas.getByText('Completed: 4')).toBeInTheDocument()
+    // Verify the card is a link
+    const link = canvas.getByRole('link')
+    await expect(link).toHaveAttribute('href', '/epic/dashboard-restructure')
+  },
 }
 
 /**
@@ -193,6 +256,18 @@ export const CardCompleted: EpicCardStory = {
       }}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify epic title
+    await expect(canvas.getByText('Authentication Migration')).toBeInTheDocument()
+    // Verify progress shows 100% complete
+    await expect(canvas.getByText('5/5 stories')).toBeInTheDocument()
+    // Only completed badge should be visible (zero counts are hidden)
+    await expect(canvas.getByText('Completed: 5')).toBeInTheDocument()
+    await expect(canvas.queryByText(/Ready:/)).not.toBeInTheDocument()
+    await expect(canvas.queryByText(/In Progress:/)).not.toBeInTheDocument()
+    await expect(canvas.queryByText(/Blocked:/)).not.toBeInTheDocument()
+  },
 }
 
 /**
@@ -214,6 +289,18 @@ export const CardAllReady: EpicCardStory = {
       }}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify epic title
+    await expect(canvas.getByText('New Feature Implementation')).toBeInTheDocument()
+    // Verify progress shows 0% complete
+    await expect(canvas.getByText('0/4 stories')).toBeInTheDocument()
+    // Only ready badge should be visible
+    await expect(canvas.getByText('Ready: 4')).toBeInTheDocument()
+    await expect(canvas.queryByText(/Completed:/)).not.toBeInTheDocument()
+    await expect(canvas.queryByText(/In Progress:/)).not.toBeInTheDocument()
+    await expect(canvas.queryByText(/Blocked:/)).not.toBeInTheDocument()
+  },
 }
 
 /**
@@ -235,6 +322,18 @@ export const CardWithBlockers: EpicCardStory = {
       }}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify epic title
+    await expect(canvas.getByText('API Integration')).toBeInTheDocument()
+    // Verify progress text
+    await expect(canvas.getByText('1/7 stories')).toBeInTheDocument()
+    // Verify all status badges are present including blockers
+    await expect(canvas.getByText('Ready: 2')).toBeInTheDocument()
+    await expect(canvas.getByText('In Progress: 1')).toBeInTheDocument()
+    await expect(canvas.getByText('Blocked: 3')).toBeInTheDocument()
+    await expect(canvas.getByText('Completed: 1')).toBeInTheDocument()
+  },
 }
 
 /**
@@ -257,6 +356,20 @@ export const CardLongTitle: EpicCardStory = {
       }}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify long title is rendered fully
+    await expect(
+      canvas.getByText(
+        'This Is a Very Long Epic Title That Demonstrates How Text Wrapping Works in the Card Component'
+      )
+    ).toBeInTheDocument()
+    // Verify progress text
+    await expect(canvas.getByText('2/4 stories')).toBeInTheDocument()
+    // Verify link points to correct slug
+    const link = canvas.getByRole('link')
+    await expect(link).toHaveAttribute('href', '/epic/very-long-epic-slug')
+  },
 }
 
 /**
@@ -294,6 +407,16 @@ export const CardGrid: EpicCardStory = {
       />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify all three epic titles are rendered
+    await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument()
+    await expect(canvas.getByText('Authentication Migration')).toBeInTheDocument()
+    await expect(canvas.getByText('API Integration')).toBeInTheDocument()
+    // Verify all three links are present
+    const links = canvas.getAllByRole('link')
+    await expect(links.length).toBe(3)
+  },
 }
 
 // ============================================================================
@@ -374,6 +497,17 @@ export const Loading: EpicListStory = {
       </div>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify page title
+    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    // Verify three skeleton cards are rendered
+    const skeletonCards = canvasElement.querySelectorAll('.animate-pulse')
+    await expect(skeletonCards.length).toBe(3)
+    // Verify grid layout
+    const grid = canvasElement.querySelector('.grid')
+    await expect(grid).toBeInTheDocument()
+  },
 }
 
 /**
@@ -393,6 +527,16 @@ export const Empty: EpicListStory = {
       </div>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify page title
+    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    // Verify empty state message
+    await expect(canvas.getByText('No epics found.')).toBeInTheDocument()
+    // Verify guidance text with /create-epic command
+    await expect(canvas.getByText('/create-epic')).toBeInTheDocument()
+    await expect(canvas.getByText(/to get started/)).toBeInTheDocument()
+  },
 }
 
 const sampleEpics: EpicSummary[] = [
@@ -447,6 +591,22 @@ export const Populated: EpicListStory = {
       </div>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify page title
+    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    // Verify epic cards are rendered with expected content
+    await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument()
+    await expect(canvas.getByText('Authentication Migration')).toBeInTheDocument()
+    await expect(canvas.getByText('API Integration')).toBeInTheDocument()
+    // Verify progress bars are present (via Progress text)
+    await expect(canvas.getByText('4/10 stories')).toBeInTheDocument()
+    await expect(canvas.getByText('5/5 stories')).toBeInTheDocument()
+    await expect(canvas.getByText('1/7 stories')).toBeInTheDocument()
+    // Verify links are present
+    const links = canvas.getAllByRole('link')
+    await expect(links.length).toBe(3)
+  },
 }
 
 const epicsWithArchived: EpicSummary[] = [
@@ -498,6 +658,20 @@ export const WithArchivedEpics: EpicListStory = {
       </div>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify page title
+    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    // Verify archive toggle checkbox is present
+    const checkbox = canvas.getByRole('checkbox')
+    await expect(checkbox).toBeInTheDocument()
+    await expect(checkbox).not.toBeChecked()
+    // Verify toggle label
+    await expect(canvas.getByText('Show archived')).toBeInTheDocument()
+    // Verify only non-archived epics are visible (3 epics)
+    const links = canvas.getAllByRole('link')
+    await expect(links.length).toBe(3)
+  },
 }
 
 /**
@@ -520,4 +694,19 @@ export const WithArchivedVisible: EpicListStory = {
       </div>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify page title
+    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    // Verify archive toggle checkbox is checked
+    const checkbox = canvas.getByRole('checkbox')
+    await expect(checkbox).toBeInTheDocument()
+    await expect(checkbox).toBeChecked()
+    // Verify all epics are visible including archived (5 epics total)
+    const links = canvas.getAllByRole('link')
+    await expect(links.length).toBe(5)
+    // Verify archived epics are present
+    await expect(canvas.getByText('Legacy Code Cleanup')).toBeInTheDocument()
+    await expect(canvas.getByText('Old Feature (Archived)')).toBeInTheDocument()
+  },
 }

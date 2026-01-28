@@ -83,3 +83,38 @@
 
 **Next steps:**
 - Add play functions to EpicList stories (task t5)
+
+## Session: 2026-01-28T06:30:00Z
+
+### Task: t5 - Add play functions to EpicList stories
+
+**What was done:**
+- Added `expect` and `within` imports from `storybook/test` to EpicList.stories.tsx
+- Added play functions to EpicCardSkeleton stories:
+  - Skeleton: verifies animate-pulse class and bg-bg-light placeholder elements
+  - SkeletonGrid: verifies grid container and three skeleton cards
+- Added play functions to StatusBadge stories (within EpicList.stories.tsx):
+  - StatusReady, StatusInProgress, StatusBlocked, StatusCompleted: verify badge text with count
+  - AllStatuses: verifies all four status badges are present
+- Added play functions to EpicCard stories:
+  - Card: verifies title, progress text (4/10 stories), all status badges, and link href
+  - CardCompleted: verifies 100% complete state and only completed badge visible
+  - CardAllReady: verifies 0% complete state and only ready badge visible
+  - CardWithBlockers: verifies all status badges including blockers
+  - CardLongTitle: verifies long title renders and correct link href
+  - CardGrid: verifies all three epic titles and links present
+- Added play functions to EpicList composite stories:
+  - Loading: verifies page title, three skeleton cards, grid layout
+  - Empty: verifies "No epics found." message and "/create-epic" guidance text
+  - Populated: verifies page title, all epic cards, progress text, and links
+  - WithArchivedEpics: verifies archive toggle checkbox is unchecked, only 3 non-archived epics visible
+  - WithArchivedVisible: verifies archive toggle is checked, all 5 epics including archived visible
+
+**Decisions:**
+- Used `canvasElement.querySelectorAll()` for DOM queries where Testing Library queries aren't appropriate (e.g., CSS class queries)
+- Tested that zero-count badges are hidden as per component behavior
+- Verified link hrefs to ensure correct navigation targets
+- Tested archive toggle checkbox presence and state without testing interaction (Playwright territory)
+
+**Next steps:**
+- Add play functions to EpicDetail stories (task t6)
