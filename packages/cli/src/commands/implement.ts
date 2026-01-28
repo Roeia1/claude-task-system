@@ -521,8 +521,36 @@ function formatStreamLine(line: string): string | null {
 }
 
 /**
+ * Extract StructuredOutput tool call input from streaming output
+ * Searches for assistant messages containing a StructuredOutput tool_use block
+ * Returns the input object if found, null otherwise
+ */
+function extractStructuredOutputFromToolCall(
+  lines: string[]
+): Record<string, unknown> | null {
+  // Search backwards to find the most recent StructuredOutput tool call
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try {
+      const data = JSON.parse(lines[i]);
+      if (data.type === 'assistant' && data.message?.content) {
+        for (const block of data.message.content) {
+          if (block.type === 'tool_use' && block.name === 'StructuredOutput') {
+            return block.input as Record<string, unknown>;
+          }
+        }
+      }
+    } catch {
+      // Not valid JSON, continue
+    }
+  }
+  return null;
+}
+
+/**
  * Parse the final result from stream-json output
- * Looks for the {"type":"result",...} line and extracts structured_output
+ * Looks for the {"type":"result",...} line and extracts structured_output.
+ * Falls back to extracting from StructuredOutput tool call if structured_output
+ * is missing (can happen with error_during_execution subtype).
  */
 function parseStreamingResult(buffer: string): WorkerOutput {
   const lines = buffer.split('\n').filter(line => line.trim());
@@ -536,20 +564,27 @@ function parseStreamingResult(buffer: string): WorkerOutput {
           throw new Error(`Worker failed: ${data.result || 'Unknown error'}`);
         }
 
-        if (!data.structured_output) {
+        // Try to get structured_output from result, fall back to tool call
+        let output = data.structured_output;
+        if (!output) {
+          // Fallback: extract from StructuredOutput tool call
+          // This handles error_during_execution cases where structured_output
+          // is missing from the result but the tool was called successfully
+          output = extractStructuredOutputFromToolCall(lines);
+        }
+
+        if (!output) {
           throw new Error('Worker result missing structured_output');
         }
 
-        const output = data.structured_output;
-
-        if (!VALID_STATUSES.has(output.status)) {
+        if (!VALID_STATUSES.has(output.status as string)) {
           throw new Error(`Invalid status: ${output.status}`);
         }
 
         return {
-          status: output.status,
-          summary: output.summary || '',
-          blocker: output.blocker ?? null,
+          status: output.status as WorkerOutput['status'],
+          summary: (output.summary as string) || '',
+          blocker: (output.blocker as string | null) ?? null,
         };
       }
     } catch (e) {
