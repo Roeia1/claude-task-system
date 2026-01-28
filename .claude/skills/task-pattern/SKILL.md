@@ -32,7 +32,7 @@ When an agent or skill has multiple steps, define them in a structured table usi
 
 ## Description Column
 
-The description column should contain all information needed to execute the task. Referencing external files or documentation is acceptable.
+The description column must be self-contained with all information needed to execute the task. Include commands, code snippets, and formats directly in the description. References to external files (other documents in the repo) are acceptable, but never reference sections within the same file.
 
 ## Dependency Design
 
