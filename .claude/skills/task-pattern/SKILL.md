@@ -30,30 +30,6 @@ When an agent or skill has multiple steps, define them in a structured table usi
 | Apply changes | Update target files based on config values | Applying changes | Validate config | - |
 ```
 
-## Agent Instructions Template
-
-```markdown
-## Process
-
-### 1. Create Task List
-
-Use `TaskCreate` to create all tasks below, then use `TaskUpdate` to set up the dependencies (via `addBlockedBy` and `addBlocks`), then execute them.
-
-| Subject | Description | Active Form | Blocked By | Blocks |
-|---------|-------------|-------------|------------|--------|
-| ... | ... | ... | ... | ... |
-
-### 2. Return Result
-
-After all tasks are completed, output the result in this exact JSON format:
-
-\`\`\`json
-{
-  "field": "value"
-}
-\`\`\`
-```
-
 ## Description Column
 
 The description column should contain all information needed to execute the task. Referencing external files or documentation is acceptable.
@@ -80,29 +56,8 @@ Design dependencies to maximize parallel execution where possible:
         └─────────┘
 ```
 
-### Parallel Execution Constraints
-
-**Important**: Subagents cannot spawn other subagents. If your agent runs as a subagent:
-- Tasks execute sequentially within the agent
-- Dependencies document logical order but don't enable parallelism
-- Parallelism happens at the parent skill level (multiple subagents)
-
-To maximize parallelism:
-- Move shared/reusable work to the parent skill
-- Keep subagent work focused and minimal
-- Let the parent orchestrate parallel subagent invocations
-
-## Reference Implementation
-
-See `plugin/agents/generate-story.md` for a complete example of this pattern.
-
 ## Checklist
 
-When writing or refactoring an agent/skill:
-
-- [ ] All steps defined in a single task table
-- [ ] Descriptions are self-contained (no external references needed)
-- [ ] Active forms use present continuous tense
-- [ ] Dependencies minimize sequential bottlenecks
-- [ ] Output format clearly specified
-- [ ] Environment variables used for paths
+- [ ] Steps defined in a task table
+- [ ] Each task has subject, description, and active form
+- [ ] Dependencies defined where applicable
