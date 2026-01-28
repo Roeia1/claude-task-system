@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { expect, within } from 'storybook/test'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { Breadcrumb } from './Breadcrumb'
 
@@ -41,7 +42,21 @@ type Story = StoryObj<typeof Breadcrumb>
  * Root breadcrumb showing the home icon and "Epics" label.
  * This is displayed when on the epic list page at `/`.
  */
-export const Root: Story = {}
+export const Root: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const nav = canvasElement.querySelector('nav[aria-label="Breadcrumb"]')
+    await expect(nav).toBeInTheDocument()
+    // Verify "Epics" text is present
+    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    // Verify home icon is present (SVG inside the span)
+    const homeIconContainer = canvasElement.querySelector('svg.lucide-home')
+    await expect(homeIconContainer).toBeInTheDocument()
+    // Verify no separators since this is the only item
+    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right')
+    await expect(separators.length).toBe(0)
+  },
+}
 
 /**
  * Epic detail breadcrumb showing: Epics > epic-slug
@@ -59,6 +74,20 @@ export const EpicDetail: Story = {
       </MemoryRouter>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify Epics link is present with href to root
+    const epicsLink = canvas.getByRole('link', { name: /epics/i })
+    await expect(epicsLink).toBeInTheDocument()
+    await expect(epicsLink).toHaveAttribute('href', '/')
+    // Verify separator is present
+    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right')
+    await expect(separators.length).toBe(1)
+    // Verify epic slug is displayed as current page (font-medium)
+    const epicSlug = canvas.getByText('dashboard-restructure')
+    await expect(epicSlug).toBeInTheDocument()
+    await expect(epicSlug).toHaveClass('font-medium')
+  },
 }
 
 /**
@@ -81,6 +110,26 @@ export const StoryDetail: Story = {
       </MemoryRouter>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify Epics link with href to root
+    const epicsLink = canvas.getByRole('link', { name: /epics/i })
+    await expect(epicsLink).toBeInTheDocument()
+    await expect(epicsLink).toHaveAttribute('href', '/')
+    // Verify epic slug link with href to epic detail
+    const epicSlugLink = canvas.getByRole('link', {
+      name: 'dashboard-restructure',
+    })
+    await expect(epicSlugLink).toBeInTheDocument()
+    await expect(epicSlugLink).toHaveAttribute('href', '/epic/dashboard-restructure')
+    // Verify two separators for the full hierarchy
+    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right')
+    await expect(separators.length).toBe(2)
+    // Verify story slug is displayed as current page (font-medium)
+    const storySlug = canvas.getByText('storybook-setup')
+    await expect(storySlug).toBeInTheDocument()
+    await expect(storySlug).toHaveClass('font-medium')
+  },
 }
 
 /**
@@ -100,6 +149,19 @@ export const LongEpicSlug: Story = {
       </MemoryRouter>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify Epics link is present with href to root
+    const epicsLink = canvas.getByRole('link', { name: /epics/i })
+    await expect(epicsLink).toBeInTheDocument()
+    await expect(epicsLink).toHaveAttribute('href', '/')
+    // Verify long epic slug is displayed as current page
+    const epicSlug = canvas.getByText(
+      'implement-authentication-and-authorization-system'
+    )
+    await expect(epicSlug).toBeInTheDocument()
+    await expect(epicSlug).toHaveClass('font-medium')
+  },
 }
 
 /**
@@ -122,4 +184,24 @@ export const LongSlugs: Story = {
       </MemoryRouter>
     ),
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Verify Epics link with href to root
+    const epicsLink = canvas.getByRole('link', { name: /epics/i })
+    await expect(epicsLink).toBeInTheDocument()
+    await expect(epicsLink).toHaveAttribute('href', '/')
+    // Verify long epic slug link with href to epic detail
+    const epicSlugLink = canvas.getByRole('link', {
+      name: 'implement-authentication-and-authorization-system',
+    })
+    await expect(epicSlugLink).toBeInTheDocument()
+    await expect(epicSlugLink).toHaveAttribute(
+      'href',
+      '/epic/implement-authentication-and-authorization-system'
+    )
+    // Verify long story slug is displayed as current page
+    const storySlug = canvas.getByText('add-oauth-provider-integration')
+    await expect(storySlug).toBeInTheDocument()
+    await expect(storySlug).toHaveClass('font-medium')
+  },
 }

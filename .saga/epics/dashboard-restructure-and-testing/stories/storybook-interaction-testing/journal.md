@@ -60,3 +60,26 @@
 
 **Next steps:**
 - Add play functions to Breadcrumb stories (task t4)
+
+## Session: 2026-01-28T06:00:00Z
+
+### Task: t4 - Add play functions to Breadcrumb stories
+
+**What was done:**
+- Added `expect` and `within` imports from `storybook/test` to Breadcrumb.stories.tsx
+- Added play functions to all Breadcrumb stories:
+  - Root: verifies nav element with aria-label, "Epics" text, home icon presence, no separators
+  - EpicDetail: verifies Epics link with href="/", separator present, epic slug displayed with font-medium class
+  - StoryDetail: verifies Epics link, epic slug link with correct href, two separators, story slug with font-medium class
+  - LongEpicSlug: verifies Epics link, long epic slug displayed as current page
+  - LongSlugs: verifies full hierarchy with long slugs, correct link hrefs
+- Verified Storybook builds successfully with all new play functions
+
+**Decisions:**
+- Used `canvas.getByRole('link', { name: ... })` for link queries to align with accessibility best practices
+- Used `canvasElement.querySelectorAll('svg.lucide-chevron-right')` to count separators since they're not accessible elements
+- Tested href attributes to verify navigation targets without actually navigating (which would be Playwright territory)
+- Verified font-medium class on current page items to ensure proper visual indication
+
+**Next steps:**
+- Add play functions to EpicList stories (task t5)
