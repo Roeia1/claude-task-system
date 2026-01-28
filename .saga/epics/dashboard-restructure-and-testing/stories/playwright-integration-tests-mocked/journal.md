@@ -329,3 +329,44 @@ Removed GitHub Actions workflow from the story scope. npm scripts are sufficient
 
 **Rationale:**
 The core value of this story is the Playwright integration tests with mocked API responses. The npm scripts (`test:integration` and `test:integration:ui`) are sufficient to run tests locally. CI workflow configuration is an orthogonal concern that can be addressed in a separate story or added to an existing CI pipeline later.
+
+## Session: 2026-01-29T00:00:00Z
+
+### Task: Fix integration tests to work with actual dashboard implementation
+
+**What was done:**
+
+1. **Fixed state machine to handle data events in idle state**
+   - Modified `dashboardMachine.ts` to handle `EPICS_LOADED`, `EPIC_LOADED`, `STORY_LOADED`, `CLEAR_EPIC`, `CLEAR_STORY` events in the `idle` state
+   - This allows REST API data fetching to work without requiring WebSocket connection
+   - Previously, these events were only handled in `connected` state, which required the WebSocket to be established first
+
+2. **Fixed infinite loop bug in DashboardContext**
+   - Modified `DashboardContext.tsx` to memoize all action functions using `useCallback`
+   - Added `useMemo` to wrap the returned hook object
+   - This prevents infinite loops when components use action functions as useEffect dependencies
+   - Previously, action functions were recreated on every render, causing components to re-fetch infinitely
+
+3. **Fixed API route mocking patterns**
+   - Updated `mockEpicList` to use regex pattern `/\/api\/epics\/?$/` instead of glob `**/api/epics`
+   - Updated `mockEpicDetail` and `mockStoryDetail` to use function matchers instead of glob patterns
+   - The function matchers check `url.pathname` directly for more reliable matching
+   - This ensures route handlers don't conflict with each other
+
+4. **Fixed test assertions**
+   - Updated breadcrumb link assertion to use `.first()` when multiple matching links exist
+   - Cleaned up debug test files
+
+**Test Results:**
+- Before fixes: 16 passed, 61 failed
+- After fixes: 68 passed, 9 failed
+- Significant improvement in test reliability
+
+**Remaining issues (9 tests):**
+- Error state tests for toast notifications (4 tests) - likely need toast locator adjustments
+- Mock API tests for epic/story detail (2 tests) - navigation flow issues
+- UI interaction tests (3 tests) - need investigation
+
+**Next steps:**
+- Investigate and fix the remaining 9 failing tests
+- Focus on error state toast assertions and navigation patterns

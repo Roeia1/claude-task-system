@@ -131,12 +131,15 @@ export function createMockEpic(overrides: Partial<Epic> = {}): Epic {
 
 /**
  * Mocks the GET /api/epics endpoint to return a list of epic summaries.
+ * Uses a regex to match exactly /api/epics without a trailing slug.
  */
 export async function mockEpicList(
   page: Page,
   epics: EpicSummary[]
 ): Promise<void> {
-  await page.route('**/api/epics', async (route: Route) => {
+  // Use regex to match exactly /api/epics (with optional trailing slash)
+  // but NOT /api/epics/some-slug
+  await page.route(/\/api\/epics\/?$/, async (route: Route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -147,27 +150,31 @@ export async function mockEpicList(
 
 /**
  * Mocks the GET /api/epics/:slug endpoint to return epic details.
- * The route pattern matches any epic slug.
+ * Uses a function matcher to handle the URL properly.
  */
 export async function mockEpicDetail(page: Page, epic: Epic): Promise<void> {
-  await page.route(`**/api/epics/${epic.slug}`, async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(epic),
-    });
-  });
+  await page.route(
+    (url) => url.pathname === `/api/epics/${epic.slug}`,
+    async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(epic),
+      });
+    }
+  );
 }
 
 /**
  * Mocks the GET /api/stories/:epicSlug/:storySlug endpoint to return story details.
+ * Uses a function matcher to handle the URL properly.
  */
 export async function mockStoryDetail(
   page: Page,
   story: StoryDetail
 ): Promise<void> {
   await page.route(
-    `**/api/stories/${story.epicSlug}/${story.slug}`,
+    (url) => url.pathname === `/api/stories/${story.epicSlug}/${story.slug}`,
     async (route: Route) => {
       await route.fulfill({
         status: 200,
@@ -247,6 +254,7 @@ export async function mockNetworkFailure(
     await route.abort('connectionrefused');
   });
 }
+
 
 // ============================================================================
 // Convenience Helpers
@@ -331,9 +339,9 @@ export async function setupMockDashboard(page: Page): Promise<{
     }),
   };
 
-  // Set up all mocks
+  // Set up all API mocks
   await mockEpicList(page, epics);
-  for (const [slug, epic] of Object.entries(epicDetails)) {
+  for (const [, epic] of Object.entries(epicDetails)) {
     await mockEpicDetail(page, epic);
     for (const story of epic.stories) {
       await mockStoryDetail(page, story);

@@ -282,6 +282,38 @@ export const dashboardMachine = setup({
           target: 'loading',
           actions: ['clearError', 'resetRetryCount'],
         },
+        // Allow data events in idle state so REST API fetching works
+        // without requiring WebSocket connection
+        EPICS_LOADED: {
+          actions: [
+            {
+              type: 'setEpics',
+              params: ({ event }) => ({ epics: event.epics }),
+            },
+          ],
+        },
+        EPIC_LOADED: {
+          actions: [
+            {
+              type: 'setCurrentEpic',
+              params: ({ event }) => ({ epic: event.epic }),
+            },
+          ],
+        },
+        STORY_LOADED: {
+          actions: [
+            {
+              type: 'setCurrentStory',
+              params: ({ event }) => ({ story: event.story }),
+            },
+          ],
+        },
+        CLEAR_EPIC: {
+          actions: ['clearCurrentEpic'],
+        },
+        CLEAR_STORY: {
+          actions: ['clearCurrentStory'],
+        },
       },
     },
     loading: {
