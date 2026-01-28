@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { MemoryRouter, Routes, Route, Outlet } from 'react-router-dom'
+import { expect, within } from 'storybook/test'
 import { Layout } from './Layout'
 import { DashboardProvider } from '@/context/DashboardContext'
+import { dashboardMachine } from '@/machines'
 
 /**
  * The Layout component provides the main application shell including:
@@ -22,9 +24,34 @@ const meta: Meta<typeof Layout> = {
       },
     },
   },
+}
+
+export default meta
+type Story = StoryObj<typeof Layout>
+
+/**
+ * Default layout showing the header with SAGA Dashboard branding,
+ * breadcrumb navigation (showing root "Epics" path), and the main content area.
+ */
+export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Verify header renders with SAGA Dashboard branding (text is split across elements)
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument()
+    await expect(canvas.getByText(/Dashboard/)).toBeInTheDocument()
+
+    // Verify breadcrumb shows root "Epics" path
+    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+
+    // Verify main content area renders
+    await expect(
+      canvas.getByText('Main content area (via Outlet)')
+    ).toBeInTheDocument()
+  },
   decorators: [
     (Story) => (
-      <DashboardProvider>
+      <DashboardProvider logic={dashboardMachine}>
         <MemoryRouter initialEntries={['/']}>
           <Routes>
             <Route path="/" element={<Story />}>
@@ -46,26 +73,29 @@ const meta: Meta<typeof Layout> = {
   ],
 }
 
-export default meta
-type Story = StoryObj<typeof Layout>
-
-/**
- * Default layout showing the header with SAGA Dashboard branding,
- * breadcrumb navigation (showing root "Epics" path), and the main content area.
- */
-export const Default: Story = {
-  tags: ['!test'], // Skip test - Layout requires DashboardProvider context
-}
-
 /**
  * Layout with sample page content to demonstrate how page components
  * render within the layout shell.
  */
 export const WithPageContent: Story = {
-  tags: ['!test'], // Skip test - Layout requires DashboardProvider context
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Verify header renders
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument()
+
+    // Verify page content title renders (distinct from breadcrumb)
+    const epicHeadings = canvas.getAllByText('Epics')
+    await expect(epicHeadings.length).toBeGreaterThanOrEqual(1)
+
+    // Verify sample epic cards render
+    await expect(canvas.getByText('Sample Epic 1')).toBeInTheDocument()
+    await expect(canvas.getByText('Sample Epic 2')).toBeInTheDocument()
+    await expect(canvas.getByText('Sample Epic 3')).toBeInTheDocument()
+  },
   decorators: [
     (Story) => (
-      <DashboardProvider>
+      <DashboardProvider logic={dashboardMachine}>
         <MemoryRouter initialEntries={['/']}>
           <Routes>
             <Route path="/" element={<Story />}>
@@ -103,10 +133,25 @@ export const WithPageContent: Story = {
  * with an epic slug in the path.
  */
 export const EpicDetailView: Story = {
-  tags: ['!test'], // Skip test - Layout requires DashboardProvider context
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Verify header renders
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument()
+
+    // Verify breadcrumb shows epic path
+    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+
+    // Text appears in both breadcrumb and page content, so use getAllByText
+    const epicSlugElements = canvas.getAllByText('dashboard-restructure')
+    await expect(epicSlugElements.length).toBeGreaterThanOrEqual(1)
+
+    // Verify epic detail content renders
+    await expect(canvas.getByText('Epic detail content area')).toBeInTheDocument()
+  },
   decorators: [
     (Story) => (
-      <DashboardProvider>
+      <DashboardProvider logic={dashboardMachine}>
         <MemoryRouter initialEntries={['/epic/dashboard-restructure']}>
           <Routes>
             <Route path="/" element={<Story />}>
@@ -137,10 +182,26 @@ export const EpicDetailView: Story = {
  * breadcrumb trail: Epics > epic-slug > story-slug
  */
 export const StoryDetailView: Story = {
-  tags: ['!test'], // Skip test - Layout requires DashboardProvider context
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    // Verify header renders
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument()
+
+    // Verify full breadcrumb trail renders
+    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    await expect(canvas.getByText('dashboard-restructure')).toBeInTheDocument()
+
+    // Text appears in both breadcrumb and page content, so use getAllByText
+    const storySlugElements = canvas.getAllByText('storybook-setup')
+    await expect(storySlugElements.length).toBeGreaterThanOrEqual(1)
+
+    // Verify story detail content renders
+    await expect(canvas.getByText('Story detail content area')).toBeInTheDocument()
+  },
   decorators: [
     (Story) => (
-      <DashboardProvider>
+      <DashboardProvider logic={dashboardMachine}>
         <MemoryRouter
           initialEntries={['/epic/dashboard-restructure/story/storybook-setup']}
         >
