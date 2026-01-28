@@ -26,6 +26,7 @@ import { join } from 'node:path';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolveProjectPath } from '../utils/project-discovery.js';
 import { findStory as findStoryUtil, type StoryInfo as FinderStoryInfo } from '../utils/finder.js';
+import { createSession, shellEscapeArgs } from '../lib/sessions.js';
 
 /**
  * Options for the implement command
@@ -37,6 +38,7 @@ export interface ImplementOptions {
   model?: string;
   dryRun?: boolean;
   stream?: boolean;
+  attached?: boolean;
 }
 
 /**
@@ -790,6 +792,45 @@ async function runLoop(
 }
 
 /**
+ * Build the command string to run in detached mode
+ * Uses the same CLI with --attached flag to run synchronously inside tmux
+ *
+ * All arguments are properly shell-escaped to prevent command injection
+ */
+function buildDetachedCommand(
+  storySlug: string,
+  projectPath: string,
+  options: {
+    maxCycles?: number;
+    maxTime?: number;
+    model?: string;
+    stream?: boolean;
+  }
+): string {
+  const parts = ['saga', 'implement', storySlug, '--attached'];
+
+  // Add project path
+  parts.push('--path', projectPath);
+
+  // Add options if specified
+  if (options.maxCycles !== undefined) {
+    parts.push('--max-cycles', String(options.maxCycles));
+  }
+  if (options.maxTime !== undefined) {
+    parts.push('--max-time', String(options.maxTime));
+  }
+  if (options.model !== undefined) {
+    parts.push('--model', options.model);
+  }
+  if (options.stream) {
+    parts.push('--stream');
+  }
+
+  // Use shell escaping to prevent command injection
+  return shellEscapeArgs(parts);
+}
+
+/**
  * Execute the implement command
  */
 export async function implementCommand(storySlug: string, options: ImplementOptions): Promise<void> {
@@ -845,7 +886,49 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
   const maxTime = options.maxTime ?? DEFAULT_MAX_TIME;
   const model = options.model ?? DEFAULT_MODEL;
   const stream = options.stream ?? false;
+  const attached = options.attached ?? false;
 
+  // Detached mode (default): create tmux session
+  if (!attached) {
+    // Warn if --stream is used with detached mode
+    if (stream) {
+      console.error('Warning: --stream is ignored in detached mode. Use --attached --stream for streaming output.');
+    }
+
+    // Build the command to run inside the tmux session
+    const detachedCommand = buildDetachedCommand(storySlug, projectPath, {
+      maxCycles: options.maxCycles,
+      maxTime: options.maxTime,
+      model: options.model,
+      stream: true, // Always use streaming in detached mode so output is captured
+    });
+
+    try {
+      const sessionResult = await createSession(
+        storyInfo.epicSlug,
+        storyInfo.storySlug,
+        detachedCommand
+      );
+
+      // Output session info as JSON
+      console.log(JSON.stringify({
+        mode: 'detached',
+        sessionName: sessionResult.sessionName,
+        outputFile: sessionResult.outputFile,
+        epicSlug: storyInfo.epicSlug,
+        storySlug: storyInfo.storySlug,
+        worktreePath: storyInfo.worktreePath,
+      }, null, 2));
+
+      // Exit immediately - worker runs in background
+      return;
+    } catch (error: any) {
+      console.error(`Error: Failed to create detached session: ${error.message}`);
+      process.exit(1);
+    }
+  }
+
+  // Attached mode: run synchronously
   console.log('Starting story implementation...');
   console.log(`  Epic: ${storyInfo.epicSlug}`);
   console.log(`  Story: ${storyInfo.storySlug}`);

@@ -5,6 +5,31 @@ All notable changes to the `@saga-ai/cli` package will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-01-28
+
+### Added
+- **find**: New `--status` option to filter stories by status (ready, completed, blocked, etc.)
+- **sessions**: New `saga sessions` command group for tmux session management
+  - `saga sessions list` - List all SAGA sessions (JSON array)
+  - `saga sessions status <name>` - Check if session is running
+  - `saga sessions logs <name>` - Stream session output via tail
+  - `saga sessions kill <name>` - Terminate a session
+- **implement**: Detached execution mode using tmux sessions
+  - New `--attached` flag (default: false) - runs detached in tmux by default
+  - Detached mode creates background tmux session with output capture
+  - Returns session info JSON for monitoring
+- **dashboard**: Storybook 10.x setup for component development
+  - Stories for Layout, Breadcrumb, StatusBadge components
+  - Stories for EpicList, EpicDetail, StoryDetail pages
+  - Theme integration with dark mode decorator
+
+### Changed
+- **implement**: Default behavior now runs detached; use `--attached` for synchronous mode
+- **sessions**: Session naming now uses timestamp instead of PID for uniqueness
+
+### Fixed
+- **sessions**: Fixed macOS `script` command syntax for output capture
+
 ## [0.6.0] - 2026-01-28
 
 ### Added

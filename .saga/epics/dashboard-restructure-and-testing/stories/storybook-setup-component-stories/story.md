@@ -1,36 +1,36 @@
 ---
 id: storybook-setup-component-stories
 title: Storybook Setup and Component Stories
-status: ready
+status: completed
 epic: dashboard-restructure-and-testing
 tasks:
   - id: t1
     title: Install and configure Storybook 10.x
-    status: pending
+    status: completed
   - id: t2
     title: Configure Tailwind CSS and theme integration
-    status: pending
+    status: completed
   - id: t3
     title: Create stories for Layout component
-    status: pending
+    status: completed
   - id: t4
     title: Create stories for Breadcrumb component
-    status: pending
+    status: completed
   - id: t5
     title: Create stories for EpicList page and subcomponents
-    status: pending
+    status: completed
   - id: t6
     title: Create stories for EpicDetail page and subcomponents
-    status: pending
+    status: completed
   - id: t7
     title: Create stories for StoryDetail page and subcomponents
-    status: pending
+    status: completed
   - id: t8
     title: Create stories for status badges
-    status: pending
+    status: completed
   - id: t9
     title: Add Storybook scripts and verify build
-    status: pending
+    status: completed
 ---
 
 ## Context

@@ -16,6 +16,12 @@ import { dashboardCommand } from './commands/dashboard.js';
 import { scopeValidatorCommand } from './commands/scope-validator.js';
 import { findCommand } from './commands/find.js';
 import { worktreeCommand } from './commands/worktree.js';
+import {
+  sessionsListCommand,
+  sessionsStatusCommand,
+  sessionsLogsCommand,
+  sessionsKillCommand,
+} from './commands/sessions/index.js';
 
 // Read version from package.json
 // In the bundled CJS output, __dirname will be available
@@ -53,7 +59,8 @@ program
   .option('--model <name>', 'Model to use for implementation')
   .option('--dry-run', 'Validate dependencies without running implementation')
   .option('--stream', 'Stream worker output in real-time')
-  .action(async (storySlug: string, options: { maxCycles?: number; maxTime?: number; model?: string; dryRun?: boolean; stream?: boolean }) => {
+  .option('--attached', 'Run in attached mode (synchronous, tied to terminal)')
+  .action(async (storySlug: string, options: { maxCycles?: number; maxTime?: number; model?: string; dryRun?: boolean; stream?: boolean; attached?: boolean }) => {
     const globalOpts = program.opts();
     await implementCommand(storySlug, {
       path: globalOpts.path,
@@ -62,6 +69,7 @@ program
       model: options.model,
       dryRun: options.dryRun,
       stream: options.stream,
+      attached: options.attached,
     });
   });
 
@@ -70,11 +78,13 @@ program
   .command('find <query>')
   .description('Find an epic or story by slug/title')
   .option('--type <type>', 'Type to search for: epic or story (default: story)')
-  .action(async (query: string, options: { type?: 'epic' | 'story' }) => {
+  .option('--status <status>', 'Filter stories by status (e.g., ready, in-progress, completed)')
+  .action(async (query: string, options: { type?: 'epic' | 'story'; status?: string }) => {
     const globalOpts = program.opts();
     await findCommand(query, {
       path: globalOpts.path,
       type: options.type,
+      status: options.status,
     });
   });
 
@@ -106,6 +116,39 @@ program
   .description('Validate file operations against story scope (internal)')
   .action(async () => {
     await scopeValidatorCommand();
+  });
+
+// sessions command group
+const sessionsCommand = program
+  .command('sessions')
+  .description('Manage SAGA tmux sessions');
+
+sessionsCommand
+  .command('list')
+  .description('List all SAGA sessions')
+  .action(async () => {
+    await sessionsListCommand();
+  });
+
+sessionsCommand
+  .command('status <name>')
+  .description('Show session status')
+  .action(async (name: string) => {
+    await sessionsStatusCommand(name);
+  });
+
+sessionsCommand
+  .command('logs <name>')
+  .description('Stream session output')
+  .action(async (name: string) => {
+    await sessionsLogsCommand(name);
+  });
+
+sessionsCommand
+  .command('kill <name>')
+  .description('Terminate a session')
+  .action(async (name: string) => {
+    await sessionsKillCommand(name);
   });
 
 // Error handling for unknown commands

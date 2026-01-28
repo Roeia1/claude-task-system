@@ -42,6 +42,10 @@ export type FindResult<T> =
   | { found: false; matches: T[] }
   | { found: false; error: string };
 
+export interface FindStoryOptions {
+  status?: string;
+}
+
 // ============================================================================
 // Fuse.js Configuration
 // ============================================================================
@@ -236,9 +240,10 @@ export function findEpic(projectPath: string, query: string): FindResult<EpicInf
  *
  * @param projectPath - Path to the project root
  * @param query - The identifier to resolve
+ * @param options - Optional filters (status)
  * @returns Promise resolving to FindResult with story info or matches/error
  */
-export async function findStory(projectPath: string, query: string): Promise<FindResult<StoryInfo>> {
+export async function findStory(projectPath: string, query: string, options: FindStoryOptions = {}): Promise<FindResult<StoryInfo>> {
   if (!worktreesDirectoryExists(projectPath) && !epicsDirectoryExists(projectPath)) {
     return {
       found: false,
@@ -256,8 +261,19 @@ export async function findStory(projectPath: string, query: string): Promise<Fin
     };
   }
 
-  // Convert to StoryInfo format
-  const allStories = scannedStories.map(toStoryInfo);
+  // Convert to StoryInfo format and apply status filter
+  let allStories = scannedStories.map(toStoryInfo);
+
+  if (options.status) {
+    allStories = allStories.filter(story => story.status === options.status);
+
+    if (allStories.length === 0) {
+      return {
+        found: false,
+        error: `No story found matching '${query}' with status '${options.status}'`,
+      };
+    }
+  }
 
   // Normalize query for exact matching
   const queryNormalized = normalize(query);
