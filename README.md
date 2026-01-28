@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/version-2.10.1-blue)](CHANGELOG.md)
 [![npm](https://img.shields.io/npm/v/@saga-ai/cli)](https://www.npmjs.com/package/@saga-ai/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Skills](https://img.shields.io/badge/skills-5-green)](https://github.com/Roeia1/saga)
+[![Skills](https://img.shields.io/badge/skills-6-green)](https://github.com/Roeia1/saga)
 [![Agents](https://img.shields.io/badge/agents-1-blue)](https://github.com/Roeia1/saga)
 
 > **S**tructured **A**utonomous **G**oal **A**chievement - Transform epic ideas into shipped code through structured planning, autonomous execution, and continuous journaling.
@@ -222,6 +222,7 @@ All functionality is accessed through skills (slash commands):
 | Generate Stories | `/generate-stories [epic-slug]` | Break epic into implementable stories |
 | Execute Story | `/execute-story [story-slug]` | Execute story autonomously |
 | Resolve Blocker | `/resolve-blocker [story-slug]` | Analyze and resolve blockers |
+| List Sessions | `/list-sessions` | List all running SAGA sessions |
 
 ### Agents
 
@@ -329,7 +330,8 @@ plugin/
 │   ├── create-epic/          # /create-epic - Define epics
 │   ├── generate-stories/     # /generate-stories - Break down epics
 │   ├── execute-story/        # /execute-story - Autonomous execution
-│   └── resolve-blocker/      # /resolve-blocker - Handle blockers
+│   ├── resolve-blocker/      # /resolve-blocker - Handle blockers
+│   └── list-sessions/        # /list-sessions - List running sessions
 ├── hooks/
 │   └── session-init.sh       # Session startup & context detection
 └── docs/
