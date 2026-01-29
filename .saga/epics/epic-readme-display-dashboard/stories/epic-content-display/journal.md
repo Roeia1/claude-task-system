@@ -79,3 +79,46 @@
 **Next steps:**
 - Task t4: Add unit tests for EpicContent component (already completed in t2)
 - Task t5: Add integration tests for epic content display
+
+## Session: 2026-01-30
+
+### Task: t5 - Add integration tests for epic content display
+
+**What was done:**
+- Created comprehensive integration test file at `packages/cli/src/client/tests/integration/epic-content.spec.ts`
+- Added 11 integration tests covering:
+  - Content visibility: epic content section visible when epic has content
+  - Content visibility: section hidden when epic has no content
+  - Content visibility: section hidden when content is empty string
+  - Collapsible behavior: expanded by default
+  - Collapsible behavior: collapses when toggle button clicked
+  - Collapsible behavior: expands when toggle clicked again
+  - Content positioning: epic content displays between header and stories
+  - Markdown rendering: headings render correctly
+  - Markdown rendering: lists render correctly
+  - Markdown rendering: code blocks render correctly
+  - Markdown rendering: GFM tables render correctly
+
+**Test implementation details:**
+- Used existing mock-api utilities (`createMockEpic`, `mockEpicDetail`)
+- Targeted EpicContent using `data-testid="epic-content"` attribute
+- Used `.prose` class selector to target markdown content container (avoiding collision with "Epic Documentation" h2 header)
+- Used specific button role selector for toggle button
+
+**Tests passing:**
+- 88 integration tests (11 new + 77 existing)
+- 29 e2e tests (2 skipped - WebSocket tests, pre-existing)
+- 449 unit tests (1 skipped, 1 pre-existing tmux timeout)
+
+**Done criteria verification:**
+- ✅ Integration test verifies epic content section appears on EpicDetail page
+- ✅ Test verifies collapse/expand button functionality
+- ✅ Tests pass with `pnpm test:integration`
+
+**Story completion:**
+All 5 tasks are now complete:
+- t1: ✅ Dependencies added
+- t2: ✅ EpicContent component created with unit tests
+- t3: ✅ Component integrated into EpicDetail page
+- t4: ✅ Unit tests added (completed with t2)
+- t5: ✅ Integration tests added
