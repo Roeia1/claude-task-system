@@ -182,16 +182,16 @@ export async function createSagaWatcher(sagaRoot: string): Promise<SagaWatcher> 
   const emitter = new EventEmitter();
   const debouncer = createDebouncer<WatcherEvent>(100); // 100ms debounce
 
-  // Watch the entire .saga directory
-  const sagaDir = join(sagaRoot, '.saga');
+  // Watch only .saga/epics and .saga/archive directories (not worktrees which can be huge)
+  const epicsDir = join(sagaRoot, '.saga', 'epics');
+  const archiveDir = join(sagaRoot, '.saga', 'archive');
 
-  // Create watcher for .saga directory
-  const watcher: FSWatcher = chokidar.watch(sagaDir, {
+  // Create watcher for epics and archive directories
+  const watcher: FSWatcher = chokidar.watch([epicsDir, archiveDir], {
     persistent: true,
     ignoreInitial: true, // Don't emit events for existing files
-    // Use polling for reliable cross-platform behavior (especially in temp directories)
-    usePolling: true,
-    interval: 100,
+    // Use native fs events for better performance (polling caused high CPU with large directories)
+    usePolling: false,
   });
 
   // Track if watcher is closed
