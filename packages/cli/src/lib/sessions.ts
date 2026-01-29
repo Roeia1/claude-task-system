@@ -10,6 +10,7 @@
 
 import { spawn, spawnSync, ChildProcess } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { stat, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /**
@@ -32,6 +33,30 @@ export interface SessionInfo {
   name: string;
   status: 'running' | 'not_running';
   outputFile: string;
+}
+
+/**
+ * Detailed session info with parsed epic/story slugs and output data
+ * Used by the dashboard API for richer session information
+ */
+export interface DetailedSessionInfo {
+  name: string;
+  epicSlug: string;
+  storySlug: string;
+  status: 'running' | 'completed';
+  outputFile: string;
+  outputAvailable: boolean;
+  startTime: Date;
+  endTime?: Date;
+  outputPreview?: string;
+}
+
+/**
+ * Result from parsing a session name
+ */
+export interface ParsedSessionName {
+  epicSlug: string;
+  storySlug: string;
 }
 
 /**
@@ -319,5 +344,110 @@ export async function killSession(sessionName: string): Promise<KillSessionResul
 
   return {
     killed: result.status === 0,
+  };
+}
+
+/**
+ * Parse a session name to extract epic and story slugs
+ *
+ * Expected format: saga__<epic-slug>__<story-slug>__<pid>
+ * Uses double-underscore (`__`) as delimiter.
+ *
+ * NOTE: This format differs from the older single-hyphen format used by `createSession()`
+ * (e.g., `saga-epic-story-timestamp`). Sessions created with the old format will return
+ * null and won't appear in the dashboard. This is intentional - the dashboard only shows
+ * sessions created with the new naming convention. A future update to `createSession()`
+ * will migrate to the double-underscore format for dashboard compatibility.
+ *
+ * @param name - The session name to parse
+ * @returns Parsed slugs or null if not a valid SAGA session name (including old-format sessions)
+ */
+export function parseSessionName(name: string): ParsedSessionName | null {
+  if (!name || !name.startsWith('saga__')) {
+    return null;
+  }
+
+  const parts = name.split('__');
+  // Expected format: ['saga', '<epic-slug>', '<story-slug>', '<pid>']
+  if (parts.length !== 4) {
+    return null;
+  }
+
+  const [, epicSlug, storySlug, pid] = parts;
+
+  // Validate that we have non-empty slugs and a pid
+  if (!epicSlug || !storySlug || !pid) {
+    return null;
+  }
+
+  return {
+    epicSlug,
+    storySlug,
+  };
+}
+
+/**
+ * Build detailed session info from a session name and status
+ *
+ * @param name - The session name
+ * @param status - The session status ('running' or 'completed')
+ * @returns DetailedSessionInfo or null if not a valid SAGA session
+ */
+export async function buildSessionInfo(
+  name: string,
+  status: 'running' | 'completed'
+): Promise<DetailedSessionInfo | null> {
+  const parsed = parseSessionName(name);
+  if (!parsed) {
+    return null;
+  }
+
+  const outputFile = join(OUTPUT_DIR, `${name}.out`);
+  const outputAvailable = existsSync(outputFile);
+
+  let startTime = new Date();
+  let endTime: Date | undefined;
+  let outputPreview: string | undefined;
+
+  if (outputAvailable) {
+    try {
+      const stats = await stat(outputFile);
+      startTime = stats.birthtime;
+      if (status === 'completed') {
+        endTime = stats.mtime;
+      }
+    } catch {
+      // Use fallback startTime (now)
+    }
+
+    try {
+      const content = await readFile(outputFile, 'utf-8');
+      const lines = content.split('\n').filter(line => line.length > 0);
+      if (lines.length > 0) {
+        const lastLines = lines.slice(-5);
+        let preview = lastLines.join('\n');
+        if (preview.length > 500) {
+          // Truncate at the last newline before 500 chars for cleaner display
+          const truncated = preview.slice(0, 500);
+          const lastNewline = truncated.lastIndexOf('\n');
+          preview = lastNewline > 0 ? truncated.slice(0, lastNewline) : truncated;
+        }
+        outputPreview = preview;
+      }
+    } catch {
+      // Could not read file, leave outputPreview undefined
+    }
+  }
+
+  return {
+    name,
+    epicSlug: parsed.epicSlug,
+    storySlug: parsed.storySlug,
+    status,
+    outputFile,
+    outputAvailable,
+    startTime,
+    endTime,
+    outputPreview,
   };
 }

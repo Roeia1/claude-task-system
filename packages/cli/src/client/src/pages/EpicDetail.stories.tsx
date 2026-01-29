@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import { MemoryRouter, Routes, Route, Link } from 'react-router-dom'
+import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot'
 import { Progress } from '@/components/ui/progress'
 import {
   EpicDetail,
@@ -552,6 +553,9 @@ export const Loading: EpicDetailStory = {
     // Verify three story card skeletons
     const skeletonCards = canvasElement.querySelectorAll('.animate-pulse')
     await expect(skeletonCards.length).toBe(4) // 1 header + 3 cards
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'epic-detail-loading')
   },
 }
 
@@ -593,6 +597,9 @@ export const NotFound: EpicDetailStory = {
 
     // Accessibility: Verify back link has accessible name
     await expect(backLink).toHaveAccessibleName()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'epic-detail-not-found')
   },
 }
 
@@ -678,6 +685,9 @@ export const Empty: EpicDetailStory = {
     await expect(canvas.getByText('No stories in this epic.')).toBeInTheDocument()
     // Verify guidance text with command
     await expect(canvas.getByText('/generate-stories')).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'epic-detail-empty')
   },
 }
 
@@ -799,6 +809,9 @@ export const Populated: EpicDetailStory = {
     // Verify four story card links
     const links = canvas.getAllByRole('link')
     await expect(links.length).toBe(4)
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'epic-detail-populated')
   },
 }
 
