@@ -43,21 +43,30 @@ vi.mock('node:fs', async () => {
     ...actual,
     existsSync: vi.fn(),
     mkdirSync: vi.fn(),
-    readFileSync: vi.fn(),
     writeFileSync: vi.fn(),
-    statSync: vi.fn(),
   };
 });
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
+// Mock fs/promises
+vi.mock('node:fs/promises', async () => {
+  const actual = await vi.importActual('node:fs/promises');
+  return {
+    ...actual,
+    stat: vi.fn(),
+    readFile: vi.fn(),
+  };
+});
+
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { stat, readFile } from 'node:fs/promises';
 
 const mockSpawn = spawn as ReturnType<typeof vi.fn>;
 const mockSpawnSync = spawnSync as ReturnType<typeof vi.fn>;
 const mockExistsSync = existsSync as ReturnType<typeof vi.fn>;
 const mockMkdirSync = mkdirSync as ReturnType<typeof vi.fn>;
-const mockReadFileSync = readFileSync as ReturnType<typeof vi.fn>;
 const mockWriteFileSync = writeFileSync as ReturnType<typeof vi.fn>;
-const mockStatSync = statSync as ReturnType<typeof vi.fn>;
+const mockStat = stat as ReturnType<typeof vi.fn>;
+const mockReadFile = readFile as ReturnType<typeof vi.fn>;
 
 describe('sessions', () => {
   beforeEach(() => {
@@ -487,11 +496,11 @@ describe('sessions', () => {
 
     it('should return DetailedSessionInfo for valid running session with output file', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockStatSync.mockReturnValue({
+      mockStat.mockResolvedValue({
         birthtime: startTime,
         mtime: modifiedTime,
       });
-      mockReadFileSync.mockReturnValue('line 1\nline 2\nline 3\nline 4\nline 5\n');
+      mockReadFile.mockResolvedValue('line 1\nline 2\nline 3\nline 4\nline 5\n');
 
       const result = await buildSessionInfo(sessionName, 'running');
 
@@ -508,11 +517,11 @@ describe('sessions', () => {
 
     it('should include endTime for completed sessions', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockStatSync.mockReturnValue({
+      mockStat.mockResolvedValue({
         birthtime: startTime,
         mtime: modifiedTime,
       });
-      mockReadFileSync.mockReturnValue('output\n');
+      mockReadFile.mockResolvedValue('output\n');
 
       const result = await buildSessionInfo(sessionName, 'completed');
 
@@ -532,11 +541,11 @@ describe('sessions', () => {
 
     it('should generate outputPreview with last 5 lines', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockStatSync.mockReturnValue({
+      mockStat.mockResolvedValue({
         birthtime: startTime,
         mtime: modifiedTime,
       });
-      mockReadFileSync.mockReturnValue('line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\n');
+      mockReadFile.mockResolvedValue('line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\n');
 
       const result = await buildSessionInfo(sessionName, 'running');
 
@@ -546,14 +555,14 @@ describe('sessions', () => {
 
     it('should truncate outputPreview to max 500 chars', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockStatSync.mockReturnValue({
+      mockStat.mockResolvedValue({
         birthtime: startTime,
         mtime: modifiedTime,
       });
       // Create content where last 5 lines exceed 500 chars
       const longLine = 'x'.repeat(150);
       const content = `${longLine}\n${longLine}\n${longLine}\n${longLine}\n${longLine}\n`;
-      mockReadFileSync.mockReturnValue(content);
+      mockReadFile.mockResolvedValue(content);
 
       const result = await buildSessionInfo(sessionName, 'running');
 
@@ -562,11 +571,11 @@ describe('sessions', () => {
 
     it('should handle output file with fewer than 5 lines', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockStatSync.mockReturnValue({
+      mockStat.mockResolvedValue({
         birthtime: startTime,
         mtime: modifiedTime,
       });
-      mockReadFileSync.mockReturnValue('only one line\n');
+      mockReadFile.mockResolvedValue('only one line\n');
 
       const result = await buildSessionInfo(sessionName, 'running');
 
@@ -575,11 +584,11 @@ describe('sessions', () => {
 
     it('should handle empty output file', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockStatSync.mockReturnValue({
+      mockStat.mockResolvedValue({
         birthtime: startTime,
         mtime: modifiedTime,
       });
-      mockReadFileSync.mockReturnValue('');
+      mockReadFile.mockResolvedValue('');
 
       const result = await buildSessionInfo(sessionName, 'running');
 
@@ -588,13 +597,11 @@ describe('sessions', () => {
 
     it('should handle read errors gracefully', async () => {
       mockExistsSync.mockReturnValue(true);
-      mockStatSync.mockReturnValue({
+      mockStat.mockResolvedValue({
         birthtime: startTime,
         mtime: modifiedTime,
       });
-      mockReadFileSync.mockImplementation(() => {
-        throw new Error('Permission denied');
-      });
+      mockReadFile.mockRejectedValue(new Error('Permission denied'));
 
       const result = await buildSessionInfo(sessionName, 'running');
 

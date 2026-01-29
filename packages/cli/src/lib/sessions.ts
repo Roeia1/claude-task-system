@@ -9,7 +9,8 @@
  */
 
 import { spawn, spawnSync, ChildProcess } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync, statSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { stat, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /**
@@ -410,7 +411,7 @@ export async function buildSessionInfo(
 
   if (outputAvailable) {
     try {
-      const stats = statSync(outputFile);
+      const stats = await stat(outputFile);
       startTime = stats.birthtime;
       if (status === 'completed') {
         endTime = stats.mtime;
@@ -420,7 +421,7 @@ export async function buildSessionInfo(
     }
 
     try {
-      const content = readFileSync(outputFile, 'utf-8');
+      const content = await readFile(outputFile, 'utf-8');
       const lines = content.split('\n').filter(line => line.length > 0);
       if (lines.length > 0) {
         const lastLines = lines.slice(-5);
