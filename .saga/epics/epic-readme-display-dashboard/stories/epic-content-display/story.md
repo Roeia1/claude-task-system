@@ -1,24 +1,24 @@
 ---
 id: epic-content-display
 title: Epic content display in dashboard
-status: ready
+status: completed
 epic: epic-readme-display-dashboard
 tasks:
   - id: t1
     title: Add react-markdown and remark-gfm dependencies
-    status: pending
+    status: completed
   - id: t2
     title: Create EpicContent collapsible component
-    status: pending
+    status: completed
   - id: t3
     title: Integrate EpicContent into EpicDetail page
-    status: pending
+    status: completed
   - id: t4
     title: Add unit tests for EpicContent component
-    status: pending
+    status: completed
   - id: t5
     title: Add integration tests for epic content display
-    status: pending
+    status: completed
 ---
 
 ## Context

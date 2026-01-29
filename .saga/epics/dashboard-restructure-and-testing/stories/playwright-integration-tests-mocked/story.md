@@ -1,30 +1,30 @@
 ---
 id: playwright-integration-tests-mocked
 title: Playwright Integration Tests (Mocked API)
-status: ready
+status: completed
 epic: dashboard-restructure-and-testing
 tasks:
   - id: t1
     title: Install and configure Playwright
-    status: pending
+    status: completed
   - id: t2
     title: Create API mocking infrastructure
-    status: pending
+    status: completed
   - id: t3
     title: Write loading state tests
-    status: pending
+    status: completed
   - id: t4
     title: Write error state tests
-    status: pending
+    status: completed
   - id: t5
     title: Write empty state tests
-    status: pending
+    status: completed
   - id: t6
     title: Write UI interaction tests
-    status: pending
+    status: completed
   - id: t7
     title: Add npm scripts
-    status: pending
+    status: completed
 ---
 
 ## Context

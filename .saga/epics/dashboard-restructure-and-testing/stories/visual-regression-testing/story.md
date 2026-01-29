@@ -1,18 +1,18 @@
 ---
 id: visual-regression-testing
 title: Visual Regression Testing with Storybook
-status: ready
+status: completed
 epic: dashboard-restructure-and-testing
 tasks:
   - id: t1
     title: Configure Storybook visual snapshot testing
-    status: pending
+    status: completed
   - id: t2
     title: Add visual snapshot tests to existing stories
-    status: pending
+    status: completed
   - id: t3
     title: Add package.json scripts and integrate with test command
-    status: pending
+    status: completed
 ---
 
 ## Context

@@ -1,27 +1,27 @@
 ---
 id: playwright-e2e-real-backend
 title: Playwright E2E Tests (Real Backend)
-status: ready
+status: completed
 epic: dashboard-restructure-and-testing
 tasks:
   - id: t1
     title: Create test fixtures directory structure
-    status: pending
+    status: completed
   - id: t2
     title: Configure Playwright for E2E with real backend
-    status: pending
+    status: completed
   - id: t3
     title: Implement backend startup utilities
-    status: pending
+    status: completed
   - id: t4
     title: Write happy path tests
-    status: pending
+    status: completed
   - id: t5
     title: Write error path tests
-    status: pending
+    status: completed
   - id: t6
     title: Add CI workflow configuration
-    status: pending
+    status: completed
 ---
 
 ## Context

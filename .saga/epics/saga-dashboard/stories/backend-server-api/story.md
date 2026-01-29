@@ -1,27 +1,27 @@
 ---
 id: backend-server-api
 title: Backend Server with API and Real-time Updates
-status: ready
+status: completed
 epic: saga-dashboard
 tasks:
   - id: t1
     title: Project Setup and Express Server Foundation
-    status: pending
+    status: completed
   - id: t2
     title: File System Parsing Module
-    status: pending
+    status: completed
   - id: t3
     title: REST API Endpoints
-    status: pending
+    status: completed
   - id: t4
     title: File Watching with Chokidar
-    status: pending
+    status: completed
   - id: t5
     title: WebSocket Server for Real-time Updates
-    status: pending
+    status: completed
   - id: t6
     title: Integration Tests and Error Handling
-    status: pending
+    status: completed
 ---
 
 ## Context

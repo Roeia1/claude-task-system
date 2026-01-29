@@ -1,21 +1,21 @@
 ---
 id: tmux-session-management
 title: Tmux Detached Session Management
-status: ready
+status: completed
 epic: tmux-detached-execution
 tasks:
   - id: t1
     title: Create sessions library module
-    status: pending
+    status: completed
   - id: t2
     title: Add sessions CLI subcommands
-    status: pending
+    status: completed
   - id: t3
     title: Update implement command for detached execution
-    status: pending
+    status: completed
   - id: t4
     title: Add comprehensive tests
-    status: pending
+    status: completed
 ---
 
 ## Context
