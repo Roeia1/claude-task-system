@@ -1,204 +1,136 @@
 ---
 id: visual-regression-testing
-title: Visual Regression Testing
+title: Visual Regression Testing with Storybook
 status: ready
 epic: dashboard-restructure-and-testing
 tasks:
   - id: t1
-    title: Configure Playwright screenshot comparison
+    title: Configure Storybook visual snapshot testing
     status: pending
   - id: t2
-    title: Capture baseline screenshots for all key pages
+    title: Add visual snapshot tests to existing stories
     status: pending
   - id: t3
-    title: Capture baseline screenshots for component states
-    status: pending
-  - id: t4
-    title: Integrate visual regression into CI pipeline
-    status: pending
-  - id: t5
-    title: Document baseline update workflow
+    title: Add package.json scripts and integrate with test command
     status: pending
 ---
 
 ## Context
 
-The SAGA dashboard is a React frontend served by an Express backend within the CLI package. As the dashboard evolves, unintended visual changes can slip through code review - a button might shift, colors might change, or layouts might break on different screen sizes. Visual regression testing catches these issues by comparing screenshots against known-good baselines.
+The SAGA dashboard is a React frontend served by an Express backend within the CLI package. As the dashboard evolves, unintended visual changes can slip through code review - a button might shift, colors might change, or layouts might break. Visual regression testing catches these issues by comparing screenshots against known-good baselines.
 
-This story establishes visual regression testing using Playwright's built-in screenshot comparison capabilities. When a PR introduces visual changes, the CI pipeline will detect and flag them, requiring developers to either fix unintended regressions or explicitly approve intentional design changes by updating the baselines.
+This story establishes visual regression testing using Storybook's existing integration with Vitest. The project already has Storybook set up with `@storybook/addon-vitest` and stories for all major components and pages. We'll add visual snapshot testing to these existing stories using Vitest's snapshot capabilities.
 
 ## Scope Boundaries
 
 **In scope:**
-- Configuring Playwright's `toHaveScreenshot()` matcher with appropriate thresholds
-- Capturing baseline screenshots for key pages: Epic List, Epic Detail, Story Detail
-- Capturing baseline screenshots for UI states: loading, error, empty states
-- CI integration to run visual regression tests and block PRs with failures
-- Documentation for updating baselines when intentional changes are made
-- Configuring screenshot directories and naming conventions
+- Configuring Vitest snapshot testing for Storybook stories
+- Adding visual snapshot assertions to existing component stories
+- Adding visual snapshot assertions to existing page stories
+- Creating `test:visual` script in package.json
+- Integrating visual tests into the main `test` script
 
 **Out of scope:**
-- Setting up Playwright itself (covered by "Playwright Integration Tests" story)
-- Writing functional E2E tests (covered by "Playwright E2E Tests" story)
-- Mocked API integration tests (covered by "Playwright Integration Tests" story)
-- Storybook visual testing or Storybook Chromatic integration (covered by "Storybook Setup" story)
-- Creating new Storybook stories (covered by "Storybook Setup" story)
-- Dashboard package restructuring (covered by "Flatten Dashboard Package Structure" story)
-- Cross-browser visual testing (focusing on Chromium only for baseline stability)
-- Mobile/responsive visual testing (desktop viewport only for initial baselines)
+- GitHub workflows or CI pipeline changes (not needed - local testing only)
+- Chromatic or other paid visual testing services
+- Creating new Storybook stories (already covered by "Storybook Setup" story)
+- Cross-browser visual testing
+- Mobile/responsive visual testing
+- Playwright-based visual testing
 
 ## Interface
 
 ### Inputs
 
-- **Playwright configuration**: Base Playwright setup from the "Playwright Integration Tests" story
-- **Test fixtures**: Sample `.saga/` directory with test data from "Playwright E2E Tests" story
-- **Running dashboard**: Ability to start the dashboard server for screenshot capture
+- **Existing Storybook stories**: Component and page stories in `src/client/src/components/*.stories.tsx` and `src/client/src/pages/*.stories.tsx`
+- **Vitest Storybook integration**: Existing `@storybook/addon-vitest` setup in `vitest.config.ts`
+- **Test infrastructure**: Existing storybook test project configuration
 
 ### Outputs
 
-- **Baseline screenshots**: Committed PNG files in `packages/cli/tests/visual/__screenshots__/`
-- **Visual test suite**: Playwright test file(s) for visual regression
-- **CI workflow update**: GitHub Actions configuration for visual regression checks
-- **Documentation**: Instructions for updating baselines in contributing guide
+- **Visual snapshot files**: Committed snapshot files in `__snapshots__/` directories
+- **Updated package.json**: New `test:visual` script integrated with main `test` command
+- **Updated vitest setup**: Configuration for visual snapshot testing
 
 ## Acceptance Criteria
 
-- [ ] Playwright is configured with `toHaveScreenshot()` and appropriate threshold settings
-- [ ] Baseline screenshots exist for Epic List page (with data and empty state)
-- [ ] Baseline screenshots exist for Epic Detail page
-- [ ] Baseline screenshots exist for Story Detail page (with tasks and journal entries)
-- [ ] Baseline screenshots exist for loading and error states
-- [ ] Visual regression tests run in CI on every PR
-- [ ] PRs with visual differences are blocked until reviewed/resolved
-- [ ] Documentation exists explaining how to update baselines after intentional changes
-- [ ] Screenshot comparison threshold is tuned to avoid false positives from anti-aliasing
+- [ ] Visual snapshot tests run for all existing component stories (StatusBadge, Breadcrumb, Layout)
+- [ ] Visual snapshot tests run for all existing page stories (EpicList, EpicDetail, StoryDetail)
+- [ ] `pnpm test:visual` runs visual snapshot tests
+- [ ] `pnpm test:visual:update` updates baselines when intentional changes are made
+- [ ] Visual tests are included in the main `pnpm test` command
+- [ ] Baseline snapshots are committed to the repository
 
 ## Tasks
 
-### t1: Configure Playwright screenshot comparison
+### t1: Configure Storybook visual snapshot testing
 
 **Guidance:**
-- Add visual regression configuration to existing `playwright.config.ts`
-- Configure `toHaveScreenshot()` options including:
-  - `threshold`: Pixel difference threshold (start with 0.2, tune as needed)
-  - `maxDiffPixels` or `maxDiffPixelRatio`: Maximum acceptable difference
-  - `animations: 'disabled'`: Prevent animation-related flakiness
-- Set up snapshot directory structure: `packages/cli/tests/visual/__screenshots__/`
-- Configure snapshot naming to include test name and platform
+- Update `src/client/.storybook/vitest.setup.ts` to enable visual snapshot testing
+- Use Vitest's `toMatchSnapshot()` or `toMatchImageSnapshot()` for visual comparisons
+- Configure snapshot directory structure to store baselines alongside stories
+- Ensure consistent rendering by disabling animations in Storybook preview
 
 **References:**
-- Playwright visual comparisons docs: https://playwright.dev/docs/test-snapshots
-- Existing Playwright config: `packages/cli/playwright.config.ts` (after integration tests story)
+- Existing Storybook vitest setup: `packages/cli/src/client/.storybook/vitest.setup.ts`
+- Vitest snapshot docs: https://vitest.dev/guide/snapshot.html
+- Storybook addon-vitest: `packages/cli/vitest.config.ts`
 
 **Avoid:**
-- Setting threshold too low (causes flaky tests from anti-aliasing differences)
-- Setting threshold too high (misses real regressions)
-- Running visual tests across multiple browsers (causes baseline explosion)
+- Complex configuration that makes tests brittle
+- External services or dependencies
 
 **Done when:**
-- `playwright.config.ts` includes visual regression configuration
-- Running a visual test creates/compares screenshots in the expected directory
-- Screenshots are named consistently and stored in version control
+- Vitest is configured to capture and compare visual snapshots
+- A simple test can capture and verify a component's visual appearance
+- Snapshot files are created in a predictable location
 
-### t2: Capture baseline screenshots for all key pages
+### t2: Add visual snapshot tests to existing stories
 
 **Guidance:**
-- Create `packages/cli/tests/visual/pages.spec.ts` for page-level visual tests
-- Capture full-page screenshots for:
-  - Epic List page with multiple epics displayed
-  - Epic Detail page showing epic metadata and story list
-  - Story Detail page showing tasks and journal entries
-- Use test fixtures to ensure consistent data across runs
-- Wait for network idle and any loading states to complete before capture
-- Set consistent viewport size (e.g., 1280x720) for reproducibility
+- Add visual snapshot test assertions to existing stories using play functions or separate test files
+- Cover all component stories:
+  - `StatusBadge.stories.tsx` - all status variants
+  - `Breadcrumb.stories.tsx` - all navigation states
+  - `Layout.stories.tsx` - different layout configurations
+- Cover all page stories:
+  - `EpicList.stories.tsx` - list with data, empty state, loading, error
+  - `EpicDetail.stories.tsx` - detail view with stories, empty, loading, error
+  - `StoryDetail.stories.tsx` - with tasks, journal, different states
+- Ensure consistent viewport size for reproducible snapshots
 
 **References:**
-- Test fixtures from E2E tests story: `packages/cli/tests/fixtures/`
-- Dashboard routes: `/`, `/epics/:slug`, `/stories/:epicSlug/:storySlug`
+- Existing stories: `packages/cli/src/client/src/components/*.stories.tsx`
+- Existing page stories: `packages/cli/src/client/src/pages/*.stories.tsx`
 
 **Avoid:**
-- Capturing screenshots before data has fully loaded
-- Including dynamic content like timestamps without masking
-- Using different viewport sizes which create different baselines
+- Testing every single story variant (focus on key visual states)
+- Flaky tests from animations or dynamic content
 
 **Done when:**
-- Visual tests exist for Epic List, Epic Detail, and Story Detail pages
-- Running `pnpm test:visual` generates/compares screenshots
-- Baseline screenshots are committed to the repository
+- All major component stories have visual snapshot assertions
+- All page stories have visual snapshot assertions for key states
+- Running tests generates baseline snapshots
+- Snapshots are committed to version control
 
-### t3: Capture baseline screenshots for component states
+### t3: Add package.json scripts and integrate with test command
 
 **Guidance:**
-- Create `packages/cli/tests/visual/states.spec.ts` for state-level visual tests
-- Capture screenshots for:
-  - Loading state (skeleton/spinner while data loads)
-  - Error state (API failure message display)
-  - Empty state (no epics available)
-- Use mocked API responses or intercept network to force specific states
-- For loading states, pause the API response to capture the intermediate UI
+- Add `test:visual` script to run visual snapshot tests
+- Add `test:visual:update` script to update baselines (`vitest run --project=storybook --update`)
+- Update the main `test` script to include visual tests
+- The test script should run unit tests, storybook tests (which now include visual), integration tests, and e2e tests
 
 **References:**
-- Playwright route interception: https://playwright.dev/docs/network#handle-requests
-- Component states from integration tests story
+- Current package.json test scripts: `packages/cli/package.json`
+- Existing test command: `concurrently -g "vitest run" "pnpm run test:integration" "pnpm run test:e2e"`
 
 **Avoid:**
-- Relying on race conditions to capture loading states
-- Capturing transient states that are inherently unstable
+- Breaking existing test commands
+- Making visual tests slow down the test suite significantly
 
 **Done when:**
-- Visual tests exist for loading, error, and empty states
-- Each state has a committed baseline screenshot
-- Tests reliably capture the intended state
-
-### t4: Integrate visual regression into CI pipeline
-
-**Guidance:**
-- Update `.github/workflows/` to include visual regression test step
-- Configure CI to:
-  - Run visual regression tests after unit/integration tests pass
-  - Upload screenshot diffs as artifacts on failure
-  - Fail the workflow if visual differences are detected
-- Use Playwright's `--update-snapshots` flag only in a separate "update baselines" workflow
-- Store baselines in git (not in CI artifacts) for version control
-
-**References:**
-- Playwright CI guide: https://playwright.dev/docs/ci
-- Existing GitHub Actions workflows in `.github/workflows/`
-
-**Avoid:**
-- Auto-updating baselines in CI (defeats the purpose of visual regression)
-- Running visual tests on multiple OS (causes platform-specific differences)
-- Ignoring failures in visual regression step
-
-**Done when:**
-- CI runs visual regression tests on every PR
-- Failed visual tests block PR merge
-- Screenshot diffs are available as artifacts for debugging
-- CI uses consistent environment (e.g., Ubuntu with specific Chromium version)
-
-### t5: Document baseline update workflow
-
-**Guidance:**
-- Add section to `packages/cli/CONTRIBUTING.md` or create `packages/cli/tests/visual/README.md`
-- Document the workflow for updating baselines:
-  1. Make intentional UI changes
-  2. Run visual tests locally to see failures
-  3. Review the diff to confirm changes are expected
-  4. Run `pnpm test:visual:update` to regenerate baselines
-  5. Commit updated baselines with the code changes
-- Include troubleshooting for common issues (flaky tests, platform differences)
-- Document how to view screenshot diffs locally
-
-**References:**
-- Playwright snapshot update: `npx playwright test --update-snapshots`
-- Similar docs in other projects using visual regression
-
-**Avoid:**
-- Making baseline updates seem like a routine step (should be intentional)
-- Documenting workarounds for flaky tests instead of fixing them
-
-**Done when:**
-- Documentation clearly explains when and how to update baselines
-- `package.json` includes convenience scripts for visual testing
-- Team can successfully update baselines following the documented process
+- `pnpm test:visual` runs visual snapshot tests
+- `pnpm test:visual:update` updates baselines
+- `pnpm test` includes visual tests in its execution
+- All tests pass when run together
