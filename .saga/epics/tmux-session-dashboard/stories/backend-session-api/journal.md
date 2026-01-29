@@ -32,3 +32,48 @@
 
 **Next steps:**
 - Task t2: Implement session discovery polling service
+
+## Session: 2026-01-29T01:35:00Z
+
+### Task: t2 - Implement session discovery polling service
+
+**What was done:**
+- Created `src/lib/session-polling.ts` module with:
+  - `startSessionPolling(broadcast: (msg: object) => void): void` - starts polling
+  - `stopSessionPolling(): void` - stops polling and clears state
+  - `getCurrentSessions(): DetailedSessionInfo[]` - returns current session list
+  - `POLLING_INTERVAL_MS` constant (3000ms)
+- Implemented change detection logic:
+  - Detects new sessions (names not previously tracked)
+  - Detects completed sessions (status changed from running to completed)
+  - Detects removed sessions (names no longer returned by listSessions)
+  - Only broadcasts when changes occur (no redundant broadcasts)
+- Sessions are sorted by startTime descending (newest first)
+- Filters out non-SAGA sessions (buildSessionInfo returns null for them)
+- Error handling: continues polling if errors occur, logs errors to console
+
+**Decisions:**
+- Used module-level state for simplicity (only one polling instance at a time)
+- Calling startSessionPolling while already polling stops the previous instance first
+- getCurrentSessions returns a copy of the array for immutability
+- Initial poll broadcasts even if empty (establishes baseline state)
+
+**Tests added:**
+- 18 new unit tests covering:
+  - POLLING_INTERVAL_MS constant verification
+  - Initial poll and broadcast
+  - Filtering non-SAGA sessions
+  - Polling at configured interval
+  - No broadcast when no changes
+  - Detection of new sessions
+  - Detection of status change (running → completed)
+  - Detection of removed sessions
+  - Prevention of multiple polling intervals
+  - Stop polling functionality
+  - getCurrentSessions immutability and sorting
+  - Error handling and recovery
+
+**Next steps:**
+- Task t3: Create GET /api/sessions endpoint
+- Task t4: Create GET /api/sessions/:sessionName endpoint
+- Task t5: Implement sessions:updated WebSocket broadcast
