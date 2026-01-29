@@ -26,3 +26,36 @@
 **Next steps:**
 - t2: Implement subscribe:logs handler (subscribe method, file reading, initial content delivery)
 - t3: Implement unsubscribe:logs handler
+
+## Session: 2026-01-30T01:52:00
+
+### Task: t2 - Implement subscribe:logs handler
+
+**What was done:**
+- Added `subscribe(sessionName: string, ws: WebSocket)` method to LogStreamManager
+- Method checks if output file exists at `/tmp/saga-sessions/${sessionName}.out`
+- If file doesn't exist, sends error message (`logs:error` type) to client
+- If file exists, reads full content and sends as `logs:data` with `isInitial: true`
+- Tracks file position for incremental reads (stored in `filePositions` Map)
+- Adds client to subscription set for the session
+- Updated `SendToClientFn` type to accept both `LogsDataMessage` and `LogsErrorMessage`
+- Added imports for `existsSync`, `readFile`, `join`, and `OUTPUT_DIR`
+
+**Tests added:**
+- `should have subscribe method`
+- `should return a promise from subscribe`
+- `should send initial file content with isInitial=true when subscribing`
+- `should add client to subscription set after subscribing`
+- `should allow multiple clients to subscribe to the same session`
+- `should send error message when subscribing to non-existent file`
+- `should not add client to subscriptions when file does not exist`
+- `should track file position after initial read`
+- `should send content to the specific client via sendToClient function`
+
+**Test results:**
+- 17 tests passing in log-stream-manager.test.ts (9 new tests added)
+- 528 tests passing overall (1 unrelated timeout test skipped)
+
+**Next steps:**
+- t3: Implement unsubscribe:logs handler
+- t4: Implement file watcher with chokidar

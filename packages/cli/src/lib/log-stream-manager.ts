@@ -13,11 +13,15 @@
 
 import type { WebSocket } from 'ws';
 import type { FSWatcher } from 'chokidar';
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { OUTPUT_DIR } from './sessions.js';
 
 /**
  * Callback type for sending log data to a specific client
  */
-export type SendToClientFn = (ws: WebSocket, message: LogsDataMessage) => void;
+export type SendToClientFn = (ws: WebSocket, message: LogsDataMessage | LogsErrorMessage) => void;
 
 /**
  * Message format for log data sent to clients
@@ -105,6 +109,52 @@ export class LogStreamManager {
    */
   getFilePosition(sessionName: string): number {
     return this.filePositions.get(sessionName) ?? 0;
+  }
+
+  /**
+   * Subscribe a client to a session's log stream
+   *
+   * Reads the full file content and sends it as the initial message.
+   * Adds the client to the subscription set for incremental updates.
+   *
+   * @param sessionName - The session to subscribe to
+   * @param ws - The WebSocket client to subscribe
+   */
+  async subscribe(sessionName: string, ws: WebSocket): Promise<void> {
+    const outputFile = join(OUTPUT_DIR, `${sessionName}.out`);
+
+    // Check if file exists
+    if (!existsSync(outputFile)) {
+      this.sendToClient(ws, {
+        type: 'logs:error',
+        sessionName,
+        error: `Output file not found: ${outputFile}`,
+      });
+      return;
+    }
+
+    // Read full file content
+    const content = await readFile(outputFile, 'utf-8');
+
+    // Send initial content to client
+    this.sendToClient(ws, {
+      type: 'logs:data',
+      sessionName,
+      data: content,
+      isInitial: true,
+      isComplete: false,
+    });
+
+    // Track file position for incremental reads
+    this.filePositions.set(sessionName, content.length);
+
+    // Add client to subscription set
+    let subs = this.subscriptions.get(sessionName);
+    if (!subs) {
+      subs = new Set();
+      this.subscriptions.set(sessionName, subs);
+    }
+    subs.add(ws);
   }
 
   /**
