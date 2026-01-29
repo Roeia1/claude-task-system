@@ -25,6 +25,9 @@ import {
   streamLogs,
   killSession,
   OUTPUT_DIR,
+  parseSessionName,
+  buildSessionInfo,
+  type DetailedSessionInfo,
 } from './sessions.js';
 
 // Mock child_process
@@ -40,19 +43,30 @@ vi.mock('node:fs', async () => {
     ...actual,
     existsSync: vi.fn(),
     mkdirSync: vi.fn(),
-    readFileSync: vi.fn(),
     writeFileSync: vi.fn(),
   };
 });
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+// Mock fs/promises
+vi.mock('node:fs/promises', async () => {
+  const actual = await vi.importActual('node:fs/promises');
+  return {
+    ...actual,
+    stat: vi.fn(),
+    readFile: vi.fn(),
+  };
+});
+
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { stat, readFile } from 'node:fs/promises';
 
 const mockSpawn = spawn as ReturnType<typeof vi.fn>;
 const mockSpawnSync = spawnSync as ReturnType<typeof vi.fn>;
 const mockExistsSync = existsSync as ReturnType<typeof vi.fn>;
 const mockMkdirSync = mkdirSync as ReturnType<typeof vi.fn>;
-const mockReadFileSync = readFileSync as ReturnType<typeof vi.fn>;
 const mockWriteFileSync = writeFileSync as ReturnType<typeof vi.fn>;
+const mockStat = stat as ReturnType<typeof vi.fn>;
+const mockReadFile = readFile as ReturnType<typeof vi.fn>;
 
 describe('sessions', () => {
   beforeEach(() => {
@@ -417,6 +431,182 @@ describe('sessions', () => {
   describe('OUTPUT_DIR constant', () => {
     it('should be /tmp/saga-sessions', () => {
       expect(OUTPUT_DIR).toBe('/tmp/saga-sessions');
+    });
+  });
+
+  describe('parseSessionName', () => {
+    it('should parse valid session name with double-underscore delimiter', () => {
+      const result = parseSessionName('saga__my-epic__my-story__12345');
+      expect(result).toEqual({
+        epicSlug: 'my-epic',
+        storySlug: 'my-story',
+      });
+    });
+
+    it('should handle slugs containing hyphens', () => {
+      const result = parseSessionName('saga__epic-with-hyphens__story-with-hyphens__99999');
+      expect(result).toEqual({
+        epicSlug: 'epic-with-hyphens',
+        storySlug: 'story-with-hyphens',
+      });
+    });
+
+    it('should handle slugs with numbers', () => {
+      const result = parseSessionName('saga__epic1__story2__12345');
+      expect(result).toEqual({
+        epicSlug: 'epic1',
+        storySlug: 'story2',
+      });
+    });
+
+    it('should return null for non-SAGA sessions (no saga__ prefix)', () => {
+      const result = parseSessionName('other-session-name');
+      expect(result).toBeNull();
+    });
+
+    it('should return null for old-format sessions (single hyphen)', () => {
+      const result = parseSessionName('saga-epic-story-12345');
+      expect(result).toBeNull();
+    });
+
+    it('should return null for malformed names with wrong number of parts', () => {
+      expect(parseSessionName('saga__epic__12345')).toBeNull(); // missing story
+      expect(parseSessionName('saga__epic')).toBeNull(); // missing story and pid
+      expect(parseSessionName('saga__')).toBeNull(); // only prefix
+    });
+
+    it('should return null for empty string', () => {
+      expect(parseSessionName('')).toBeNull();
+    });
+  });
+
+  describe('buildSessionInfo', () => {
+    const sessionName = 'saga__my-epic__my-story__12345';
+    const startTime = new Date('2024-01-15T10:00:00Z');
+    const modifiedTime = new Date('2024-01-15T11:30:00Z');
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('should return null for non-SAGA session names', async () => {
+      const result = await buildSessionInfo('other-session', 'running');
+      expect(result).toBeNull();
+    });
+
+    it('should return DetailedSessionInfo for valid running session with output file', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockStat.mockResolvedValue({
+        birthtime: startTime,
+        mtime: modifiedTime,
+      });
+      mockReadFile.mockResolvedValue('line 1\nline 2\nline 3\nline 4\nline 5\n');
+
+      const result = await buildSessionInfo(sessionName, 'running');
+
+      expect(result).not.toBeNull();
+      expect(result!.name).toBe(sessionName);
+      expect(result!.epicSlug).toBe('my-epic');
+      expect(result!.storySlug).toBe('my-story');
+      expect(result!.status).toBe('running');
+      expect(result!.outputFile).toBe(`/tmp/saga-sessions/${sessionName}.out`);
+      expect(result!.outputAvailable).toBe(true);
+      expect(result!.startTime).toEqual(startTime);
+      expect(result!.endTime).toBeUndefined(); // running sessions don't have endTime
+    });
+
+    it('should include endTime for completed sessions', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockStat.mockResolvedValue({
+        birthtime: startTime,
+        mtime: modifiedTime,
+      });
+      mockReadFile.mockResolvedValue('output\n');
+
+      const result = await buildSessionInfo(sessionName, 'completed');
+
+      expect(result!.status).toBe('completed');
+      expect(result!.endTime).toEqual(modifiedTime);
+    });
+
+    it('should set outputAvailable to false when output file does not exist', async () => {
+      mockExistsSync.mockReturnValue(false);
+
+      const result = await buildSessionInfo(sessionName, 'running');
+
+      expect(result!.outputAvailable).toBe(false);
+      expect(result!.outputPreview).toBeUndefined();
+      expect(result!.startTime).toBeInstanceOf(Date); // fallback to now
+    });
+
+    it('should generate outputPreview with last 5 lines', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockStat.mockResolvedValue({
+        birthtime: startTime,
+        mtime: modifiedTime,
+      });
+      mockReadFile.mockResolvedValue('line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\n');
+
+      const result = await buildSessionInfo(sessionName, 'running');
+
+      // Should contain last 5 lines (lines 3-7 since we filter empty)
+      expect(result!.outputPreview).toBe('line 3\nline 4\nline 5\nline 6\nline 7');
+    });
+
+    it('should truncate outputPreview to max 500 chars', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockStat.mockResolvedValue({
+        birthtime: startTime,
+        mtime: modifiedTime,
+      });
+      // Create content where last 5 lines exceed 500 chars
+      const longLine = 'x'.repeat(150);
+      const content = `${longLine}\n${longLine}\n${longLine}\n${longLine}\n${longLine}\n`;
+      mockReadFile.mockResolvedValue(content);
+
+      const result = await buildSessionInfo(sessionName, 'running');
+
+      expect(result!.outputPreview!.length).toBeLessThanOrEqual(500);
+    });
+
+    it('should handle output file with fewer than 5 lines', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockStat.mockResolvedValue({
+        birthtime: startTime,
+        mtime: modifiedTime,
+      });
+      mockReadFile.mockResolvedValue('only one line\n');
+
+      const result = await buildSessionInfo(sessionName, 'running');
+
+      expect(result!.outputPreview).toBe('only one line');
+    });
+
+    it('should handle empty output file', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockStat.mockResolvedValue({
+        birthtime: startTime,
+        mtime: modifiedTime,
+      });
+      mockReadFile.mockResolvedValue('');
+
+      const result = await buildSessionInfo(sessionName, 'running');
+
+      expect(result!.outputPreview).toBeUndefined();
+    });
+
+    it('should handle read errors gracefully', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockStat.mockResolvedValue({
+        birthtime: startTime,
+        mtime: modifiedTime,
+      });
+      mockReadFile.mockRejectedValue(new Error('Permission denied'));
+
+      const result = await buildSessionInfo(sessionName, 'running');
+
+      expect(result!.outputAvailable).toBe(true); // file exists but we couldn't read it
+      expect(result!.outputPreview).toBeUndefined();
     });
   });
 });
