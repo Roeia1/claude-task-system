@@ -47,3 +47,35 @@
 
 **Next steps:**
 - Task t3: Integrate EpicContent into EpicDetail page
+
+## Session: 2026-01-30
+
+### Task: t3 - Integrate EpicContent into EpicDetail page
+
+**What was done:**
+- Imported EpicContent component in `packages/cli/src/client/src/pages/EpicDetail.tsx`
+- Added EpicContent component between the epic header section and stories list
+- Passed `currentEpic.content` as the content prop
+- Component integrates seamlessly with existing `space-y-6` layout spacing
+
+**Test fixes required:**
+- Updated E2E test selectors in `happy-paths.spec.ts` and `error-paths.spec.ts`
+- Issue: Epic fixtures have markdown content starting with `# Epic Name`, which renders as `<h1>` inside EpicContent
+- This caused the test selector `h1:has-text("Epic Name")` to match two elements (page title + markdown h1)
+- Fix: Changed selectors to `h1.text-2xl:has-text("...")` to specifically target the page title (has the `text-2xl` class)
+
+**Tests passing:**
+- 16 unit tests for EpicContent component
+- 77 integration tests
+- 29 e2e tests (2 skipped - WebSocket tests, pre-existing)
+- 1 pre-existing tmux timeout in implement command tests (unrelated to this work)
+
+**Done criteria verification:**
+- ✅ EpicContent appears between header and stories sections
+- ✅ Spacing is consistent with rest of page (space-y-6)
+- ✅ No visual regressions on empty epics (component hidden when no content)
+- ✅ All tests pass
+
+**Next steps:**
+- Task t4: Add unit tests for EpicContent component (already completed in t2)
+- Task t5: Add integration tests for epic content display

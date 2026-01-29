@@ -73,8 +73,8 @@ test.describe('Epic Detail', () => {
     // Wait for epic to load
     await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
-    // Verify epic title is displayed as h1
-    await expect(page.locator('h1:has-text("Feature Development")')).toBeVisible();
+    // Verify epic title is displayed as h1 (exclude h1 inside epic-content section)
+    await expect(page.locator('h1.text-2xl:has-text("Feature Development")')).toBeVisible();
 
     // Verify progress indicator shows correct count
     await expect(page.getByText('1/2 stories completed')).toBeVisible();
@@ -104,8 +104,8 @@ test.describe('Epic Detail', () => {
     await page.goto('/epic/empty-epic');
     await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
-    // Verify epic title
-    await expect(page.locator('h1:has-text("Empty Epic")')).toBeVisible();
+    // Verify epic title (exclude h1 inside epic-content section)
+    await expect(page.locator('h1.text-2xl:has-text("Empty Epic")')).toBeVisible();
 
     // Verify empty state message
     await expect(page.getByText('No stories in this epic')).toBeVisible();
@@ -208,7 +208,7 @@ test.describe('Story Detail', () => {
 
     // Verify navigation back to epic
     await expect(page).toHaveURL('/epic/feature-development');
-    await expect(page.locator('h1:has-text("Feature Development")')).toBeVisible();
+    await expect(page.locator('h1.text-2xl:has-text("Feature Development")')).toBeVisible();
   });
 });
 
