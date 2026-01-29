@@ -82,3 +82,40 @@
 
 **Next steps:**
 - Task t3: Add package.json scripts for visual testing
+
+## Session 3: 2026-01-30
+
+### Task: t3 - Add package.json scripts and integrate with test command
+
+**Status:** Completed
+
+**What was done:**
+- Added `test:visual` script to run visual snapshot tests: `vitest run --project=storybook`
+- Added `test:visual:update` script to update baselines: `vitest run --project=storybook --update`
+- Verified that visual tests are already integrated into the main `test` command via `vitest run` which runs all projects (unit + storybook)
+
+**Technical Notes:**
+- The `vitest run` command in the existing `test` script already runs the storybook project, which includes the visual snapshot tests
+- The new `test:visual` and `test:visual:update` scripts provide dedicated commands for running/updating visual tests specifically
+
+**Files changed:**
+- `packages/cli/package.json` - Added `test:visual` and `test:visual:update` scripts
+
+**Tests:**
+- `pnpm test:visual` - runs successfully (106 tests pass)
+- `pnpm test:visual:update` - runs successfully (updates snapshots when needed)
+- Visual tests run as part of `vitest run` (included in main `test` command)
+
+**Story Completion:**
+All tasks in this story are now complete:
+- ✅ t1: Configure Storybook visual snapshot testing
+- ✅ t2: Add visual snapshot tests to existing stories
+- ✅ t3: Add package.json scripts and integrate with test command
+
+**Acceptance Criteria Status:**
+- ✅ Visual snapshot tests run for all existing component stories (StatusBadge, Breadcrumb, Layout)
+- ✅ Visual snapshot tests run for all existing page stories (EpicList, EpicDetail, StoryDetail)
+- ✅ `pnpm test:visual` runs visual snapshot tests
+- ✅ `pnpm test:visual:update` updates baselines when intentional changes are made
+- ✅ Visual tests are included in the main `pnpm test` command (via `vitest run`)
+- ✅ Baseline snapshots are committed to the repository

@@ -22,6 +22,8 @@
     "test:e2e:ui": "playwright test --config src/client/playwright.e2e.config.ts --ui",
     "test-storybook": "vitest --project=storybook",
     "test:storybook": "vitest run --project=storybook",
+    "test:visual": "vitest run --project=storybook",
+    "test:visual:update": "vitest run --project=storybook --update",
     "publish:npm": "pnpm build:all && pnpm test && pnpm publish --access public",
     "storybook": "storybook dev -p 6006 -c src/client/.storybook",
     "build-storybook": "storybook build -c src/client/.storybook -o storybook-static"
