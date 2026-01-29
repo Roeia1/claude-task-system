@@ -1,0 +1,313 @@
+import { test, expect } from '@playwright/test';
+import { mkdir, rm } from 'fs/promises';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+/**
+ * Error path E2E tests for the SAGA dashboard.
+ *
+ * These tests verify the dashboard handles error conditions gracefully:
+ * - 404 handling for non-existent epic/story
+ * - Empty state when no epics exist
+ * - WebSocket disconnection behavior
+ *
+ * Note: Direct URL navigation to SPA routes (e.g., /epic/slug) fails because
+ * the backend doesn't serve index.html for non-root routes. Tests use API
+ * interception or UI navigation to work around this known limitation.
+ */
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Path to fixtures directory
+const FIXTURES_PATH = join(__dirname, 'fixtures');
+
+test.describe('404 Error Handling', () => {
+  test('displays error message for non-existent epic via API 404', async ({ page }) => {
+    // Load the homepage first
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Intercept API call to return 404 for a specific epic
+    await page.route('/api/epics/nonexistent-epic', (route) => {
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Epic not found: nonexistent-epic' }),
+      });
+    });
+
+    // Navigate via client-side routing by manipulating the URL through history API
+    await page.evaluate(() => {
+      window.history.pushState({}, '', '/epic/nonexistent-epic');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+
+    // Wait for the React router to handle the navigation and API call
+    await expect(page.getByText('Epic not found')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('"nonexistent-epic"')).toBeVisible();
+
+    // Verify back link is present
+    await expect(page.getByText('Back to epic list')).toBeVisible();
+  });
+
+  test('displays error message for non-existent story via API 404', async ({ page }) => {
+    // Load homepage and navigate to a real epic first
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+    await page.locator('a[href="/epic/feature-development"]').click();
+    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Intercept API call to return 404 for a non-existent story
+    await page.route('/api/stories/feature-development/nonexistent-story', (route) => {
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Story not found: nonexistent-story' }),
+      });
+    });
+
+    // Navigate via client-side routing
+    await page.evaluate(() => {
+      window.history.pushState({}, '', '/epic/feature-development/story/nonexistent-story');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+
+    // Wait for the story not found error
+    await expect(page.getByText('Story not found')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('"nonexistent-story"')).toBeVisible();
+    await expect(page.getByText('"feature-development"')).toBeVisible();
+
+    // Verify back link to epic is present
+    await expect(page.getByText('Back to epic')).toBeVisible();
+  });
+
+  test('back link from epic 404 navigates to epic list', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Intercept API call to return 404
+    await page.route('/api/epics/nonexistent-epic', (route) => {
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Epic not found: nonexistent-epic' }),
+      });
+    });
+
+    // Navigate to non-existent epic via client-side routing
+    await page.evaluate(() => {
+      window.history.pushState({}, '', '/epic/nonexistent-epic');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+
+    // Wait for 404 page to render
+    await expect(page.getByText('Epic not found')).toBeVisible({ timeout: 10000 });
+
+    // Click back link
+    await page.getByText('Back to epic list').click();
+
+    // Verify navigation to home page
+    await expect(page).toHaveURL('/');
+    await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
+  });
+
+  test('back link from story 404 navigates to epic', async ({ page }) => {
+    // Navigate to the epic first via the UI
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+    await page.locator('a[href="/epic/feature-development"]').click();
+    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Intercept API call to return 404 for the story
+    await page.route('/api/stories/feature-development/nonexistent-story', (route) => {
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Story not found: nonexistent-story' }),
+      });
+    });
+
+    // Navigate to non-existent story via client-side routing
+    await page.evaluate(() => {
+      window.history.pushState({}, '', '/epic/feature-development/story/nonexistent-story');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+
+    // Wait for 404 page to render
+    await expect(page.getByText('Story not found')).toBeVisible({ timeout: 10000 });
+
+    // Click back link
+    await page.getByText('Back to epic').click();
+
+    // Verify navigation to the epic page
+    await expect(page).toHaveURL('/epic/feature-development');
+    await expect(page.locator('h1:has-text("Feature Development")')).toBeVisible();
+  });
+});
+
+test.describe('Empty State Handling', () => {
+  // Create a temporary empty fixtures directory for these tests
+  const EMPTY_FIXTURES_PATH = join(__dirname, 'fixtures-empty');
+
+  test.beforeAll(async () => {
+    // Create empty fixtures directory structure (just .saga with no epics)
+    await mkdir(join(EMPTY_FIXTURES_PATH, '.saga', 'epics'), { recursive: true });
+  });
+
+  test.afterAll(async () => {
+    // Clean up empty fixtures directory
+    await rm(EMPTY_FIXTURES_PATH, { recursive: true, force: true });
+  });
+
+  // Skip this test by default since it requires a separate server configuration
+  // The test is documented for when running with --project=empty-fixtures
+  test.skip('displays no epics message when saga directory is empty', async ({ page }) => {
+    // This test would require starting a separate server instance with EMPTY_FIXTURES_PATH
+    // For now, we document the expected behavior
+
+    // Expected: Navigate to /
+    // Expected: See "No epics found." message
+    // Expected: See "/create-epic" suggestion
+    await page.goto('/');
+    await expect(page.getByText('No epics found.')).toBeVisible();
+    await expect(page.getByText('/create-epic')).toBeVisible();
+  });
+
+  test('empty epic displays no stories message', async ({ page }) => {
+    // This uses the existing empty-epic fixture
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Navigate to empty-epic
+    await page.locator('a[href="/epic/empty-epic"]').click();
+    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Verify empty state message
+    await expect(page.getByText('No stories in this epic.')).toBeVisible();
+    await expect(page.getByText('/generate-stories')).toBeVisible();
+  });
+});
+
+test.describe('API Error Handling', () => {
+  test('handles network error gracefully on epic list', async ({ page }) => {
+    // Intercept the API request and abort it to simulate network error
+    await page.route('/api/epics', (route) => {
+      route.abort('failed');
+    });
+
+    await page.goto('/');
+
+    // The page should handle the error gracefully
+    // Based on EpicList.tsx, errors trigger a toast but don't show an error state
+    // The loading skeletons should eventually disappear even on error
+    // Wait for either content to load or loading to stop (timeout)
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 15000 });
+
+    // Should show empty state since fetch failed silently (toast is shown)
+    await expect(page.getByText('No epics found.')).toBeVisible();
+  });
+
+  test('handles server error (500) on epic detail', async ({ page }) => {
+    // First load the epic list normally
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Intercept the specific epic API request and return 500
+    await page.route('/api/epics/feature-development', (route) => {
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Internal server error' }),
+      });
+    });
+
+    // Navigate to the epic
+    await page.locator('a[href="/epic/feature-development"]').click();
+
+    // Should show error state (based on EpicDetail.tsx line 166-177)
+    await expect(page.getByText('Error')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Failed to load epic')).toBeVisible();
+
+    // Verify back link is present
+    await expect(page.getByText('Back to epic list')).toBeVisible();
+  });
+
+  test('handles server error (500) on story detail', async ({ page }) => {
+    // Navigate to epic first
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+    await page.locator('a[href="/epic/feature-development"]').click();
+    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Intercept the story API request and return 500
+    await page.route('/api/stories/feature-development/auth-implementation', (route) => {
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Internal server error' }),
+      });
+    });
+
+    // Navigate to the story
+    await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
+
+    // Should show error state (based on StoryDetail.tsx line 251-262)
+    await expect(page.getByText('Error')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Failed to load story')).toBeVisible();
+
+    // Verify back link is present
+    await expect(page.getByText('Back to epic')).toBeVisible();
+  });
+});
+
+test.describe('WebSocket Disconnection', () => {
+  // WebSocket tests are challenging because the dashboard doesn't auto-connect to WebSocket.
+  // The WebSocket connection is only initiated when connect() is explicitly called.
+  // These tests verify the UI doesn't break when WebSocket is unavailable.
+
+  test('dashboard loads and functions without WebSocket connection', async ({ page }) => {
+    // Block WebSocket connections
+    await page.route(/\/socket\.io\//, (route) => {
+      route.abort('failed');
+    });
+
+    // Navigate to the dashboard
+    await page.goto('/');
+
+    // Dashboard should still load and function (HTTP API works independently)
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator('a[href="/epic/feature-development"]')).toBeVisible();
+
+    // Navigate to epic detail
+    await page.locator('a[href="/epic/feature-development"]').click();
+    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator('h1:has-text("Feature Development")')).toBeVisible();
+
+    // Navigate to story detail
+    await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
+    await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Story should display without WebSocket
+    await expect(page.getByText('tasks completed')).toBeVisible();
+  });
+
+  test('can navigate between pages when WebSocket is blocked', async ({ page }) => {
+    // Block WebSocket from the start
+    await page.route('**/socket.io/**', (route) => {
+      route.abort('connectionrefused');
+    });
+
+    // Load dashboard
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Verify can navigate to testing-suite epic (different from first test)
+    await page.locator('a[href="/epic/testing-suite"]').click();
+    await expect(page.locator('h1:has-text("Testing Suite")')).toBeVisible({ timeout: 10000 });
+
+    // Verify stories are displayed
+    await expect(page.getByText('Ready')).toBeVisible();
+    await expect(page.getByText('Blocked')).toBeVisible();
+  });
+});

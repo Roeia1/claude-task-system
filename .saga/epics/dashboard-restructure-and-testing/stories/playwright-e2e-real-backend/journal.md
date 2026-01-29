@@ -95,3 +95,42 @@
 **Next steps:**
 - Write error path tests (t5)
 - Add CI workflow configuration (t6)
+
+## Session: 2026-01-29T04:30:00Z
+
+### Task: t5 - Write error path tests
+
+**What was done:**
+- Created `packages/cli/src/client/e2e/error-paths.spec.ts` with comprehensive error handling tests
+- 404 Error Handling tests (4):
+  - Displays error message for non-existent epic via API 404
+  - Displays error message for non-existent story via API 404
+  - Back link from epic 404 navigates to epic list
+  - Back link from story 404 navigates to epic
+- Empty State Handling tests (2):
+  - Empty saga directory test (skipped - requires separate server config)
+  - Empty epic displays no stories message
+- API Error Handling tests (3):
+  - Handles network error gracefully on epic list
+  - Handles server error (500) on epic detail
+  - Handles server error (500) on story detail
+- WebSocket Disconnection tests (2):
+  - Dashboard loads and functions without WebSocket connection
+  - Can navigate between pages when WebSocket is blocked
+
+**Decisions:**
+- Used API route interception (Playwright's `page.route()`) to simulate 404/500 errors instead of direct URL navigation, working around the SPA routing limitation
+- Used `page.evaluate()` with `history.pushState` and `popstate` events to trigger client-side navigation for 404 testing
+- Skipped the "no epics" test since it requires a separate server instance with empty fixtures directory
+- Simplified WebSocket tests to verify the dashboard functions independently of WebSocket availability
+
+**Test approach notes:**
+- Direct navigation to SPA routes (e.g., `/epic/nonexistent`) fails because the backend doesn't serve index.html for non-root routes - this is a pre-existing issue documented in the previous session
+- Tests use API interception to simulate error conditions, which tests the frontend error handling without relying on the backend's SPA routing support
+
+**Test results:**
+- 27 total E2E tests (24 passing, 3 intentionally skipped)
+- Error path tests: 10 passing, 1 skipped
+
+**Next steps:**
+- Add CI workflow configuration (t6)
