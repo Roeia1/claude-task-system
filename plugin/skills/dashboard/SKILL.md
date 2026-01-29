@@ -29,7 +29,4 @@ open http://localhost:3847
 
 > Dashboard is running at http://localhost:3847
 >
-> The server is running in the background. To stop it, find and kill the process:
-> ```bash
-> pkill -f "saga dashboard"
-> ```
+> To stop the server, use `/tasks` to see background tasks and stop it from there.
