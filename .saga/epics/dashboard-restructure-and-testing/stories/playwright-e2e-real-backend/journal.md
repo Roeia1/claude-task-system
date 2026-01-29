@@ -52,3 +52,46 @@
 **Next steps:**
 - Implement backend startup utilities (t3) - may be optional since webServer config handles server lifecycle
 - Write happy path tests (t4)
+
+## Session: 2026-01-29T04:00:00Z
+
+### Task: t4 - Write happy path tests
+
+**What was done:**
+- Created `packages/cli/src/client/e2e/happy-paths.spec.ts` with comprehensive E2E tests
+- Epic List tests (2):
+  - Displays all fixture epics with correct titles and story counts
+  - Displays status badges for epics with stories
+- Epic Detail tests (4):
+  - Navigates to epic and displays stories
+  - Displays story status badges correctly
+  - Empty epic shows no stories message
+  - Stories are sorted by status priority (blocked first)
+- Story Detail tests (6):
+  - Navigates to story and displays all sections
+  - Displays tasks with correct status
+  - Displays story content tab
+  - Displays journal entries with session, blocker, and resolution types
+  - Navigates back to epic from breadcrumb
+- WebSocket tests (2 - skipped):
+  - Epic list updates when story status changes
+  - Story detail updates when story file changes
+
+**Decisions:**
+- Added beforeEach hook to reset fixtures to known state before each test
+- Skipped WebSocket real-time update tests because the dashboard doesn't auto-connect to WebSocket on load - this is a pre-existing gap in the dashboard implementation
+- Used navigation through UI (click) rather than direct `goto()` to avoid SPA routing issues with the backend
+- Used more robust locators (href selectors, containsText) rather than heading role selectors for better reliability
+
+**Discovered issues:**
+1. Story content is not parsed/returned by the backend - `StoryDetail` type has `content?: string` but parser doesn't populate it
+2. WebSocket connection is never initiated - dashboard machine has `connect()` but no component calls it on mount
+3. SPA routing fails for direct navigation to `/epic/slug` - backend serves 404 instead of index.html
+
+**Test results:**
+- 14 tests pass (including 3 setup tests from previous session)
+- 2 tests skipped (WebSocket tests pending dashboard fix)
+
+**Next steps:**
+- Write error path tests (t5)
+- Add CI workflow configuration (t6)
