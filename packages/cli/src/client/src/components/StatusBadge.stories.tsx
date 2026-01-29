@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
+import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot'
 import { Badge } from '@/components/ui/badge'
 import type { StoryStatus } from '@/types/dashboard'
 
@@ -171,6 +172,9 @@ export const AllVariants: Story = {
     await expect(canvas.getByText('In Progress')).toBeInTheDocument()
     await expect(canvas.getByText('Blocked')).toBeInTheDocument()
     await expect(canvas.getByText('Completed')).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'status-badge-all-variants')
   },
 }
 

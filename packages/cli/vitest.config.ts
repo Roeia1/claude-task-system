@@ -8,6 +8,27 @@ import viteConfig from './src/client/vite.config';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Common browser configuration for visual snapshot testing
+const browserConfig = {
+  enabled: true,
+  headless: true,
+  provider: 'playwright' as const,
+  instances: [{ browser: 'chromium' as const }],
+  // Visual snapshot testing configuration
+  screenshotDirectory: '__snapshots__',
+  expect: {
+    toMatchScreenshot: {
+      comparatorName: 'pixelmatch' as const,
+      comparatorOptions: {
+        // Allow small pixel differences for cross-platform consistency
+        threshold: 0.2,
+        // Allow up to 0.5% pixel mismatch for anti-aliasing differences
+        allowedMismatchedPixelRatio: 0.005,
+      },
+    },
+  },
+};
+
 export default defineConfig({
   test: {
     projects: [
@@ -30,12 +51,7 @@ export default defineConfig({
         ],
         test: {
           name: 'storybook',
-          browser: {
-            enabled: true,
-            headless: true,
-            provider: 'playwright',
-            instances: [{ browser: 'chromium' }],
-          },
+          browser: browserConfig,
           setupFiles: [path.join(dirname, 'src/client/.storybook/vitest.setup.ts')],
         },
       }),
