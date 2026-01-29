@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import { MemoryRouter } from 'react-router-dom'
 import { createActor } from 'xstate'
+import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot'
 import { DashboardProvider } from '@/context/DashboardContext'
 import { dashboardMachine } from '@/machines'
 import { EpicList, EpicCardSkeleton, StatusBadge, EpicCard } from './EpicList'
@@ -525,6 +526,9 @@ export const Loading: EpicListStory = {
     // Verify grid layout
     const grid = canvasElement.querySelector('.grid')
     await expect(grid).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'epic-list-loading')
   },
 }
 
@@ -554,6 +558,9 @@ export const Empty: EpicListStory = {
     // Verify guidance text with /create-epic command
     await expect(canvas.getByText('/create-epic')).toBeInTheDocument()
     await expect(canvas.getByText(/to get started/)).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'epic-list-empty')
   },
 }
 
@@ -625,6 +632,9 @@ export const Populated: EpicListStory = {
     // Verify links are present
     const links = canvas.getAllByRole('link')
     await expect(links.length).toBe(3)
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'epic-list-populated')
   },
 }
 

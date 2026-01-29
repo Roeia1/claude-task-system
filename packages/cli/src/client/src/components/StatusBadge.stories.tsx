@@ -282,6 +282,9 @@ export const AllVariantsWithCount: WithCountStory = {
     await expect(canvas.getByText('In Progress: 3')).toBeInTheDocument()
     await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument()
     await expect(canvas.getByText('Completed: 8')).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'status-badge-all-variants-with-count')
   },
 }
 
@@ -338,6 +341,9 @@ export const BadgeComparison: Story = {
     await expect(canvas.getByText('In Progress: 3')).toBeInTheDocument()
     await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument()
     await expect(canvas.getByText('Completed: 8')).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'status-badge-comparison')
   },
 }
 

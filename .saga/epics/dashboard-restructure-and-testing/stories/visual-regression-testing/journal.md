@@ -45,3 +45,40 @@
 **Next steps:**
 - Task t2: Add visual snapshot tests to all existing stories
 - Task t3: Add package.json scripts for visual testing
+
+## Session 2: 2026-01-30
+
+### Task: t2 - Add visual snapshot tests to existing stories
+
+**Status:** Completed
+
+**What was done:**
+- Added visual snapshot tests to all component stories:
+  - `StatusBadge.stories.tsx` - Added snapshots for `AllVariantsWithCount` and `BadgeComparison` stories
+  - `Breadcrumb.stories.tsx` - Added snapshots for `Root`, `EpicDetail`, and `StoryDetail` stories
+  - `Layout.stories.tsx` - Added snapshots for `Default` and `WithPageContent` stories
+
+- Added visual snapshot tests to all page stories:
+  - `EpicList.stories.tsx` - Added snapshots for `Loading`, `Empty`, and `Populated` stories
+  - `EpicDetail.stories.tsx` - Added snapshots for `Loading`, `NotFound`, `Empty`, and `Populated` stories
+  - `StoryDetail.stories.tsx` - Added snapshots for `Loading`, `NotFound`, `Populated`, and `WithBlocker` stories
+
+**Approach:**
+- Focused on key visual states rather than every story variant (as per task guidance)
+- Added import for `matchCanvasSnapshot` from `@/test-utils/visual-snapshot` to each stories file
+- Added `await matchCanvasSnapshot(canvasElement, 'snapshot-name')` calls at the end of play functions
+
+**Snapshot files created:**
+- `src/client/src/components/__snapshots__/StatusBadge.stories.tsx.snap` (3 snapshots total)
+- `src/client/src/components/__snapshots__/Breadcrumb.stories.tsx.snap` (3 snapshots)
+- `src/client/src/components/__snapshots__/Layout.stories.tsx.snap` (2 snapshots)
+- `src/client/src/pages/__snapshots__/EpicList.stories.tsx.snap` (3 snapshots)
+- `src/client/src/pages/__snapshots__/EpicDetail.stories.tsx.snap` (4 snapshots)
+- `src/client/src/pages/__snapshots__/StoryDetail.stories.tsx.snap` (4 snapshots)
+
+**Tests:**
+- All 106 storybook tests pass
+- 18 snapshots written (17 new + 1 existing from t1)
+
+**Next steps:**
+- Task t3: Add package.json scripts for visual testing
