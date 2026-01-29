@@ -165,3 +165,13 @@
 
 **Next steps:**
 - Story complete - all tasks done
+
+## Session: 2026-01-29T05:30:00Z
+
+### User requested: Remove GitHub Actions CI
+
+**What was done:**
+- Removed `.github/workflows/e2e-tests.yml` - user does not want GitHub Actions CI for this project
+
+**Decisions:**
+- User explicitly requested no GitHub Actions CI, removing the workflow file entirely
