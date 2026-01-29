@@ -134,3 +134,34 @@
 
 **Next steps:**
 - Add CI workflow configuration (t6)
+
+## Session: 2026-01-29T05:00:00Z
+
+### Task: t6 - Add CI workflow configuration
+
+**What was done:**
+- Created `.github/workflows/e2e-tests.yml` with GitHub Actions workflow for E2E tests
+- Workflow configuration:
+  - Runs on push to main/master and PRs targeting those branches
+  - Path filtering to only run on relevant changes (client, server, dashboard command, config, workflow)
+  - Uses pnpm with caching for fast installs
+  - Installs only Chromium browser (matching Playwright config)
+  - Builds both CLI and client before running tests
+  - Uploads test artifacts (test-results, playwright-report) on failure or success
+  - 10 minute job timeout
+  - 7 day artifact retention
+- Verified all 24 E2E tests still pass locally
+
+**Decisions:**
+- Used `pnpm/action-setup@v4` for pnpm installation with caching
+- Set `working-directory: packages/cli` as default for most steps, but override to root for `pnpm install --frozen-lockfile` since lockfile is at repo root
+- Used `--with-deps` flag for Playwright browser installation to include system dependencies on Ubuntu
+- Included the workflow file itself in path filters to ensure changes to CI config trigger a test run
+- Used `if: ${{ !cancelled() }}` for artifact upload to capture results even on failure
+
+**Test results:**
+- All 24 E2E tests pass (3 skipped as expected)
+- Workflow file created and ready for CI
+
+**Next steps:**
+- Story complete - all tasks done
