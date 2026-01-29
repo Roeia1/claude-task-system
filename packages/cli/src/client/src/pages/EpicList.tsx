@@ -8,9 +8,9 @@ import { showApiErrorToast } from '@/lib/toast-utils';
 import type { EpicSummary, StoryStatus } from '@/types/dashboard';
 
 /** Skeleton loading component for epic cards */
-function EpicCardSkeleton() {
+export function EpicCardSkeleton() {
   return (
-    <Card className="animate-pulse">
+    <Card className="animate-pulse" data-testid="epic-card-skeleton">
       <CardHeader>
         <div className="h-6 w-48 bg-bg-light rounded" />
       </CardHeader>
@@ -27,7 +27,7 @@ function EpicCardSkeleton() {
 }
 
 /** Status badge with appropriate color based on story status */
-function StatusBadge({ status, count }: { status: StoryStatus; count: number }) {
+export function StatusBadge({ status, count }: { status: StoryStatus; count: number }) {
   const variants: Record<StoryStatus, string> = {
     ready: 'bg-text-muted/20 text-text-muted',
     in_progress: 'bg-primary/20 text-primary',
@@ -50,7 +50,7 @@ function StatusBadge({ status, count }: { status: StoryStatus; count: number }) 
 }
 
 /** Card component for displaying a single epic */
-function EpicCard({ epic }: { epic: EpicSummary }) {
+export function EpicCard({ epic }: { epic: EpicSummary }) {
   const { storyCounts } = epic;
   const completionPercentage =
     storyCounts.total > 0

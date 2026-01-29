@@ -1,0 +1,62 @@
+import { defineConfig, devices } from '@playwright/test';
+
+/**
+ * Playwright configuration for dashboard integration tests.
+ * Uses mocked API responses - no real backend required.
+ *
+ * @see https://playwright.dev/docs/test-configuration
+ */
+export default defineConfig({
+  // Test directory relative to this config file
+  testDir: './tests/integration',
+
+  // Run tests in parallel
+  fullyParallel: true,
+
+  // Fail the build on CI if you accidentally left test.only in the source code
+  forbidOnly: !!process.env.CI,
+
+  // Retry on CI only
+  retries: process.env.CI ? 2 : 0,
+
+  // Limit parallel workers on CI for stability
+  workers: process.env.CI ? 1 : undefined,
+
+  // Reporter configuration
+  reporter: process.env.CI ? 'github' : 'html',
+
+  // Shared settings for all projects
+  use: {
+    // Base URL for navigation
+    baseURL: 'http://localhost:5173',
+
+    // Collect trace on first retry
+    trace: 'on-first-retry',
+
+    // Screenshot on failure
+    screenshot: 'only-on-failure',
+  },
+
+  // Configure projects for single browser (Chromium only for speed)
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
+
+  // Web server configuration - starts Vite dev server before tests
+  webServer: {
+    command: 'pnpm dev:client',
+    cwd: '../..',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
+
+  // Test timeouts
+  timeout: 30 * 1000,
+  expect: {
+    timeout: 5 * 1000,
+  },
+});

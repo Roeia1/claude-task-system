@@ -14,9 +14,9 @@ import type { StoryDetail as StoryDetailType, StoryStatus, TaskStatus, JournalEn
 import { ChevronDown, ChevronRight, CheckCircle, Circle, AlertCircle } from 'lucide-react';
 
 /** Skeleton loading component for the story header */
-function HeaderSkeleton() {
+export function HeaderSkeleton() {
   return (
-    <div className="animate-pulse space-y-4">
+    <div className="animate-pulse space-y-4" data-testid="story-header-skeleton">
       <div className="h-8 w-64 bg-bg-light rounded" />
       <div className="flex items-center gap-4">
         <div className="h-6 w-24 bg-bg-light rounded-full" />
@@ -27,9 +27,9 @@ function HeaderSkeleton() {
 }
 
 /** Skeleton loading component for content sections */
-function ContentSkeleton() {
+export function ContentSkeleton() {
   return (
-    <div className="animate-pulse space-y-4">
+    <div className="animate-pulse space-y-4" data-testid="story-content-skeleton">
       <div className="h-6 w-48 bg-bg-light rounded" />
       <div className="space-y-2">
         <div className="h-4 w-full bg-bg-light rounded" />
@@ -41,7 +41,7 @@ function ContentSkeleton() {
 }
 
 /** Status badge with appropriate color based on story status */
-function StatusBadge({ status }: { status: StoryStatus }) {
+export function StatusBadge({ status }: { status: StoryStatus }) {
   const variants: Record<StoryStatus, string> = {
     ready: 'bg-text-muted/20 text-text-muted',
     in_progress: 'bg-primary/20 text-primary',
@@ -60,7 +60,7 @@ function StatusBadge({ status }: { status: StoryStatus }) {
 }
 
 /** Task status icon (visual only, not interactive) */
-function TaskStatusIcon({ status }: { status: TaskStatus }) {
+export function TaskStatusIcon({ status }: { status: TaskStatus }) {
   const iconProps = { className: 'w-5 h-5 pointer-events-none cursor-default' };
 
   switch (status) {
@@ -75,7 +75,7 @@ function TaskStatusIcon({ status }: { status: TaskStatus }) {
 }
 
 /** Single task item display */
-function TaskItem({ task }: { task: StoryDetailType['tasks'][0] }) {
+export function TaskItem({ task }: { task: StoryDetailType['tasks'][0] }) {
   return (
     <div className="flex items-center gap-3 py-2 px-3 rounded-md hover:bg-bg-light/50">
       <TaskStatusIcon status={task.status} />
@@ -111,7 +111,7 @@ function getEntryTypeStyle(type: JournalEntryType): { bg: string; text: string; 
 }
 
 /** Single journal entry with collapsible content */
-function JournalEntryItem({ entry, defaultOpen = false }: { entry: JournalEntry; defaultOpen?: boolean }) {
+export function JournalEntryItem({ entry, defaultOpen = false }: { entry: JournalEntry; defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const style = getEntryTypeStyle(entry.type);
 

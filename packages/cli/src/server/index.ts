@@ -8,6 +8,7 @@
 
 import express, { type Express, type Request, type Response } from 'express';
 import { createServer, type Server as HttpServer } from 'http';
+import { join } from 'path';
 import { createApiRouter } from './routes.js';
 import { createWebSocketServer, type WebSocketInstance } from './websocket.js';
 
@@ -64,6 +65,17 @@ function createApp(sagaRoot: string): Express {
 
   // API routes
   app.use('/api', createApiRouter(sagaRoot));
+
+  // Serve static files from built client (dist/client relative to dist/cli.cjs)
+  const clientDistPath = join(__dirname, 'client');
+  const indexHtmlPath = join(clientDistPath, 'index.html');
+  app.use(express.static(clientDistPath));
+
+  // SPA fallback - serve index.html for client-side routing
+  // Express 5 requires named wildcards, use {*splat} to also match root path
+  app.get('/{*splat}', (_req: Request, res: Response) => {
+    res.sendFile('index.html', { root: clientDistPath });
+  });
 
   return app;
 }

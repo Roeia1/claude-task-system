@@ -1,5 +1,7 @@
+import { useCallback, useMemo } from 'react';
 import { createActorContext } from '@xstate/react';
 import { dashboardMachine } from '@/machines';
+import type { EpicSummary, Epic, StoryDetail } from '@/types/dashboard';
 
 /**
  * Dashboard context using XState's createActorContext
@@ -26,51 +28,110 @@ export const useDashboardSelector = DashboardContext.useSelector;
 
 /**
  * Convenience hook that provides common dashboard state and actions
+ * Actions are memoized to prevent infinite loops in useEffect dependencies
  */
 export function useDashboard() {
   const actorRef = useDashboardActorRef();
   const state = useDashboardSelector((snapshot) => snapshot.value);
   const context = useDashboardSelector((snapshot) => snapshot.context);
 
-  return {
-    // Current state
-    state,
-    isIdle: state === 'idle',
-    isLoading: state === 'loading',
-    isConnected: state === 'connected',
-    isReconnecting: state === 'reconnecting',
-    isError: state === 'error',
+  // Memoize action functions to prevent infinite loops in useEffect
+  const connect = useCallback(() => actorRef.send({ type: 'CONNECT' }), [actorRef]);
+  const disconnect = useCallback(() => actorRef.send({ type: 'DISCONNECT' }), [actorRef]);
+  const retry = useCallback(() => actorRef.send({ type: 'RETRY' }), [actorRef]);
 
-    // Context data
-    epics: context.epics,
-    currentEpic: context.currentEpic,
-    currentStory: context.currentStory,
-    error: context.error,
-    retryCount: context.retryCount,
-    subscribedStories: context.subscribedStories,
+  const setEpics = useCallback(
+    (epics: EpicSummary[]) => actorRef.send({ type: 'EPICS_LOADED', epics }),
+    [actorRef]
+  );
 
-    // Actions
-    connect: () => actorRef.send({ type: 'CONNECT' }),
-    disconnect: () => actorRef.send({ type: 'DISCONNECT' }),
-    retry: () => actorRef.send({ type: 'RETRY' }),
-    setEpics: (epics: typeof context.epics) =>
-      actorRef.send({ type: 'EPICS_LOADED', epics }),
-    setCurrentEpic: (epic: NonNullable<typeof context.currentEpic>) =>
-      actorRef.send({ type: 'EPIC_LOADED', epic }),
-    setCurrentStory: (story: NonNullable<typeof context.currentStory>) =>
-      actorRef.send({ type: 'STORY_LOADED', story }),
-    clearCurrentEpic: () => actorRef.send({ type: 'CLEAR_EPIC' }),
-    clearCurrentStory: () => actorRef.send({ type: 'CLEAR_STORY' }),
+  const setCurrentEpic = useCallback(
+    (epic: Epic) => actorRef.send({ type: 'EPIC_LOADED', epic }),
+    [actorRef]
+  );
 
-    // Subscription actions for real-time story updates
-    subscribeToStory: (epicSlug: string, storySlug: string) =>
+  const setCurrentStory = useCallback(
+    (story: StoryDetail) => actorRef.send({ type: 'STORY_LOADED', story }),
+    [actorRef]
+  );
+
+  const clearCurrentEpic = useCallback(
+    () => actorRef.send({ type: 'CLEAR_EPIC' }),
+    [actorRef]
+  );
+
+  const clearCurrentStory = useCallback(
+    () => actorRef.send({ type: 'CLEAR_STORY' }),
+    [actorRef]
+  );
+
+  const subscribeToStory = useCallback(
+    (epicSlug: string, storySlug: string) =>
       actorRef.send({ type: 'SUBSCRIBE_STORY', epicSlug, storySlug }),
-    unsubscribeFromStory: (epicSlug: string, storySlug: string) =>
-      actorRef.send({ type: 'UNSUBSCRIBE_STORY', epicSlug, storySlug }),
+    [actorRef]
+  );
 
-    // Actor ref for advanced usage
-    actorRef,
-  };
+  const unsubscribeFromStory = useCallback(
+    (epicSlug: string, storySlug: string) =>
+      actorRef.send({ type: 'UNSUBSCRIBE_STORY', epicSlug, storySlug }),
+    [actorRef]
+  );
+
+  // Memoize the returned object to prevent unnecessary re-renders
+  return useMemo(
+    () => ({
+      // Current state
+      state,
+      isIdle: state === 'idle',
+      isLoading: state === 'loading',
+      isConnected: state === 'connected',
+      isReconnecting: state === 'reconnecting',
+      isError: state === 'error',
+
+      // Context data
+      epics: context.epics,
+      currentEpic: context.currentEpic,
+      currentStory: context.currentStory,
+      error: context.error,
+      retryCount: context.retryCount,
+      subscribedStories: context.subscribedStories,
+
+      // Actions (memoized)
+      connect,
+      disconnect,
+      retry,
+      setEpics,
+      setCurrentEpic,
+      setCurrentStory,
+      clearCurrentEpic,
+      clearCurrentStory,
+      subscribeToStory,
+      unsubscribeFromStory,
+
+      // Actor ref for advanced usage
+      actorRef,
+    }),
+    [
+      state,
+      context.epics,
+      context.currentEpic,
+      context.currentStory,
+      context.error,
+      context.retryCount,
+      context.subscribedStories,
+      connect,
+      disconnect,
+      retry,
+      setEpics,
+      setCurrentEpic,
+      setCurrentStory,
+      clearCurrentEpic,
+      clearCurrentStory,
+      subscribeToStory,
+      unsubscribeFromStory,
+      actorRef,
+    ]
+  );
 }
 
 export default DashboardContext;

@@ -4,19 +4,27 @@ import * as path from 'node:path';
 
 const clientDir = path.join(__dirname, '.');
 const srcDir = path.join(clientDir, 'src');
+// After flattening package structure, dependencies are in the main CLI package.json
+const cliDir = path.join(__dirname, '..', '..');
+const cliPackageJson = path.join(cliDir, 'package.json');
 
 describe('React Router Setup', () => {
-  describe('dependencies', () => {
+  describe('dependencies (in main CLI package.json)', () => {
     const packageJson = JSON.parse(
-      fs.readFileSync(path.join(clientDir, 'package.json'), 'utf-8'),
+      fs.readFileSync(cliPackageJson, 'utf-8'),
     );
+    // Client dependencies may be in dependencies or devDependencies (devDeps since they're bundled)
+    const allDeps = {
+      ...(packageJson.dependencies || {}),
+      ...(packageJson.devDependencies || {}),
+    };
 
     it('should have react-router-dom installed', () => {
-      expect(packageJson.dependencies).toHaveProperty('react-router-dom');
+      expect(allDeps).toHaveProperty('react-router-dom');
     });
 
     it('should use react-router-dom v6 or higher', () => {
-      const version = packageJson.dependencies['react-router-dom'];
+      const version = allDeps['react-router-dom'];
       // Version should be ^6.x or higher
       expect(version).toMatch(/^[\^~]?6\./);
     });

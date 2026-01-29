@@ -16,11 +16,13 @@ pnpm test:watch   # Watch mode
 |------|---------|
 | `src/cli.ts` | Entry point, Commander.js command registration |
 | `src/commands/init.ts` | `saga init` - creates `.saga/` directory |
-| `src/commands/find.ts` | `saga find` - find epic/story by slug/title |
+| `src/commands/find.ts` | `saga find` - find epic/story by slug/title (supports `--status` filter) |
 | `src/commands/worktree.ts` | `saga worktree` - create git worktree for story |
-| `src/commands/implement.ts` | `saga implement` - worker orchestration loop |
-| `src/commands/dashboard.ts` | `saga dashboard` - HTTP server (placeholder) |
+| `src/commands/implement.ts` | `saga implement` - worker orchestration (detached tmux by default) |
+| `src/commands/sessions/` | `saga sessions` - tmux session management (list, status, logs, kill) |
+| `src/commands/dashboard.ts` | `saga dashboard` - HTTP server with React dashboard |
 | `src/commands/scope-validator.ts` | Hook validator for file operations |
+| `src/lib/sessions.ts` | Tmux session create/list/status/kill utilities |
 | `src/utils/finder.ts` | Fuzzy search for epics/stories (Fuse.js) |
 | `src/utils/project-discovery.ts` | Finds `.saga/` in parent directories |
 

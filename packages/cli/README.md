@@ -16,6 +16,7 @@ npx @saga-ai/cli init
 npx @saga-ai/cli find <query>
 npx @saga-ai/cli worktree <epic-slug> <story-slug>
 npx @saga-ai/cli implement <story-slug>
+npx @saga-ai/cli sessions list
 npx @saga-ai/cli dashboard
 ```
 
@@ -49,6 +50,7 @@ saga find auth --type epic
 
 Options:
 - `--type <type>` - Type to search for: `epic` or `story` (default: story)
+- `--status <status>` - Filter stories by status: `ready`, `completed`, `blocked`, etc.
 
 Returns JSON with:
 - `found: true` + `data` - Single match found
@@ -90,7 +92,26 @@ Options:
 - `--max-time <n>` - Maximum time in minutes (default: 60)
 - `--model <name>` - Model to use (default: opus)
 
+By default, `implement` runs in **detached mode** using a tmux session. This allows the worker to continue running even if your terminal disconnects. Use `saga sessions` to monitor detached sessions.
+
 **Note:** Requires `SAGA_PLUGIN_ROOT` environment variable to be set. This is automatically configured when running via the SAGA plugin.
+
+### `saga sessions`
+
+Manage tmux sessions created by detached `implement` runs.
+
+```bash
+saga sessions list              # List all SAGA sessions
+saga sessions status <name>     # Check if session is running
+saga sessions logs <name>       # Stream session output
+saga sessions kill <name>       # Terminate a session
+```
+
+Subcommands:
+- `list` - Returns JSON array of all SAGA sessions with name, status, and output file
+- `status <name>` - Returns JSON `{running: boolean}` for the session
+- `logs <name>` - Streams the session output file via `tail -f`
+- `kill <name>` - Terminates the session, returns JSON `{killed: boolean}`
 
 ### `saga dashboard`
 
