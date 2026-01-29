@@ -224,3 +224,32 @@
 - vitest: 434 tests passed (25 files)
 - integration: 77 tests passed
 - E2E: 29 tests passed, 2 skipped (WebSocket auto-connect not implemented)
+
+## Session: 2026-01-29T12:30:00Z
+
+### Fix: Enable SPA routing for direct URL navigation
+
+**What was done:**
+
+1. **Fixed SPA routing in Express server**
+   - Root cause: `res.sendFile(join(clientDistPath, 'index.html'))` fails in Express 5
+   - Fix: Changed to `res.sendFile('index.html', { root: clientDistPath })`
+   - Express 5's sendFile requires the `root` option for proper path resolution
+
+2. **Simplified E2E tests to use direct navigation**
+   - Removed API interception workarounds from 404 tests
+   - Removed `history.pushState` + `popstate` event workarounds
+   - Tests now use simple `page.goto('/epic/slug')` for direct navigation
+   - Removed 119 lines of workaround code
+
+3. **Updated test file comments**
+   - Removed outdated note about SPA routing limitation
+
+**Decisions:**
+- Used `{ root: clientDistPath }` option instead of absolute path join, as this is the recommended approach for Express 5's sendFile
+- Kept some tests using click-through navigation to verify UI links work correctly
+- Direct navigation tests are now simpler and more readable
+
+**Test results:**
+- All 29 E2E tests pass (2 skipped for WebSocket auto-connect)
+- Tests are faster due to fewer intermediate navigation steps
