@@ -18,6 +18,7 @@ import type { Server as HttpServer } from 'http';
 import { scanSagaDirectory, parseStory, parseJournal, type StoryDetail, type EpicSummary } from './parser.js';
 import { createSagaWatcher, type SagaWatcher, type WatcherEvent } from './watcher.js';
 import { join, relative } from 'path';
+import { startSessionPolling, stopSessionPolling, type SessionsUpdatedMessage } from '../lib/session-polling.js';
 
 /**
  * Subscription key for a story
@@ -138,6 +139,11 @@ export async function createWebSocketServer(
       sendToClient(ws, message);
     }
   }
+
+  // Start session polling and broadcast updates to all clients
+  startSessionPolling((msg: SessionsUpdatedMessage) => {
+    broadcast({ event: msg.type, data: msg.sessions });
+  });
 
   // Helper to broadcast to clients subscribed to a story
   function broadcastToSubscribers(storyKey: StoryKey, message: ServerMessage): void {
@@ -309,6 +315,9 @@ export async function createWebSocketServer(
 
     async close(): Promise<void> {
       clearInterval(heartbeatInterval);
+
+      // Stop session polling
+      stopSessionPolling();
 
       // Close all client connections
       for (const [ws] of clients) {

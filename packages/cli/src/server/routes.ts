@@ -16,6 +16,7 @@ import {
   type StoryDetail,
 } from './parser.js';
 import { join } from 'path';
+import { createSessionApiRouter } from './session-routes.js';
 
 /**
  * Get epics by scanning the saga directory
@@ -122,6 +123,9 @@ export function createApiRouter(sagaRoot: string): Router {
       res.status(500).json({ error: 'Failed to fetch story' });
     }
   });
+
+  // Session routes
+  router.use(createSessionApiRouter());
 
   // Catch-all for unknown API routes
   router.use((_req: Request, res: Response) => {
