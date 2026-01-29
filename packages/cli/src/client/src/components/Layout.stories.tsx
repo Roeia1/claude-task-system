@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { MemoryRouter, Routes, Route, Outlet } from 'react-router-dom'
 import { expect, within } from 'storybook/test'
+import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot'
 import { Layout } from './Layout'
 import { DashboardProvider } from '@/context/DashboardContext'
 import { dashboardMachine } from '@/machines'
@@ -48,6 +49,9 @@ export const Default: Story = {
     await expect(
       canvas.getByText('Main content area (via Outlet)')
     ).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'layout-default')
   },
   decorators: [
     (Story) => (
@@ -92,6 +96,9 @@ export const WithPageContent: Story = {
     await expect(canvas.getByText('Sample Epic 1')).toBeInTheDocument()
     await expect(canvas.getByText('Sample Epic 2')).toBeInTheDocument()
     await expect(canvas.getByText('Sample Epic 3')).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'layout-with-page-content')
   },
   decorators: [
     (Story) => (

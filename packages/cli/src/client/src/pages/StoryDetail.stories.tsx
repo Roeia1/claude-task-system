@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import { MemoryRouter, Link } from 'react-router-dom'
+import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -818,6 +819,9 @@ export const Loading: StoryDetailStory = {
     // Verify bg-bg-light placeholder elements
     const placeholders = canvasElement.querySelectorAll('.bg-bg-light')
     await expect(placeholders.length).toBeGreaterThanOrEqual(5)
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'story-detail-loading')
   },
 }
 
@@ -861,6 +865,9 @@ export const NotFound: StoryDetailStory = {
 
     // Accessibility: Verify back link has accessible name
     await expect(backLink).toHaveAccessibleName()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'story-detail-not-found')
   },
 }
 
@@ -1046,6 +1053,9 @@ export const Populated: StoryDetailStory = {
     for (const tab of tabs) {
       await expect(tab).toHaveAccessibleName()
     }
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'story-detail-populated')
   },
 }
 
@@ -1236,6 +1246,9 @@ export const WithBlocker: StoryDetailStory = {
     await expect(canvas.getByText('Sessions (1)')).toBeInTheDocument()
     // Verify session entry title
     await expect(canvas.getByText('Session: 2026-01-28 09:00 UTC')).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'story-detail-with-blocker')
   },
 }
 
