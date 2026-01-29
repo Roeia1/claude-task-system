@@ -34,7 +34,7 @@ export interface SessionsUpdatedMessage {
 // Module-level state
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 let currentSessions: DetailedSessionInfo[] = [];
-let previousSessionState: Map<string, 'running' | 'completed'> = new Map();
+let isFirstPoll = true;
 
 /**
  * Get the current list of sessions
@@ -71,7 +71,7 @@ export function stopSessionPolling(): void {
     pollingInterval = null;
   }
   currentSessions = [];
-  previousSessionState.clear();
+  isFirstPoll = true;
 }
 
 /**
@@ -84,7 +84,7 @@ async function pollSessions(broadcast: (msg: SessionsUpdatedMessage) => void): P
 
     if (hasChanges) {
       currentSessions = sessions;
-      updatePreviousState(sessions);
+      isFirstPoll = false;
       broadcast({
         type: 'sessions:updated',
         sessions,
@@ -128,8 +128,8 @@ async function discoverSessions(): Promise<DetailedSessionInfo[]> {
  * Detect if there are any changes between current and new sessions
  */
 function detectChanges(newSessions: DetailedSessionInfo[]): boolean {
-  // First poll always broadcasts
-  if (previousSessionState.size === 0 && currentSessions.length === 0) {
+  // First poll always broadcasts to establish baseline state
+  if (isFirstPoll) {
     return true;
   }
 
@@ -171,14 +171,4 @@ function detectChanges(newSessions: DetailedSessionInfo[]): boolean {
   }
 
   return false;
-}
-
-/**
- * Update the previous state map with current sessions
- */
-function updatePreviousState(sessions: DetailedSessionInfo[]): void {
-  previousSessionState.clear();
-  for (const session of sessions) {
-    previousSessionState.set(session.name, session.status);
-  }
 }

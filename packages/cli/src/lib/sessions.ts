@@ -349,10 +349,17 @@ export async function killSession(sessionName: string): Promise<KillSessionResul
 /**
  * Parse a session name to extract epic and story slugs
  *
- * Session names use double-underscore delimiter: saga__<epic-slug>__<story-slug>__<pid>
+ * Expected format: saga__<epic-slug>__<story-slug>__<pid>
+ * Uses double-underscore (`__`) as delimiter.
+ *
+ * NOTE: This format differs from the older single-hyphen format used by `createSession()`
+ * (e.g., `saga-epic-story-timestamp`). Sessions created with the old format will return
+ * null and won't appear in the dashboard. This is intentional - the dashboard only shows
+ * sessions created with the new naming convention. A future update to `createSession()`
+ * will migrate to the double-underscore format for dashboard compatibility.
  *
  * @param name - The session name to parse
- * @returns Parsed slugs or null if not a valid SAGA session name
+ * @returns Parsed slugs or null if not a valid SAGA session name (including old-format sessions)
  */
 export function parseSessionName(name: string): ParsedSessionName | null {
   if (!name || !name.startsWith('saga__')) {
@@ -419,7 +426,10 @@ export async function buildSessionInfo(
         const lastLines = lines.slice(-5);
         let preview = lastLines.join('\n');
         if (preview.length > 500) {
-          preview = preview.slice(0, 500);
+          // Truncate at the last newline before 500 chars for cleaner display
+          const truncated = preview.slice(0, 500);
+          const lastNewline = truncated.lastIndexOf('\n');
+          preview = lastNewline > 0 ? truncated.slice(0, lastNewline) : truncated;
         }
         outputPreview = preview;
       }
