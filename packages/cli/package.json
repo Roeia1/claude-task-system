@@ -12,7 +12,7 @@
     "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.cjs --format=cjs --banner:js='#!/usr/bin/env node' --external:express --external:ws --external:chokidar --external:gray-matter --external:fuse.js --external:commander",
     "build:client": "vite build --config src/client/vite.config.ts",
     "build:all": "pnpm build && pnpm build:client",
-    "dev": "npm run build && node dist/cli.js",
+    "dev": "npm run build && node dist/cli.cjs",
     "dev:client": "vite --config src/client/vite.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
