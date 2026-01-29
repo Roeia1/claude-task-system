@@ -68,12 +68,13 @@ function createApp(sagaRoot: string): Express {
 
   // Serve static files from built client (dist/client relative to dist/cli.cjs)
   const clientDistPath = join(__dirname, 'client');
+  const indexHtmlPath = join(clientDistPath, 'index.html');
   app.use(express.static(clientDistPath));
 
   // SPA fallback - serve index.html for client-side routing
   // Express 5 requires named wildcards, use {*splat} to also match root path
   app.get('/{*splat}', (_req: Request, res: Response) => {
-    res.sendFile(join(clientDistPath, 'index.html'));
+    res.sendFile('index.html', { root: clientDistPath });
   });
 
   return app;

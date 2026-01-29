@@ -9,10 +9,6 @@ import { deleteAllEpics, deleteEpic, createEpic, createStory, resetAllFixtures }
  * - Empty state when no epics exist
  * - WebSocket disconnection behavior
  *
- * Note: Direct URL navigation to SPA routes (e.g., /epic/slug) fails because
- * the backend doesn't serve index.html for non-root routes. Tests use API
- * interception or UI navigation to work around this known limitation.
- *
  * Fixtures are reset before each test to ensure a clean state.
  */
 
@@ -24,25 +20,9 @@ test.beforeEach(async () => {
 });
 
 test.describe('404 Error Handling', () => {
-  test('displays error message for non-existent epic via API 404', async ({ page }) => {
-    // Load the homepage first
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-
-    // Intercept API call to return 404 for a specific epic
-    await page.route('/api/epics/nonexistent-epic', (route) => {
-      route.fulfill({
-        status: 404,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'Epic not found: nonexistent-epic' }),
-      });
-    });
-
-    // Navigate via client-side routing by manipulating the URL through history API
-    await page.evaluate(() => {
-      window.history.pushState({}, '', '/epic/nonexistent-epic');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    });
+  test('displays error message for non-existent epic', async ({ page }) => {
+    // Navigate directly to a non-existent epic
+    await page.goto('/epic/nonexistent-epic');
 
     // Wait for the React router to handle the navigation and API call
     await expect(page.getByText('Epic not found')).toBeVisible({ timeout: 10000 });
@@ -52,27 +32,9 @@ test.describe('404 Error Handling', () => {
     await expect(page.getByText('Back to epic list')).toBeVisible();
   });
 
-  test('displays error message for non-existent story via API 404', async ({ page }) => {
-    // Load homepage and navigate to a real epic first
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development"]').click();
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
-
-    // Intercept API call to return 404 for a non-existent story
-    await page.route('/api/stories/feature-development/nonexistent-story', (route) => {
-      route.fulfill({
-        status: 404,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'Story not found: nonexistent-story' }),
-      });
-    });
-
-    // Navigate via client-side routing
-    await page.evaluate(() => {
-      window.history.pushState({}, '', '/epic/feature-development/story/nonexistent-story');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    });
+  test('displays error message for non-existent story', async ({ page }) => {
+    // Navigate directly to a non-existent story
+    await page.goto('/epic/feature-development/story/nonexistent-story');
 
     // Wait for the story not found error
     await expect(page.getByText('Story not found')).toBeVisible({ timeout: 10000 });
@@ -84,23 +46,8 @@ test.describe('404 Error Handling', () => {
   });
 
   test('back link from epic 404 navigates to epic list', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-
-    // Intercept API call to return 404
-    await page.route('/api/epics/nonexistent-epic', (route) => {
-      route.fulfill({
-        status: 404,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'Epic not found: nonexistent-epic' }),
-      });
-    });
-
-    // Navigate to non-existent epic via client-side routing
-    await page.evaluate(() => {
-      window.history.pushState({}, '', '/epic/nonexistent-epic');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    });
+    // Navigate directly to a non-existent epic
+    await page.goto('/epic/nonexistent-epic');
 
     // Wait for 404 page to render
     await expect(page.getByText('Epic not found')).toBeVisible({ timeout: 10000 });
@@ -114,26 +61,8 @@ test.describe('404 Error Handling', () => {
   });
 
   test('back link from story 404 navigates to epic', async ({ page }) => {
-    // Navigate to the epic first via the UI
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development"]').click();
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
-
-    // Intercept API call to return 404 for the story
-    await page.route('/api/stories/feature-development/nonexistent-story', (route) => {
-      route.fulfill({
-        status: 404,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'Story not found: nonexistent-story' }),
-      });
-    });
-
-    // Navigate to non-existent story via client-side routing
-    await page.evaluate(() => {
-      window.history.pushState({}, '', '/epic/feature-development/story/nonexistent-story');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    });
+    // Navigate directly to a non-existent story
+    await page.goto('/epic/feature-development/story/nonexistent-story');
 
     // Wait for 404 page to render
     await expect(page.getByText('Story not found')).toBeVisible({ timeout: 10000 });

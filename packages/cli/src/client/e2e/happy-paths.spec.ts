@@ -66,17 +66,9 @@ test.describe('Epic List', () => {
 });
 
 test.describe('Epic Detail', () => {
-  test('navigates to epic and displays stories', async ({ page }) => {
-    await page.goto('/');
-
-    // Wait for epics to load
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-
-    // Click on Feature Development epic
-    await page.locator('a[href="/epic/feature-development"]').click();
-
-    // Verify we're on the epic detail page
-    await expect(page).toHaveURL('/epic/feature-development');
+  test('displays epic with stories via direct navigation', async ({ page }) => {
+    // Navigate directly to epic detail page
+    await page.goto('/epic/feature-development');
 
     // Wait for epic to load
     await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
@@ -93,11 +85,8 @@ test.describe('Epic Detail', () => {
   });
 
   test('displays story status badges correctly', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development"]').click();
-
-    // Wait for page to load
+    // Navigate directly to epic
+    await page.goto('/epic/feature-development');
     await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Auth story should show In Progress badge
@@ -111,13 +100,8 @@ test.describe('Epic Detail', () => {
   });
 
   test('empty epic shows no stories message', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-
-    // Navigate to empty epic
-    await page.locator('a[href="/epic/empty-epic"]').click();
-
-    // Wait for page to load
+    // Navigate directly to empty epic
+    await page.goto('/epic/empty-epic');
     await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Verify epic title
@@ -129,11 +113,8 @@ test.describe('Epic Detail', () => {
   });
 
   test('stories are sorted by status priority', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/testing-suite"]').click();
-
-    // Wait for page to load
+    // Navigate directly to testing-suite epic
+    await page.goto('/epic/testing-suite');
     await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Get all story cards
@@ -146,19 +127,9 @@ test.describe('Epic Detail', () => {
 });
 
 test.describe('Story Detail', () => {
-  test('navigates to story and displays all sections', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-
-    // Navigate to epic
-    await page.locator('a[href="/epic/feature-development"]').click();
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
-
-    // Click on auth implementation story
-    await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
-
-    // Verify URL
-    await expect(page).toHaveURL('/epic/feature-development/story/auth-implementation');
+  test('displays story via direct navigation', async ({ page }) => {
+    // Navigate directly to story detail page
+    await page.goto('/epic/feature-development/story/auth-implementation');
 
     // Wait for story to load
     await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
@@ -179,13 +150,8 @@ test.describe('Story Detail', () => {
   });
 
   test('displays tasks with correct status', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development"]').click();
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
-
-    // Wait for story to load
+    // Navigate directly to story
+    await page.goto('/epic/feature-development/story/auth-implementation');
     await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Tasks tab should be visible by default
@@ -200,13 +166,8 @@ test.describe('Story Detail', () => {
   });
 
   test('displays story content tab', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development"]').click();
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
-
-    // Wait for story to load
+    // Navigate directly to story
+    await page.goto('/epic/feature-development/story/auth-implementation');
     await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Click on Story Content tab
@@ -219,13 +180,8 @@ test.describe('Story Detail', () => {
   });
 
   test('displays journal entries with all types', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development"]').click();
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
-
-    // Wait for story to load
+    // Navigate directly to story
+    await page.goto('/epic/feature-development/story/auth-implementation');
     await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Click on Journal tab
@@ -243,13 +199,8 @@ test.describe('Story Detail', () => {
   });
 
   test('navigates back to epic from breadcrumb', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development"]').click();
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
-
-    // Wait for story to load
+    // Navigate directly to story
+    await page.goto('/epic/feature-development/story/auth-implementation');
     await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Click on epic slug in breadcrumb (link that goes to /epic/feature-development)
