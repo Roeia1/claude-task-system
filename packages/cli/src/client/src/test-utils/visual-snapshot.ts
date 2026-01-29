@@ -10,11 +10,7 @@
  * fail in Storybook's dev server context.
  */
 
-// Declare the global types set by vitest.setup.ts
-declare global {
-  // eslint-disable-next-line no-var, @typescript-eslint/no-explicit-any
-  var __vitest_expect__: any;
-}
+// Global types are declared in src/types/vitest-globals.d.ts
 
 /**
  * Check if we're running in Vitest test mode.
@@ -33,6 +29,8 @@ function normalizeHtml(html: string): string {
     .replace(/data-state="[^"]*"/g, 'data-state="..."')
     // Remove style attributes with dynamic values
     .replace(/style="[^"]*"/g, 'style="..."')
+    // Normalize Radix UI generated IDs (e.g., radix-:r8:, radix-:rk:)
+    .replace(/radix-:[a-z0-9]+:/g, 'radix-:id:')
     // Normalize whitespace
     .replace(/\s+/g, ' ')
     .trim();
