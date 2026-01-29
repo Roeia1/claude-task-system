@@ -190,8 +190,10 @@ export async function createSagaWatcher(sagaRoot: string): Promise<SagaWatcher> 
   const watcher: FSWatcher = chokidar.watch([epicsDir, archiveDir], {
     persistent: true,
     ignoreInitial: true, // Don't emit events for existing files
-    // Use native fs events for better performance (polling caused high CPU with large directories)
-    usePolling: false,
+    // Use polling for reliable cross-platform behavior in tests
+    // This is fine since we only watch epics/archive (~20 files), not entire .saga/ (79K+ files)
+    usePolling: true,
+    interval: 100,
   });
 
   // Track if watcher is closed

@@ -1,6 +1,6 @@
 {
   "name": "@saga-ai/cli",
-  "version": "2.12.0",
+  "version": "2.12.1",
   "packageManager": "pnpm@9.15.0",
   "description": "CLI for SAGA - Structured Autonomous Goal Achievement",
   "type": "module",
