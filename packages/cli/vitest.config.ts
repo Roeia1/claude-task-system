@@ -20,6 +20,16 @@ export default defineConfig({
           exclude: ['src/client/**'],
         },
       },
+      // Client component tests project - runs in jsdom with React Testing Library
+      mergeConfig(viteConfig, {
+        test: {
+          name: 'client',
+          root: path.join(dirname, 'src/client'),
+          include: ['src/**/*.test.tsx'],
+          environment: 'jsdom',
+          setupFiles: [path.join(dirname, 'src/client/src/test-setup.ts')],
+        },
+      }),
       // Storybook tests project - runs in browser with client's vite config
       mergeConfig(viteConfig, {
         plugins: [
