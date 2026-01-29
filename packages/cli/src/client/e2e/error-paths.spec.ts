@@ -72,7 +72,7 @@ test.describe('404 Error Handling', () => {
 
     // Verify navigation to the epic page
     await expect(page).toHaveURL('/epic/feature-development');
-    await expect(page.locator('h1:has-text("Feature Development")')).toBeVisible();
+    await expect(page.locator('h1.text-2xl:has-text("Feature Development")')).toBeVisible();
   });
 });
 
@@ -221,7 +221,7 @@ test.describe('WebSocket Disconnection', () => {
     // Navigate to epic detail
     await page.locator('a[href="/epic/feature-development"]').click();
     await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await expect(page.locator('h1:has-text("Feature Development")')).toBeVisible();
+    await expect(page.locator('h1.text-2xl:has-text("Feature Development")')).toBeVisible();
 
     // Navigate to story detail
     await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
@@ -243,7 +243,7 @@ test.describe('WebSocket Disconnection', () => {
 
     // Verify can navigate to testing-suite epic (different from first test)
     await page.locator('a[href="/epic/testing-suite"]').click();
-    await expect(page.locator('h1:has-text("Testing Suite")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1.text-2xl:has-text("Testing Suite")')).toBeVisible({ timeout: 10000 });
 
     // Verify stories are displayed
     await expect(page.getByText('Ready')).toBeVisible();
