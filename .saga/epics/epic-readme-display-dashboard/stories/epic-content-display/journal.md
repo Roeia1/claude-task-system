@@ -122,3 +122,57 @@ All 5 tasks are now complete:
 - t3: ✅ Component integrated into EpicDetail page
 - t4: ✅ Unit tests added (completed with t2)
 - t5: ✅ Integration tests added
+
+## Session: 2026-01-30 (PR Review)
+
+### Bug Fix: Add @tailwindcss/typography for markdown prose styling
+
+**Issue discovered:**
+- Manual testing revealed markdown was not rendering with proper typography (no styled headers, lists, etc.)
+- The `prose` classes in EpicContent.tsx require the `@tailwindcss/typography` plugin
+
+**What was done:**
+- Installed `@tailwindcss/typography@^0.5.19` as dev dependency
+- Added plugin to `src/client/tailwind.config.js` plugins array
+- CSS bundle size increased from 19KB to 42KB (typography styles included)
+- Verified markdown now renders with proper headers, lists, tables, code blocks
+
+### Storybook Coverage: Add EpicContent.stories.tsx
+
+**What was done:**
+- Created comprehensive Storybook story file at `packages/cli/src/client/src/components/EpicContent.stories.tsx`
+- Added 10 stories covering:
+  - EmptyContent: Verifies component returns null for undefined/empty content
+  - SimpleText: Basic text without markdown
+  - Headings: h1, h2, h3 rendering with proper hierarchy
+  - Lists: Unordered and ordered list rendering
+  - CodeBlocks: Inline code and fenced code block rendering
+  - Tables: GFM table rendering
+  - Links: Link rendering with correct href
+  - Strikethrough: GFM strikethrough text
+  - CollapsibleBehavior: Expand/collapse interaction testing
+  - CompleteExample: Realistic epic documentation with all features
+- Each story includes play function with assertions for component behavior
+- Visual snapshot tests added for key stories
+
+### Storybook Coverage: Update EpicDetail.stories.tsx
+
+**What was done:**
+- Imported EpicContent component into EpicDetail stories
+- Added sample epic content markdown with headings, lists, and tables
+- Updated `Populated` story to include EpicContent section
+- Updated play function to verify EpicContent presence and markdown rendering
+- Updated visual snapshot for Populated story
+
+**Tests passing:**
+- 116 Storybook tests (10 new EpicContent + updated EpicDetail)
+- 512 unit tests
+- 88 integration tests
+
+**Files changed:**
+- `packages/cli/package.json` - added @tailwindcss/typography
+- `packages/cli/pnpm-lock.yaml` - lockfile update
+- `packages/cli/src/client/tailwind.config.js` - added typography plugin
+- `packages/cli/src/client/src/components/EpicContent.stories.tsx` - new file
+- `packages/cli/src/client/src/pages/EpicDetail.stories.tsx` - added EpicContent
+- `packages/cli/src/client/src/pages/__snapshots__/EpicDetail.stories.tsx.snap` - updated
