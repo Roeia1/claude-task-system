@@ -77,3 +77,34 @@
 - Task t3: Create GET /api/sessions endpoint
 - Task t4: Create GET /api/sessions/:sessionName endpoint
 - Task t5: Implement sessions:updated WebSocket broadcast
+
+## Session: 2026-01-29T03:37:00Z
+
+### Task: t3 - Create GET /api/sessions endpoint
+
+**What was done:**
+- Created `src/server/session-routes.ts` module with `createSessionApiRouter()` function
+- Implemented `GET /api/sessions` endpoint:
+  - Returns all sessions from `getCurrentSessions()`
+  - Supports query parameter filters: `epicSlug`, `storySlug`, `status`
+  - Filters applied in order: epicSlug first, then storySlug (only if epicSlug provided), then status
+  - Results maintain startTime descending sort from polling service
+- Implemented `GET /api/sessions/:sessionName` endpoint (also part of same router):
+  - Returns specific session by exact name match
+  - Returns 404 with `{ error: 'Session not found' }` if not found
+
+**Decisions:**
+- Created a separate router file (`session-routes.ts`) to keep session API routes isolated from epic/story routes
+- The router needs to be mounted on the main Express app by the dashboard server
+- Implemented both t3 and t4 together since they're in the same router file and tightly coupled
+
+**Tests added:**
+- 16 new unit tests in `src/server/__tests__/session-routes.test.ts` covering:
+  - GET /api/sessions: returns all sessions, correct structure, empty array, filtering by epicSlug, storySlug, status
+  - Filter combinations and ordering
+  - Results sorted by startTime descending
+  - GET /api/sessions/:sessionName: exact name match, full SessionInfo, 404 for unknown, URL encoding
+
+**Next steps:**
+- Task t5: Implement sessions:updated WebSocket broadcast
+- Wire up session routes to the dashboard server (may be part of t5)
