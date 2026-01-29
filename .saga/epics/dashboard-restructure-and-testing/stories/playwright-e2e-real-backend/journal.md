@@ -175,3 +175,52 @@
 
 **Decisions:**
 - User explicitly requested no GitHub Actions CI, removing the workflow file entirely
+
+## Session: 2026-01-29T06:00:00Z
+
+### Improvements: Test isolation, new tests, and parallel execution
+
+**What was done:**
+
+1. **Fixed flaky navigation test**
+   - Test `should navigate correctly via links in story header` was matching two elements (breadcrumb and story header)
+   - Changed locator to `getByRole('main').getByRole('link')` to target only the main content area
+
+2. **Updated main test script**
+   - Added E2E tests to the main `test` script
+   - Changed to reuse existing scripts: `pnpm run test:integration && pnpm run test:e2e`
+
+3. **Refactored fixtures to use temp directory**
+   - Created `fixtures-utils.ts` with helper functions for fixture management
+   - Created `global-teardown.ts` to clean up temp directory after tests
+   - Fixtures are now copied to `/tmp/saga-e2e-fixtures` before tests run
+   - Each test resets fixtures via `beforeEach` for complete isolation
+   - Tests run serially (1 worker) since they share filesystem state
+
+4. **Enabled previously skipped empty state test**
+   - `displays no epics message when saga directory is empty` - now works by deleting all epics from temp fixtures
+
+5. **Added new dynamic content tests**
+   - `epic with deleted stories shows empty state`
+   - `newly created epic appears after refresh`
+   - `newly created story appears after refresh`
+   - `deleted epic disappears after refresh`
+
+6. **Parallelized test suites**
+   - Added `concurrently` package as dev dependency
+   - Updated test script: `concurrently -g "vitest run" "pnpm run test:integration" "pnpm run test:e2e"`
+   - Tests use different ports so no conflicts:
+     - vitest: no server
+     - integration: port 5173 (Vite dev server)
+     - E2E: port 3849 (real backend)
+
+**Decisions:**
+- Used temp directory approach instead of in-place fixture modification to avoid git state changes
+- Reset all fixtures before each test rather than selective restoration for simplicity
+- Run E2E tests serially (single worker) since they share filesystem state
+- Used `concurrently -g` flag to ensure if any test suite fails, all are killed and overall command fails
+
+**Test results:**
+- vitest: 434 tests passed (25 files)
+- integration: 77 tests passed
+- E2E: 29 tests passed, 2 skipped (WebSocket auto-connect not implemented)
