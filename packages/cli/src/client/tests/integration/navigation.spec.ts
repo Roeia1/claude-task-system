@@ -395,8 +395,8 @@ test.describe('Navigation', () => {
       await page.goto('/epic/link-epic/story/link-story');
 
       // The story detail page has an inline link to the epic in the header
-      // Find and click the epic link in the story header (above the title)
-      const epicLink = page.locator('.flex.items-center.gap-2').getByText('link-epic');
+      // Find and click the epic link in the story header (in main content, not breadcrumb)
+      const epicLink = page.getByRole('main').getByRole('link', { name: 'link-epic' });
       await epicLink.click();
 
       // Verify navigation to epic detail
