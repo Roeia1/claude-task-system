@@ -2,190 +2,26 @@
 name: publish-cli
 description: "Publishes a new version of the @saga-ai/cli npm package. Bumps version in package.json, updates CHANGELOG.md, builds, tests, and publishes to npm. Use when the user says 'publish cli', 'release cli', 'npm publish', or 'publish @saga-ai/cli'."
 user-invocable: true
-allowed-tools: Read, Edit, Bash, Glob, Grep
+allowed-tools: Read, Edit, Bash, Glob, Grep, TaskCreate, TaskUpdate, TaskList, TaskGet, AskUserQuestion
 ---
 
 # Publishing @saga-ai/cli
 
 This skill publishes the `@saga-ai/cli` npm package located at `packages/cli/`.
 
-## Prerequisites
+## Tasks
 
-- npm authentication configured (`npm login` or `NPM_TOKEN` environment variable)
-- pnpm installed (`npm install -g pnpm`)
-- All changes committed (clean git status)
-
-## Publish Workflow
-
-Copy this checklist and track progress:
-
-```
-Publish Progress:
-- [ ] Step 1: Verify clean git status and npm auth
-- [ ] Step 2: Gather changes since last release
-- [ ] Step 3: Determine version number with user
-- [ ] Step 4: Update packages/cli/package.json version
-- [ ] Step 5: Update packages/cli/CHANGELOG.md
-- [ ] Step 6: Update packages/cli/README.md if needed
-- [ ] Step 7: Commit changes
-- [ ] Step 8: Build, test, and publish to npm
-- [ ] Step 9: Create git tag
-- [ ] Step 10: Verify publication
-```
-
-### Step 1: Verify Prerequisites
-
-```bash
-# Check git status is clean
-git status --porcelain
-
-# Check npm auth
-npm whoami
-
-# Check current CLI version
-grep '"version"' packages/cli/package.json
-```
-
-If git status is not clean, ask user to commit or stash changes first.
-If npm auth fails, guide user to run `npm login`.
-
-### Step 2: Gather Changes
-
-```bash
-# Find last CLI release commit
-git log --oneline --all -- packages/cli/ | head -20
-
-# Check if there's a previous CLI tag
-git tag -l "cli-v*" | tail -5
-```
-
-Review commits to `packages/cli/` since last release. Categorize as: Added, Changed, Fixed, Removed.
-
-### Step 3: Determine Version
-
-Ask user for version, or suggest based on changes:
-- **MAJOR** (X.0.0): Breaking CLI changes, removed commands
-- **MINOR** (0.X.0): New commands, new options, backward-compatible changes
-- **PATCH** (0.0.X): Bug fixes, docs, internal improvements
-
-Current version can be found in `packages/cli/package.json`.
-
-### Step 4: Update package.json Version
-
-Update the `"version"` field in `packages/cli/package.json`:
-
-```json
-{
-  "name": "@saga-ai/cli",
-  "version": "X.Y.Z",
-  ...
-}
-```
-
-### Step 5: Update CHANGELOG.md
-
-Update `packages/cli/CHANGELOG.md` (create if it doesn't exist).
-
-Add at top:
-
-```markdown
-## [X.Y.Z] - YYYY-MM-DD
-
-### Added
-- **command**: Description of new command or feature
-
-### Changed
-- **command**: Description of changed behavior
-
-### Fixed
-- **command**: Description of bug fix
-```
-
-If creating the file for the first time, use this template:
-
-```markdown
-# Changelog
-
-All notable changes to the `@saga-ai/cli` package will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [X.Y.Z] - YYYY-MM-DD
-
-### Added
-- Initial release
-- `saga init` - Initialize .saga/ directory structure
-- `saga implement` - Orchestrate autonomous story execution
-- `saga dashboard` - Start HTTP server for dashboard UI
-- `saga help` - Display help information
-```
-
-### Step 6: Update README.md if Needed
-
-Review `packages/cli/README.md` and update if any of the following apply:
-- New commands were added
-- Command options changed
-- Usage examples need updating
-- Version badge needs updating (if present)
-
-Look for sections like:
-- Installation instructions
-- Command reference
-- Usage examples
-
-### Step 7: Commit Changes
-
-```bash
-# Stage version files
-git add packages/cli/package.json packages/cli/CHANGELOG.md packages/cli/README.md
-
-# Commit
-git commit -m "chore(cli): release @saga-ai/cli vX.Y.Z
-
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-
-# Push
-git push
-```
-
-### Step 8: Build, Test, and Publish to npm
-
-```bash
-cd packages/cli
-
-# This script builds, runs tests, and publishes in one command
-pnpm run publish:npm
-```
-
-The `publish:npm` script runs: `pnpm build && pnpm test && pnpm publish --access public`
-
-If tests fail, the publish will not proceed. Fix the issues and retry.
-
-### Step 9: Create Git Tag
-
-```bash
-# Create CLI-specific tag
-git tag "cli-vX.Y.Z"
-git push origin "cli-vX.Y.Z"
-```
-
-Note: CLI uses `cli-vX.Y.Z` tag format to distinguish from plugin releases (`vX.Y.Z`).
-
-### Step 10: Verify Publication
-
-```bash
-# Check npm registry
-npm view @saga-ai/cli version
-
-# Test installation
-npx @saga-ai/cli@X.Y.Z --version
-```
-
-Report success to user with:
-- Published version
-- npm package URL: https://www.npmjs.com/package/@saga-ai/cli
-- Installation command: `npx @saga-ai/cli@latest <command>`
+| Subject | Description | Active Form | Blocked By | Blocks |
+|---------|-------------|-------------|------------|--------|
+| Gather changes | First run `git status --porcelain -- packages/cli/` to check for uncommitted changes in the CLI package. If there are uncommitted changes, ask the user to commit them first so they appear in the changelog - stop and wait for user to commit. Once clean, run: `git log --oneline --all -- packages/cli/ \| head -20` and `git tag -l "cli-v*" \| tail -5` and `grep '"version"' packages/cli/package.json`. Review commits to `packages/cli/` since the last CLI tag. Note the current version. Categorize changes as: Added (new features/commands), Changed (modified behavior), Fixed (bug fixes), Removed (deprecated/removed). This categorization will be used for the changelog entry. | Gathering changes | - | Determine version |
+| Determine version | Use AskUserQuestion to ask user for version bump type. Present current version and suggest based on changes: MAJOR (X.0.0) for breaking CLI changes or removed commands, MINOR (0.X.0) for new commands, new options, or backward-compatible changes, PATCH (0.0.X) for bug fixes, docs, or internal improvements. Calculate and confirm the new version number with user. | Determining version | Gather changes | Update package.json |
+| Update package.json | Edit `packages/cli/package.json` to update the `"version"` field to the new version number. The field should look like: `"version": "X.Y.Z"` where X.Y.Z is the version determined in previous task. | Updating package.json | Determine version | Update CHANGELOG |
+| Update CHANGELOG | Edit `packages/cli/CHANGELOG.md` to add new version section at top of file (after header). Format: `## [X.Y.Z] - YYYY-MM-DD` followed by sections for each change category. Use `### Added` for new features with format `- **command**: Description`. Use `### Changed` for modified behavior. Use `### Fixed` for bug fixes. Use `### Removed` for removed features. Only include sections that have changes. If CHANGELOG.md doesn't exist, create it with header: `# Changelog` followed by blank line, then `All notable changes to the \`@saga-ai/cli\` package will be documented in this file.` followed by blank line, then `The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),` and `and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).` | Updating CHANGELOG | Update package.json | Update README |
+| Update README | Review `packages/cli/README.md` and update if needed. Check for: (1) New commands that need documenting, (2) Changed command options, (3) Usage examples needing updates, (4) Version badges needing updates. Look for sections: Installation instructions, Command reference, Usage examples. If no updates needed, skip editing but still mark complete. | Updating README | Update CHANGELOG | Commit changes |
+| Commit changes | Run: `git add packages/cli/package.json packages/cli/CHANGELOG.md packages/cli/README.md` then commit with message format: `chore(cli): release @saga-ai/cli vX.Y.Z` followed by blank line and `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`. Then run `git push` to push to remote. | Committing changes | Update README | Publish to npm |
+| Publish to npm | Run: `cd packages/cli && pnpm run publish:npm`. This script executes: `pnpm build && pnpm test && pnpm publish --access public`. If tests fail, the publish will not proceed - fix issues and retry. Wait for successful completion before proceeding. | Publishing to npm | Commit changes | Create git tag |
+| Create git tag | Run: `git tag "cli-vX.Y.Z"` then `git push origin "cli-vX.Y.Z"`. Note: CLI uses `cli-vX.Y.Z` tag format (with `cli-` prefix) to distinguish from plugin releases which use `vX.Y.Z` format. | Creating git tag | Publish to npm | Verify publication |
+| Verify publication | Run: `npm view @saga-ai/cli version` and `npx @saga-ai/cli@X.Y.Z --version` to confirm the new version is live. Report success to user with: (1) Published version number, (2) npm package URL: https://www.npmjs.com/package/@saga-ai/cli, (3) Installation command: `npx @saga-ai/cli@latest <command>`. | Verifying publication | Create git tag | - |
 
 ## Quick Reference
 

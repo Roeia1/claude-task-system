@@ -5,6 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.2] - 2026-01-29
+
+### Fixed
+
+- **/dashboard skill**: Use `/tasks` to stop dashboard server instead of pkill
+- **/dashboard skill**: Use Bash `run_in_background` parameter for cleaner background process handling
+- **/dashboard skill**: Use `npx @saga-ai/cli@latest` to ensure CLI availability without global installation
+
+## [2.11.1] - 2026-01-28
+
+### Added
+
+- **task-pattern skill**: New skill (renamed from author-agent) for writing structured agents and skills using task table pattern
+- **generate-story agent**: Added Blocks column to task dependencies for better workflow management
+- **generate-story agent**: Added dependency install step for projects with package.json
+
+### Changed
+
+- **skills**: Converted all skills to task table pattern for improved structure and consistency
+  - execute-story, generate-stories, create-epic, publish-plugin, publish-cli, pr-review
+- **branding**: Renamed remaining "Claude Task System" references to "SAGA"
+- **cli**: Replaced `--attached` flag with `SAGA_INTERNAL_SESSION` environment variable
+- **cli**: Removed `--stream` option, always use streaming in attached mode
+
+### Fixed
+
+- **execute-story**: Corrected `/resolve-blocker` command reference in notes
+- **pr-review**: Restored full details in task descriptions
+- **skills**: Made task descriptions self-contained without internal references
+- **publish-cli**: Merged prerequisites into first task
+- **cli**: Extract structured output from tool call as fallback
+
+## [2.11.0] - 2026-01-28
+
+### Added
+
+- **list-sessions**: New skill to display running tmux sessions
+  - Shows session status (running/stopped) and output file locations
+  - Uses `saga sessions list` CLI command
+
+### Fixed
+
+- **worker-prompt**: Remove JSON output instructions that confused workers
+  - The `--json-schema` flag handles structured output automatically
+  - Workers no longer try to call non-existent `StructuredOutput` tool
+
+## [2.10.1] - 2026-01-28
+
+### Changed
+
+- **execute-story**: Filter out completed stories when searching
+  - Uses `--status ready` flag to exclude already-completed stories
+- **cli**: Updated to v0.7.0 with tmux session management and detached execution
+
+## [2.10.0] - 2026-01-28
+
+### Added
+
+- **execute-story**: Merge origin/master step before implementation
+  - Ensures stories start with latest main branch changes
+  - Reduces merge conflicts during PR review
+
+### Fixed
+
+- **execute-story**: Return to project root after merge step
+  - Fixes working directory issues when merge step was added
+
+### Changed
+
+- **cli**: Updated to v0.6.0 with dashboard features (server API + React UI)
+
 ## [2.9.2] - 2026-01-27
 
 ### Fixed

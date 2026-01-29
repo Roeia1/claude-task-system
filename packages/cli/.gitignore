@@ -1,2 +1,9 @@
 node_modules/
 dist/
+
+*storybook.log
+storybook-static
+
+# Playwright test artifacts
+playwright-report/
+test-results/

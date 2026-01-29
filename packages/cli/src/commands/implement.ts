@@ -26,6 +26,7 @@ import { join } from 'node:path';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolveProjectPath } from '../utils/project-discovery.js';
 import { findStory as findStoryUtil, type StoryInfo as FinderStoryInfo } from '../utils/finder.js';
+import { createSession, shellEscapeArgs } from '../lib/sessions.js';
 
 /**
  * Options for the implement command
@@ -36,7 +37,6 @@ export interface ImplementOptions {
   maxTime?: number;
   model?: string;
   dryRun?: boolean;
-  stream?: boolean;
 }
 
 /**
@@ -394,94 +394,6 @@ function buildScopeSettings(): Record<string, unknown> {
 }
 
 /**
- * Parse and validate worker JSON output
- */
-function parseWorkerOutput(output: string): WorkerOutput {
-  if (!output || !output.trim()) {
-    throw new Error('Worker output is empty');
-  }
-
-  // Parse the claude CLI JSON response
-  let cliResponse: Record<string, unknown>;
-  try {
-    cliResponse = JSON.parse(output.trim());
-  } catch (e) {
-    throw new Error(`Invalid JSON in worker output: ${e}`);
-  }
-
-  // Extract structured_output from the CLI response
-  if (!('structured_output' in cliResponse)) {
-    // Check if this is an error response
-    if (cliResponse.is_error) {
-      const errorMsg = cliResponse.result || 'Unknown error';
-      throw new Error(`Worker failed: ${errorMsg}`);
-    }
-    throw new Error(`Worker output missing structured_output field. Got keys: ${Object.keys(cliResponse).join(', ')}`);
-  }
-
-  const parsed = cliResponse.structured_output as Record<string, unknown>;
-
-  // Validate required fields
-  if (!('status' in parsed)) {
-    throw new Error('Worker output missing required field: status');
-  }
-
-  if (!('summary' in parsed)) {
-    throw new Error('Worker output missing required field: summary');
-  }
-
-  // Validate status value
-  if (!VALID_STATUSES.has(parsed.status as string)) {
-    throw new Error(`Invalid status value: ${parsed.status}. Must be one of: ${[...VALID_STATUSES].join(', ')}`);
-  }
-
-  return {
-    status: parsed.status as WorkerOutput['status'],
-    summary: parsed.summary as string,
-    blocker: (parsed.blocker as string | null) ?? null,
-  };
-}
-
-/**
- * Spawn a worker Claude instance (synchronous, no streaming)
- */
-function spawnWorker(
-  prompt: string,
-  model: string,
-  settings: Record<string, unknown>,
-  workingDir: string
-): string {
-  // Build command arguments
-  const args = [
-    '-p',
-    prompt,
-    '--model',
-    model,
-    '--output-format',
-    'json',
-    '--json-schema',
-    JSON.stringify(WORKER_OUTPUT_SCHEMA),
-    '--settings',
-    JSON.stringify(settings),
-    '--dangerously-skip-permissions',
-  ];
-
-  const result = spawnSync('claude', args, {
-    cwd: workingDir,
-    encoding: 'utf-8',
-    maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs
-  });
-
-  if (result.error) {
-    throw new Error(`Failed to spawn worker: ${result.error.message}`);
-  }
-
-  // Return stdout even if exit code is non-zero
-  // Worker might have output before failing
-  return result.stdout || '';
-}
-
-/**
  * Parse a stream-json line and extract displayable content
  * Returns the text to display, or null if nothing to display
  */
@@ -519,8 +431,36 @@ function formatStreamLine(line: string): string | null {
 }
 
 /**
+ * Extract StructuredOutput tool call input from streaming output
+ * Searches for assistant messages containing a StructuredOutput tool_use block
+ * Returns the input object if found, null otherwise
+ */
+function extractStructuredOutputFromToolCall(
+  lines: string[]
+): Record<string, unknown> | null {
+  // Search backwards to find the most recent StructuredOutput tool call
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try {
+      const data = JSON.parse(lines[i]);
+      if (data.type === 'assistant' && data.message?.content) {
+        for (const block of data.message.content) {
+          if (block.type === 'tool_use' && block.name === 'StructuredOutput') {
+            return block.input as Record<string, unknown>;
+          }
+        }
+      }
+    } catch {
+      // Not valid JSON, continue
+    }
+  }
+  return null;
+}
+
+/**
  * Parse the final result from stream-json output
- * Looks for the {"type":"result",...} line and extracts structured_output
+ * Looks for the {"type":"result",...} line and extracts structured_output.
+ * Falls back to extracting from StructuredOutput tool call if structured_output
+ * is missing (can happen with error_during_execution subtype).
  */
 function parseStreamingResult(buffer: string): WorkerOutput {
   const lines = buffer.split('\n').filter(line => line.trim());
@@ -534,20 +474,27 @@ function parseStreamingResult(buffer: string): WorkerOutput {
           throw new Error(`Worker failed: ${data.result || 'Unknown error'}`);
         }
 
-        if (!data.structured_output) {
+        // Try to get structured_output from result, fall back to tool call
+        let output = data.structured_output;
+        if (!output) {
+          // Fallback: extract from StructuredOutput tool call
+          // This handles error_during_execution cases where structured_output
+          // is missing from the result but the tool was called successfully
+          output = extractStructuredOutputFromToolCall(lines);
+        }
+
+        if (!output) {
           throw new Error('Worker result missing structured_output');
         }
 
-        const output = data.structured_output;
-
-        if (!VALID_STATUSES.has(output.status)) {
+        if (!VALID_STATUSES.has(output.status as string)) {
           throw new Error(`Invalid status: ${output.status}`);
         }
 
         return {
-          status: output.status,
-          summary: output.summary || '',
-          blocker: output.blocker ?? null,
+          status: output.status as WorkerOutput['status'],
+          summary: (output.summary as string) || '',
+          blocker: (output.blocker as string | null) ?? null,
         };
       }
     } catch (e) {
@@ -643,8 +590,7 @@ async function runLoop(
   maxTime: number,
   model: string,
   projectDir: string,
-  pluginRoot: string,
-  stream: boolean = false
+  pluginRoot: string
 ): Promise<LoopResult> {
   // Compute worktree path
   const worktree = join(projectDir, '.saga', 'worktrees', epicSlug, storySlug);
@@ -704,55 +650,21 @@ async function runLoop(
     cycles += 1;
     let parsed: WorkerOutput;
 
-    if (stream) {
-      // Streaming mode: use async spawn with real-time output
-      console.log(`\n--- Worker ${cycles} started ---\n`);
-      try {
-        parsed = await spawnWorkerAsync(workerPrompt, model, settings, worktree);
-      } catch (e: any) {
-        return {
-          status: 'ERROR',
-          summary: e.message,
-          cycles,
-          elapsedMinutes: (Date.now() - startTime) / 60000,
-          blocker: null,
-          epicSlug,
-          storySlug,
-        };
-      }
-      console.log(`\n--- Worker ${cycles} result: ${parsed.status} ---\n`);
-    } else {
-      // Non-streaming mode: use sync spawn
-      let output: string;
-      try {
-        output = spawnWorker(workerPrompt, model, settings, worktree);
-      } catch (e: any) {
-        return {
-          status: 'ERROR',
-          summary: e.message,
-          cycles,
-          elapsedMinutes: (Date.now() - startTime) / 60000,
-          blocker: null,
-          epicSlug,
-          storySlug,
-        };
-      }
-
-      // Parse worker output
-      try {
-        parsed = parseWorkerOutput(output);
-      } catch (e: any) {
-        return {
-          status: 'ERROR',
-          summary: e.message,
-          cycles,
-          elapsedMinutes: (Date.now() - startTime) / 60000,
-          blocker: null,
-          epicSlug,
-          storySlug,
-        };
-      }
+    console.log(`\n--- Worker ${cycles} started ---\n`);
+    try {
+      parsed = await spawnWorkerAsync(workerPrompt, model, settings, worktree);
+    } catch (e: any) {
+      return {
+        status: 'ERROR',
+        summary: e.message,
+        cycles,
+        elapsedMinutes: (Date.now() - startTime) / 60000,
+        blocker: null,
+        epicSlug,
+        storySlug,
+      };
     }
+    console.log(`\n--- Worker ${cycles} result: ${parsed.status} ---\n`);
 
     summaries.push(parsed.summary);
 
@@ -787,6 +699,41 @@ async function runLoop(
     epicSlug,
     storySlug,
   };
+}
+
+/**
+ * Build the command string to run in detached mode
+ * The CLI detects it's inside a tmux session via SAGA_INTERNAL_SESSION env var
+ *
+ * All arguments are properly shell-escaped to prevent command injection
+ */
+function buildDetachedCommand(
+  storySlug: string,
+  projectPath: string,
+  options: {
+    maxCycles?: number;
+    maxTime?: number;
+    model?: string;
+  }
+): string {
+  const parts = ['saga', 'implement', storySlug];
+
+  // Add project path
+  parts.push('--path', projectPath);
+
+  // Add options if specified
+  if (options.maxCycles !== undefined) {
+    parts.push('--max-cycles', String(options.maxCycles));
+  }
+  if (options.maxTime !== undefined) {
+    parts.push('--max-time', String(options.maxTime));
+  }
+  if (options.model !== undefined) {
+    parts.push('--model', options.model);
+  }
+
+  // Use shell escaping to prevent command injection
+  return shellEscapeArgs(parts);
 }
 
 /**
@@ -844,13 +791,49 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTime = options.maxTime ?? DEFAULT_MAX_TIME;
   const model = options.model ?? DEFAULT_MODEL;
-  const stream = options.stream ?? false;
 
+  // Check if we're running inside a SAGA tmux session (set by wrapper script)
+  const isInternalSession = process.env.SAGA_INTERNAL_SESSION === '1';
+
+  // Detached mode (default): create tmux session
+  if (!isInternalSession) {
+    // Build the command to run inside the tmux session
+    const detachedCommand = buildDetachedCommand(storySlug, projectPath, {
+      maxCycles: options.maxCycles,
+      maxTime: options.maxTime,
+      model: options.model,
+    });
+
+    try {
+      const sessionResult = await createSession(
+        storyInfo.epicSlug,
+        storyInfo.storySlug,
+        detachedCommand
+      );
+
+      // Output session info as JSON
+      console.log(JSON.stringify({
+        mode: 'detached',
+        sessionName: sessionResult.sessionName,
+        outputFile: sessionResult.outputFile,
+        epicSlug: storyInfo.epicSlug,
+        storySlug: storyInfo.storySlug,
+        worktreePath: storyInfo.worktreePath,
+      }, null, 2));
+
+      // Exit immediately - worker runs in background
+      return;
+    } catch (error: any) {
+      console.error(`Error: Failed to create detached session: ${error.message}`);
+      process.exit(1);
+    }
+  }
+
+  // Internal session mode: run synchronously (inside tmux, SAGA_INTERNAL_SESSION=1)
   console.log('Starting story implementation...');
   console.log(`  Epic: ${storyInfo.epicSlug}`);
   console.log(`  Story: ${storyInfo.storySlug}`);
   console.log(`  Worktree: ${storyInfo.worktreePath}`);
-  console.log(`  Streaming: ${stream ? 'enabled' : 'disabled'}`);
   console.log('');
 
   // Run the orchestration loop
@@ -861,8 +844,7 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
     maxTime,
     model,
     projectPath,
-    pluginRoot,
-    stream
+    pluginRoot
   );
 
   // Output result as JSON

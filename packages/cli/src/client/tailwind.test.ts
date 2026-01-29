@@ -3,26 +3,29 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 const CLIENT_DIR = path.join(__dirname, '.');
+// After flattening package structure, dependencies are in the main CLI package.json
+const CLI_DIR = path.join(__dirname, '..', '..');
+const CLI_PACKAGE_JSON = path.join(CLI_DIR, 'package.json');
 
 describe('Tailwind CSS and Dark Theme Configuration', () => {
-  describe('Tailwind CSS setup', () => {
+  describe('Tailwind CSS setup (dependencies in main CLI package.json)', () => {
     it('should have tailwindcss as devDependency', () => {
       const packageJson = JSON.parse(
-        fs.readFileSync(path.join(CLIENT_DIR, 'package.json'), 'utf-8')
+        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
       );
       expect(packageJson.devDependencies?.tailwindcss).toBeDefined();
     });
 
     it('should have postcss as devDependency', () => {
       const packageJson = JSON.parse(
-        fs.readFileSync(path.join(CLIENT_DIR, 'package.json'), 'utf-8')
+        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
       );
       expect(packageJson.devDependencies?.postcss).toBeDefined();
     });
 
     it('should have autoprefixer as devDependency', () => {
       const packageJson = JSON.parse(
-        fs.readFileSync(path.join(CLIENT_DIR, 'package.json'), 'utf-8')
+        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
       );
       expect(packageJson.devDependencies?.autoprefixer).toBeDefined();
     });

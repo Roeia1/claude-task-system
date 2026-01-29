@@ -25,6 +25,7 @@ import { resolveProjectPath } from '../utils/project-discovery.js';
 export interface FindOptions {
   path?: string;
   type?: 'epic' | 'story';
+  status?: string;
 }
 
 /**
@@ -46,7 +47,7 @@ export async function findCommand(query: string, options: FindOptions): Promise<
   if (type === 'epic') {
     result = findEpic(projectPath, query);
   } else {
-    result = await findStory(projectPath, query);
+    result = await findStory(projectPath, query, { status: options.status });
   }
 
   // Output JSON result

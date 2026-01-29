@@ -201,6 +201,59 @@ Test story for implement command testing.
     });
   });
 
+  describe('detached mode', () => {
+    it('should run detached by default (requires tmux)', () => {
+      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
+
+      // Create mock plugin
+      const pluginDir = join(testDir, 'mock-plugin');
+      const skillDir = join(pluginDir, 'skills', 'execute-story');
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(join(skillDir, 'worker-prompt.md'), '# Worker Prompt\nTest prompt content');
+
+      const result = runCli(['implement', 'test-story', '--path', testDir], {
+        env: { SAGA_PLUGIN_ROOT: pluginDir },
+      });
+
+      // When running detached, it should either:
+      // 1. Succeed and output session info JSON, or
+      // 2. Fail because tmux is not available
+      if (result.exitCode === 0) {
+        // Success - should output session info JSON
+        expect(result.stdout).toContain('sessionName');
+        expect(result.stdout).toContain('outputFile');
+      } else {
+        // Expected to fail because tmux might not be available or the claude CLI isn't available
+        // but it should NOT fail on argument parsing
+        expect(result.stderr).not.toContain("unknown option");
+      }
+    });
+
+    it('should run in internal session mode with SAGA_INTERNAL_SESSION env var', () => {
+      createSagaProject(testDir, { epicSlug: 'test-epic', storySlug: 'test-story' });
+
+      // Create mock plugin
+      const pluginDir = join(testDir, 'mock-plugin');
+      const skillDir = join(pluginDir, 'skills', 'execute-story');
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(join(skillDir, 'worker-prompt.md'), '# Worker Prompt\nTest prompt content');
+
+      // Use a shorter timeout since we just want to see if it starts correctly
+      const result = runCli(['implement', 'test-story', '--path', testDir], {
+        env: { SAGA_PLUGIN_ROOT: pluginDir, SAGA_INTERNAL_SESSION: '1' },
+        timeout: 2000, // Short timeout - we just want to see the initial output
+      });
+
+      // Internal session mode should print "Starting story implementation..." followed by story info
+      // (It will fail/timeout later because claude CLI may not respond, but it should get past the mode selection)
+      // The important thing is we DON'T see the detached mode output (sessionName/outputFile)
+      expect(result.stdout).toContain('Starting story implementation');
+      expect(result.stdout).not.toContain('sessionName');
+      expect(result.stdout).not.toContain('outputFile');
+    });
+
+  });
+
   describe('dry-run mode', () => {
     // Helper to create a mock plugin structure
     function createMockPlugin(dir: string) {

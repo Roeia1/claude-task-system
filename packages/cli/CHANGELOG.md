@@ -5,6 +5,76 @@ All notable changes to the `@saga-ai/cli` package will be documented in this fil
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-01-29
+
+### Changed
+- **dashboard**: Single-server architecture - Express now serves both API and React client
+  - Static file serving with SPA fallback for client-side routing
+  - Vite build output moved to `dist/client` for npm packaging
+- **build**: `publish:npm` script now uses `build:all` to include React client in package
+
+### Added
+- **testing**: Playwright integration test infrastructure for dashboard
+  - API mocking utilities and mock data factories
+  - Loading state tests for dashboard pages
+- **testing**: Storybook interaction tests with Vitest addon
+
+## [0.7.2] - 2026-01-28
+
+### Changed
+- **implement**: Remove `--stream` option - streaming is now always used in attached mode
+- **implement**: Replace `--attached` CLI flag with `SAGA_INTERNAL_SESSION` environment variable (internal change)
+
+### Removed
+- Unused `spawnWorker` and `parseWorkerOutput` functions (internal cleanup)
+
+## [0.7.1] - 2026-01-28
+
+### Fixed
+- **implement**: Extract structured output from StructuredOutput tool call as fallback when Claude Code returns `error_during_execution` subtype with missing `structured_output` field
+
+## [0.7.0] - 2026-01-28
+
+### Added
+- **find**: New `--status` option to filter stories by status (ready, completed, blocked, etc.)
+- **sessions**: New `saga sessions` command group for tmux session management
+  - `saga sessions list` - List all SAGA sessions (JSON array)
+  - `saga sessions status <name>` - Check if session is running
+  - `saga sessions logs <name>` - Stream session output via tail
+  - `saga sessions kill <name>` - Terminate a session
+- **implement**: Detached execution mode using tmux sessions
+  - New `--attached` flag (default: false) - runs detached in tmux by default
+  - Detached mode creates background tmux session with output capture
+  - Returns session info JSON for monitoring
+- **dashboard**: Storybook 10.x setup for component development
+  - Stories for Layout, Breadcrumb, StatusBadge components
+  - Stories for EpicList, EpicDetail, StoryDetail pages
+  - Theme integration with dark mode decorator
+
+### Changed
+- **implement**: Default behavior now runs detached; use `--attached` for synchronous mode
+- **sessions**: Session naming now uses timestamp instead of PID for uniqueness
+
+### Fixed
+- **sessions**: Fixed macOS `script` command syntax for output capture
+
+## [0.6.0] - 2026-01-28
+
+### Added
+- **dashboard**: Backend HTTP server API with Express.js
+  - REST endpoints for epics, stories, and execution status
+  - WebSocket support for real-time updates
+  - File watcher for live status changes
+- **dashboard**: React dashboard UI with Tailwind CSS
+  - Epic and story overview pages
+  - Real-time execution monitoring
+  - Responsive design with Radix UI components
+- **build**: Separate client build (`pnpm build:client`) for dashboard assets
+
+### Changed
+- **package**: Flattened package structure for cleaner imports
+- **dependencies**: Added React, Vite, and UI component libraries
+
 ## [0.5.0] - 2026-01-27
 
 ### Added
