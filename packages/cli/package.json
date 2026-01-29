@@ -20,7 +20,7 @@
     "test:integration:ui": "playwright test --config src/client/playwright.config.ts --ui",
     "test-storybook": "vitest --project=storybook",
     "test:storybook": "vitest run --project=storybook",
-    "publish:npm": "pnpm build && pnpm test && pnpm publish --access public",
+    "publish:npm": "pnpm build:all && pnpm test && pnpm publish --access public",
     "storybook": "storybook dev -p 6006 -c src/client/.storybook",
     "build-storybook": "storybook build -c src/client/.storybook -o storybook-static"
   },
