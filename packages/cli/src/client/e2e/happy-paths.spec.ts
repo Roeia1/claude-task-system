@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { writeFile, readFile } from 'fs/promises';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { readStoryFile, writeStoryFile, resetAllFixtures } from './fixtures-utils';
 
 /**
  * Happy path E2E tests for the SAGA dashboard.
@@ -11,114 +9,13 @@ import { fileURLToPath } from 'url';
  * - Epic detail navigation and display
  * - Story detail navigation and display (with tasks, journal entries)
  * - Real-time updates via WebSocket when files change
+ *
+ * Fixtures are reset before each test to ensure a clean state.
  */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Path to fixtures directory
-const FIXTURES_PATH = join(__dirname, 'fixtures');
-
-// Original fixture content for auth-implementation story
-const ORIGINAL_AUTH_STORY = `---
-id: auth-implementation
-title: User Authentication Implementation
-status: in_progress
-epic: feature-development
-tasks:
-  - id: t1
-    title: Set up JWT token generation
-    status: completed
-  - id: t2
-    title: Implement login endpoint
-    status: in_progress
-  - id: t3
-    title: Add password hashing
-    status: pending
-  - id: t4
-    title: Create session management
-    status: pending
----
-
-## Context
-
-This story implements the core authentication system for the application. It includes JWT token generation, login/logout functionality, and secure password handling.
-
-## Scope Boundaries
-
-**In scope:**
-- JWT token generation and validation
-- Login and logout API endpoints
-- Password hashing with bcrypt
-- Session management
-
-**Out of scope:**
-- OAuth integration
-- Two-factor authentication
-- Password reset flow
-
-## Interface
-
-### Inputs
-
-- User credentials (email, password)
-- Configuration for JWT secret and expiration
-
-### Outputs
-
-- JWT access tokens
-- Refresh token mechanism
-- Authentication middleware
-
-## Acceptance Criteria
-
-- [ ] Users can log in with valid credentials
-- [x] JWT tokens are generated securely
-- [ ] Passwords are hashed before storage
-- [ ] Sessions can be invalidated
-
-## Tasks
-
-### t1: Set up JWT token generation
-
-**Guidance:**
-- Use jsonwebtoken library
-- Configure secure defaults
-
-**Done when:**
-- Tokens can be generated and verified
-
-### t2: Implement login endpoint
-
-**Guidance:**
-- Validate credentials against database
-- Return tokens on success
-
-**Done when:**
-- POST /api/auth/login works correctly
-
-### t3: Add password hashing
-
-**Guidance:**
-- Use bcrypt with salt rounds >= 10
-
-**Done when:**
-- Passwords are never stored in plain text
-
-### t4: Create session management
-
-**Guidance:**
-- Track active sessions
-- Support logout functionality
-
-**Done when:**
-- Sessions can be created and invalidated
-`;
-
-// Reset fixtures before each test to ensure clean state
+// Reset all fixtures before each test to ensure clean state
 test.beforeEach(async () => {
-  const storyPath = join(FIXTURES_PATH, '.saga/epics/feature-development/stories/auth-implementation/story.md');
-  await writeFile(storyPath, ORIGINAL_AUTH_STORY);
+  await resetAllFixtures();
   // Small delay to let file watcher process the reset
   await new Promise(resolve => setTimeout(resolve, 200));
 });
@@ -383,13 +280,12 @@ test.describe('WebSocket Real-time Updates', () => {
     await expect(featureDevCard).toContainText('Completed: 1');
 
     // Modify the auth-implementation story to be completed
-    const storyPath = join(FIXTURES_PATH, '.saga/epics/feature-development/stories/auth-implementation/story.md');
-    const originalContent = await readFile(storyPath, 'utf-8');
+    const originalContent = await readStoryFile('feature-development', 'auth-implementation');
 
     try {
       // Update story status to completed
       const updatedContent = originalContent.replace('status: in_progress', 'status: completed');
-      await writeFile(storyPath, updatedContent);
+      await writeStoryFile('feature-development', 'auth-implementation', updatedContent);
 
       // Small delay to ensure file is written before watcher picks it up
       await page.waitForTimeout(100);
@@ -400,7 +296,7 @@ test.describe('WebSocket Real-time Updates', () => {
       await expect(featureDevCard).toContainText('Completed: 2', { timeout: 15000 });
     } finally {
       // Restore original file
-      await writeFile(storyPath, originalContent);
+      await writeStoryFile('feature-development', 'auth-implementation', originalContent);
       // Give watcher time to process restoration before test ends
       await page.waitForTimeout(100);
     }
@@ -420,8 +316,7 @@ test.describe('WebSocket Real-time Updates', () => {
     await expect(page.getByText('1/4 tasks completed')).toBeVisible();
 
     // Modify the story to have 2 tasks completed
-    const storyPath = join(FIXTURES_PATH, '.saga/epics/feature-development/stories/auth-implementation/story.md');
-    const originalContent = await readFile(storyPath, 'utf-8');
+    const originalContent = await readStoryFile('feature-development', 'auth-implementation');
 
     try {
       // Change t2 (login endpoint) from in_progress to completed
@@ -429,7 +324,7 @@ test.describe('WebSocket Real-time Updates', () => {
         '- id: t2\n    title: Implement login endpoint\n    status: in_progress',
         '- id: t2\n    title: Implement login endpoint\n    status: completed'
       );
-      await writeFile(storyPath, updatedContent);
+      await writeStoryFile('feature-development', 'auth-implementation', updatedContent);
 
       // Small delay to ensure file is written before watcher picks it up
       await page.waitForTimeout(100);
@@ -438,7 +333,7 @@ test.describe('WebSocket Real-time Updates', () => {
       await expect(page.getByText('2/4 tasks completed')).toBeVisible({ timeout: 15000 });
     } finally {
       // Restore original file
-      await writeFile(storyPath, originalContent);
+      await writeStoryFile('feature-development', 'auth-implementation', originalContent);
       // Give watcher time to process restoration before test ends
       await page.waitForTimeout(100);
     }

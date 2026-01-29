@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { mkdir, rm } from 'fs/promises';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { deleteAllEpics, deleteEpic, createEpic, createStory, resetAllFixtures } from './fixtures-utils';
 
 /**
  * Error path E2E tests for the SAGA dashboard.
@@ -14,13 +12,16 @@ import { fileURLToPath } from 'url';
  * Note: Direct URL navigation to SPA routes (e.g., /epic/slug) fails because
  * the backend doesn't serve index.html for non-root routes. Tests use API
  * interception or UI navigation to work around this known limitation.
+ *
+ * Fixtures are reset before each test to ensure a clean state.
  */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Path to fixtures directory
-const FIXTURES_PATH = join(__dirname, 'fixtures');
+// Reset all fixtures before each test to ensure clean state
+test.beforeEach(async () => {
+  await resetAllFixtures();
+  // Small delay to let file watcher process the reset
+  await new Promise(resolve => setTimeout(resolve, 200));
+});
 
 test.describe('404 Error Handling', () => {
   test('displays error message for non-existent epic via API 404', async ({ page }) => {
@@ -147,29 +148,19 @@ test.describe('404 Error Handling', () => {
 });
 
 test.describe('Empty State Handling', () => {
-  // Create a temporary empty fixtures directory for these tests
-  const EMPTY_FIXTURES_PATH = join(__dirname, 'fixtures-empty');
+  test('displays no epics message when saga directory is empty', async ({ page }) => {
+    // Delete all epics from the temp fixtures directory
+    await deleteAllEpics();
 
-  test.beforeAll(async () => {
-    // Create empty fixtures directory structure (just .saga with no epics)
-    await mkdir(join(EMPTY_FIXTURES_PATH, '.saga', 'epics'), { recursive: true });
-  });
+    // Small delay to let file watcher process the changes
+    await new Promise(resolve => setTimeout(resolve, 200));
 
-  test.afterAll(async () => {
-    // Clean up empty fixtures directory
-    await rm(EMPTY_FIXTURES_PATH, { recursive: true, force: true });
-  });
-
-  // Skip this test by default since it requires a separate server configuration
-  // The test is documented for when running with --project=empty-fixtures
-  test.skip('displays no epics message when saga directory is empty', async ({ page }) => {
-    // This test would require starting a separate server instance with EMPTY_FIXTURES_PATH
-    // For now, we document the expected behavior
-
-    // Expected: Navigate to /
-    // Expected: See "No epics found." message
-    // Expected: See "/create-epic" suggestion
     await page.goto('/');
+
+    // Wait for loading to complete
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Should show empty state
     await expect(page.getByText('No epics found.')).toBeVisible();
     await expect(page.getByText('/create-epic')).toBeVisible();
   });
@@ -186,6 +177,25 @@ test.describe('Empty State Handling', () => {
     // Verify empty state message
     await expect(page.getByText('No stories in this epic.')).toBeVisible();
     await expect(page.getByText('/generate-stories')).toBeVisible();
+  });
+
+  test('epic with deleted stories shows empty state', async ({ page }) => {
+    // Delete all stories from feature-development by recreating it as empty
+    await deleteEpic('feature-development');
+    await createEpic('feature-development', 'Feature Development');
+
+    // Small delay for file watcher
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Navigate to feature-development
+    await page.locator('a[href="/epic/feature-development"]').click();
+    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Should show empty state
+    await expect(page.getByText('No stories in this epic.')).toBeVisible();
   });
 });
 
@@ -309,5 +319,72 @@ test.describe('WebSocket Disconnection', () => {
     // Verify stories are displayed
     await expect(page.getByText('Ready')).toBeVisible();
     await expect(page.getByText('Blocked')).toBeVisible();
+  });
+});
+
+test.describe('Dynamic Content Changes', () => {
+  // These tests verify the dashboard reflects file system changes correctly
+  // (after page refresh, since WebSocket auto-connect is not implemented)
+
+  test('newly created epic appears after refresh', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Verify the new epic doesn't exist yet
+    await expect(page.locator('a[href="/epic/dynamic-epic"]')).toHaveCount(0);
+
+    // Create a new epic
+    await createEpic('dynamic-epic', 'Dynamic Epic');
+
+    // Small delay for file watcher
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Refresh the page
+    await page.reload();
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // New epic card should appear with title
+    const epicCard = page.locator('a[href="/epic/dynamic-epic"]');
+    await expect(epicCard).toBeVisible();
+    await expect(epicCard).toContainText('Dynamic Epic');
+  });
+
+  test('newly created story appears after refresh', async ({ page }) => {
+    // Create a new story in an existing epic
+    await createStory('feature-development', 'new-story', 'New Dynamic Story', 'ready');
+
+    // Small delay for file watcher
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Navigate to the epic
+    await page.locator('a[href="/epic/feature-development"]').click();
+    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // New story should appear
+    await expect(page.getByText('New Dynamic Story')).toBeVisible();
+  });
+
+  test('deleted epic disappears after refresh', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Verify empty-epic exists
+    await expect(page.locator('a[href="/epic/empty-epic"]')).toBeVisible();
+
+    // Delete the epic
+    await deleteEpic('empty-epic');
+
+    // Small delay for file watcher
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Refresh the page
+    await page.reload();
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Epic should no longer appear
+    await expect(page.locator('a[href="/epic/empty-epic"]')).toHaveCount(0);
   });
 });

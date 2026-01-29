@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { tmpdir } from 'os';
+import { cpSync, rmSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -11,21 +13,40 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * these tests start the full Express backend server with test fixtures
  * to validate complete user flows.
  *
+ * Fixtures are copied to a temp directory before each test run so tests
+ * can freely modify them without affecting the source fixtures.
+ *
  * @see https://playwright.dev/docs/test-configuration
  */
 
-// Path to the fixtures directory containing sample .saga/ structure
-const fixturesPath = join(__dirname, 'e2e', 'fixtures');
+// Source fixtures (checked into git)
+const sourceFixtures = join(__dirname, 'e2e', 'fixtures');
+
+// Temp directory for fixtures - must match fixtures-utils.ts
+const fixturesPath = join(tmpdir(), 'saga-e2e-fixtures');
+
+// Copy fixtures only in the main Playwright process (not in workers)
+// Workers have TEST_WORKER_INDEX set, main process does not
+if (!process.env.TEST_WORKER_INDEX) {
+  // Always delete first (force: true means no error if doesn't exist)
+  rmSync(fixturesPath, { recursive: true, force: true });
+  cpSync(sourceFixtures, fixturesPath, { recursive: true });
+  console.log(`E2E fixtures copied to: ${fixturesPath}`);
+}
 
 // Port for the E2E test server (different from default 3847 to avoid conflicts)
 const E2E_PORT = 3849;
 
 export default defineConfig({
+  // Global teardown cleans up temp fixtures
+  globalTeardown: './e2e/global-teardown.ts',
+
   // Test directory relative to this config file
   testDir: './e2e',
 
-  // Run tests in parallel
-  fullyParallel: true,
+  // Run tests serially since they share filesystem state
+  // Tests that modify fixtures would interfere with each other if run in parallel
+  fullyParallel: false,
 
   // Fail the build on CI if you accidentally left test.only in the source code
   forbidOnly: !!process.env.CI,
@@ -33,8 +54,8 @@ export default defineConfig({
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
 
-  // Limit parallel workers on CI for stability
-  workers: process.env.CI ? 1 : undefined,
+  // Use single worker since tests share filesystem state
+  workers: 1,
 
   // Reporter configuration
   reporter: process.env.CI
@@ -66,7 +87,7 @@ export default defineConfig({
 
   // Web server configuration - starts the full dashboard server with fixtures
   webServer: {
-    // Start the dashboard with fixtures directory as the saga root
+    // Start the dashboard with temp fixtures directory as the saga root
     // Uses the built CLI (dist/cli.cjs) instead of tsx for reliability
     command: `node dist/cli.cjs dashboard --path "${fixturesPath}" --port ${E2E_PORT}`,
     cwd: join(__dirname, '..', '..'),
