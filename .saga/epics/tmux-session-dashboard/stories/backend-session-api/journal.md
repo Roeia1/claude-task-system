@@ -108,3 +108,36 @@
 **Next steps:**
 - Task t5: Implement sessions:updated WebSocket broadcast
 - Wire up session routes to the dashboard server (may be part of t5)
+
+## Session: 2026-01-29T04:05:00Z
+
+### Task: t5 - Implement sessions:updated WebSocket broadcast
+
+**What was done:**
+- Modified `src/server/websocket.ts` to:
+  - Import `startSessionPolling`, `stopSessionPolling`, and `SessionsUpdatedMessage` from `../lib/session-polling.js`
+  - Call `startSessionPolling()` after the WebSocket server is set up, passing a broadcast function that sends `{ event: 'sessions:updated', data: sessions }` to all connected clients
+  - Call `stopSessionPolling()` in the `close()` method to clean up when the server shuts down
+- Modified `src/server/routes.ts` to:
+  - Import `createSessionApiRouter` from `./session-routes.js`
+  - Mount the session routes on the main API router with `router.use(createSessionApiRouter())`
+- The `sessions:updated` WebSocket broadcast now works end-to-end:
+  - Session polling starts automatically when the WebSocket server starts
+  - Changes are detected and broadcast to all connected WebSocket clients
+  - Polling stops cleanly when the server shuts down
+
+**Decisions:**
+- Mounted session routes in `routes.ts` before the catch-all 404 handler
+- Used the existing `broadcast()` helper function in websocket.ts for sending to all clients
+- Session polling is integrated directly into the WebSocket server lifecycle (starts on creation, stops on close)
+
+**Tests verified:**
+- All 17 websocket tests pass (including 2 new `sessions:updated broadcast` tests)
+- All 16 session-routes tests pass
+- All 18 session-polling tests pass
+- All 21 routes tests pass
+- Total: 485 tests passing (1 pre-existing timeout failure unrelated to this work)
+
+**What remains:**
+- All tasks (t1-t5) are now complete
+- Story is ready for completion
