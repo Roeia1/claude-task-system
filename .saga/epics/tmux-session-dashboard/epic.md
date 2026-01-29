@@ -13,7 +13,7 @@ Display tmux session information in the SAGA dashboard, providing visibility int
 
 ## Success Metrics
 
-- Running sessions appear on the home page within 2 seconds of creation
+- Running sessions appear on the home page within 5 seconds of creation
 - Log viewer updates within 500ms of new output being written
 - Session status reflects actual tmux state accurately
 - Users can navigate from home page session card to story detail in 1 click
@@ -23,19 +23,20 @@ Display tmux session information in the SAGA dashboard, providing visibility int
 ### In Scope
 
 **Home Page (Epic List)**:
-- New "Running Sessions" section at the top of the page
-- Session cards showing: epic name, story name, status indicator, runtime duration
-- Preview of last few lines of output
-- Click to navigate to story detail page (sessions tab/section)
+- New "Active Sessions" section at the top of the page (running sessions only)
+- Session cards showing: epic name, story name, runtime duration
+- Preview of last 5 lines of output (max 500 chars)
+- Click to navigate to story detail page (Sessions tab)
 
 **Story Detail Page**:
-- New Sessions tab/section alongside Tasks, Content, and Journal
-- List of sessions associated with the story (matched by slug pattern)
-- Session metadata: name, status (running/completed), start time, output file path
+- Add Sessions tab to existing tab bar (after Journal tab)
+- List of all sessions for the story (running and completed), ordered by startTime descending
+- Auto-expand most recent running session; if none running, expand most recent completed
+- Session metadata: name, status (running/completed), start time, duration, output file path
 - Embedded log viewer with:
   - Real-time streaming for running sessions
   - Full log display with virtual scrolling
-  - Monospace font, dark terminal-style background
+  - Monospace font using existing SAGA theme colors (`bg-dark` background, `text`/`text-muted` for content)
   - Auto-scroll toggle (on by default for running sessions)
 
 **Backend API**:
@@ -59,7 +60,7 @@ Display tmux session information in the SAGA dashboard, providing visibility int
 ## Non-Functional Requirements
 
 - **Performance**: Log streaming should not block UI; use virtual scrolling for large logs
-- **Reliability**: Gracefully handle missing output files or terminated sessions
+- **Reliability**: Handle missing output files gracefully - show session card with "Output unavailable" message and dimmed styling; disable log viewer for that session
 - **Responsiveness**: Home page section should load without blocking epic list
 - **Resource Efficiency**: Only stream logs when viewer is visible; disconnect on navigation
 
@@ -74,31 +75,38 @@ Display tmux session information in the SAGA dashboard, providing visibility int
 
 2. **Log Streaming** (via WebSocket):
    - New message type: `{ type: 'subscribe:logs', sessionName }`
-   - Server uses `tail -f` equivalent to stream output file
-   - Sends: `{ type: 'logs:data', sessionName, data }` for new content
+   - Server uses `chokidar` to watch output file for changes and stream new content
+   - On subscribe: send `logs:data` with `isInitial: true` containing full file content
+   - On file change: send `logs:data` with `isInitial: false` containing only new content
    - Sends: `{ type: 'logs:end', sessionName }` when session completes
    - Clean disconnect on `{ type: 'unsubscribe:logs', sessionName }`
+   - **Watcher cleanup**: Stop watching a file when (a) all clients unsubscribe, or (b) session completes (after sending final content). Maintain reference count per watched file.
+   - **Completion coordination**: Polling loop notifies active log watchers when a session completes, triggering `logs:end` and cleanup
 
-3. **Session Discovery**:
-   - Reuse `listSessions()` from `src/lib/sessions.ts`
+3. **Session Discovery & Status Polling**:
+   - Poll `listSessions()` from `src/lib/sessions.ts` every 3 seconds
+   - Compare with previous state to detect new sessions and status changes (running → completed)
    - Parse session names to extract epic/story slugs
    - Correlate with story data for display
+   - Emit `sessions:updated` WebSocket message on any change
 
 ### Frontend Architecture
 
-1. **Home Page Sessions Section** (`components/RunningSessions.tsx`):
-   - Fetch running sessions on mount and via WebSocket updates
-   - Display as horizontal scrollable cards or grid
-   - Each card shows: story title, epic title, status badge, duration, output preview
+1. **Home Page Active Sessions** (`components/ActiveSessions.tsx`):
+   - Fetch running sessions on mount and via WebSocket `sessions:updated` events
+   - Display as horizontal scrollable cards or grid (running sessions only)
+   - Each card shows: story title, epic title, duration, output preview (last 5 lines)
    - Click navigates to `/epic/:epicSlug/story/:storySlug?tab=sessions`
 
 2. **Story Detail Sessions Tab** (`components/SessionsPanel.tsx`):
-   - Fetch sessions filtered by epic/story slugs
-   - List sessions with status badges (green=running, gray=completed)
-   - Expandable log viewer per session
+   - Fetch sessions filtered by epic/story slugs (running and completed)
+   - List sessions ordered by startTime descending, with status badges (green=running, gray=completed)
+   - Auto-expand most recent running session; if none running, expand most recent completed
+   - Expandable log viewer per session (disabled with "Output unavailable" if file missing)
 
 3. **Log Viewer Component** (`components/LogViewer.tsx`):
    - Terminal-style display with monospace font
+   - Uses existing SAGA theme: `bg-dark` background, `text` for output, `text-muted` for timestamps/metadata
    - Virtual scrolling for performance with large logs
    - Auto-scroll toggle button
    - Loading skeleton while connecting
@@ -111,9 +119,9 @@ Display tmux session information in the SAGA dashboard, providing visibility int
 
 ### Session-Story Correlation
 
-Sessions are named `saga-<epic-slug>-<story-slug>-<pane-pid>`. To find sessions for a story:
+Sessions are named `saga__<epic-slug>__<story-slug>__<pane-pid>` (double-underscore delimiters). This allows slugs to contain single hyphens while remaining parseable. To find sessions for a story:
 1. List all sessions via `listSessions()`
-2. Parse session name to extract epic and story slugs
+2. Split session name by `__` to extract epic and story slugs
 3. Match against the story being viewed
 
 ## Key Decisions
@@ -144,9 +152,15 @@ Sessions are named `saga-<epic-slug>-<story-slug>-<pane-pid>`. To find sessions 
 
 ### Home Page Session Cards with Preview
 
-- **Choice**: Show story/epic name, status, duration, and last few lines of output
+- **Choice**: Show story/epic name, duration, and last 5 lines of output (max 500 chars)
 - **Rationale**: Provides enough context to understand what's happening without navigating away
 - **Alternatives Considered**: Minimal cards (not enough context), full logs (too heavy for home page)
+
+### Session Naming with Double-Underscore Delimiter
+
+- **Choice**: Use `saga__<epic-slug>__<story-slug>__<pane-pid>` format with `__` delimiters
+- **Rationale**: Allows slugs to contain single hyphens (common in URLs) while remaining unambiguously parseable
+- **Alternatives Considered**: Single hyphen delimiter (ambiguous parsing), URL encoding (harder to read in tmux list), JSON metadata file (adds complexity)
 
 ## Data Models
 
@@ -154,13 +168,15 @@ Sessions are named `saga-<epic-slug>-<story-slug>-<pane-pid>`. To find sessions 
 
 ```typescript
 interface SessionInfo {
-  name: string;                    // saga-epic-slug-story-slug-12345
-  epicSlug: string;                // Parsed from name
-  storySlug: string;               // Parsed from name
+  name: string;                    // saga__epic-slug__story-slug__12345
+  epicSlug: string;                // Parsed from name (split by __)
+  storySlug: string;               // Parsed from name (split by __)
   status: 'running' | 'completed'; // From tmux has-session
   outputFile: string;              // /tmp/saga-sessions/<name>.out
-  startTime?: Date;                // Parsed from output file mtime or first line
-  outputPreview?: string;          // Last N lines for cards
+  outputAvailable: boolean;        // False if output file missing/deleted
+  startTime: Date;                 // From output file birthtime (fs.stat)
+  endTime?: Date;                  // From output file mtime when session completed
+  outputPreview?: string;          // Last 5 lines, max 500 chars (for home page cards)
 }
 ```
 
@@ -182,7 +198,8 @@ interface UnsubscribeLogsMessage {
 interface LogsDataMessage {
   type: 'logs:data';
   sessionName: string;
-  data: string;        // New log content
+  data: string;        // Log content
+  isInitial: boolean;  // True for first message (full file content), false for incremental
   isComplete: boolean; // True if session ended
 }
 
@@ -228,8 +245,8 @@ interface DashboardContext {
 
 - **Direction**: Client -> Server
 - **Message**: `{ type: 'subscribe:logs', sessionName: string }`
-- **Effect**: Server starts streaming log content for the session
-- **Response**: Immediate `logs:data` with current content, then incremental updates
+- **Effect**: Server starts watching output file with chokidar
+- **Response**: Immediate `logs:data` with `isInitial: true` containing full file content, then incremental updates with `isInitial: false`
 
 #### Unsubscribe from Logs
 
@@ -240,8 +257,8 @@ interface DashboardContext {
 #### Log Data
 
 - **Direction**: Server -> Client
-- **Message**: `{ type: 'logs:data', sessionName: string, data: string, isComplete: boolean }`
-- **Trigger**: New content written to output file or session completion
+- **Message**: `{ type: 'logs:data', sessionName: string, data: string, isInitial: boolean, isComplete: boolean }`
+- **Trigger**: On subscribe (`isInitial: true` with full content), or new content written to output file (`isInitial: false` with incremental content)
 
 #### Sessions Updated
 
@@ -252,7 +269,7 @@ interface DashboardContext {
 ## Tech Stack
 
 - **Backend**: Express.js (existing), ws (existing WebSocket)
-- **Log Tailing**: Node.js `fs.watch` or `chokidar` on output files
+- **Log Tailing**: `chokidar` for watching output file content changes (streaming new lines to subscribers)
 - **Frontend**: React (existing), XState (existing state machine)
 - **Virtual Scrolling**: `@tanstack/react-virtual` for performant log display
 - **UI Components**: shadcn/ui (existing), Lucide icons (Terminal, Play, Square)

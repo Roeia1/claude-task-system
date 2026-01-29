@@ -12,8 +12,8 @@ Guidance for Claude Code when working with this repository.
 saga/
 ├── plugin/                  # Plugin source (skills, agents, hooks)
 ├── packages/cli/            # @saga-ai/cli npm package
-├── .claude/skills/          # Dev skills for this repo (publish-plugin, publish-cli, pr-review)
-└── CHANGELOG.md             # Plugin version history
+├── .claude/skills/          # Dev skills for this repo (publish, pr-review, task-pattern)
+└── CHANGELOG.md             # Version history (plugin + CLI combined)
 ```
 
 ## Key Documentation
