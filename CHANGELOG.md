@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - 2026-01-30
+
+### Added
+
+- **dashboard**: Epic.md content display with collapsible markdown rendering using react-markdown and remark-gfm
+- **dashboard**: Visual snapshot testing infrastructure with Storybook-based DOM snapshots
+- **dashboard**: Backend session API with REST endpoints (GET /api/sessions, GET /api/sessions/:sessionName)
+- **dashboard**: WebSocket broadcasts for real-time session updates (sessions:updated event)
+- **dashboard**: Session polling service with change detection for new, completed, and removed sessions
+
 ## [2.12.1] - 2026-01-29
 
 ### Fixed
