@@ -16,7 +16,7 @@ import { ChevronDown, ChevronRight, CheckCircle, Circle, AlertCircle } from 'luc
 /** Skeleton loading component for the story header */
 export function HeaderSkeleton() {
   return (
-    <div className="animate-pulse space-y-4">
+    <div className="animate-pulse space-y-4" data-testid="story-header-skeleton">
       <div className="h-8 w-64 bg-bg-light rounded" />
       <div className="flex items-center gap-4">
         <div className="h-6 w-24 bg-bg-light rounded-full" />
@@ -29,7 +29,7 @@ export function HeaderSkeleton() {
 /** Skeleton loading component for content sections */
 export function ContentSkeleton() {
   return (
-    <div className="animate-pulse space-y-4">
+    <div className="animate-pulse space-y-4" data-testid="story-content-skeleton">
       <div className="h-6 w-48 bg-bg-light rounded" />
       <div className="space-y-2">
         <div className="h-4 w-full bg-bg-light rounded" />

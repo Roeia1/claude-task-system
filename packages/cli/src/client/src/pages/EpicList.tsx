@@ -10,7 +10,7 @@ import type { EpicSummary, StoryStatus } from '@/types/dashboard';
 /** Skeleton loading component for epic cards */
 export function EpicCardSkeleton() {
   return (
-    <Card className="animate-pulse">
+    <Card className="animate-pulse" data-testid="epic-card-skeleton">
       <CardHeader>
         <div className="h-6 w-48 bg-bg-light rounded" />
       </CardHeader>

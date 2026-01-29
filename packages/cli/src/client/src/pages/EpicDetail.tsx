@@ -18,7 +18,7 @@ const statusPriority: Record<StoryStatus, number> = {
 /** Skeleton loading component for the epic header */
 export function HeaderSkeleton() {
   return (
-    <div className="animate-pulse space-y-4">
+    <div className="animate-pulse space-y-4" data-testid="epic-header-skeleton">
       <div className="h-8 w-64 bg-bg-light rounded" />
       <div className="space-y-2">
         <div className="flex justify-between">
@@ -34,7 +34,7 @@ export function HeaderSkeleton() {
 /** Skeleton loading component for story cards */
 export function StoryCardSkeleton() {
   return (
-    <Card className="animate-pulse">
+    <Card className="animate-pulse" data-testid="story-card-skeleton">
       <CardHeader>
         <div className="h-5 w-48 bg-bg-light rounded" />
       </CardHeader>
