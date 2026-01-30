@@ -7,6 +7,7 @@ import {
   type DashboardEvent,
   type StorySubscription,
 } from './dashboardMachine';
+import type { EpicSummary, Epic, StoryDetail, SessionInfo } from '@/types/dashboard';
 
 /**
  * Model-based tests for dashboardMachine.
@@ -89,38 +90,47 @@ function createTestableMachine(wsActorOptions: Parameters<typeof createMockWebso
   });
 }
 
-// Sample test data
-const sampleEpics = [
-  { slug: 'epic-1', title: 'Epic One', description: 'First epic', status: 'in-progress' as const },
-  { slug: 'epic-2', title: 'Epic Two', description: 'Second epic', status: 'done' as const },
-];
-
-const sampleEpic = {
-  slug: 'epic-1',
-  title: 'Epic One',
-  description: 'First epic',
-  status: 'in-progress' as const,
-  stories: [],
+// Sample test data using proper types
+const sampleStoryCounts = {
+  ready: 1,
+  inProgress: 2,
+  blocked: 0,
+  completed: 3,
+  total: 6,
 };
 
-const sampleStory = {
+const sampleEpics: EpicSummary[] = [
+  { slug: 'epic-1', title: 'Epic One', storyCounts: sampleStoryCounts },
+  { slug: 'epic-2', title: 'Epic Two', storyCounts: { ...sampleStoryCounts, total: 4 }, isArchived: true },
+];
+
+const sampleEpic: Epic = {
+  slug: 'epic-1',
+  title: 'Epic One',
+  content: 'Epic description content',
+  stories: [],
+  storyCounts: sampleStoryCounts,
+};
+
+const sampleStory: StoryDetail = {
   slug: 'story-1',
   epicSlug: 'epic-1',
   title: 'Story One',
-  status: 'in-progress' as const,
-  description: 'A test story',
-  context: 'Story context',
-  tasks: [],
+  status: 'in_progress',
+  tasks: [{ id: 'task-1', title: 'Task One', status: 'pending' }],
+  journal: [{ type: 'session', title: 'Started work', content: 'Initial session' }],
+  content: 'Story content',
 };
 
-const sampleSessions = [
+const sampleSessions: SessionInfo[] = [
   {
-    sessionId: 'session-1',
+    name: 'saga__epic-1__story-1__1234',
     epicSlug: 'epic-1',
     storySlug: 'story-1',
-    status: 'running' as const,
-    startedAt: new Date().toISOString(),
-    pid: 1234,
+    status: 'running',
+    outputFile: '/tmp/saga/session-1.log',
+    outputAvailable: true,
+    startTime: new Date().toISOString(),
   },
 ];
 
