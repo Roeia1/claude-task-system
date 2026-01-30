@@ -198,4 +198,132 @@ describe('LogStreamManager', () => {
       expect(broadcastFn.mock.calls[0][0]).toBe(ws);
     });
   });
+
+  describe('unsubscribe', () => {
+    const testSessionName = 'test-unsubscribe-session';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
+    const testContent = 'Unsubscribe test content\n';
+
+    beforeEach(() => {
+      // Ensure output directory exists
+      if (!existsSync(OUTPUT_DIR)) {
+        mkdirSync(OUTPUT_DIR, { recursive: true });
+      }
+    });
+
+    afterEach(() => {
+      // Clean up test file
+      if (existsSync(testOutputFile)) {
+        rmSync(testOutputFile);
+      }
+    });
+
+    it('should have unsubscribe method', () => {
+      expect(typeof manager.unsubscribe).toBe('function');
+    });
+
+    it('should remove client from subscription set when unsubscribing', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws);
+      expect(manager.getSubscriptionCount(testSessionName)).toBe(1);
+
+      manager.unsubscribe(testSessionName, ws);
+      expect(manager.getSubscriptionCount(testSessionName)).toBe(0);
+    });
+
+    it('should not error when unsubscribing from a session not subscribed to', () => {
+      const ws = createMockWebSocket();
+      // Should not throw
+      expect(() => manager.unsubscribe('unknown-session', ws)).not.toThrow();
+    });
+
+    it('should only remove the specific client when multiple clients are subscribed', async () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws1);
+      await manager.subscribe(testSessionName, ws2);
+      expect(manager.getSubscriptionCount(testSessionName)).toBe(2);
+
+      manager.unsubscribe(testSessionName, ws1);
+      expect(manager.getSubscriptionCount(testSessionName)).toBe(1);
+    });
+
+    it('should not error when unsubscribing a client that was never subscribed', async () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws1);
+      // ws2 was never subscribed to this session
+      expect(() => manager.unsubscribe(testSessionName, ws2)).not.toThrow();
+      expect(manager.getSubscriptionCount(testSessionName)).toBe(1);
+    });
+  });
+
+  describe('handleClientDisconnect', () => {
+    const testSession1 = 'test-disconnect-session-1';
+    const testSession2 = 'test-disconnect-session-2';
+    const testOutputFile1 = join(OUTPUT_DIR, `${testSession1}.out`);
+    const testOutputFile2 = join(OUTPUT_DIR, `${testSession2}.out`);
+    const testContent = 'Disconnect test content\n';
+
+    beforeEach(() => {
+      // Ensure output directory exists
+      if (!existsSync(OUTPUT_DIR)) {
+        mkdirSync(OUTPUT_DIR, { recursive: true });
+      }
+    });
+
+    afterEach(() => {
+      // Clean up test files
+      if (existsSync(testOutputFile1)) {
+        rmSync(testOutputFile1);
+      }
+      if (existsSync(testOutputFile2)) {
+        rmSync(testOutputFile2);
+      }
+    });
+
+    it('should have handleClientDisconnect method', () => {
+      expect(typeof manager.handleClientDisconnect).toBe('function');
+    });
+
+    it('should remove client from all sessions when client disconnects', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile1, testContent);
+      writeFileSync(testOutputFile2, testContent);
+
+      // Subscribe client to two sessions
+      await manager.subscribe(testSession1, ws);
+      await manager.subscribe(testSession2, ws);
+      expect(manager.getSubscriptionCount(testSession1)).toBe(1);
+      expect(manager.getSubscriptionCount(testSession2)).toBe(1);
+
+      manager.handleClientDisconnect(ws);
+      expect(manager.getSubscriptionCount(testSession1)).toBe(0);
+      expect(manager.getSubscriptionCount(testSession2)).toBe(0);
+    });
+
+    it('should not affect other clients when one client disconnects', async () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      writeFileSync(testOutputFile1, testContent);
+
+      await manager.subscribe(testSession1, ws1);
+      await manager.subscribe(testSession1, ws2);
+      expect(manager.getSubscriptionCount(testSession1)).toBe(2);
+
+      manager.handleClientDisconnect(ws1);
+      expect(manager.getSubscriptionCount(testSession1)).toBe(1);
+    });
+
+    it('should not error when disconnecting a client with no subscriptions', () => {
+      const ws = createMockWebSocket();
+      expect(() => manager.handleClientDisconnect(ws)).not.toThrow();
+    });
+  });
 });

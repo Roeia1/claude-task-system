@@ -158,6 +158,37 @@ export class LogStreamManager {
   }
 
   /**
+   * Unsubscribe a client from a session's log stream
+   *
+   * Removes the client from the subscription set. Does nothing if
+   * the client was not subscribed to this session.
+   *
+   * @param sessionName - The session to unsubscribe from
+   * @param ws - The WebSocket client to unsubscribe
+   */
+  unsubscribe(sessionName: string, ws: WebSocket): void {
+    const subs = this.subscriptions.get(sessionName);
+    if (subs) {
+      subs.delete(ws);
+    }
+  }
+
+  /**
+   * Handle client disconnect by removing from all subscriptions
+   *
+   * Should be called when a WebSocket connection closes to clean up
+   * any subscriptions the client may have had.
+   *
+   * @param ws - The WebSocket client that disconnected
+   */
+  handleClientDisconnect(ws: WebSocket): void {
+    // Remove client from all session subscriptions
+    for (const [, subs] of this.subscriptions) {
+      subs.delete(ws);
+    }
+  }
+
+  /**
    * Clean up all watchers and subscriptions
    *
    * Call this when shutting down the server.

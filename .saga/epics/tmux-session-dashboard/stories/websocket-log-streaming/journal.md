@@ -59,3 +59,39 @@
 **Next steps:**
 - t3: Implement unsubscribe:logs handler
 - t4: Implement file watcher with chokidar
+
+## Session: 2026-01-30T02:00:00
+
+### Task: t3 - Implement unsubscribe:logs handler
+
+**What was done:**
+- Added `unsubscribe(sessionName: string, ws: WebSocket)` method to LogStreamManager
+- Method removes client from subscription set for the specified session
+- Safe operation: does nothing if client was not subscribed
+- Added `handleClientDisconnect(ws: WebSocket)` method
+- Method removes disconnected client from all session subscriptions
+- Iterates through all subscription sets to ensure complete cleanup
+
+**Tests added:**
+- `should have unsubscribe method`
+- `should remove client from subscription set when unsubscribing`
+- `should not error when unsubscribing from a session not subscribed to`
+- `should only remove the specific client when multiple clients are subscribed`
+- `should not error when unsubscribing a client that was never subscribed`
+- `should have handleClientDisconnect method`
+- `should remove client from all sessions when client disconnects`
+- `should not affect other clients when one client disconnects`
+- `should not error when disconnecting a client with no subscriptions`
+
+**Test results:**
+- 26 tests passing in log-stream-manager.test.ts (9 new tests added)
+- 139 tests passing in src/lib/ (1 unrelated test skipped)
+
+**Notes:**
+- The cleanup/watcher reference counting (t6) is not yet implemented - these methods currently only handle subscription tracking
+- Once t4/t6 are implemented, `unsubscribe` will need to trigger watcher cleanup when subscription count reaches 0
+
+**Next steps:**
+- t4: Implement file watcher with chokidar
+- t5: Implement incremental content delivery
+- t6: Add watcher cleanup with reference counting
