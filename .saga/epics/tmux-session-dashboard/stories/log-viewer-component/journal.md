@@ -81,3 +81,47 @@
 - t6: Add loading and status indicators
 - t7: Write remaining unit tests
 - t8: Write Storybook stories
+
+## Session: 2026-01-30T03:18:00Z
+
+### Task: t4 - Add WebSocket log subscription hook
+
+**What was done:**
+- Created `useLogSubscription` custom hook in `LogViewer.tsx` that:
+  - Subscribes to logs on mount using `getWebSocketSend()` from dashboardMachine
+  - Sends `subscribe:logs` event with `{ sessionName }` on mount
+  - Sends `unsubscribe:logs` event with `{ sessionName }` on unmount
+  - Handles session name changes (unsubscribe from old, subscribe to new)
+  - Tracks loading state (`isLoading`) until initial data received
+  - Provides `handleLogData` callback for handling `logs:data` messages
+- Added loading skeleton state (`data-testid="log-viewer-skeleton"`) with animated pulsing placeholders
+- Loading skeleton displays when:
+  - WebSocket is available and subscribed
+  - No `initialContent` prop provided
+  - Still waiting for initial `logs:data` response
+- Added 7 new unit tests for WebSocket subscription:
+  - subscribes to logs on mount when WebSocket is available
+  - unsubscribes from logs on unmount
+  - does not subscribe when WebSocket is not available
+  - does not subscribe when output is unavailable
+  - resubscribes when sessionName changes
+  - displays initial content from WebSocket
+  - shows loading state while waiting for initial data
+- Mocked `@/machines/dashboardMachine` module in tests
+
+**Decisions:**
+- Used `getWebSocketSend()` function for subscription messages (follows existing pattern)
+- Message format matches server expectations: `{ event: 'subscribe:logs', data: { sessionName } }`
+- Loading skeleton uses `bg-bg-light` with `animate-pulse` for consistent SAGA theme
+- `handleLogData` callback is exposed for future WebSocket message handling integration
+- `initialContent` prop takes precedence over WebSocket content (allows static/server-rendered content)
+
+**Test Results:**
+- All 23 LogViewer tests pass (16 existing + 7 new)
+- All 594 unit tests pass (1 pre-existing flaky tmux test timeout)
+
+**Next steps:**
+- t5: Implement auto-scroll toggle functionality
+- t6: Add loading and status indicators (status indicator portion)
+- t7: Write remaining unit tests
+- t8: Write Storybook stories

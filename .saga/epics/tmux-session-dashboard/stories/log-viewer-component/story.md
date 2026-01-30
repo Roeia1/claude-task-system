@@ -15,7 +15,7 @@ tasks:
     status: completed
   - id: t4
     title: Add WebSocket log subscription hook
-    status: pending
+    status: completed
   - id: t5
     title: Implement auto-scroll toggle functionality
     status: pending

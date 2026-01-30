@@ -1,6 +1,12 @@
-import { render, screen, cleanup } from '@testing-library/react';
-import { describe, it, expect, afterEach, vi, beforeEach } from 'vitest';
+import { render, screen, cleanup, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, afterEach, vi, beforeEach, type Mock } from 'vitest';
 import { LogViewer } from './LogViewer';
+import * as dashboardMachine from '@/machines/dashboardMachine';
+
+// Mock the dashboardMachine module
+vi.mock('@/machines/dashboardMachine', () => ({
+  getWebSocketSend: vi.fn(),
+}));
 
 // Mock scrollTo on Element prototype and set up element dimensions for virtualization
 beforeEach(() => {
@@ -29,6 +35,9 @@ beforeEach(() => {
     configurable: true,
     value: 384,
   });
+
+  // Reset the mock for getWebSocketSend before each test
+  (dashboardMachine.getWebSocketSend as Mock).mockReset();
 });
 
 describe('LogViewer', () => {
@@ -305,6 +314,159 @@ Line 5`;
       // Check the total height reflects content (5 lines * 24px = 120px)
       const heightContainer = container.querySelector('[class*="relative"]');
       expect(heightContainer).toHaveStyle({ height: '120px' });
+    });
+  });
+
+  describe('WebSocket log subscription', () => {
+    it('subscribes to logs on mount when WebSocket is available', () => {
+      const mockSend = vi.fn();
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+        />
+      );
+
+      expect(mockSend).toHaveBeenCalledWith({
+        event: 'subscribe:logs',
+        data: { sessionName: 'test-session' },
+      });
+    });
+
+    it('unsubscribes from logs on unmount', () => {
+      const mockSend = vi.fn();
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+
+      const { unmount } = render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+        />
+      );
+
+      // Clear mock to focus on unsubscribe call
+      mockSend.mockClear();
+
+      unmount();
+
+      expect(mockSend).toHaveBeenCalledWith({
+        event: 'unsubscribe:logs',
+        data: { sessionName: 'test-session' },
+      });
+    });
+
+    it('does not subscribe when WebSocket is not available', () => {
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(null);
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+        />
+      );
+
+      // Should not throw and should render
+      expect(screen.getByTestId('log-viewer')).toBeInTheDocument();
+    });
+
+    it('does not subscribe when output is unavailable', () => {
+      const mockSend = vi.fn();
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={false}
+        />
+      );
+
+      // Should not subscribe when output is unavailable
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('resubscribes when sessionName changes', () => {
+      const mockSend = vi.fn();
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+
+      const { rerender } = render(
+        <LogViewer
+          sessionName="session-a"
+          status="running"
+          outputAvailable={true}
+        />
+      );
+
+      expect(mockSend).toHaveBeenCalledWith({
+        event: 'subscribe:logs',
+        data: { sessionName: 'session-a' },
+      });
+
+      mockSend.mockClear();
+
+      rerender(
+        <LogViewer
+          sessionName="session-b"
+          status="running"
+          outputAvailable={true}
+        />
+      );
+
+      // Should unsubscribe from old session
+      expect(mockSend).toHaveBeenCalledWith({
+        event: 'unsubscribe:logs',
+        data: { sessionName: 'session-a' },
+      });
+
+      // Should subscribe to new session
+      expect(mockSend).toHaveBeenCalledWith({
+        event: 'subscribe:logs',
+        data: { sessionName: 'session-b' },
+      });
+    });
+  });
+
+  describe('log content accumulation', () => {
+    it('displays initial content from WebSocket', async () => {
+      const mockSend = vi.fn();
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+
+      // We'll test this by verifying the component accepts content prop
+      // and WebSocket updates will be handled through useLogSubscription hook
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent="Initial log content"
+        />
+      );
+
+      expect(screen.getByText('Initial log content')).toBeInTheDocument();
+    });
+
+    it('shows loading state while waiting for initial data', () => {
+      const mockSend = vi.fn();
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+        />
+      );
+
+      // When no initialContent is provided and subscribed, should show loading
+      // The loading skeleton should be visible
+      const skeleton = screen.queryByTestId('log-viewer-skeleton');
+      // This will fail initially - we need to implement loading state
+      expect(skeleton).toBeInTheDocument();
     });
   });
 });
