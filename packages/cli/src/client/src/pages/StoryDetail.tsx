@@ -185,6 +185,27 @@ function JournalEntryItem({
   );
 }
 
+/** Calculate task completion progress */
+function calculateTaskProgress(story: StoryDetailType | null) {
+  if (!story) {
+    return { completed: 0, total: 0 };
+  }
+  return {
+    completed: story.tasks.filter((t) => t.status === 'completed').length,
+    total: story.tasks.length,
+  };
+}
+
+/** Group journal entries by type */
+function groupJournalEntries(story: StoryDetailType | null) {
+  const journal = story?.journal || [];
+  return {
+    blockers: journal.filter((e) => e.type === 'blocker'),
+    sessions: journal.filter((e) => e.type === 'session'),
+    resolutions: journal.filter((e) => e.type === 'resolution'),
+  };
+}
+
 function StoryDetail() {
   const { epicSlug, storySlug } = useParams<{
     epicSlug: string;
@@ -203,6 +224,18 @@ function StoryDetail() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const handleStoryResponse = async (response: Response) => {
+      if (response.status === HTTP_NOT_FOUND) {
+        setNotFound(true);
+        return null;
+      }
+      if (!response.ok) {
+        setError('Failed to load story');
+        return null;
+      }
+      return await response.json();
+    };
+
     const fetchStory = async () => {
       if (!(epicSlug && storySlug)) {
         return;
@@ -214,16 +247,10 @@ function StoryDetail() {
 
       try {
         const response = await fetch(`/api/stories/${epicSlug}/${storySlug}`);
-        if (response.status === HTTP_NOT_FOUND) {
-          setNotFound(true);
-          return;
+        const data = await handleStoryResponse(response);
+        if (data) {
+          setCurrentStory(data);
         }
-        if (!response.ok) {
-          setError('Failed to load story');
-          return;
-        }
-        const data: StoryDetailType = await response.json();
-        setCurrentStory(data);
       } catch (err) {
         setError('Failed to load story');
         const message = err instanceof Error ? err.message : 'Unknown error';
@@ -258,17 +285,15 @@ function StoryDetail() {
   const loading = isLoading || isFetching;
 
   // Calculate task progress
-  const taskProgress = currentStory
-    ? {
-        completed: currentStory.tasks.filter((t) => t.status === 'completed').length,
-        total: currentStory.tasks.length,
-      }
-    : { completed: 0, total: 0 };
+  const taskProgress = calculateTaskProgress(currentStory);
 
   // Group journal entries by type
-  const blockerEntries = currentStory?.journal.filter((e) => e.type === 'blocker') || [];
-  const sessionEntries = currentStory?.journal.filter((e) => e.type === 'session') || [];
-  const resolutionEntries = currentStory?.journal.filter((e) => e.type === 'resolution') || [];
+  const journalGroups = groupJournalEntries(currentStory);
+  const {
+    blockers: blockerEntries,
+    sessions: sessionEntries,
+    resolutions: resolutionEntries,
+  } = journalGroups;
 
   // 404 state
   if (notFound) {

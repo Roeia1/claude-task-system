@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useDashboard } from '@/context/dashboard-context';
 import { showApiErrorToast } from '@/lib/toast-utils';
-import type { Epic, StoryDetail, StoryStatus } from '@/types/dashboard';
+import type { Epic, StoryStatus } from '@/types/dashboard';
 
 /** HTTP 404 Not Found status code */
 const HTTP_NOT_FOUND = 404;
@@ -102,6 +102,46 @@ function StoryCard({ story, epicSlug }: { story: StoryDetail; epicSlug: string }
   );
 }
 
+/** Render 404 not found state */
+function NotFoundState({ slug }: { slug: string | undefined }) {
+  return (
+    <div class="text-center py-12">
+      <h1 class="text-2xl font-bold text-text mb-2">Epic not found</h1>
+      <p class="text-text-muted mb-4">The epic &quot;{slug}&quot; does not exist.</p>
+      <Link to="/" class="text-primary hover:underline">
+        ← Back to epic list
+      </Link>
+    </div>
+  );
+}
+
+/** Render error state */
+function ErrorState({ error }: { error: string }) {
+  return (
+    <div class="text-center py-12">
+      <h1 class="text-2xl font-bold text-danger mb-2">Error</h1>
+      <p class="text-text-muted mb-4">{error}</p>
+      <Link to="/" class="text-primary hover:underline">
+        ← Back to epic list
+      </Link>
+    </div>
+  );
+}
+
+/** Render loading state with skeletons */
+function LoadingState() {
+  return (
+    <div class="space-y-6">
+      <HeaderSkeleton />
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <StoryCardSkeleton />
+        <StoryCardSkeleton />
+        <StoryCardSkeleton />
+      </div>
+    </div>
+  );
+}
+
 function EpicDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { currentEpic, setCurrentEpic, clearCurrentEpic, isLoading } = useDashboard();
@@ -110,6 +150,18 @@ function EpicDetail() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const handleResponse = async (response: Response) => {
+      if (response.status === HTTP_NOT_FOUND) {
+        setNotFound(true);
+        return null;
+      }
+      if (!response.ok) {
+        setError('Failed to load epic');
+        return null;
+      }
+      return await response.json();
+    };
+
     const fetchEpic = async () => {
       if (!slug) {
         return;
@@ -121,16 +173,10 @@ function EpicDetail() {
 
       try {
         const response = await fetch(`/api/epics/${slug}`);
-        if (response.status === HTTP_NOT_FOUND) {
-          setNotFound(true);
-          return;
+        const data = await handleResponse(response);
+        if (data) {
+          setCurrentEpic(data);
         }
-        if (!response.ok) {
-          setError('Failed to load epic');
-          return;
-        }
-        const data: Epic = await response.json();
-        setCurrentEpic(data);
       } catch (err) {
         setError('Failed to load epic');
         const message = err instanceof Error ? err.message : 'Unknown error';
@@ -165,42 +211,17 @@ function EpicDetail() {
 
   // 404 state
   if (notFound) {
-    return (
-      <div class="text-center py-12">
-        <h1 class="text-2xl font-bold text-text mb-2">Epic not found</h1>
-        <p class="text-text-muted mb-4">The epic &quot;{slug}&quot; does not exist.</p>
-        <Link to="/" class="text-primary hover:underline">
-          ← Back to epic list
-        </Link>
-      </div>
-    );
+    return <NotFoundState slug={slug} />;
   }
 
   // Error state
   if (error && !loading) {
-    return (
-      <div class="text-center py-12">
-        <h1 class="text-2xl font-bold text-danger mb-2">Error</h1>
-        <p class="text-text-muted mb-4">{error}</p>
-        <Link to="/" class="text-primary hover:underline">
-          ← Back to epic list
-        </Link>
-      </div>
-    );
+    return <ErrorState error={error} />;
   }
 
   // Loading state
   if (loading || !currentEpic) {
-    return (
-      <div class="space-y-6">
-        <HeaderSkeleton />
-        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <StoryCardSkeleton />
-          <StoryCardSkeleton />
-          <StoryCardSkeleton />
-        </div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
