@@ -92,3 +92,48 @@
 
 **Next steps:**
 - Task t4: Write tests for SessionCard component
+
+## Session: 2026-01-30T03:30:00Z
+
+### Task: t4 - Write tests for SessionCard component
+
+**What was done:**
+- Created `SessionCard.test.tsx` with comprehensive tests following TDD approach
+- Tests cover all required scenarios per task guidance:
+  - Data display: story title, epic title, output preview with monospace font
+  - Duration formatting: seconds (30s), minutes (2m 34s), hours (1h 15m), days (1d 0h)
+  - Live duration updates every second using fake timers
+  - Output preview truncation: last 5 lines, max 500 characters
+  - Navigation: link to `/epic/:epicSlug/story/:storySlug?tab=sessions`
+  - Output unavailable state: shows "Output unavailable" message with dimmed styling
+  - Edge cases: missing/empty outputPreview
+- Created stub `SessionCard.tsx` component to allow tests to run (and fail)
+- Verified TDD red phase: all 20 tests fail as expected
+
+**Test coverage:**
+- `SessionCard` component: 16 tests
+  - Data display: 4 tests (story title, epic title, output preview, monospace styling)
+  - Duration formatting: 4 tests (seconds, minutes+seconds, hours+minutes, live updates)
+  - Output truncation: 2 tests (5 lines max, 500 chars max)
+  - Navigation: 2 tests (link href, hover styling)
+  - Output unavailable: 2 tests (message shown, dimmed styling)
+  - Edge cases: 2 tests (missing/empty outputPreview)
+- `formatDuration` utility: 4 tests
+  - Seconds only: 0s, 30s, 59s
+  - Minutes and seconds: 1m 0s, 2m 34s
+  - Hours and minutes: 1h 0m, 1h 15m
+  - Days and hours: 1d 0h, 2d 0h
+
+**Decisions:**
+- Exported `formatDuration` as a separate utility function for testability and reuse
+- Used `vi.useFakeTimers()` for testing live duration updates
+- Used `role="presentation"` attribute for testing output truncation length
+- Tests verify CSS classes for styling requirements (font-mono, bg-bg-dark, text-text-muted)
+
+**References:**
+- Existing test patterns from `ActiveSessions.test.tsx`
+- EpicCard pattern from `EpicList.tsx` for card structure
+- Task t4 guidance for test requirements
+
+**Next steps:**
+- Task t5: Implement SessionCard component to make tests pass

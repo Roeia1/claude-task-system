@@ -15,7 +15,7 @@ tasks:
     status: completed
   - id: t4
     title: Write tests for SessionCard component
-    status: pending
+    status: completed
   - id: t5
     title: Implement SessionCard component
     status: pending
