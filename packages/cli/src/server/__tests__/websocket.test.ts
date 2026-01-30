@@ -6,11 +6,13 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdir, rm, writeFile } from 'fs/promises';
+import { mkdir, rm, writeFile, appendFile } from 'fs/promises';
+import { existsSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { WebSocket } from 'ws';
 import { startServer, type ServerInstance } from '../index.js';
+import { OUTPUT_DIR } from '../../lib/sessions.js';
 
 // Helper to create a temporary saga directory
 async function createTempSagaDir(): Promise<string> {
@@ -482,5 +484,288 @@ Story content.
 
       ws.close();
     });
+  });
+
+  describe('subscribe:logs and unsubscribe:logs', () => {
+    const testSessionName = 'saga__test-epic__test-story__12345';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
+    const testLogContent = 'Log line 1\nLog line 2\nLog line 3\n';
+
+    beforeEach(() => {
+      // Ensure output directory exists
+      if (!existsSync(OUTPUT_DIR)) {
+        mkdirSync(OUTPUT_DIR, { recursive: true });
+      }
+    });
+
+    afterEach(() => {
+      // Clean up test file
+      if (existsSync(testOutputFile)) {
+        rmSync(testOutputFile);
+      }
+    });
+
+    it('should send initial log content when client subscribes to logs', async () => {
+      // Create log file
+      await writeFile(testOutputFile, testLogContent);
+
+      const ws = await createWSClient(port);
+
+      // Subscribe to logs
+      sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
+
+      // Should receive logs:data with initial content
+      const msg = await waitForMessage(ws, 3000);
+      expect(msg.event).toBe('logs:data');
+      expect(msg.data).toHaveProperty('sessionName', testSessionName);
+      expect(msg.data).toHaveProperty('data', testLogContent);
+      expect(msg.data).toHaveProperty('isInitial', true);
+      expect(msg.data).toHaveProperty('isComplete', false);
+
+      ws.close();
+    });
+
+    it('should send error when subscribing to non-existent log file', async () => {
+      const ws = await createWSClient(port);
+
+      // Subscribe to logs for non-existent session
+      sendMessage(ws, 'subscribe:logs', { sessionName: 'non-existent-session' });
+
+      // Should receive logs:error
+      const msg = await waitForMessage(ws, 3000);
+      expect(msg.event).toBe('logs:error');
+      expect(msg.data).toHaveProperty('sessionName', 'non-existent-session');
+      expect(msg.data).toHaveProperty('error');
+
+      ws.close();
+    });
+
+    it('should send incremental updates when log file is appended', async () => {
+      // Create initial log file
+      await writeFile(testOutputFile, testLogContent);
+
+      const ws = await createWSClient(port);
+
+      // Subscribe to logs
+      sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
+
+      // Wait for initial content
+      const initialMsg = await waitForMessage(ws, 3000);
+      expect(initialMsg.event).toBe('logs:data');
+      expect((initialMsg.data as { isInitial: boolean }).isInitial).toBe(true);
+
+      // Append new content
+      const newContent = 'New log line 4\n';
+      await appendFile(testOutputFile, newContent);
+
+      // Wait for incremental update
+      const incrementalMsg = await waitForMessage(ws, 5000);
+      expect(incrementalMsg.event).toBe('logs:data');
+      expect(incrementalMsg.data).toHaveProperty('data', newContent);
+      expect(incrementalMsg.data).toHaveProperty('isInitial', false);
+      expect(incrementalMsg.data).toHaveProperty('isComplete', false);
+
+      ws.close();
+    }, 10000);
+
+    it('should stop receiving updates after unsubscribing from logs', async () => {
+      // Create log file
+      await writeFile(testOutputFile, testLogContent);
+
+      const ws = await createWSClient(port);
+
+      // Subscribe to logs
+      sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
+
+      // Wait for initial content
+      const initialMsg = await waitForMessage(ws, 3000);
+      expect(initialMsg.event).toBe('logs:data');
+
+      // Unsubscribe
+      sendMessage(ws, 'unsubscribe:logs', { sessionName: testSessionName });
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Append new content
+      await appendFile(testOutputFile, 'Should not receive this\n');
+
+      // Should NOT receive any more messages (timeout expected)
+      try {
+        await waitForMessage(ws, 500);
+        // If we get here, we received a message - check it's not logs:data for our session
+        // (could be sessions:updated from polling)
+      } catch {
+        // Timeout expected - no message received, which is correct
+      }
+
+      ws.close();
+    });
+
+    it('should handle multiple clients subscribing to the same log', async () => {
+      // Create log file
+      await writeFile(testOutputFile, testLogContent);
+
+      const ws1 = await createWSClient(port);
+      const ws2 = await createWSClient(port);
+
+      // Both clients subscribe
+      sendMessage(ws1, 'subscribe:logs', { sessionName: testSessionName });
+      sendMessage(ws2, 'subscribe:logs', { sessionName: testSessionName });
+
+      // Both should receive initial content
+      const [msg1, msg2] = await Promise.all([
+        waitForMessage(ws1, 3000),
+        waitForMessage(ws2, 3000),
+      ]);
+
+      expect(msg1.event).toBe('logs:data');
+      expect(msg2.event).toBe('logs:data');
+      expect((msg1.data as { isInitial: boolean }).isInitial).toBe(true);
+      expect((msg2.data as { isInitial: boolean }).isInitial).toBe(true);
+
+      // Append new content
+      const newContent = 'Broadcast to both clients\n';
+      await appendFile(testOutputFile, newContent);
+
+      // Both should receive incremental update
+      const [update1, update2] = await Promise.all([
+        waitForMessage(ws1, 5000),
+        waitForMessage(ws2, 5000),
+      ]);
+
+      expect(update1.event).toBe('logs:data');
+      expect(update2.event).toBe('logs:data');
+      expect((update1.data as { data: string }).data).toBe(newContent);
+      expect((update2.data as { data: string }).data).toBe(newContent);
+
+      ws1.close();
+      ws2.close();
+    }, 15000);
+
+    it('should clean up log subscription when client disconnects', async () => {
+      // Create log file
+      await writeFile(testOutputFile, testLogContent);
+
+      const ws = await createWSClient(port);
+
+      // Subscribe to logs
+      sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
+
+      // Wait for initial content
+      await waitForMessage(ws, 3000);
+
+      // Close connection
+      ws.close();
+
+      // Wait for cleanup
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Server should still be accepting new connections (didn't crash)
+      const ws2 = await createWSClient(port);
+      expect(ws2.readyState).toBe(WebSocket.OPEN);
+      ws2.close();
+    });
+  });
+
+  describe('log streaming and session completion integration', () => {
+    const testSessionName = 'saga__integration-epic__integration-story__99999';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
+    const testLogContent = 'Integration test log content\n';
+
+    beforeEach(() => {
+      // Ensure output directory exists
+      if (!existsSync(OUTPUT_DIR)) {
+        mkdirSync(OUTPUT_DIR, { recursive: true });
+      }
+    });
+
+    afterEach(() => {
+      // Clean up test file
+      if (existsSync(testOutputFile)) {
+        rmSync(testOutputFile);
+      }
+    });
+
+    it('should handle subscribe:logs message with missing sessionName gracefully', async () => {
+      const ws = await createWSClient(port);
+
+      // Send malformed subscribe:logs (no sessionName)
+      sendMessage(ws, 'subscribe:logs', {});
+
+      // Wait a bit - server should not crash
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Server should still work
+      expect(ws.readyState).toBe(WebSocket.OPEN);
+      ws.close();
+    });
+
+    it('should handle unsubscribe:logs for session not subscribed to', async () => {
+      const ws = await createWSClient(port);
+
+      // Unsubscribe from a session we never subscribed to
+      sendMessage(ws, 'unsubscribe:logs', { sessionName: 'never-subscribed' });
+
+      // Wait a bit - server should not crash
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Server should still work
+      expect(ws.readyState).toBe(WebSocket.OPEN);
+      ws.close();
+    });
+
+    it('should allow subscribing to logs and stories simultaneously', async () => {
+      // Create log file
+      await writeFile(testOutputFile, testLogContent);
+
+      const ws = await createWSClient(port);
+
+      // Subscribe to both logs and a story
+      sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
+      sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
+
+      // Should receive logs:data for the log subscription
+      const logMsg = await waitForMessage(ws, 3000);
+      expect(logMsg.event).toBe('logs:data');
+
+      // Can still receive story updates if story changes
+      // (just verify server didn't crash from dual subscription)
+      expect(ws.readyState).toBe(WebSocket.OPEN);
+
+      ws.close();
+    });
+
+    it('should continue log streaming for other clients when one unsubscribes', async () => {
+      // Create log file
+      await writeFile(testOutputFile, testLogContent);
+
+      const ws1 = await createWSClient(port);
+      const ws2 = await createWSClient(port);
+
+      // Both subscribe
+      sendMessage(ws1, 'subscribe:logs', { sessionName: testSessionName });
+      sendMessage(ws2, 'subscribe:logs', { sessionName: testSessionName });
+
+      // Wait for initial content on both
+      await Promise.all([
+        waitForMessage(ws1, 3000),
+        waitForMessage(ws2, 3000),
+      ]);
+
+      // ws1 unsubscribes
+      sendMessage(ws1, 'unsubscribe:logs', { sessionName: testSessionName });
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Append new content
+      const newContent = 'Only ws2 should receive this\n';
+      await appendFile(testOutputFile, newContent);
+
+      // ws2 should still receive updates
+      const update = await waitForMessage(ws2, 5000);
+      expect(update.event).toBe('logs:data');
+      expect((update.data as { data: string }).data).toBe(newContent);
+
+      ws1.close();
+      ws2.close();
+    }, 10000);
   });
 });

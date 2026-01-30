@@ -19,6 +19,7 @@ import { scanSagaDirectory, parseStory, parseJournal, type StoryDetail, type Epi
 import { createSagaWatcher, type SagaWatcher, type WatcherEvent } from './watcher.js';
 import { join, relative } from 'path';
 import { startSessionPolling, stopSessionPolling, type SessionsUpdatedMessage } from '../lib/session-polling.js';
+import { LogStreamManager, type LogsDataMessage, type LogsErrorMessage } from '../lib/log-stream-manager.js';
 
 /**
  * Subscription key for a story
@@ -54,6 +55,7 @@ interface ClientMessage {
   data?: {
     epicSlug?: string;
     storySlug?: string;
+    sessionName?: string;
   };
 }
 
@@ -133,6 +135,16 @@ export async function createWebSocketServer(
     }
   }
 
+  // Helper to send log messages to a specific client
+  function sendLogMessage(ws: WebSocket, message: LogsDataMessage | LogsErrorMessage): void {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ event: message.type, data: message }));
+    }
+  }
+
+  // Create LogStreamManager for real-time log streaming
+  const logStreamManager = new LogStreamManager(sendLogMessage);
+
   // Helper to broadcast to all clients
   function broadcast(message: ServerMessage): void {
     for (const [ws] of clients) {
@@ -140,9 +152,25 @@ export async function createWebSocketServer(
     }
   }
 
+  // Track previous session states to detect completions
+  let previousSessionStates = new Map<string, 'running' | 'completed'>();
+
   // Start session polling and broadcast updates to all clients
   startSessionPolling((msg: SessionsUpdatedMessage) => {
     broadcast({ event: msg.type, data: msg.sessions });
+
+    // Detect sessions that transitioned to completed and notify log stream manager
+    const currentStates = new Map<string, 'running' | 'completed'>();
+    for (const session of msg.sessions) {
+      currentStates.set(session.name, session.status);
+
+      // Check if this session just completed
+      const previousStatus = previousSessionStates.get(session.name);
+      if (previousStatus === 'running' && session.status === 'completed') {
+        logStreamManager.notifySessionCompleted(session.name);
+      }
+    }
+    previousSessionStates = currentStates;
   });
 
   // Helper to broadcast to clients subscribed to a story
@@ -197,6 +225,22 @@ export async function createWebSocketServer(
             break;
           }
 
+          case 'subscribe:logs': {
+            const { sessionName } = message.data || {};
+            if (sessionName) {
+              logStreamManager.subscribe(sessionName, ws);
+            }
+            break;
+          }
+
+          case 'unsubscribe:logs': {
+            const { sessionName } = message.data || {};
+            if (sessionName) {
+              logStreamManager.unsubscribe(sessionName, ws);
+            }
+            break;
+          }
+
           default:
             // Unknown event, ignore
             break;
@@ -209,12 +253,14 @@ export async function createWebSocketServer(
     // Handle disconnection
     ws.on('close', () => {
       clients.delete(ws);
+      logStreamManager.handleClientDisconnect(ws);
     });
 
     // Handle errors
     ws.on('error', (err) => {
       console.error('WebSocket error:', err);
       clients.delete(ws);
+      logStreamManager.handleClientDisconnect(ws);
     });
   });
 
@@ -318,6 +364,9 @@ export async function createWebSocketServer(
 
       // Stop session polling
       stopSessionPolling();
+
+      // Dispose log stream manager (closes all file watchers)
+      await logStreamManager.dispose();
 
       // Close all client connections
       for (const [ws] of clients) {
