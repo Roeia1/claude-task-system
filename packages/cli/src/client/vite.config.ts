@@ -1,25 +1,18 @@
-import { defineConfig } from 'vite';
+import path from 'node:path';
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import tailwindcss from 'tailwindcss';
-import autoprefixer from 'autoprefixer';
-import path from 'path';
+import { defineConfig } from 'vite';
 
 // https://vite.dev/config/
 export default defineConfig({
-  root: __dirname,
-  plugins: [react()],
+  root: import.meta.dirname,
+  plugins: [tailwindcss(), react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
-  },
-  css: {
-    postcss: {
-      plugins: [
-        tailwindcss(path.resolve(__dirname, 'tailwind.config.js')),
-        autoprefixer(),
-      ],
-    },
+    // Prevent multiple copies of React when dependencies (e.g., Storybook) have their own React versions
+    dedupe: ['react', 'react-dom'],
   },
   build: {
     outDir: '../../dist/client',

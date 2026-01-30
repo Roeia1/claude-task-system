@@ -1,4 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { resetAllFixtures } from './fixtures-utils.ts';
+
+/** Expected number of fixture epics */
+const EXPECTED_EPIC_COUNT = 3;
 
 /**
  * E2E setup verification tests.
@@ -6,6 +10,11 @@ import { test, expect } from '@playwright/test';
  * These tests verify that the Playwright E2E configuration works correctly
  * with the real backend server and test fixtures.
  */
+
+// Reset all fixtures before each test to ensure clean state
+test.beforeEach(async () => {
+  await resetAllFixtures();
+});
 
 test.describe('E2E Setup Verification', () => {
   test('backend server is running and healthy', async ({ request }) => {
@@ -23,7 +32,7 @@ test.describe('E2E Setup Verification', () => {
     const epics = await response.json();
 
     // Verify we have the expected fixture epics
-    expect(epics).toHaveLength(3);
+    expect(epics).toHaveLength(EXPECTED_EPIC_COUNT);
 
     const epicSlugs = epics.map((e: { slug: string }) => e.slug);
     expect(epicSlugs).toContain('feature-development');
@@ -34,10 +43,10 @@ test.describe('E2E Setup Verification', () => {
   test('dashboard loads in browser', async ({ page }) => {
     await page.goto('/');
 
-    // Wait for the page to load with content
-    await expect(page.locator('body')).not.toBeEmpty();
-
-    // The dashboard should render something - verify no error page
+    // The dashboard should render with content - verify no error page
     await expect(page.locator('body')).not.toContainText('Cannot GET');
+
+    // Verify actual content loads
+    await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
   });
 });

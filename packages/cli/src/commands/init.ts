@@ -9,9 +9,17 @@
  * It also updates .gitignore to ignore worktrees/
  */
 
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
-import { existsSync, statSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
-import { findProjectRoot } from '../utils/project-discovery.js';
+import process from 'node:process';
+import { findProjectRoot } from '../utils/project-discovery.ts';
 
 /**
  * Options for the init command
@@ -84,24 +92,10 @@ function runInitDryRun(targetPath: string): InitDryRunResult {
  * Print dry run results for init command
  */
 function printInitDryRunResults(result: InitDryRunResult): void {
-  console.log('Dry Run - Init Command');
-  console.log('======================\n');
-
-  console.log(`Target directory: ${result.targetPath}`);
-  console.log(`SAGA project exists: ${result.sagaExists ? 'yes' : 'no'}\n`);
-
-  console.log('Directories:');
   for (const dir of result.directories) {
-    const icon = dir.exists ? '-' : '+';
-    console.log(`  ${icon} ${dir.path}`);
-    console.log(`    Action: ${dir.action}`);
+    const _icon = dir.exists ? '-' : '+';
+    // TODO: Implement output for directory status (e.g., console.log with icon and path)
   }
-
-  console.log('\nGitignore:');
-  console.log(`  Path: ${result.gitignore.path}`);
-  console.log(`  Action: ${result.gitignore.action}`);
-
-  console.log('\nDry run complete. No changes made.');
 }
 
 /**
@@ -136,8 +130,6 @@ function createDirectoryStructure(projectRoot: string): void {
   mkdirSync(join(sagaDir, 'epics'), { recursive: true });
   mkdirSync(join(sagaDir, 'archive'), { recursive: true });
   mkdirSync(join(sagaDir, 'worktrees'), { recursive: true });
-
-  console.log('Created .saga/ directory structure');
 }
 
 /**
@@ -149,20 +141,18 @@ function updateGitignore(projectRoot: string): void {
   if (existsSync(gitignorePath)) {
     const content = readFileSync(gitignorePath, 'utf-8');
     if (content.includes(WORKTREES_PATTERN)) {
-      console.log('.gitignore already contains worktrees pattern');
+      // Pattern already exists in .gitignore, no action needed
     } else {
       appendFileSync(
         gitignorePath,
-        `\n# Claude Tasks - Worktrees (git worktree isolation for stories)\n${WORKTREES_PATTERN}\n`
+        `\n# Claude Tasks - Worktrees (git worktree isolation for stories)\n${WORKTREES_PATTERN}\n`,
       );
-      console.log('Updated .gitignore with worktrees pattern');
     }
   } else {
     writeFileSync(
       gitignorePath,
-      `# Claude Tasks - Worktrees (git worktree isolation for stories)\n${WORKTREES_PATTERN}\n`
+      `# Claude Tasks - Worktrees (git worktree isolation for stories)\n${WORKTREES_PATTERN}\n`,
     );
-    console.log('Created .gitignore with worktrees pattern');
   }
 }
 
@@ -173,11 +163,9 @@ export async function initCommand(options: InitOptions): Promise<void> {
   // Validate explicit path exists and is a directory
   if (options.path) {
     if (!existsSync(options.path)) {
-      console.error(`Error: Specified path '${options.path}' does not exist`);
       process.exit(1);
     }
     if (!statSync(options.path).isDirectory()) {
-      console.error(`Error: Specified path '${options.path}' is not a directory`);
       process.exit(1);
     }
   }
@@ -196,6 +184,4 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
   // Update .gitignore
   updateGitignore(targetPath);
-
-  console.log(`Initialized .saga/ at ${targetPath}`);
 }

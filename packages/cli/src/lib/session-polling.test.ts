@@ -8,15 +8,15 @@
  * - Change detection (new sessions, completed sessions, removed sessions)
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  startSessionPolling,
-  stopSessionPolling,
   getCurrentSessions,
   POLLING_INTERVAL_MS,
-} from './session-polling.js';
-import * as sessionsModule from './sessions.js';
-import type { DetailedSessionInfo } from './sessions.js';
+  startSessionPolling,
+  stopSessionPolling,
+} from './session-polling.ts';
+import type { DetailedSessionInfo } from './sessions.ts';
+import * as sessionsModule from './sessions.ts';
 
 // Mock the sessions module
 vi.mock('./sessions.js', async () => {
@@ -73,7 +73,11 @@ describe('session-polling', () => {
       };
 
       mockListSessions.mockResolvedValue([
-        { name: 'saga__my-epic__my-story__12345', status: 'running', outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out' },
+        {
+          name: 'saga__my-epic__my-story__12345',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out',
+        },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
       mockGetSessionStatus.mockResolvedValue({ running: true });
@@ -94,7 +98,11 @@ describe('session-polling', () => {
 
       mockListSessions.mockResolvedValue([
         { name: 'other-session', status: 'running', outputFile: '/tmp/other.out' },
-        { name: 'saga__my-epic__my-story__12345', status: 'running', outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out' },
+        {
+          name: 'saga__my-epic__my-story__12345',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out',
+        },
       ]);
       mockBuildSessionInfo.mockImplementation(async (name) => {
         if (name.startsWith('saga__')) {
@@ -159,7 +167,11 @@ describe('session-polling', () => {
       };
 
       mockListSessions.mockResolvedValue([
-        { name: 'saga__my-epic__my-story__12345', status: 'running', outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out' },
+        {
+          name: 'saga__my-epic__my-story__12345',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out',
+        },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
       mockGetSessionStatus.mockResolvedValue({ running: true });
@@ -198,7 +210,11 @@ describe('session-polling', () => {
       };
 
       mockListSessions.mockResolvedValue([
-        { name: 'saga__new-epic__new-story__99999', status: 'running', outputFile: '/tmp/saga-sessions/saga__new-epic__new-story__99999.out' },
+        {
+          name: 'saga__new-epic__new-story__99999',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__new-epic__new-story__99999.out',
+        },
       ]);
       mockBuildSessionInfo.mockResolvedValue(newSession);
       mockGetSessionStatus.mockResolvedValue({ running: true });
@@ -225,7 +241,11 @@ describe('session-polling', () => {
       };
 
       mockListSessions.mockResolvedValue([
-        { name: 'saga__my-epic__my-story__12345', status: 'running', outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out' },
+        {
+          name: 'saga__my-epic__my-story__12345',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out',
+        },
       ]);
       mockBuildSessionInfo.mockResolvedValue(runningSession);
       mockGetSessionStatus.mockResolvedValue({ running: true });
@@ -262,7 +282,11 @@ describe('session-polling', () => {
       };
 
       mockListSessions.mockResolvedValue([
-        { name: 'saga__my-epic__my-story__12345', status: 'running', outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out' },
+        {
+          name: 'saga__my-epic__my-story__12345',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out',
+        },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
       mockGetSessionStatus.mockResolvedValue({ running: true });
@@ -329,7 +353,11 @@ describe('session-polling', () => {
       };
 
       mockListSessions.mockResolvedValue([
-        { name: 'saga__my-epic__my-story__12345', status: 'running', outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out' },
+        {
+          name: 'saga__my-epic__my-story__12345',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out',
+        },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
       mockGetSessionStatus.mockResolvedValue({ running: true });
@@ -367,7 +395,11 @@ describe('session-polling', () => {
       };
 
       mockListSessions.mockResolvedValue([
-        { name: 'saga__my-epic__my-story__12345', status: 'running', outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out' },
+        {
+          name: 'saga__my-epic__my-story__12345',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out',
+        },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
       mockGetSessionStatus.mockResolvedValue({ running: true });
@@ -393,7 +425,11 @@ describe('session-polling', () => {
       };
 
       mockListSessions.mockResolvedValue([
-        { name: 'saga__my-epic__my-story__12345', status: 'running', outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out' },
+        {
+          name: 'saga__my-epic__my-story__12345',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out',
+        },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
       mockGetSessionStatus.mockResolvedValue({ running: true });
@@ -439,14 +475,32 @@ describe('session-polling', () => {
       };
 
       mockListSessions.mockResolvedValue([
-        { name: 'saga__epic1__story1__111', status: 'running', outputFile: '/tmp/saga-sessions/saga__epic1__story1__111.out' },
-        { name: 'saga__epic2__story2__222', status: 'running', outputFile: '/tmp/saga-sessions/saga__epic2__story2__222.out' },
-        { name: 'saga__epic3__story3__333', status: 'running', outputFile: '/tmp/saga-sessions/saga__epic3__story3__333.out' },
+        {
+          name: 'saga__epic1__story1__111',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__epic1__story1__111.out',
+        },
+        {
+          name: 'saga__epic2__story2__222',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__epic2__story2__222.out',
+        },
+        {
+          name: 'saga__epic3__story3__333',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__epic3__story3__333.out',
+        },
       ]);
       mockBuildSessionInfo.mockImplementation(async (name) => {
-        if (name === 'saga__epic1__story1__111') return session1;
-        if (name === 'saga__epic2__story2__222') return session2;
-        if (name === 'saga__epic3__story3__333') return session3;
+        if (name === 'saga__epic1__story1__111') {
+          return session1;
+        }
+        if (name === 'saga__epic2__story2__222') {
+          return session2;
+        }
+        if (name === 'saga__epic3__story3__333') {
+          return session3;
+        }
         return null;
       });
       mockGetSessionStatus.mockResolvedValue({ running: true });
@@ -465,7 +519,9 @@ describe('session-polling', () => {
   describe('error handling', () => {
     it('should continue polling if listSessions throws an error', async () => {
       const broadcast = vi.fn();
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+        // Suppress console error output in tests
+      });
 
       // First call throws
       mockListSessions.mockRejectedValueOnce(new Error('tmux not available'));
@@ -487,10 +543,16 @@ describe('session-polling', () => {
 
     it('should handle buildSessionInfo errors gracefully', async () => {
       const broadcast = vi.fn();
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+        // Suppress console error output in tests
+      });
 
       mockListSessions.mockResolvedValue([
-        { name: 'saga__my-epic__my-story__12345', status: 'running', outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out' },
+        {
+          name: 'saga__my-epic__my-story__12345',
+          status: 'running',
+          outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out',
+        },
       ]);
       mockBuildSessionInfo.mockRejectedValue(new Error('Failed to build session info'));
       mockGetSessionStatus.mockResolvedValue({ running: true });

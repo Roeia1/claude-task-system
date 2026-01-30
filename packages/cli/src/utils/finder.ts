@@ -11,13 +11,11 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import Fuse from 'fuse.js';
 import {
-  scanAllStories,
-  scanEpics,
   epicsDirectoryExists,
-  worktreesDirectoryExists,
-  parseFrontmatter,
   type ScannedStory,
-} from './saga-scanner.js';
+  scanAllStories,
+  worktreesDirectoryExists,
+} from './saga-scanner.ts';
 
 // ============================================================================
 // Types
@@ -61,8 +59,14 @@ const MATCH_THRESHOLD = 0.6;
 // If multiple matches have scores within this range of the best, return all as ambiguous
 const SCORE_SIMILARITY_THRESHOLD = 0.1;
 
+// Default maximum length for extracted context
+const DEFAULT_CONTEXT_MAX_LENGTH = 300;
+
+// Length of the ellipsis suffix "..."
+const ELLIPSIS_LENGTH = 3;
+
 // Re-export parseFrontmatter for backward compatibility
-export { parseFrontmatter } from './saga-scanner.js';
+export { parseFrontmatter } from './saga-scanner.ts';
 
 // ============================================================================
 // Context Extraction
@@ -75,18 +79,18 @@ export { parseFrontmatter } from './saga-scanner.js';
  * @param maxLength - Maximum length of extracted context (default 300)
  * @returns The context text, truncated if necessary
  */
-export function extractContext(body: string, maxLength: number = 300): string {
+export function extractContext(body: string, maxLength = DEFAULT_CONTEXT_MAX_LENGTH): string {
   // Look for ## Context section (case-insensitive)
-  const contextMatch = body.match(/##\s*Context\s*\n+([\s\S]*?)(?=\n##|\Z|$)/i);
+  const contextMatch = body.match(/##\s*Context\s*\n+([\s\S]*?)(?=\n##|Z|$)/i);
 
   if (!contextMatch) {
     return '';
   }
 
-  let context = contextMatch[1].trim();
+  const context = contextMatch[1].trim();
 
   if (context.length > maxLength) {
-    return context.slice(0, maxLength - 3) + '...';
+    return `${context.slice(0, maxLength - ELLIPSIS_LENGTH)}...`;
   }
 
   return context;
@@ -198,7 +202,7 @@ export function findEpic(projectPath: string, query: string): FindResult<EpicInf
   // Check if there are multiple similar scores
   const bestScore = results[0].score ?? 0;
   const similarMatches = results.filter(
-    (r) => (r.score ?? 0) - bestScore <= SCORE_SIMILARITY_THRESHOLD
+    (r) => (r.score ?? 0) - bestScore <= SCORE_SIMILARITY_THRESHOLD,
   );
 
   // If multiple matches have similar scores, return all for disambiguation
@@ -243,8 +247,12 @@ export function findEpic(projectPath: string, query: string): FindResult<EpicInf
  * @param options - Optional filters (status)
  * @returns Promise resolving to FindResult with story info or matches/error
  */
-export async function findStory(projectPath: string, query: string, options: FindStoryOptions = {}): Promise<FindResult<StoryInfo>> {
-  if (!worktreesDirectoryExists(projectPath) && !epicsDirectoryExists(projectPath)) {
+export async function findStory(
+  projectPath: string,
+  query: string,
+  options: FindStoryOptions = {},
+): Promise<FindResult<StoryInfo>> {
+  if (!(worktreesDirectoryExists(projectPath) || epicsDirectoryExists(projectPath))) {
     return {
       found: false,
       error: 'No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first.',
@@ -265,7 +273,7 @@ export async function findStory(projectPath: string, query: string, options: Fin
   let allStories = scannedStories.map(toStoryInfo);
 
   if (options.status) {
-    allStories = allStories.filter(story => story.status === options.status);
+    allStories = allStories.filter((story) => story.status === options.status);
 
     if (allStories.length === 0) {
       return {
@@ -291,7 +299,7 @@ export async function findStory(projectPath: string, query: string, options: Fin
   // Use Fuse.js for fuzzy matching on slug and title
   const fuse = new Fuse(allStories, {
     keys: [
-      { name: 'slug', weight: 2 },   // Prioritize slug matches
+      { name: 'slug', weight: 2 }, // Prioritize slug matches
       { name: 'title', weight: 1 },
     ],
     threshold: MATCH_THRESHOLD,
@@ -318,7 +326,7 @@ export async function findStory(projectPath: string, query: string, options: Fin
   // Check if there are multiple similar scores
   const bestScore = results[0].score ?? 0;
   const similarMatches = results.filter(
-    (r) => (r.score ?? 0) - bestScore <= SCORE_SIMILARITY_THRESHOLD
+    (r) => (r.score ?? 0) - bestScore <= SCORE_SIMILARITY_THRESHOLD,
   );
 
   // If multiple matches have similar scores, return all for disambiguation

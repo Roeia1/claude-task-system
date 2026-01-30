@@ -1,6 +1,7 @@
-module.exports = {
+export default {
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.test.js'],
   verbose: true,
-  testTimeout: 10000,
+  testTimeout: 10_000,
+  transform: {},
 };

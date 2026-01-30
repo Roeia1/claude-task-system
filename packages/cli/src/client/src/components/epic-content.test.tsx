@@ -1,6 +1,9 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { describe, it, expect, afterEach } from 'vitest';
-import { EpicContent } from './EpicContent';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
+import { EpicContent } from './EpicContent.tsx';
+
+/** Expected number of list items in test cases */
+const EXPECTED_LIST_ITEMS = 3;
 
 describe('EpicContent', () => {
   afterEach(() => {
@@ -45,7 +48,7 @@ describe('EpicContent', () => {
 
       const list = container.querySelector('ul');
       expect(list).toBeInTheDocument();
-      expect(container.querySelectorAll('li')).toHaveLength(3);
+      expect(container.querySelectorAll('li')).toHaveLength(EXPECTED_LIST_ITEMS);
     });
 
     it('renders ordered lists correctly', () => {
@@ -54,7 +57,7 @@ describe('EpicContent', () => {
 
       const list = container.querySelector('ol');
       expect(list).toBeInTheDocument();
-      expect(container.querySelectorAll('li')).toHaveLength(3);
+      expect(container.querySelectorAll('li')).toHaveLength(EXPECTED_LIST_ITEMS);
     });
 
     it('renders code blocks correctly', () => {
@@ -126,6 +129,9 @@ describe('EpicContent', () => {
       // Find the trigger button (contains "Epic Documentation")
       const trigger = screen.getByText('Epic Documentation').closest('button');
       expect(trigger).toBeInTheDocument();
+      if (!trigger) {
+        throw new Error('Trigger button not found');
+      }
 
       const collapsible = container.querySelector('[data-testid="epic-content"]');
 
@@ -133,7 +139,7 @@ describe('EpicContent', () => {
       expect(collapsible).toHaveAttribute('data-state', 'open');
 
       // Click to collapse
-      fireEvent.click(trigger!);
+      fireEvent.click(trigger);
 
       // Content should be collapsed
       expect(collapsible).toHaveAttribute('data-state', 'closed');

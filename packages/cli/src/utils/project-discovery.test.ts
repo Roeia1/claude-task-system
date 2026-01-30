@@ -1,8 +1,25 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { findProjectRoot, resolveProjectPath } from './project-discovery.js';
-import { mkdirSync, rmSync, existsSync, realpathSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import process from 'node:process';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { findProjectRoot, resolveProjectPath } from './project-discovery.ts';
+
+// ============================================================================
+// Test Constants
+// ============================================================================
+
+/** Regex pattern for error message containing .saga */
+const SAGA_ERROR_PATTERN = /\.saga/;
+
+/** Regex pattern for SAGA project error message */
+const SAGA_PROJECT_ERROR_PATTERN = /SAGA project/;
+
+/** Base for generating random string suffixes in temp directory names */
+const RANDOM_STRING_BASE = 36;
+
+/** Start index for slicing the random string (to remove "0." prefix) */
+const RANDOM_STRING_SLICE_START = 2;
 
 /**
  * Normalize paths to handle macOS symlinks (e.g., /var -> /private/var)
@@ -20,7 +37,10 @@ describe('project-discovery', () => {
 
   beforeEach(() => {
     // Create a unique temp directory for each test
-    testDir = join(tmpdir(), `saga-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `saga-test-${Date.now()}-${Math.random().toString(RANDOM_STRING_BASE).slice(RANDOM_STRING_SLICE_START)}`,
+    );
     mkdirSync(testDir, { recursive: true });
   });
 
@@ -89,7 +109,7 @@ describe('project-discovery', () => {
     });
 
     it('throws error with helpful message when project not found', () => {
-      expect(() => resolveProjectPath(testDir)).toThrow(/\.saga/);
+      expect(() => resolveProjectPath(testDir)).toThrow(SAGA_ERROR_PATTERN);
     });
 
     it('discovers project root when no explicit path provided', () => {
@@ -115,7 +135,7 @@ describe('project-discovery', () => {
       const originalCwd = process.cwd();
       try {
         process.chdir(testDir);
-        expect(() => resolveProjectPath()).toThrow(/SAGA project/);
+        expect(() => resolveProjectPath()).toThrow(SAGA_PROJECT_ERROR_PATTERN);
       } finally {
         process.chdir(originalCwd);
       }

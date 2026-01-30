@@ -1,26 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useDashboard } from '@/context/DashboardContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ActiveSessions } from '@/components/ActiveSessions';
+import { useDashboard } from '@/context/dashboard-context';
 import { showApiErrorToast } from '@/lib/toast-utils';
 import type { EpicSummary, StoryStatus } from '@/types/dashboard';
+
+/** Percentage conversion multiplier */
+const PERCENTAGE_MULTIPLIER = 100;
 
 /** Skeleton loading component for epic cards */
 export function EpicCardSkeleton() {
   return (
-    <Card className="animate-pulse" data-testid="epic-card-skeleton">
+    <Card class="animate-pulse" data-testid="epic-card-skeleton">
       <CardHeader>
-        <div className="h-6 w-48 bg-bg-light rounded" />
+        <div class="h-6 w-48 bg-bg-light rounded" />
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="h-4 w-full bg-bg-light rounded" />
-        <div className="flex gap-2">
-          <div className="h-6 w-16 bg-bg-light rounded-full" />
-          <div className="h-6 w-16 bg-bg-light rounded-full" />
-          <div className="h-6 w-16 bg-bg-light rounded-full" />
+      <CardContent class="space-y-4">
+        <div class="h-4 w-full bg-bg-light rounded" />
+        <div class="flex gap-2">
+          <div class="h-6 w-16 bg-bg-light rounded-full" />
+          <div class="h-6 w-16 bg-bg-light rounded-full" />
+          <div class="h-6 w-16 bg-bg-light rounded-full" />
         </div>
       </CardContent>
     </Card>
@@ -31,6 +34,7 @@ export function EpicCardSkeleton() {
 export function StatusBadge({ status, count }: { status: StoryStatus; count: number }) {
   const variants: Record<StoryStatus, string> = {
     ready: 'bg-text-muted/20 text-text-muted',
+    // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
     in_progress: 'bg-primary/20 text-primary',
     blocked: 'bg-danger/20 text-danger',
     completed: 'bg-success/20 text-success',
@@ -38,13 +42,14 @@ export function StatusBadge({ status, count }: { status: StoryStatus; count: num
 
   const labels: Record<StoryStatus, string> = {
     ready: 'Ready',
+    // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
     in_progress: 'In Progress',
     blocked: 'Blocked',
     completed: 'Completed',
   };
 
   return (
-    <Badge className={variants[status]}>
+    <Badge class={variants[status]}>
       {labels[status]}: {count}
     </Badge>
   );
@@ -55,29 +60,27 @@ export function EpicCard({ epic }: { epic: EpicSummary }) {
   const { storyCounts } = epic;
   const completionPercentage =
     storyCounts.total > 0
-      ? Math.round((storyCounts.completed / storyCounts.total) * 100)
+      ? Math.round((storyCounts.completed / storyCounts.total) * PERCENTAGE_MULTIPLIER)
       : 0;
 
   return (
-    <Link to={`/epic/${epic.slug}`} className="block">
-      <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+    <Link to={`/epic/${epic.slug}`} class="block">
+      <Card class="hover:border-primary/50 transition-colors cursor-pointer">
         <CardHeader>
-          <CardTitle className="text-lg">{epic.title}</CardTitle>
+          <CardTitle class="text-lg">{epic.title}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-text-muted">Progress</span>
-              <span className="text-text-muted">
+        <CardContent class="space-y-4">
+          <div class="space-y-2">
+            <div class="flex justify-between text-sm">
+              <span class="text-text-muted">Progress</span>
+              <span class="text-text-muted">
                 {storyCounts.completed}/{storyCounts.total} stories
               </span>
             </div>
             <Progress value={completionPercentage} />
           </div>
-          <div className="flex flex-wrap gap-2">
-            {storyCounts.ready > 0 && (
-              <StatusBadge status="ready" count={storyCounts.ready} />
-            )}
+          <div class="flex flex-wrap gap-2">
+            {storyCounts.ready > 0 && <StatusBadge status="ready" count={storyCounts.ready} />}
             {storyCounts.inProgress > 0 && (
               <StatusBadge status="in_progress" count={storyCounts.inProgress} />
             )}
@@ -132,38 +135,40 @@ export function EpicList() {
   const hasArchivedEpics = epics.some((epic) => epic.isArchived);
 
   return (
-    <div className="space-y-6">
+    <div class="space-y-6">
       <ActiveSessions />
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text">Epics</h1>
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-text">Epics</h1>
         {hasArchivedEpics && (
-          <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
+          <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
             <input
               type="checkbox"
               checked={showArchived}
               onChange={(e) => setShowArchived(e.target.checked)}
-              className="rounded border-border"
+              class="rounded border-border"
             />
             Show archived
           </label>
         )}
       </div>
 
-      {loading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {loading && (
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <EpicCardSkeleton />
           <EpicCardSkeleton />
           <EpicCardSkeleton />
         </div>
-      ) : filteredEpics.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-text-muted text-lg">No epics found.</p>
-          <p className="text-text-muted">
-            Run <code className="text-primary">/create-epic</code> to get started.
+      )}
+      {!loading && filteredEpics.length === 0 && (
+        <div class="text-center py-12">
+          <p class="text-text-muted text-lg">No epics found.</p>
+          <p class="text-text-muted">
+            Run <code class="text-primary">/create-epic</code> to get started.
           </p>
         </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      )}
+      {!loading && filteredEpics.length > 0 && (
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredEpics.map((epic) => (
             <EpicCard key={epic.slug} epic={epic} />
           ))}
@@ -172,5 +177,3 @@ export function EpicList() {
     </div>
   );
 }
-
-export default EpicList;

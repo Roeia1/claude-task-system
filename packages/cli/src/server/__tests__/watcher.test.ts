@@ -4,11 +4,11 @@
  * Tests file watching with chokidar for .saga/ directory changes.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, rm, mkdir, writeFile } from 'fs/promises';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { createSagaWatcher, type SagaWatcher, type WatcherEvent } from '../watcher.js';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { createSagaWatcher, type WatcherEvent } from '../watcher.ts';
 
 describe('watcher', () => {
   let tempDir: string;
@@ -28,7 +28,7 @@ describe('watcher', () => {
     // Create epic.md
     await writeFile(
       join(sagaRoot, '.saga', 'epics', 'test-epic', 'epic.md'),
-      '# Test Epic\n\nSome content.'
+      '# Test Epic\n\nSome content.',
     );
 
     // Create story.md
@@ -46,7 +46,7 @@ tasks:
 
 ## Context
 Some context.
-`
+`,
     );
   });
 
@@ -112,7 +112,7 @@ tasks:
 
 ## Context
 Updated context.
-`
+`,
       );
 
       // Wait for debounced event (100ms debounce + buffer)
@@ -148,7 +148,7 @@ Updated context.
 
 **What was done:**
 - Created journal
-`
+`,
       );
 
       // Wait for debounced event
@@ -174,7 +174,7 @@ Updated context.
       // Modify epic.md
       await writeFile(
         join(sagaRoot, '.saga', 'epics', 'test-epic', 'epic.md'),
-        '# Test Epic Updated\n\nUpdated content.'
+        '# Test Epic Updated\n\nUpdated content.',
       );
 
       // Wait for debounced event
@@ -202,7 +202,7 @@ Updated context.
       await mkdir(join(sagaRoot, '.saga', 'epics', 'new-epic'), { recursive: true });
       await writeFile(
         join(sagaRoot, '.saga', 'epics', 'new-epic', 'epic.md'),
-        '# New Epic\n\nNew content.'
+        '# New Epic\n\nNew content.',
       );
 
       // Wait for debounced event
@@ -237,14 +237,16 @@ title: New Story
 status: ready
 tasks: []
 ---
-`
+`,
       );
 
       // Wait for debounced event
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
-      expect(events.some((e) => e.type === 'story:added' && e.storySlug === 'new-story')).toBe(true);
+      expect(events.some((e) => e.type === 'story:added' && e.storySlug === 'new-story')).toBe(
+        true,
+      );
 
       await watcher.close();
     });
@@ -270,7 +272,7 @@ tasks: []
         'test-epic',
         'stories',
         'test-story',
-        'story.md'
+        'story.md',
       );
 
       await writeFile(storyPath, '---\nid: test-story\ntitle: Change 1\nstatus: ready\n---\n');
@@ -303,10 +305,7 @@ tasks: []
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Create a non-md file
-      await writeFile(
-        join(sagaRoot, '.saga', 'epics', 'test-epic', 'notes.txt'),
-        'Some notes'
-      );
+      await writeFile(join(sagaRoot, '.saga', 'epics', 'test-epic', 'notes.txt'), 'Some notes');
 
       // Wait for potential event
       await new Promise((resolve) => setTimeout(resolve, 300));
@@ -332,7 +331,7 @@ title: Archived Story
 status: completed
 tasks: []
 ---
-`
+`,
       );
 
       const watcher = await createSagaWatcher(sagaRoot);
@@ -354,7 +353,7 @@ title: Archived Story Updated
 status: completed
 tasks: []
 ---
-`
+`,
       );
 
       // Wait for debounced event
@@ -411,7 +410,7 @@ tasks: []
 
       await writeFile(
         join(sagaRoot, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        '---\nid: test-story\ntitle: After Close\nstatus: ready\n---\n'
+        '---\nid: test-story\ntitle: After Close\nstatus: ready\n---\n',
       );
 
       // Wait for potential event

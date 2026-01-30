@@ -1,9 +1,14 @@
-import { test, expect } from '@playwright/test';
-import {
-  createMockEpic,
-  createMockStoryDetail,
-  mockEpicDetail,
-} from '../utils/mock-api';
+import { expect, test } from '@playwright/test';
+import { createMockEpic, createMockStoryDetail, mockEpicDetail } from '../utils/mock-api.ts';
+
+// Test fixture: markdown content with code block
+const MARKDOWN_WITH_CODE_BLOCK = [
+  '## Example',
+  '',
+  '```typescript',
+  'const hello = "world";',
+  '```',
+].join('\n');
 
 /**
  * Integration tests for epic content display in the dashboard.
@@ -15,12 +20,14 @@ test.describe('Epic Content Display', () => {
       const epicWithContent = createMockEpic({
         slug: 'content-epic',
         title: 'Epic With Content',
-        content: '# Epic Overview\n\nThis is the main description.\n\n## Goals\n\n- Goal 1\n- Goal 2',
+        content:
+          '# Epic Overview\n\nThis is the main description.\n\n## Goals\n\n- Goal 1\n- Goal 2',
         stories: [],
       });
 
       await mockEpicDetail(page, epicWithContent);
       await page.goto('/epic/content-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Verify the epic content section is visible
       const epicContent = page.getByTestId('epic-content');
@@ -45,6 +52,7 @@ test.describe('Epic Content Display', () => {
 
       await mockEpicDetail(page, epicWithoutContent);
       await page.goto('/epic/no-content-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Verify the page loaded correctly (title is visible)
       await expect(page.getByRole('heading', { name: 'Epic Without Content' })).toBeVisible();
@@ -54,7 +62,9 @@ test.describe('Epic Content Display', () => {
       await expect(epicContent).not.toBeVisible();
     });
 
-    test('should not display epic content section when content is empty string', async ({ page }) => {
+    test('should not display epic content section when content is empty string', async ({
+      page,
+    }) => {
       const epicWithEmptyContent = createMockEpic({
         slug: 'empty-content-epic',
         title: 'Epic With Empty Content',
@@ -64,6 +74,7 @@ test.describe('Epic Content Display', () => {
 
       await mockEpicDetail(page, epicWithEmptyContent);
       await page.goto('/epic/empty-content-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Verify the page loaded correctly
       await expect(page.getByRole('heading', { name: 'Epic With Empty Content' })).toBeVisible();
@@ -85,6 +96,7 @@ test.describe('Epic Content Display', () => {
 
       await mockEpicDetail(page, epic);
       await page.goto('/epic/expanded-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Verify the epic content section is expanded (data-state="open")
       const epicContent = page.getByTestId('epic-content');
@@ -104,6 +116,7 @@ test.describe('Epic Content Display', () => {
 
       await mockEpicDetail(page, epic);
       await page.goto('/epic/collapsible-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       const epicContent = page.getByTestId('epic-content');
 
@@ -128,6 +141,7 @@ test.describe('Epic Content Display', () => {
 
       await mockEpicDetail(page, epic);
       await page.goto('/epic/toggle-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       const epicContent = page.getByTestId('epic-content');
       const toggleButton = page.getByRole('button', { name: /epic documentation/i });
@@ -161,6 +175,7 @@ test.describe('Epic Content Display', () => {
 
       await mockEpicDetail(page, epic);
       await page.goto('/epic/layout-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Verify all sections are present
       await expect(page.getByRole('heading', { name: 'Layout Epic' })).toBeVisible();
@@ -185,6 +200,7 @@ test.describe('Epic Content Display', () => {
 
       await mockEpicDetail(page, epic);
       await page.goto('/epic/markdown-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // The markdown content is rendered inside the .prose container
       // The "Epic Documentation" h2 is in the trigger, not inside .prose
@@ -205,6 +221,7 @@ test.describe('Epic Content Display', () => {
 
       await mockEpicDetail(page, epic);
       await page.goto('/epic/lists-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       const epicContent = page.getByTestId('epic-content');
       await expect(epicContent.locator('ul')).toBeVisible();
@@ -217,12 +234,13 @@ test.describe('Epic Content Display', () => {
       const epic = createMockEpic({
         slug: 'code-epic',
         title: 'Code Epic',
-        content: '## Example\n\n```typescript\nconst hello = "world";\n```',
+        content: MARKDOWN_WITH_CODE_BLOCK,
         stories: [],
       });
 
       await mockEpicDetail(page, epic);
       await page.goto('/epic/code-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       const epicContent = page.getByTestId('epic-content');
       await expect(epicContent.locator('pre')).toBeVisible();
@@ -239,6 +257,7 @@ test.describe('Epic Content Display', () => {
 
       await mockEpicDetail(page, epic);
       await page.goto('/epic/table-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       const epicContent = page.getByTestId('epic-content');
       await expect(epicContent.locator('table')).toBeVisible();

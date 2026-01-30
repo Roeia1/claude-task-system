@@ -1,4 +1,11 @@
+import process from 'node:process';
 import { defineConfig, devices } from '@playwright/test';
+
+// Timeout configuration constants
+const MS_PER_SECOND = 1000;
+const WEB_SERVER_TIMEOUT_SECONDS = 120;
+const TEST_TIMEOUT_SECONDS = 30;
+const EXPECT_TIMEOUT_SECONDS = 5;
 
 /**
  * Playwright configuration for dashboard integration tests.
@@ -14,13 +21,10 @@ export default defineConfig({
   fullyParallel: true,
 
   // Fail the build on CI if you accidentally left test.only in the source code
-  forbidOnly: !!process.env.CI,
+  forbidOnly: Boolean(process.env.CI),
 
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
-
-  // Limit parallel workers on CI for stability
-  workers: process.env.CI ? 1 : undefined,
 
   // Reporter configuration
   reporter: process.env.CI ? 'github' : 'html',
@@ -28,6 +32,7 @@ export default defineConfig({
   // Shared settings for all projects
   use: {
     // Base URL for navigation
+    // biome-ignore lint/style/useNamingConvention: Playwright API uses baseURL
     baseURL: 'http://localhost:5173',
 
     // Collect trace on first retry
@@ -47,16 +52,16 @@ export default defineConfig({
 
   // Web server configuration - starts Vite dev server before tests
   webServer: {
-    command: 'pnpm dev:client',
+    command: 'vite --config src/client/vite.config.ts',
     cwd: '../..',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: WEB_SERVER_TIMEOUT_SECONDS * MS_PER_SECOND,
   },
 
   // Test timeouts
-  timeout: 30 * 1000,
+  timeout: TEST_TIMEOUT_SECONDS * MS_PER_SECOND,
   expect: {
-    timeout: 5 * 1000,
+    timeout: EXPECT_TIMEOUT_SECONDS * MS_PER_SECOND,
   },
 });

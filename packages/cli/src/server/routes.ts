@@ -7,16 +7,16 @@
  * - GET /api/stories/:epicSlug/:storySlug - returns StoryDetail with parsed journal
  */
 
-import { Router, type Request, type Response } from 'express';
+import { join } from 'node:path';
+import { type Request, type Response, Router } from 'express';
 import {
-  scanSagaDirectory,
-  parseJournal,
-  type EpicSummary,
   type Epic,
+  type EpicSummary,
+  parseJournal,
   type StoryDetail,
-} from './parser.js';
-import { join } from 'path';
-import { createSessionApiRouter } from './session-routes.js';
+  scanSagaDirectory,
+} from './parser.ts';
+import { createSessionApiRouter } from './session-routes.ts';
 
 /**
  * Get epics by scanning the saga directory
@@ -58,8 +58,7 @@ export function createApiRouter(sagaRoot: string): Router {
       const epics = await getEpics(sagaRoot);
       const summaries = epics.map(toEpicSummary);
       res.json(summaries);
-    } catch (error) {
-      console.error('Error fetching epics:', error);
+    } catch (_error) {
       res.status(500).json({ error: 'Failed to fetch epics' });
     }
   });
@@ -80,8 +79,7 @@ export function createApiRouter(sagaRoot: string): Router {
       }
 
       res.json(epic);
-    } catch (error) {
-      console.error('Error fetching epic:', error);
+    } catch (_error) {
       res.status(500).json({ error: 'Failed to fetch epic' });
     }
   });
@@ -118,8 +116,7 @@ export function createApiRouter(sagaRoot: string): Router {
       }
 
       res.json(story);
-    } catch (error) {
-      console.error('Error fetching story:', error);
+    } catch (_error) {
       res.status(500).json({ error: 'Failed to fetch story' });
     }
   });

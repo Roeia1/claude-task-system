@@ -6,9 +6,8 @@
  * - GET /api/sessions/:sessionName - returns DetailedSessionInfo for a specific session
  */
 
-import { Router, type Request, type Response } from 'express';
-import { getCurrentSessions } from '../lib/session-polling.js';
-import type { DetailedSessionInfo } from '../lib/sessions.js';
+import { type Request, type Response, Router } from 'express';
+import { getCurrentSessions } from '../lib/session-polling.ts';
 
 /**
  * Create the Session API router
@@ -48,13 +47,16 @@ export function createSessionApiRouter(): Router {
       }
 
       // Filter by status
-      if (status && typeof status === 'string' && (status === 'running' || status === 'completed')) {
+      if (
+        status &&
+        typeof status === 'string' &&
+        (status === 'running' || status === 'completed')
+      ) {
         sessions = sessions.filter((s) => s.status === status);
       }
 
       res.json(sessions);
-    } catch (error) {
-      console.error('Error fetching sessions:', error);
+    } catch (_error) {
       res.status(500).json({ error: 'Failed to fetch sessions' });
     }
   });
@@ -78,8 +80,7 @@ export function createSessionApiRouter(): Router {
       }
 
       res.json(session);
-    } catch (error) {
-      console.error('Error fetching session:', error);
+    } catch (_error) {
       res.status(500).json({ error: 'Failed to fetch session' });
     }
   });

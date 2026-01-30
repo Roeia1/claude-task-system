@@ -1,12 +1,12 @@
-import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, within } from 'storybook/test'
-import { MemoryRouter } from 'react-router-dom'
-import { createActor } from 'xstate'
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot'
-import { DashboardProvider } from '@/context/DashboardContext'
-import { dashboardMachine } from '@/machines'
-import { EpicList, EpicCardSkeleton, StatusBadge, EpicCard } from './EpicList'
-import type { EpicSummary } from '@/types/dashboard'
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { MemoryRouter } from 'react-router';
+import { expect, within } from 'storybook/test';
+import { createActor } from 'xstate';
+import { DashboardProvider } from '@/context/dashboard-context';
+import { dashboardMachine } from '@/machines';
+import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import type { EpicSummary } from '@/types/dashboard';
+import { EpicCard, EpicCardSkeleton, EpicList, StatusBadge } from './EpicList.tsx';
 
 // ============================================================================
 // EpicCardSkeleton Stories
@@ -27,10 +27,10 @@ const skeletonMeta: Meta<typeof EpicCardSkeleton> = {
       },
     },
   },
-}
+};
 
-export default skeletonMeta
-type SkeletonStory = StoryObj<typeof EpicCardSkeleton>
+export default skeletonMeta;
+type SkeletonStory = StoryObj<typeof EpicCardSkeleton>;
 
 /**
  * Default skeleton showing the animated loading state with
@@ -38,15 +38,15 @@ type SkeletonStory = StoryObj<typeof EpicCardSkeleton>
  */
 export const Skeleton: SkeletonStory = {
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const _canvas = within(canvasElement);
     // Verify skeleton card structure exists - the card should have animate-pulse class
-    const card = canvasElement.querySelector('.animate-pulse')
-    await expect(card).toBeInTheDocument()
+    const card = canvasElement.querySelector('.animate-pulse');
+    await expect(card).toBeInTheDocument();
     // Verify skeleton has placeholder elements with bg-bg-light class
-    const placeholders = canvasElement.querySelectorAll('.bg-bg-light')
-    await expect(placeholders.length).toBeGreaterThanOrEqual(3) // title, progress bar, badges
+    const placeholders = canvasElement.querySelectorAll('.bg-bg-light');
+    await expect(placeholders.length).toBeGreaterThanOrEqual(3); // title, progress bar, badges
   },
-}
+};
 
 /**
  * Multiple skeletons arranged in a grid, simulating the loading
@@ -54,7 +54,7 @@ export const Skeleton: SkeletonStory = {
  */
 export const SkeletonGrid: SkeletonStory = {
   render: () => (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <EpicCardSkeleton />
       <EpicCardSkeleton />
       <EpicCardSkeleton />
@@ -62,13 +62,13 @@ export const SkeletonGrid: SkeletonStory = {
   ),
   play: async ({ canvasElement }) => {
     // Verify grid container exists
-    const grid = canvasElement.querySelector('.grid')
-    await expect(grid).toBeInTheDocument()
+    const grid = canvasElement.querySelector('.grid');
+    await expect(grid).toBeInTheDocument();
     // Verify three skeleton cards are rendered
-    const skeletonCards = canvasElement.querySelectorAll('.animate-pulse')
-    await expect(skeletonCards.length).toBe(3)
+    const skeletonCards = canvasElement.querySelectorAll('.animate-pulse');
+    await expect(skeletonCards.length).toBe(3);
   },
-}
+};
 
 // ============================================================================
 // StatusBadge Stories (exported separately for dedicated coverage in t8)
@@ -100,9 +100,9 @@ export const statusBadgeMeta: Meta<typeof StatusBadge> = {
       },
     },
   },
-}
+};
 
-type StatusBadgeStory = StoryObj<typeof StatusBadge>
+type StatusBadgeStory = StoryObj<typeof StatusBadge>;
 
 /**
  * Ready status - gray color indicating stories that haven't started.
@@ -110,11 +110,11 @@ type StatusBadgeStory = StoryObj<typeof StatusBadge>
 export const StatusReady: StatusBadgeStory = {
   render: () => <StatusBadge status="ready" count={5} />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const badge = canvas.getByText('Ready: 5')
-    await expect(badge).toBeInTheDocument()
+    const canvas = within(canvasElement);
+    const badge = canvas.getByText('Ready: 5');
+    await expect(badge).toBeInTheDocument();
   },
-}
+};
 
 /**
  * In Progress status - primary blue color for active work.
@@ -122,11 +122,11 @@ export const StatusReady: StatusBadgeStory = {
 export const StatusInProgress: StatusBadgeStory = {
   render: () => <StatusBadge status="in_progress" count={3} />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const badge = canvas.getByText('In Progress: 3')
-    await expect(badge).toBeInTheDocument()
+    const canvas = within(canvasElement);
+    const badge = canvas.getByText('In Progress: 3');
+    await expect(badge).toBeInTheDocument();
   },
-}
+};
 
 /**
  * Blocked status - danger red color indicating impediments.
@@ -134,11 +134,11 @@ export const StatusInProgress: StatusBadgeStory = {
 export const StatusBlocked: StatusBadgeStory = {
   render: () => <StatusBadge status="blocked" count={1} />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const badge = canvas.getByText('Blocked: 1')
-    await expect(badge).toBeInTheDocument()
+    const canvas = within(canvasElement);
+    const badge = canvas.getByText('Blocked: 1');
+    await expect(badge).toBeInTheDocument();
   },
-}
+};
 
 /**
  * Completed status - success green color for finished stories.
@@ -146,18 +146,18 @@ export const StatusBlocked: StatusBadgeStory = {
 export const StatusCompleted: StatusBadgeStory = {
   render: () => <StatusBadge status="completed" count={8} />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const badge = canvas.getByText('Completed: 8')
-    await expect(badge).toBeInTheDocument()
+    const canvas = within(canvasElement);
+    const badge = canvas.getByText('Completed: 8');
+    await expect(badge).toBeInTheDocument();
   },
-}
+};
 
 /**
  * All status badges displayed together to show color contrast.
  */
 export const AllStatuses: StatusBadgeStory = {
   render: () => (
-    <div className="flex flex-wrap gap-2">
+    <div class="flex flex-wrap gap-2">
       <StatusBadge status="ready" count={5} />
       <StatusBadge status="in_progress" count={3} />
       <StatusBadge status="blocked" count={1} />
@@ -165,14 +165,14 @@ export const AllStatuses: StatusBadgeStory = {
     </div>
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify all four status badges are present
-    await expect(canvas.getByText('Ready: 5')).toBeInTheDocument()
-    await expect(canvas.getByText('In Progress: 3')).toBeInTheDocument()
-    await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument()
-    await expect(canvas.getByText('Completed: 8')).toBeInTheDocument()
+    await expect(canvas.getByText('Ready: 5')).toBeInTheDocument();
+    await expect(canvas.getByText('In Progress: 3')).toBeInTheDocument();
+    await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument();
+    await expect(canvas.getByText('Completed: 8')).toBeInTheDocument();
   },
-}
+};
 
 // ============================================================================
 // EpicCard Stories
@@ -203,9 +203,9 @@ export const epicCardMeta: Meta<typeof EpicCard> = {
       test: 'error',
     },
   },
-}
+};
 
-type EpicCardStory = StoryObj<typeof EpicCard>
+type EpicCardStory = StoryObj<typeof EpicCard>;
 
 const sampleEpic: EpicSummary = {
   slug: 'dashboard-restructure',
@@ -217,40 +217,52 @@ const sampleEpic: EpicSummary = {
     completed: 4,
     total: 10,
   },
-}
+};
 
 /**
  * Default epic card with a mix of story statuses.
  */
 export const Card: EpicCardStory = {
-  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   render: () => <EpicCard epic={sampleEpic} />,
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify epic title
-    await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument()
+    await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument();
     // Verify progress text
-    await expect(canvas.getByText('Progress')).toBeInTheDocument()
-    await expect(canvas.getByText('4/10 stories')).toBeInTheDocument()
+    await expect(canvas.getByText('Progress')).toBeInTheDocument();
+    await expect(canvas.getByText('4/10 stories')).toBeInTheDocument();
     // Verify status badges are present
-    await expect(canvas.getByText('Ready: 3')).toBeInTheDocument()
-    await expect(canvas.getByText('In Progress: 2')).toBeInTheDocument()
-    await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument()
-    await expect(canvas.getByText('Completed: 4')).toBeInTheDocument()
+    await expect(canvas.getByText('Ready: 3')).toBeInTheDocument();
+    await expect(canvas.getByText('In Progress: 2')).toBeInTheDocument();
+    await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument();
+    await expect(canvas.getByText('Completed: 4')).toBeInTheDocument();
     // Verify the card is a link
-    const link = canvas.getByRole('link')
-    await expect(link).toHaveAttribute('href', '/epic/dashboard-restructure')
+    const link = canvas.getByRole('link');
+    await expect(link).toHaveAttribute('href', '/epic/dashboard-restructure');
 
     // Accessibility: Verify the link has an accessible name (the epic title)
-    await expect(link).toHaveAccessibleName()
+    await expect(link).toHaveAccessibleName();
   },
-}
+};
 
 /**
  * Epic card for a fully completed epic.
  */
 export const CardCompleted: EpicCardStory = {
-  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   render: () => (
     <EpicCard
       epic={{
@@ -267,24 +279,30 @@ export const CardCompleted: EpicCardStory = {
     />
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify epic title
-    await expect(canvas.getByText('Authentication Migration')).toBeInTheDocument()
+    await expect(canvas.getByText('Authentication Migration')).toBeInTheDocument();
     // Verify progress shows 100% complete
-    await expect(canvas.getByText('5/5 stories')).toBeInTheDocument()
+    await expect(canvas.getByText('5/5 stories')).toBeInTheDocument();
     // Only completed badge should be visible (zero counts are hidden)
-    await expect(canvas.getByText('Completed: 5')).toBeInTheDocument()
-    await expect(canvas.queryByText(/Ready:/)).not.toBeInTheDocument()
-    await expect(canvas.queryByText(/In Progress:/)).not.toBeInTheDocument()
-    await expect(canvas.queryByText(/Blocked:/)).not.toBeInTheDocument()
+    await expect(canvas.getByText('Completed: 5')).toBeInTheDocument();
+    await expect(canvas.queryByText(/Ready:/)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(/In Progress:/)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(/Blocked:/)).not.toBeInTheDocument();
   },
-}
+};
 
 /**
  * Epic card with all stories ready to start.
  */
 export const CardAllReady: EpicCardStory = {
-  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   render: () => (
     <EpicCard
       epic={{
@@ -301,24 +319,30 @@ export const CardAllReady: EpicCardStory = {
     />
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify epic title
-    await expect(canvas.getByText('New Feature Implementation')).toBeInTheDocument()
+    await expect(canvas.getByText('New Feature Implementation')).toBeInTheDocument();
     // Verify progress shows 0% complete
-    await expect(canvas.getByText('0/4 stories')).toBeInTheDocument()
+    await expect(canvas.getByText('0/4 stories')).toBeInTheDocument();
     // Only ready badge should be visible
-    await expect(canvas.getByText('Ready: 4')).toBeInTheDocument()
-    await expect(canvas.queryByText(/Completed:/)).not.toBeInTheDocument()
-    await expect(canvas.queryByText(/In Progress:/)).not.toBeInTheDocument()
-    await expect(canvas.queryByText(/Blocked:/)).not.toBeInTheDocument()
+    await expect(canvas.getByText('Ready: 4')).toBeInTheDocument();
+    await expect(canvas.queryByText(/Completed:/)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(/In Progress:/)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(/Blocked:/)).not.toBeInTheDocument();
   },
-}
+};
 
 /**
  * Epic card with blocked work requiring attention.
  */
 export const CardWithBlockers: EpicCardStory = {
-  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   render: () => (
     <EpicCard
       epic={{
@@ -335,24 +359,30 @@ export const CardWithBlockers: EpicCardStory = {
     />
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify epic title
-    await expect(canvas.getByText('API Integration')).toBeInTheDocument()
+    await expect(canvas.getByText('API Integration')).toBeInTheDocument();
     // Verify progress text
-    await expect(canvas.getByText('1/7 stories')).toBeInTheDocument()
+    await expect(canvas.getByText('1/7 stories')).toBeInTheDocument();
     // Verify all status badges are present including blockers
-    await expect(canvas.getByText('Ready: 2')).toBeInTheDocument()
-    await expect(canvas.getByText('In Progress: 1')).toBeInTheDocument()
-    await expect(canvas.getByText('Blocked: 3')).toBeInTheDocument()
-    await expect(canvas.getByText('Completed: 1')).toBeInTheDocument()
+    await expect(canvas.getByText('Ready: 2')).toBeInTheDocument();
+    await expect(canvas.getByText('In Progress: 1')).toBeInTheDocument();
+    await expect(canvas.getByText('Blocked: 3')).toBeInTheDocument();
+    await expect(canvas.getByText('Completed: 1')).toBeInTheDocument();
   },
-}
+};
 
 /**
  * Epic card with a long title demonstrating text handling.
  */
 export const CardLongTitle: EpicCardStory = {
-  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   render: () => (
     <EpicCard
       epic={{
@@ -370,28 +400,34 @@ export const CardLongTitle: EpicCardStory = {
     />
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify long title is rendered fully
     await expect(
       canvas.getByText(
-        'This Is a Very Long Epic Title That Demonstrates How Text Wrapping Works in the Card Component'
-      )
-    ).toBeInTheDocument()
+        'This Is a Very Long Epic Title That Demonstrates How Text Wrapping Works in the Card Component',
+      ),
+    ).toBeInTheDocument();
     // Verify progress text
-    await expect(canvas.getByText('2/4 stories')).toBeInTheDocument()
+    await expect(canvas.getByText('2/4 stories')).toBeInTheDocument();
     // Verify link points to correct slug
-    const link = canvas.getByRole('link')
-    await expect(link).toHaveAttribute('href', '/epic/very-long-epic-slug')
+    const link = canvas.getByRole('link');
+    await expect(link).toHaveAttribute('href', '/epic/very-long-epic-slug');
   },
-}
+};
 
 /**
  * Multiple epic cards in a grid layout.
  */
 export const CardGrid: EpicCardStory = {
-  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   render: () => (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <EpicCard epic={sampleEpic} />
       <EpicCard
         epic={{
@@ -422,35 +458,35 @@ export const CardGrid: EpicCardStory = {
     </div>
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify all three epic titles are rendered
-    await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument()
-    await expect(canvas.getByText('Authentication Migration')).toBeInTheDocument()
-    await expect(canvas.getByText('API Integration')).toBeInTheDocument()
+    await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument();
+    await expect(canvas.getByText('Authentication Migration')).toBeInTheDocument();
+    await expect(canvas.getByText('API Integration')).toBeInTheDocument();
     // Verify all three links are present
-    const links = canvas.getAllByRole('link')
-    await expect(links.length).toBe(3)
+    const links = canvas.getAllByRole('link');
+    await expect(links.length).toBe(3);
 
     // Accessibility: Verify all links have accessible names
     for (const link of links) {
-      await expect(link).toHaveAccessibleName()
+      await expect(link).toHaveAccessibleName();
     }
   },
-}
+};
 
 // ============================================================================
 // EpicList Composite Stories
 // ============================================================================
 
 /** Helper to create a mock dashboard provider with specific epics */
-function MockDashboardProvider({
+function _MockDashboardProvider({
   children,
   epics,
   isLoading = false,
 }: {
-  children: React.ReactNode
-  epics: EpicSummary[]
-  isLoading?: boolean
+  children: React.ReactNode;
+  epics: EpicSummary[];
+  isLoading?: boolean;
 }) {
   // Create an actor from the machine with pre-configured context
   const actor = createActor(dashboardMachine, {
@@ -466,11 +502,11 @@ function MockDashboardProvider({
         subscribedStories: [],
       },
     }),
-  })
+  });
 
-  actor.start()
+  actor.start();
 
-  return <DashboardProvider logic={dashboardMachine}>{children}</DashboardProvider>
+  return <DashboardProvider logic={dashboardMachine}>{children}</DashboardProvider>;
 }
 
 /**
@@ -495,9 +531,9 @@ export const epicListMeta: Meta<typeof EpicList> = {
       },
     },
   },
-}
+};
 
-type EpicListStory = StoryObj<typeof EpicList>
+type EpicListStory = StoryObj<typeof EpicList>;
 
 /**
  * Loading state showing three skeleton cards.
@@ -505,11 +541,11 @@ type EpicListStory = StoryObj<typeof EpicList>
  */
 export const Loading: EpicListStory = {
   render: () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text">Epics</h1>
+    <div class="space-y-6">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-text">Epics</h1>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <EpicCardSkeleton />
         <EpicCardSkeleton />
         <EpicCardSkeleton />
@@ -517,52 +553,52 @@ export const Loading: EpicListStory = {
     </div>
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify page title
-    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    await expect(canvas.getByText('Epics')).toBeInTheDocument();
     // Verify three skeleton cards are rendered
-    const skeletonCards = canvasElement.querySelectorAll('.animate-pulse')
-    await expect(skeletonCards.length).toBe(3)
+    const skeletonCards = canvasElement.querySelectorAll('.animate-pulse');
+    await expect(skeletonCards.length).toBe(3);
     // Verify grid layout
-    const grid = canvasElement.querySelector('.grid')
-    await expect(grid).toBeInTheDocument()
+    const grid = canvasElement.querySelector('.grid');
+    await expect(grid).toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'epic-list-loading')
+    await matchCanvasSnapshot(canvasElement, 'epic-list-loading');
   },
-}
+};
 
 /**
  * Empty state when no epics exist.
  */
 export const Empty: EpicListStory = {
   render: () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text">Epics</h1>
+    <div class="space-y-6">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-text">Epics</h1>
       </div>
-      <div className="text-center py-12">
-        <p className="text-text-muted text-lg">No epics found.</p>
-        <p className="text-text-muted">
-          Run <code className="text-primary">/create-epic</code> to get started.
+      <div class="text-center py-12">
+        <p class="text-text-muted text-lg">No epics found.</p>
+        <p class="text-text-muted">
+          Run <code class="text-primary">/create-epic</code> to get started.
         </p>
       </div>
     </div>
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify page title
-    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    await expect(canvas.getByText('Epics')).toBeInTheDocument();
     // Verify empty state message
-    await expect(canvas.getByText('No epics found.')).toBeInTheDocument()
+    await expect(canvas.getByText('No epics found.')).toBeInTheDocument();
     // Verify guidance text with /create-epic command
-    await expect(canvas.getByText('/create-epic')).toBeInTheDocument()
-    await expect(canvas.getByText(/to get started/)).toBeInTheDocument()
+    await expect(canvas.getByText('/create-epic')).toBeInTheDocument();
+    await expect(canvas.getByText(/to get started/)).toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'epic-list-empty')
+    await matchCanvasSnapshot(canvasElement, 'epic-list-empty');
   },
-}
+};
 
 const sampleEpics: EpicSummary[] = [
   {
@@ -598,19 +634,25 @@ const sampleEpics: EpicSummary[] = [
       total: 7,
     },
   },
-]
+];
 
 /**
  * Populated state with multiple epics showing various progress states.
  */
 export const Populated: EpicListStory = {
-  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   render: () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text">Epics</h1>
+    <div class="space-y-6">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-text">Epics</h1>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {sampleEpics.map((epic) => (
           <EpicCard key={epic.slug} epic={epic} />
         ))}
@@ -618,25 +660,25 @@ export const Populated: EpicListStory = {
     </div>
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify page title
-    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    await expect(canvas.getByText('Epics')).toBeInTheDocument();
     // Verify epic cards are rendered with expected content
-    await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument()
-    await expect(canvas.getByText('Authentication Migration')).toBeInTheDocument()
-    await expect(canvas.getByText('API Integration')).toBeInTheDocument()
+    await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument();
+    await expect(canvas.getByText('Authentication Migration')).toBeInTheDocument();
+    await expect(canvas.getByText('API Integration')).toBeInTheDocument();
     // Verify progress bars are present (via Progress text)
-    await expect(canvas.getByText('4/10 stories')).toBeInTheDocument()
-    await expect(canvas.getByText('5/5 stories')).toBeInTheDocument()
-    await expect(canvas.getByText('1/7 stories')).toBeInTheDocument()
+    await expect(canvas.getByText('4/10 stories')).toBeInTheDocument();
+    await expect(canvas.getByText('5/5 stories')).toBeInTheDocument();
+    await expect(canvas.getByText('1/7 stories')).toBeInTheDocument();
     // Verify links are present
-    const links = canvas.getAllByRole('link')
-    await expect(links.length).toBe(3)
+    const links = canvas.getAllByRole('link');
+    await expect(links.length).toBe(3);
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'epic-list-populated')
+    await matchCanvasSnapshot(canvasElement, 'epic-list-populated');
   },
-}
+};
 
 const epicsWithArchived: EpicSummary[] = [
   ...sampleEpics,
@@ -664,24 +706,30 @@ const epicsWithArchived: EpicSummary[] = [
     },
     isArchived: true,
   },
-]
+];
 
 /**
  * State with archived epics, showing the "Show archived" toggle.
  * Archived epics are hidden by default but can be revealed.
  */
 export const WithArchivedEpics: EpicListStory = {
-  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   render: () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text">Epics</h1>
-        <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
-          <input type="checkbox" className="rounded border-border" />
+    <div class="space-y-6">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-text">Epics</h1>
+        <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
+          <input type="checkbox" class="rounded border-border" />
           Show archived
         </label>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {sampleEpics.map((epic) => (
           <EpicCard key={epic.slug} epic={epic} />
         ))}
@@ -695,39 +743,45 @@ export const WithArchivedEpics: EpicListStory = {
     },
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify page title
-    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    await expect(canvas.getByText('Epics')).toBeInTheDocument();
     // Verify archive toggle checkbox is present
-    const checkbox = canvas.getByRole('checkbox')
-    await expect(checkbox).toBeInTheDocument()
-    await expect(checkbox).not.toBeChecked()
+    const checkbox = canvas.getByRole('checkbox');
+    await expect(checkbox).toBeInTheDocument();
+    await expect(checkbox).not.toBeChecked();
     // Verify toggle label
-    await expect(canvas.getByText('Show archived')).toBeInTheDocument()
+    await expect(canvas.getByText('Show archived')).toBeInTheDocument();
     // Verify only non-archived epics are visible (3 epics)
-    const links = canvas.getAllByRole('link')
-    await expect(links.length).toBe(3)
+    const links = canvas.getAllByRole('link');
+    await expect(links.length).toBe(3);
 
     // Accessibility: Verify checkbox has accessible name via label
-    await expect(checkbox).toHaveAccessibleName('Show archived')
+    await expect(checkbox).toHaveAccessibleName('Show archived');
   },
-}
+};
 
 /**
  * State showing all epics including archived ones (toggle enabled).
  */
 export const WithArchivedVisible: EpicListStory = {
-  decorators: [(Story) => (<MemoryRouter><Story /></MemoryRouter>)],
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   render: () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text">Epics</h1>
-        <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
-          <input type="checkbox" checked readOnly className="rounded border-border" />
+    <div class="space-y-6">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-text">Epics</h1>
+        <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
+          <input type="checkbox" checked={true} readOnly={true} class="rounded border-border" />
           Show archived
         </label>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {epicsWithArchived.map((epic) => (
           <EpicCard key={epic.slug} epic={epic} />
         ))}
@@ -741,21 +795,21 @@ export const WithArchivedVisible: EpicListStory = {
     },
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
     // Verify page title
-    await expect(canvas.getByText('Epics')).toBeInTheDocument()
+    await expect(canvas.getByText('Epics')).toBeInTheDocument();
     // Verify archive toggle checkbox is checked
-    const checkbox = canvas.getByRole('checkbox')
-    await expect(checkbox).toBeInTheDocument()
-    await expect(checkbox).toBeChecked()
+    const checkbox = canvas.getByRole('checkbox');
+    await expect(checkbox).toBeInTheDocument();
+    await expect(checkbox).toBeChecked();
     // Verify all epics are visible including archived (5 epics total)
-    const links = canvas.getAllByRole('link')
-    await expect(links.length).toBe(5)
+    const links = canvas.getAllByRole('link');
+    await expect(links.length).toBe(5);
     // Verify archived epics are present
-    await expect(canvas.getByText('Legacy Code Cleanup')).toBeInTheDocument()
-    await expect(canvas.getByText('Old Feature (Archived)')).toBeInTheDocument()
+    await expect(canvas.getByText('Legacy Code Cleanup')).toBeInTheDocument();
+    await expect(canvas.getByText('Old Feature (Archived)')).toBeInTheDocument();
 
     // Accessibility: Verify checkbox has accessible name via label
-    await expect(checkbox).toHaveAccessibleName('Show archived')
+    await expect(checkbox).toHaveAccessibleName('Show archived');
   },
-}
+};

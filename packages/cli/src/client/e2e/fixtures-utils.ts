@@ -1,7 +1,7 @@
-import { writeFile, readFile, rm, mkdir, cp } from 'fs/promises';
-import { join, dirname } from 'path';
-import { tmpdir } from 'os';
-import { fileURLToPath } from 'url';
+import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -48,14 +48,18 @@ export function getJournalFilePath(epicSlug: string, storySlug: string): string 
 /**
  * Read a story file
  */
-export async function readStoryFile(epicSlug: string, storySlug: string): Promise<string> {
+export function readStoryFile(epicSlug: string, storySlug: string): Promise<string> {
   return readFile(getStoryFilePath(epicSlug, storySlug), 'utf-8');
 }
 
 /**
  * Write a story file
  */
-export async function writeStoryFile(epicSlug: string, storySlug: string, content: string): Promise<void> {
+export async function writeStoryFile(
+  epicSlug: string,
+  storySlug: string,
+  content: string,
+): Promise<void> {
   await writeFile(getStoryFilePath(epicSlug, storySlug), content);
 }
 
@@ -80,10 +84,13 @@ export async function deleteAllEpics(): Promise<void> {
 export async function createEpic(epicSlug: string, title: string): Promise<void> {
   const epicPath = getEpicPath(epicSlug);
   await mkdir(join(epicPath, 'stories'), { recursive: true });
-  await writeFile(join(epicPath, 'epic.md'), `# ${title}
+  await writeFile(
+    join(epicPath, 'epic.md'),
+    `# ${title}
 
 This epic was created dynamically for testing.
-`);
+`,
+  );
 }
 
 /**
@@ -93,11 +100,13 @@ export async function createStory(
   epicSlug: string,
   storySlug: string,
   title: string,
-  status: string = 'ready'
+  status = 'ready',
 ): Promise<void> {
   const storyPath = getStoryPath(epicSlug, storySlug);
   await mkdir(storyPath, { recursive: true });
-  await writeFile(join(storyPath, 'story.md'), `---
+  await writeFile(
+    join(storyPath, 'story.md'),
+    `---
 id: ${storySlug}
 title: ${title}
 status: ${status}
@@ -108,7 +117,8 @@ tasks: []
 ## Context
 
 ${title} story.
-`);
+`,
+  );
 }
 
 /**

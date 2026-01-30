@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.14.0] - 2026-01-30
+
+### Added
+
+- **dashboard**: Log viewer component for real-time tmux session log display
+- **dashboard**: WebSocket log streaming for live session output
+- **dashboard**: Story content rendered as markdown in StoryDetail view
+
+### Changed
+
+- **build**: Parallelized build and test scripts using concurrently for faster CI
+
+### Fixed
+
+- **cli**: E2E test setup now resets fixtures before each test for clean state
+
 ## [2.13.0] - 2026-01-30
 
 ### Added

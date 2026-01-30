@@ -1,17 +1,25 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+import process from 'node:process';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'saga-status');
+
+// Constants for temp file generation
+const RANDOM_STRING_SLICE_START = 2;
+const BASE_36 = 36;
+const FILE_PERMISSION_DEFAULT = 0o644;
 
 // ANSI escape code patterns for testing
 const ANSI = {
   // Background colors (256-color mode)
-  BG_BLUE: /\x1b\[48;5;25m/,        // Main origin background
-  BG_CYAN: /\x1b\[48;5;30m/,        // Worktree origin background
-  BG_GRAY: /\x1b\[48;5;240m/,       // Task info background
-  BG_DARK_GRAY: /\x1b\[48;5;235m/,  // Counts background
+  BG_BLUE: /\x1b\[48;5;25m/, // Main origin background
+  BG_CYAN: /\x1b\[48;5;30m/, // Worktree origin background
+  BG_GRAY: /\x1b\[48;5;240m/, // Task info background
+  BG_DARK_GRAY: /\x1b\[48;5;235m/, // Counts background
 
   // Foreground colors
   FG_WHITE: /\x1b\[38;5;15m/,
@@ -58,8 +66,11 @@ function runScript(args = [], env = {}, cwd = undefined) {
  */
 function createTempEnvFile(content) {
   const tmpDir = os.tmpdir();
-  const tmpFile = path.join(tmpDir, `claude-env-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`);
-  fs.writeFileSync(tmpFile, content, { mode: 0o644 });
+  const tmpFile = path.join(
+    tmpDir,
+    `claude-env-test-${Date.now()}-${Math.random().toString(BASE_36).slice(RANDOM_STRING_SLICE_START)}.sh`,
+  );
+  fs.writeFileSync(tmpFile, content, { mode: FILE_PERMISSION_DEFAULT });
   return tmpFile;
 }
 
@@ -87,7 +98,7 @@ function createTempTaskSystem(structure) {
   // Apply custom structure if provided
   if (structure) {
     if (structure.tasks) {
-      structure.tasks.forEach(task => {
+      structure.tasks.forEach((task) => {
         const taskDir = path.join(taskSystemDir, 'tasks', task.id);
         const taskFolder = path.join(taskDir, 'task-system', `task-${task.id}`);
         fs.mkdirSync(taskDir, { recursive: true });
@@ -104,7 +115,7 @@ function createTempTaskSystem(structure) {
     }
 
     if (structure.features) {
-      structure.features.forEach(feature => {
+      structure.features.forEach((feature) => {
         const featureDir = path.join(taskSystemDir, 'features', feature.id);
         fs.mkdirSync(featureDir, { recursive: true });
 
@@ -138,7 +149,9 @@ function countOccurrences(str, pattern) {
 describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
   describe('Powerline separator rendering', () => {
     test('should include powerline separator (U+E0B0) between segments when multiple sections shown', () => {
-      const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
+      const envFile = createTempEnvFile(
+        'export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"',
+      );
       try {
         const result = runScript(['--origin', '--task'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
@@ -162,12 +175,10 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
 
     test('should have correct number of separators for all sections (origin + task + counts = 2 separators)', () => {
       const tmpDir = createTempTaskSystem({
-        tasks: [
-          { id: '001', hasJournal: true }
-        ]
+        tasks: [{ id: '001', hasJournal: true }],
       });
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         // All three sections: origin -> task -> counts (2 separators expected)
@@ -227,18 +238,19 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
           {
             id: '042',
             hasJournal: true,
-            taskMd: '# Task 042: Test Task\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n'
-          }
+            taskMd:
+              '# Task 042: Test Task\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n',
+          },
         ],
         features: [
           {
             id: '001-test',
-            featureMd: '# Feature: Test\n\n**Status:** In Progress\n'
-          }
-        ]
+            featureMd: '# Feature: Test\n\n**Status:** In Progress\n',
+          },
+        ],
       });
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -253,12 +265,10 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
 
     test('should use dark gray background for counts segment', () => {
       const tmpDir = createTempTaskSystem({
-        tasks: [
-          { id: '001', hasJournal: true }
-        ]
+        tasks: [{ id: '001', hasJournal: true }],
       });
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -291,18 +301,19 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
           {
             id: '042',
             hasJournal: true,
-            taskMd: '# Task 042: Test\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n'
-          }
+            taskMd:
+              '# Task 042: Test\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n',
+          },
         ],
         features: [
           {
             id: '001-test',
-            featureMd: '# Feature: Test\n\n**Status:** In Progress\n'
-          }
-        ]
+            featureMd: '# Feature: Test\n\n**Status:** In Progress\n',
+          },
+        ],
       });
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--origin', '--task'], { CLAUDE_ENV_FILE: envFile });
@@ -324,19 +335,20 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
           {
             id: '042',
             hasJournal: true,
-            taskMd: '# Task 042: Test\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n'
+            taskMd:
+              '# Task 042: Test\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n',
           },
-          { id: '001', hasJournal: false }
+          { id: '001', hasJournal: false },
         ],
         features: [
           {
             id: '001-test',
-            featureMd: '# Feature: Test\n\n**Status:** In Progress\n'
-          }
-        ]
+            featureMd: '# Feature: Test\n\n**Status:** In Progress\n',
+          },
+        ],
       });
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--task', '--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -360,27 +372,28 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
           {
             id: '042',
             hasJournal: true,
-            taskMd: '# Task 042: Test\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n'
-          }
+            taskMd:
+              '# Task 042: Test\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n',
+          },
         ],
         features: [
           {
             id: '001-test',
-            featureMd: '# Feature: Test\n\n**Status:** In Progress\n'
-          }
-        ]
+            featureMd: '# Feature: Test\n\n**Status:** In Progress\n',
+          },
+        ],
       });
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript([], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
 
         // Should have all three background colors
-        expect(result.stdout).toMatch(ANSI.BG_CYAN);  // origin
-        expect(result.stdout).toMatch(ANSI.BG_GRAY);  // task
-        expect(result.stdout).toMatch(ANSI.BG_DARK_GRAY);  // counts
+        expect(result.stdout).toMatch(ANSI.BG_CYAN); // origin
+        expect(result.stdout).toMatch(ANSI.BG_GRAY); // task
+        expect(result.stdout).toMatch(ANSI.BG_DARK_GRAY); // counts
 
         // Should have separators
         expect(result.stdout).toMatch(ANSI.SEPARATOR);
@@ -399,18 +412,19 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
           {
             id: '042',
             hasJournal: true,
-            taskMd: '# Task 042: Test\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n'
-          }
+            taskMd:
+              '# Task 042: Test\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n',
+          },
         ],
         features: [
           {
             id: '001-test',
-            featureMd: '# Feature: Test\n\n**Status:** In Progress\n'
-          }
-        ]
+            featureMd: '# Feature: Test\n\n**Status:** In Progress\n',
+          },
+        ],
       });
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--origin', '--task'], { CLAUDE_ENV_FILE: envFile });
@@ -434,19 +448,17 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
 
     test('--origin --counts should show two segments with one separator', () => {
       const tmpDir = createTempTaskSystem({
-        tasks: [
-          { id: '001', hasJournal: true }
-        ]
+        tasks: [{ id: '001', hasJournal: true }],
       });
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--origin', '--counts'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
 
         // Should have origin and counts colors
-        expect(result.stdout).toMatch(ANSI.BG_BLUE);  // main origin
+        expect(result.stdout).toMatch(ANSI.BG_BLUE); // main origin
         expect(result.stdout).toMatch(ANSI.BG_DARK_GRAY);
 
         // Should NOT have task color
@@ -467,18 +479,19 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
           {
             id: '042',
             hasJournal: true,
-            taskMd: '# Task 042: Test\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n'
-          }
+            taskMd:
+              '# Task 042: Test\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n',
+          },
         ],
         features: [
           {
             id: '001-test',
-            featureMd: '# Feature: Test\n\n**Status:** In Progress\n'
-          }
-        ]
+            featureMd: '# Feature: Test\n\n**Status:** In Progress\n',
+          },
+        ],
       });
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--task', '--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -505,19 +518,19 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
   describe('--no-icons flag with powerline formatting', () => {
     test('should use ASCII icons but still include powerline separator and colors', () => {
       const tmpDir = createTempTaskSystem({
-        tasks: [
-          { id: '001', hasJournal: true }
-        ]
+        tasks: [{ id: '001', hasJournal: true }],
       });
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
-        const result = runScript(['--no-icons', '--origin', '--counts'], { CLAUDE_ENV_FILE: envFile });
+        const result = runScript(['--no-icons', '--origin', '--counts'], {
+          CLAUDE_ENV_FILE: envFile,
+        });
         expect(result.exitCode).toBe(0);
 
         // Should use ASCII for icons
-        expect(result.stdout).toContain('[M]');  // ASCII main origin
+        expect(result.stdout).toContain('[M]'); // ASCII main origin
 
         // But should still have powerline separator
         expect(result.stdout).toMatch(ANSI.SEPARATOR);
@@ -539,20 +552,21 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
           {
             id: '042',
             hasJournal: true,
-            taskMd: '# Task 042: Implement User Auth\n\n**Type:** feature\n**Feature:** [001-auth](../../features/001-auth/feature.md)\n'
-          }
+            taskMd:
+              '# Task 042: Implement User Auth\n\n**Type:** feature\n**Feature:** [001-auth](../../features/001-auth/feature.md)\n',
+          },
         ],
         features: [
           {
             id: '001-auth',
-            featureMd: '# Feature: User Authentication\n\n**Status:** In Progress\n'
-          }
-        ]
+            featureMd: '# Feature: User Authentication\n\n**Status:** In Progress\n',
+          },
+        ],
       });
       // When in worktree, SAGA_PROJECT_DIR should point to the worktree root, not main repo
       const worktreeDir = path.join(tmpDir, 'task-system', 'tasks', '042');
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${worktreeDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${worktreeDir}"`,
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -578,21 +592,21 @@ describe('Integration Tests: Powerline Formatting with ANSI Colors', () => {
       const tmpDir = createTempTaskSystem({
         tasks: [
           { id: '001', hasJournal: true },
-          { id: '002', hasJournal: false }
+          { id: '002', hasJournal: false },
         ],
         features: [
           {
             id: '001-test',
-            featureMd: '# Feature: Test\n\n**Status:** In Progress\n'
+            featureMd: '# Feature: Test\n\n**Status:** In Progress\n',
           },
           {
             id: '002-other',
-            featureMd: '# Feature: Other\n\n**Status:** Draft\n'
-          }
-        ]
+            featureMd: '# Feature: Other\n\n**Status:** Draft\n',
+          },
+        ],
       });
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });

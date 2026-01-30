@@ -5,13 +5,12 @@
  * that manages file watchers and subscriptions for real-time log delivery.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { LogStreamManager, type LogsDataMessage, type LogsErrorMessage } from './log-stream-manager.js';
-import type { WebSocket } from 'ws';
-import * as fs from 'node:fs/promises';
-import { existsSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { OUTPUT_DIR } from './sessions.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { WebSocket } from 'ws';
+import { LogStreamManager, type LogsDataMessage } from './log-stream-manager.ts';
+import { OUTPUT_DIR } from './sessions.ts';
 
 /**
  * Create a mock WebSocket instance for testing
@@ -54,7 +53,7 @@ describe('LogStreamManager', () => {
 
     it('should initialize with empty internal state', () => {
       // A fresh manager should have no subscriptions
-      const ws = createMockWebSocket();
+      const _ws = createMockWebSocket();
       expect(manager.getSubscriptionCount('test-session')).toBe(0);
       expect(manager.hasWatcher('test-session')).toBe(false);
     });
@@ -378,7 +377,7 @@ describe('LogStreamManager', () => {
       await manager.subscribe(testSessionName, ws);
 
       // Wait for watcher to fully initialize
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Clear the initial content message
       broadcastFn.mockClear();
@@ -393,17 +392,17 @@ describe('LogStreamManager', () => {
       let attempts = 0;
       const maxAttempts = 20;
       while (attempts < maxAttempts && broadcastFn.mock.calls.length === 0) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         attempts++;
       }
 
       // Should have received an incremental update
       expect(broadcastFn).toHaveBeenCalled();
       const calls = broadcastFn.mock.calls;
-      const lastMessage = calls[calls.length - 1][1] as LogsDataMessage;
+      const lastMessage = calls.at(-1)[1] as LogsDataMessage;
       expect(lastMessage.type).toBe('logs:data');
       expect(lastMessage.isInitial).toBe(false);
-    }, 10000); // Increase test timeout to 10 seconds
+    }, 10_000); // Increase test timeout to 10 seconds
 
     it('should close watcher when dispose is called', async () => {
       const ws = createMockWebSocket();
@@ -673,7 +672,7 @@ describe('LogStreamManager', () => {
       expect(broadcastFn).toHaveBeenCalledTimes(2);
 
       // Verify each client received the message
-      const clients = broadcastFn.mock.calls.map(call => call[0]);
+      const clients = broadcastFn.mock.calls.map((call) => call[0]);
       expect(clients).toContain(ws1);
       expect(clients).toContain(ws2);
 

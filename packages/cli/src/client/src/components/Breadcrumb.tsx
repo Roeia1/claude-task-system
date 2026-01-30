@@ -1,5 +1,5 @@
-import { Link, useParams } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
+import { Link, useParams } from 'react-router';
 
 interface BreadcrumbItem {
   label: string;
@@ -29,16 +29,17 @@ export function Breadcrumb() {
         return (
           <span key={item.label} className="flex items-center gap-2">
             {index > 0 && (
-              <ChevronRight className="h-4 w-4 text-text-muted" aria-hidden />
+              <ChevronRight
+                className="h-4 w-4 text-text-muted"
+                aria-hidden={true}
+                data-testid="breadcrumb-separator"
+              />
             )}
             {item.href && !isLast ? (
-              <Link
-                to={item.href}
-                className="text-text-muted hover:text-primary transition-colors"
-              >
+              <Link to={item.href} className="text-text-muted hover:text-primary transition-colors">
                 {index === 0 ? (
                   <span className="flex items-center gap-1">
-                    <Home className="h-4 w-4" />
+                    <Home className="h-4 w-4" data-testid="breadcrumb-home-icon" />
                     {item.label}
                   </span>
                 ) : (
@@ -49,7 +50,7 @@ export function Breadcrumb() {
               <span className={isLast ? 'text-text font-medium' : 'text-text-muted'}>
                 {index === 0 ? (
                   <span className="flex items-center gap-1">
-                    <Home className="h-4 w-4" />
+                    <Home className="h-4 w-4" data-testid="breadcrumb-home-icon" />
                     {item.label}
                   </span>
                 ) : (
@@ -63,5 +64,3 @@ export function Breadcrumb() {
     </nav>
   );
 }
-
-export default Breadcrumb;

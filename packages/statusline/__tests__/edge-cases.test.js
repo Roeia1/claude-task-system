@@ -1,9 +1,20 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+import process from 'node:process';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'saga-status');
+
+// Constants for temp file generation
+const RANDOM_STRING_SLICE_START = 2;
+const BASE_36 = 36;
+
+// Constants for file permissions
+const FILE_PERMISSION_NONE = 0o000;
+const FILE_PERMISSION_DEFAULT = 0o644;
 
 /**
  * Helper to run the script with given args and environment
@@ -35,8 +46,11 @@ function runScript(args = [], env = {}, cwd = undefined) {
  */
 function createTempEnvFile(content) {
   const tmpDir = os.tmpdir();
-  const tmpFile = path.join(tmpDir, `claude-env-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`);
-  fs.writeFileSync(tmpFile, content, { mode: 0o644 });
+  const tmpFile = path.join(
+    tmpDir,
+    `claude-env-test-${Date.now()}-${Math.random().toString(BASE_36).slice(RANDOM_STRING_SLICE_START)}.sh`,
+  );
+  fs.writeFileSync(tmpFile, content, { mode: FILE_PERMISSION_DEFAULT });
   return tmpFile;
 }
 
@@ -75,7 +89,7 @@ describe('Edge Cases: Missing Directories and Files', () => {
     test('should exit 0 and output minimal fallback when task-system does not exist', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-task-system-'));
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript([], { CLAUDE_ENV_FILE: envFile });
@@ -94,7 +108,7 @@ describe('Edge Cases: Missing Directories and Files', () => {
     test('should handle --counts gracefully when task-system is missing', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-task-system-'));
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -113,7 +127,7 @@ describe('Edge Cases: Missing Directories and Files', () => {
     test('should handle --task gracefully when task-system is missing', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-task-system-'));
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -134,7 +148,7 @@ describe('Edge Cases: Missing Directories and Files', () => {
     test('should handle empty tasks/ directory', () => {
       const tmpDir = createTempTaskSystem();
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -151,7 +165,7 @@ describe('Edge Cases: Missing Directories and Files', () => {
     test('should handle empty features/ directory', () => {
       const tmpDir = createTempTaskSystem();
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -214,7 +228,7 @@ describe('Edge Cases: Missing Directories and Files', () => {
 
     test('should handle SAGA_PROJECT_DIR set but pointing to non-existent directory', () => {
       const envFile = createTempEnvFile(
-        'export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="/nonexistent/directory"'
+        'export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="/nonexistent/directory"',
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -242,7 +256,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(taskFolder, 'task.md'), malformedTaskMd);
 
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -267,7 +281,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(taskFolder, 'task.md'), '');
 
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -294,7 +308,7 @@ describe('Edge Cases: Malformed Files', () => {
       // When in worktree, SAGA_PROJECT_DIR should point to worktree root
       const worktreeDir = taskDir;
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${worktreeDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${worktreeDir}"`,
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -322,7 +336,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(featureDir, 'feature.md'), malformedFeatureMd);
 
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -345,7 +359,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(featureDir, 'feature.md'), '');
 
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -368,7 +382,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(featureDir, 'feature.md'), featureMd);
 
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -393,7 +407,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.mkdirSync(badTaskDir, { recursive: true });
 
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -416,7 +430,7 @@ describe('Edge Cases: Malformed Files', () => {
       fs.writeFileSync(path.join(tasksDir, 'README.md'), '# Tasks\n');
 
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -436,7 +450,7 @@ describe('Edge Cases: Git Repository Issues', () => {
     test('should handle directory that is not a git repository', () => {
       const tmpDir = createTempTaskSystem();
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -461,7 +475,7 @@ describe('Edge Cases: Git Repository Issues', () => {
       execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
 
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -487,7 +501,7 @@ describe('Edge Cases: Special Characters and Encoding', () => {
       fs.mkdirSync(weirdTaskDir, { recursive: true });
 
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -507,10 +521,13 @@ describe('Edge Cases: Special Characters and Encoding', () => {
       const tmpDir = createTempTaskSystem();
       const weirdFeatureDir = path.join(tmpDir, 'task-system', 'features', 'feature-with-spaces');
       fs.mkdirSync(weirdFeatureDir, { recursive: true });
-      fs.writeFileSync(path.join(weirdFeatureDir, 'feature.md'), '# Test\n\n**Status:** In Progress\n');
+      fs.writeFileSync(
+        path.join(weirdFeatureDir, 'feature.md'),
+        '# Test\n\n**Status:** In Progress\n',
+      );
 
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -536,17 +553,21 @@ describe('Edge Cases: Special Characters and Encoding', () => {
       fs.writeFileSync(path.join(taskFolder, 'journal.md'), '# Journal\n');
 
       // Unicode in title
-      const taskMd = '# Task 042: Implement 日本語 Support\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n';
+      const taskMd =
+        '# Task 042: Implement 日本語 Support\n\n**Type:** feature\n**Feature:** [001-test](../../features/001-test/feature.md)\n';
       fs.writeFileSync(path.join(taskFolder, 'task.md'), taskMd);
 
       const featureDir = path.join(tmpDir, 'task-system', 'features', '001-test');
       fs.mkdirSync(featureDir, { recursive: true });
-      fs.writeFileSync(path.join(featureDir, 'feature.md'), '# Feature: Test\n\n**Status:** In Progress\n');
+      fs.writeFileSync(
+        path.join(featureDir, 'feature.md'),
+        '# Feature: Test\n\n**Status:** In Progress\n',
+      );
 
       // When in worktree, SAGA_PROJECT_DIR should point to worktree root
       const worktreeDir = taskDir;
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${worktreeDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"\nexport SAGA_PROJECT_DIR="${worktreeDir}"`,
       );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -571,8 +592,8 @@ describe('Edge Cases: Permission and Access Issues', () => {
       try {
         // Make file unreadable (this may not work on all systems)
         try {
-          fs.chmodSync(envFile, 0o000);
-        } catch (e) {
+          fs.chmodSync(envFile, FILE_PERMISSION_NONE);
+        } catch (_e) {
           // Skip test if chmod not supported
           return;
         }
@@ -583,9 +604,9 @@ describe('Edge Cases: Permission and Access Issues', () => {
         expect(result.exitCode).toBe(0);
       } finally {
         try {
-          fs.chmodSync(envFile, 0o644);
+          fs.chmodSync(envFile, FILE_PERMISSION_DEFAULT);
           cleanupTempFile(envFile);
-        } catch (e) {
+        } catch (_e) {
           // Ignore cleanup errors
         }
       }

@@ -2,11 +2,11 @@
  * Tests for saga init command
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, realpathSync, readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('init command', () => {
   let testDir: string;
@@ -31,11 +31,12 @@ describe('init command', () => {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
       return { stdout, stderr: '', exitCode: 0 };
-    } catch (error: any) {
+    } catch (error) {
+      const spawnError = error as { stdout?: Buffer; stderr?: Buffer; status?: number };
       return {
-        stdout: error.stdout?.toString() || '',
-        stderr: error.stderr?.toString() || '',
-        exitCode: error.status || 1,
+        stdout: spawnError.stdout?.toString() || '',
+        stderr: spawnError.stderr?.toString() || '',
+        exitCode: spawnError.status || 1,
       };
     }
   }
@@ -116,16 +117,17 @@ describe('init command', () => {
       // (since there's no .saga to discover, it uses current dir)
       const cliPath = join(__dirname, '../../dist/cli.cjs');
       try {
-        const stdout = execSync(`node ${cliPath} init`, {
+        const _stdout = execSync(`node ${cliPath} init`, {
           cwd: subDir,
           encoding: 'utf-8',
           stdio: ['pipe', 'pipe', 'pipe'],
         });
         // It should initialize at the subDir since no parent .saga exists
         expect(require('node:fs').existsSync(join(subDir, '.saga', 'epics'))).toBe(true);
-      } catch (error: any) {
+      } catch (error) {
         // If it fails, check why
-        expect(error.status).toBe(0);
+        const execError = error as { status?: number };
+        expect(execError.status).toBe(0);
       }
     });
 

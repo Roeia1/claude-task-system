@@ -1,7 +1,10 @@
-import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, within, userEvent } from 'storybook/test'
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot'
-import { EpicContent } from './EpicContent'
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, userEvent, within } from 'storybook/test';
+import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { EpicContent } from './EpicContent.tsx';
+
+/** Regex pattern for matching Epic Documentation button (case insensitive) */
+const EPIC_DOCUMENTATION_PATTERN = /epic documentation/i;
 
 // ============================================================================
 // EpicContent Stories
@@ -35,10 +38,9 @@ EpicContent renders epic documentation with full markdown support.
       },
     },
   },
-}
+};
 
-export default meta
-type Story = StoryObj<typeof EpicContent>
+type Story = StoryObj<typeof EpicContent>;
 
 // ============================================================================
 // Basic Stories
@@ -50,10 +52,11 @@ type Story = StoryObj<typeof EpicContent>
 export const EmptyContent: Story = {
   render: () => <EpicContent content={undefined} />,
   play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
     // Component should render nothing for empty content
-    await expect(canvasElement.querySelector('[data-testid="epic-content"]')).toBeNull()
+    await expect(canvas.queryByTestId('epic-content')).toBeNull();
   },
-}
+};
 
 /**
  * Simple text content without markdown formatting.
@@ -63,13 +66,13 @@ export const SimpleText: Story = {
     <EpicContent content="This is a simple epic description without any markdown formatting." />
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await expect(canvas.getByText('Epic Documentation')).toBeInTheDocument()
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('Epic Documentation')).toBeInTheDocument();
     await expect(
-      canvas.getByText('This is a simple epic description without any markdown formatting.')
-    ).toBeInTheDocument()
+      canvas.getByText('This is a simple epic description without any markdown formatting.'),
+    ).toBeInTheDocument();
   },
-}
+};
 
 // ============================================================================
 // Markdown Rendering Stories
@@ -91,22 +94,30 @@ Regular paragraph text below the headings.`}
     />
   ),
   play: async ({ canvasElement }) => {
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]')
-    await expect(epicContent).not.toBeNull()
+    const canvas = within(canvasElement);
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
     // Query within the prose container to avoid the "Epic Documentation" h2 header
-    const proseContainer = epicContent?.querySelector('.prose')
-    await expect(proseContainer).not.toBeNull()
+    const proseContainer = canvas.getByTestId('epic-content-prose');
+    await expect(proseContainer).toBeInTheDocument();
+    const proseCanvas = within(proseContainer);
 
-    // Check headings are rendered
-    await expect(proseContainer?.querySelector('h1')).toHaveTextContent('Main Heading')
-    await expect(proseContainer?.querySelector('h2')).toHaveTextContent('Secondary Heading')
-    await expect(proseContainer?.querySelector('h3')).toHaveTextContent('Tertiary Heading')
+    // Check headings are rendered using role queries
+    await expect(
+      proseCanvas.getByRole('heading', { level: 1, name: 'Main Heading' }),
+    ).toBeInTheDocument();
+    await expect(
+      proseCanvas.getByRole('heading', { level: 2, name: 'Secondary Heading' }),
+    ).toBeInTheDocument();
+    await expect(
+      proseCanvas.getByRole('heading', { level: 3, name: 'Tertiary Heading' }),
+    ).toBeInTheDocument();
 
     // Visual snapshot
-    await matchCanvasSnapshot(canvasElement, 'epic-content-headings')
+    await matchCanvasSnapshot(canvasElement, 'epic-content-headings');
   },
-}
+};
 
 /**
  * Lists - demonstrates unordered and ordered list rendering.
@@ -130,17 +141,18 @@ export const Lists: Story = {
     />
   ),
   play: async ({ canvasElement }) => {
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]')
-    await expect(epicContent).not.toBeNull()
+    const canvas = within(canvasElement);
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
-    // Check lists are rendered
-    await expect(epicContent?.querySelector('ul')).toBeInTheDocument()
-    await expect(epicContent?.querySelector('ol')).toBeInTheDocument()
+    // Check lists are rendered using role queries
+    const lists = canvas.getAllByRole('list');
+    await expect(lists.length).toBeGreaterThanOrEqual(2); // At least ul and ol
 
     // Visual snapshot
-    await matchCanvasSnapshot(canvasElement, 'epic-content-lists')
+    await matchCanvasSnapshot(canvasElement, 'epic-content-lists');
   },
-}
+};
 
 /**
  * Code blocks - demonstrates inline code and fenced code block rendering.
@@ -173,20 +185,21 @@ saga dashboard
     />
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]')
-    await expect(epicContent).not.toBeNull()
+    const canvas = within(canvasElement);
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
     // Check inline code
-    await expect(canvas.getByText('npm install')).toBeInTheDocument()
+    await expect(canvas.getByText('npm install')).toBeInTheDocument();
 
-    // Check code blocks
-    await expect(epicContent?.querySelectorAll('pre').length).toBeGreaterThanOrEqual(2)
+    // Check code blocks using role query
+    const codeBlocks = canvas.getAllByRole('code');
+    await expect(codeBlocks.length).toBeGreaterThanOrEqual(2);
 
     // Visual snapshot
-    await matchCanvasSnapshot(canvasElement, 'epic-content-code-blocks')
+    await matchCanvasSnapshot(canvasElement, 'epic-content-code-blocks');
   },
-}
+};
 
 /**
  * Tables - demonstrates GFM table rendering.
@@ -205,19 +218,19 @@ export const Tables: Story = {
     />
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]')
-    await expect(epicContent).not.toBeNull()
+    const canvas = within(canvasElement);
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
-    // Check table is rendered
-    await expect(epicContent?.querySelector('table')).toBeInTheDocument()
-    await expect(canvas.getByText('Status')).toBeInTheDocument()
-    await expect(canvas.getByText('in_progress')).toBeInTheDocument()
+    // Check table is rendered using role query
+    await expect(canvas.getByRole('table')).toBeInTheDocument();
+    await expect(canvas.getByText('Status')).toBeInTheDocument();
+    await expect(canvas.getByText('in_progress')).toBeInTheDocument();
 
     // Visual snapshot
-    await matchCanvasSnapshot(canvasElement, 'epic-content-tables')
+    await matchCanvasSnapshot(canvasElement, 'epic-content-tables');
   },
-}
+};
 
 /**
  * Links - demonstrates link rendering.
@@ -233,16 +246,16 @@ You can also visit [the wiki](https://github.com/example/saga/wiki) for addition
     />
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Check links are rendered
-    const docLink = canvas.getByRole('link', { name: 'SAGA documentation' })
-    await expect(docLink).toHaveAttribute('href', 'https://github.com/example/saga')
+    const docLink = canvas.getByRole('link', { name: 'SAGA documentation' });
+    await expect(docLink).toHaveAttribute('href', 'https://github.com/example/saga');
 
-    const wikiLink = canvas.getByRole('link', { name: 'the wiki' })
-    await expect(wikiLink).toHaveAttribute('href', 'https://github.com/example/saga/wiki')
+    const wikiLink = canvas.getByRole('link', { name: 'the wiki' });
+    await expect(wikiLink).toHaveAttribute('href', 'https://github.com/example/saga/wiki');
   },
-}
+};
 
 /**
  * GFM Strikethrough - demonstrates strikethrough text rendering.
@@ -258,13 +271,13 @@ The new approach is documented below.`}
     />
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Check strikethrough is rendered
-    const deletedText = canvas.getByText('This feature has been deprecated.')
-    await expect(deletedText.tagName).toBe('DEL')
+    const deletedText = canvas.getByText('This feature has been deprecated.');
+    await expect(deletedText.tagName).toBe('DEL');
   },
-}
+};
 
 // ============================================================================
 // Collapsible Behavior Stories
@@ -287,27 +300,27 @@ This content can be collapsed and expanded by clicking the header.
     />
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]')
-    await expect(epicContent).not.toBeNull()
+    const canvas = within(canvasElement);
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
     // Initially expanded
-    await expect(epicContent).toHaveAttribute('data-state', 'open')
+    await expect(epicContent).toHaveAttribute('data-state', 'open');
 
     // Click to collapse
-    const trigger = canvas.getByRole('button', { name: /epic documentation/i })
-    await userEvent.click(trigger)
+    const trigger = canvas.getByRole('button', { name: EPIC_DOCUMENTATION_PATTERN });
+    await userEvent.click(trigger);
 
     // Should be collapsed
-    await expect(epicContent).toHaveAttribute('data-state', 'closed')
+    await expect(epicContent).toHaveAttribute('data-state', 'closed');
 
     // Click to expand again
-    await userEvent.click(trigger)
+    await userEvent.click(trigger);
 
     // Should be expanded
-    await expect(epicContent).toHaveAttribute('data-state', 'open')
+    await expect(epicContent).toHaveAttribute('data-state', 'open');
   },
-}
+};
 
 // ============================================================================
 // Complete Example
@@ -369,27 +382,35 @@ See the [project board](https://github.com/example/saga/projects/1) for details.
     />
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]')
-    await expect(epicContent).not.toBeNull()
+    const canvas = within(canvasElement);
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
-    // Check main heading
-    await expect(epicContent?.querySelector('h1')).toHaveTextContent('Dashboard Restructure Epic')
+    const proseContainer = canvas.getByTestId('epic-content-prose');
+    const proseCanvas = within(proseContainer);
 
-    // Check table
-    await expect(epicContent?.querySelector('table')).toBeInTheDocument()
+    // Check main heading using role query
+    await expect(
+      proseCanvas.getByRole('heading', { level: 1, name: 'Dashboard Restructure Epic' }),
+    ).toBeInTheDocument();
 
-    // Check code block
-    await expect(epicContent?.querySelector('pre')).toBeInTheDocument()
+    // Check table using role query
+    await expect(canvas.getByRole('table')).toBeInTheDocument();
+
+    // Check code blocks exist
+    const codeBlocks = canvas.getAllByRole('code');
+    await expect(codeBlocks.length).toBeGreaterThan(0);
 
     // Check strikethrough
-    const deletedText = canvas.getByText('Phase 1 is complete.')
-    await expect(deletedText.tagName).toBe('DEL')
+    const deletedText = canvas.getByText('Phase 1 is complete.');
+    await expect(deletedText.tagName).toBe('DEL');
 
     // Check link
-    await expect(canvas.getByRole('link', { name: 'project board' })).toBeInTheDocument()
+    await expect(canvas.getByRole('link', { name: 'project board' })).toBeInTheDocument();
 
     // Visual snapshot for complete example
-    await matchCanvasSnapshot(canvasElement, 'epic-content-complete')
+    await matchCanvasSnapshot(canvasElement, 'epic-content-complete');
   },
-}
+};
+
+export default meta;

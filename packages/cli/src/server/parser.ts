@@ -6,15 +6,10 @@
  * for tasks and journal entries.
  */
 
-import { readFile } from 'fs/promises';
-import { relative } from 'path';
+import { readFile } from 'node:fs/promises';
+import { relative } from 'node:path';
 import matter from 'gray-matter';
-import {
-  scanAllStories,
-  scanEpics,
-  type ScannedStory,
-  type ScannedEpic,
-} from '../utils/saga-scanner.js';
+import { type ScannedStory, scanAllStories, scanEpics } from '../utils/saga-scanner.ts';
 
 /**
  * Story counts by status
@@ -160,8 +155,8 @@ function validateTaskStatus(status: unknown): 'pending' | 'in_progress' | 'compl
  * @returns StoryDetail or null if file doesn't exist
  */
 export async function parseStory(storyPath: string, epicSlug: string): Promise<StoryDetail | null> {
-  const { join } = await import('path');
-  const { stat } = await import('fs/promises');
+  const { join } = await import('node:path');
+  const { stat } = await import('node:fs/promises');
 
   let content: string;
   try {
@@ -321,9 +316,7 @@ export async function scanSagaDirectory(sagaRoot: string): Promise<Epic[]> {
     const epicStories = storiesByEpic.get(scannedEpic.slug) || [];
 
     // Convert scanned stories to StoryDetail with tasks
-    const stories = await Promise.all(
-      epicStories.map((s) => toStoryDetail(s, sagaRoot))
-    );
+    const stories = await Promise.all(epicStories.map((s) => toStoryDetail(s, sagaRoot)));
 
     // Calculate story counts
     const storyCounts: StoryCounts = {

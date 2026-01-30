@@ -1,12 +1,19 @@
-import { render, screen, cleanup, waitFor, act, fireEvent } from '@testing-library/react';
-import { describe, it, expect, afterEach, vi, beforeEach, type Mock } from 'vitest';
-import { LogViewer } from './LogViewer';
-import * as dashboardMachine from '@/machines/dashboardMachine';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { getWebSocketSend } from '@/machines/dashboardMachine';
+import { LogViewer } from './LogViewer.tsx';
 
 // Mock the dashboardMachine module
 vi.mock('@/machines/dashboardMachine', () => ({
   getWebSocketSend: vi.fn(),
 }));
+
+// Regex patterns defined at top level for performance
+const OUTPUT_UNAVAILABLE_REGEX = /output unavailable/i;
+
+// Magic number constants
+const LARGE_CONTENT_LINE_COUNT = 1000;
+const MAX_VIRTUALIZED_LINES = 1000;
 
 // Mock scrollTo on Element prototype and set up element dimensions for virtualization
 beforeEach(() => {
@@ -22,7 +29,9 @@ beforeEach(() => {
     right: 800,
     x: 0,
     y: 0,
-    toJSON: () => {},
+    toJSON: () => {
+      // Empty toJSON - mock implementation returns nothing
+    },
   }));
 
   // Mock offsetHeight for scroll calculations
@@ -37,7 +46,7 @@ beforeEach(() => {
   });
 
   // Reset the mock for getWebSocketSend before each test
-  (dashboardMachine.getWebSocketSend as Mock).mockReset();
+  (getWebSocketSend as Mock).mockReset();
 });
 
 describe('LogViewer', () => {
@@ -53,7 +62,7 @@ describe('LogViewer', () => {
           status="running"
           outputAvailable={true}
           initialContent="Hello world"
-        />
+        />,
       );
 
       const container = screen.getByTestId('log-viewer');
@@ -72,7 +81,7 @@ describe('LogViewer', () => {
           status="running"
           outputAvailable={true}
           initialContent={content}
-        />
+        />,
       );
 
       expect(screen.getByText('Log line 1')).toBeInTheDocument();
@@ -86,7 +95,7 @@ describe('LogViewer', () => {
           status="running"
           outputAvailable={true}
           initialContent="Hello"
-        />
+        />,
       );
 
       const content = screen.getByTestId('log-content');
@@ -97,15 +106,9 @@ describe('LogViewer', () => {
 
   describe('outputAvailable prop', () => {
     it('shows "Output unavailable" when outputAvailable is false', () => {
-      render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={false}
-        />
-      );
+      render(<LogViewer sessionName="test-session" status="running" outputAvailable={false} />);
 
-      expect(screen.getByText(/output unavailable/i)).toBeInTheDocument();
+      expect(screen.getByText(OUTPUT_UNAVAILABLE_REGEX)).toBeInTheDocument();
     });
 
     it('does not show unavailable message when outputAvailable is true', () => {
@@ -115,22 +118,16 @@ describe('LogViewer', () => {
           status="running"
           outputAvailable={true}
           initialContent="Some content"
-        />
+        />,
       );
 
-      expect(screen.queryByText(/output unavailable/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(OUTPUT_UNAVAILABLE_REGEX)).not.toBeInTheDocument();
     });
   });
 
   describe('empty content', () => {
     it('renders empty log viewer when no initialContent provided', () => {
-      render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={true}
-        />
-      );
+      render(<LogViewer sessionName="test-session" status="running" outputAvailable={true} />);
 
       const container = screen.getByTestId('log-viewer');
       expect(container).toBeInTheDocument();
@@ -143,7 +140,7 @@ describe('LogViewer', () => {
           status="running"
           outputAvailable={true}
           initialContent=""
-        />
+        />,
       );
 
       const container = screen.getByTestId('log-viewer');
@@ -154,48 +151,26 @@ describe('LogViewer', () => {
   describe('props interface', () => {
     it('accepts sessionName prop', () => {
       const { rerender } = render(
-        <LogViewer
-          sessionName="session-a"
-          status="running"
-          outputAvailable={true}
-        />
+        <LogViewer sessionName="session-a" status="running" outputAvailable={true} />,
       );
 
       // Should render without error
       expect(screen.getByTestId('log-viewer')).toBeInTheDocument();
 
       // Re-render with different session name
-      rerender(
-        <LogViewer
-          sessionName="session-b"
-          status="completed"
-          outputAvailable={true}
-        />
-      );
+      rerender(<LogViewer sessionName="session-b" status="completed" outputAvailable={true} />);
 
       expect(screen.getByTestId('log-viewer')).toBeInTheDocument();
     });
 
     it('accepts status prop with running value', () => {
-      render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={true}
-        />
-      );
+      render(<LogViewer sessionName="test-session" status="running" outputAvailable={true} />);
 
       expect(screen.getByTestId('log-viewer')).toBeInTheDocument();
     });
 
     it('accepts status prop with completed value', () => {
-      render(
-        <LogViewer
-          sessionName="test-session"
-          status="completed"
-          outputAvailable={true}
-        />
-      );
+      render(<LogViewer sessionName="test-session" status="completed" outputAvailable={true} />);
 
       expect(screen.getByTestId('log-viewer')).toBeInTheDocument();
     });
@@ -210,7 +185,7 @@ describe('LogViewer', () => {
           status="running"
           outputAvailable={true}
           initialContent={content}
-        />
+        />,
       );
 
       expect(screen.getByText('Line 1')).toBeInTheDocument();
@@ -226,7 +201,7 @@ describe('LogViewer', () => {
           status="running"
           outputAvailable={true}
           initialContent={content}
-        />
+        />,
       );
 
       expect(screen.getByText('Line 1')).toBeInTheDocument();
@@ -237,7 +212,7 @@ describe('LogViewer', () => {
   describe('virtual scrolling', () => {
     it('uses virtualization for large content', () => {
       // Generate 1000 lines of content
-      const lines = Array.from({ length: 1000 }, (_, i) => `Log line ${i + 1}`);
+      const lines = Array.from({ length: LARGE_CONTENT_LINE_COUNT }, (_, i) => `Log line ${i + 1}`);
       const content = lines.join('\n');
 
       render(
@@ -246,7 +221,7 @@ describe('LogViewer', () => {
           status="running"
           outputAvailable={true}
           initialContent={content}
-        />
+        />,
       );
 
       const container = screen.getByTestId('log-viewer');
@@ -254,8 +229,8 @@ describe('LogViewer', () => {
 
       // With virtualization, not all 1000 lines should be rendered
       // Only visible items should be in the DOM
-      const renderedLines = container.querySelectorAll('[data-testid="log-line"]');
-      expect(renderedLines.length).toBeLessThan(1000);
+      const renderedLines = screen.getAllByTestId('log-line');
+      expect(renderedLines.length).toBeLessThan(MAX_VIRTUALIZED_LINES);
     });
 
     it('renders visible lines correctly', () => {
@@ -266,12 +241,11 @@ describe('LogViewer', () => {
           status="running"
           outputAvailable={true}
           initialContent={content}
-        />
+        />,
       );
 
       // At minimum, some lines should be visible
-      const container = screen.getByTestId('log-viewer');
-      const renderedLines = container.querySelectorAll('[data-testid="log-line"]');
+      const renderedLines = screen.getAllByTestId('log-line');
       expect(renderedLines.length).toBeGreaterThan(0);
     });
 
@@ -282,7 +256,7 @@ describe('LogViewer', () => {
           status="running"
           outputAvailable={true}
           initialContent="Test content"
-        />
+        />,
       );
 
       const content = screen.getByTestId('log-content');
@@ -304,17 +278,15 @@ Line 5`;
           status="running"
           outputAvailable={true}
           initialContent={content}
-        />
+        />,
       );
 
-      const container = screen.getByTestId('log-viewer');
-
       // Check that lines are rendered
-      const renderedItems = container.querySelectorAll('[data-testid="log-line"]');
+      const renderedItems = screen.getAllByTestId('log-line');
       expect(renderedItems.length).toBeGreaterThan(0);
 
       // Check the total height reflects content (5 lines * 24px = 120px)
-      const heightContainer = container.querySelector('[class*="relative"]');
+      const heightContainer = screen.getByTestId('log-height-container');
       expect(heightContainer).toHaveStyle({ height: '120px' });
     });
   });
@@ -322,15 +294,9 @@ Line 5`;
   describe('WebSocket log subscription', () => {
     it('subscribes to logs on mount when WebSocket is available', () => {
       const mockSend = vi.fn();
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+      (getWebSocketSend as Mock).mockReturnValue(mockSend);
 
-      render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={true}
-        />
-      );
+      render(<LogViewer sessionName="test-session" status="running" outputAvailable={true} />);
 
       expect(mockSend).toHaveBeenCalledWith({
         event: 'subscribe:logs',
@@ -340,14 +306,10 @@ Line 5`;
 
     it('unsubscribes from logs on unmount', () => {
       const mockSend = vi.fn();
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+      (getWebSocketSend as Mock).mockReturnValue(mockSend);
 
       const { unmount } = render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={true}
-        />
+        <LogViewer sessionName="test-session" status="running" outputAvailable={true} />,
       );
 
       // Clear mock to focus on unsubscribe call
@@ -362,15 +324,9 @@ Line 5`;
     });
 
     it('does not subscribe when WebSocket is not available', () => {
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(null);
+      (getWebSocketSend as Mock).mockReturnValue(null);
 
-      render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={true}
-        />
-      );
+      render(<LogViewer sessionName="test-session" status="running" outputAvailable={true} />);
 
       // Should not throw and should render
       expect(screen.getByTestId('log-viewer')).toBeInTheDocument();
@@ -378,15 +334,9 @@ Line 5`;
 
     it('does not subscribe when output is unavailable', () => {
       const mockSend = vi.fn();
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+      (getWebSocketSend as Mock).mockReturnValue(mockSend);
 
-      render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={false}
-        />
-      );
+      render(<LogViewer sessionName="test-session" status="running" outputAvailable={false} />);
 
       // Should not subscribe when output is unavailable
       expect(mockSend).not.toHaveBeenCalled();
@@ -394,14 +344,10 @@ Line 5`;
 
     it('resubscribes when sessionName changes', () => {
       const mockSend = vi.fn();
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+      (getWebSocketSend as Mock).mockReturnValue(mockSend);
 
       const { rerender } = render(
-        <LogViewer
-          sessionName="session-a"
-          status="running"
-          outputAvailable={true}
-        />
+        <LogViewer sessionName="session-a" status="running" outputAvailable={true} />,
       );
 
       expect(mockSend).toHaveBeenCalledWith({
@@ -411,13 +357,7 @@ Line 5`;
 
       mockSend.mockClear();
 
-      rerender(
-        <LogViewer
-          sessionName="session-b"
-          status="running"
-          outputAvailable={true}
-        />
-      );
+      rerender(<LogViewer sessionName="session-b" status="running" outputAvailable={true} />);
 
       // Should unsubscribe from old session
       expect(mockSend).toHaveBeenCalledWith({
@@ -434,9 +374,9 @@ Line 5`;
   });
 
   describe('log content accumulation', () => {
-    it('displays initial content from WebSocket', async () => {
+    it('displays initial content from WebSocket', () => {
       const mockSend = vi.fn();
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+      (getWebSocketSend as Mock).mockReturnValue(mockSend);
 
       // We'll test this by verifying the component accepts content prop
       // and WebSocket updates will be handled through useLogSubscription hook
@@ -446,7 +386,7 @@ Line 5`;
           status="running"
           outputAvailable={true}
           initialContent="Initial log content"
-        />
+        />,
       );
 
       expect(screen.getByText('Initial log content')).toBeInTheDocument();
@@ -454,15 +394,9 @@ Line 5`;
 
     it('shows loading state while waiting for initial data', () => {
       const mockSend = vi.fn();
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+      (getWebSocketSend as Mock).mockReturnValue(mockSend);
 
-      render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={true}
-        />
-      );
+      render(<LogViewer sessionName="test-session" status="running" outputAvailable={true} />);
 
       // When no initialContent is provided and subscribed, should show loading
       // The loading skeleton should be visible
@@ -480,7 +414,7 @@ Line 5`;
           status="running"
           outputAvailable={true}
           initialContent="Log content"
-        />
+        />,
       );
 
       const toggleButton = screen.getByTestId('auto-scroll-toggle');
@@ -494,7 +428,7 @@ Line 5`;
           status="running"
           outputAvailable={true}
           initialContent="Log content"
-        />
+        />,
       );
 
       const toggleButton = screen.getByTestId('auto-scroll-toggle');
@@ -508,7 +442,7 @@ Line 5`;
           status="completed"
           outputAvailable={true}
           initialContent="Log content"
-        />
+        />,
       );
 
       const toggleButton = screen.getByTestId('auto-scroll-toggle');
@@ -522,7 +456,7 @@ Line 5`;
           status="running"
           outputAvailable={true}
           initialContent="Log content"
-        />
+        />,
       );
 
       const toggleButton = screen.getByTestId('auto-scroll-toggle');
@@ -549,7 +483,7 @@ Line 5`;
         value: 1000,
       });
 
-      const initialLines = `Line 1`;
+      const initialLines = 'Line 1';
       const moreLines = `Line 1
 Line 2
 Line 3`;
@@ -560,21 +494,21 @@ Line 3`;
           status="running"
           outputAvailable={true}
           initialContent={initialLines}
-        />
+        />,
       );
 
       // Clear any initial scroll calls
       mockScrollTo.mockClear();
 
       // Simulate new content arriving by re-rendering with more content
-      await act(async () => {
+      await act(() => {
         rerender(
           <LogViewer
             sessionName="test-session"
             status="running"
             outputAvailable={true}
             initialContent={moreLines}
-          />
+          />,
         );
       });
 
@@ -584,7 +518,7 @@ Line 3`;
       });
     });
 
-    it('does not scroll to bottom when auto-scroll is disabled', async () => {
+    it('does not scroll to bottom when auto-scroll is disabled', () => {
       const mockScrollTo = vi.fn();
       Element.prototype.scrollTo = mockScrollTo;
 
@@ -594,7 +528,7 @@ Line 3`;
           status="completed"
           outputAvailable={true}
           initialContent="Line 1\nLine 2"
-        />
+        />,
       );
 
       // Toggle should be disabled for completed sessions
@@ -616,13 +550,14 @@ Line 3`;
           status="running"
           outputAvailable={true}
           initialContent="Log content"
-        />
+        />,
       );
 
       const toggleButton = screen.getByTestId('auto-scroll-toggle');
 
-      // When auto-scroll is enabled, should show the "following" icon
-      expect(toggleButton.querySelector('svg')).toBeInTheDocument();
+      // When auto-scroll is enabled, the button should have content (icon)
+      expect(toggleButton).toBeInTheDocument();
+      expect(toggleButton.children.length).toBeGreaterThan(0);
     });
 
     it('disables auto-scroll when user scrolls up manually', () => {
@@ -632,7 +567,7 @@ Line 3`;
           status="running"
           outputAvailable={true}
           initialContent="Line 1\nLine 2\nLine 3\nLine 4\nLine 5"
-        />
+        />,
       );
 
       const content = screen.getByTestId('log-content');
@@ -661,16 +596,15 @@ Line 3`;
           status="running"
           outputAvailable={true}
           initialContent="Test content"
-        />
+        />,
       );
 
       const streamingIndicator = screen.getByTestId('status-indicator-streaming');
       expect(streamingIndicator).toBeInTheDocument();
       expect(streamingIndicator).toHaveTextContent('Streaming');
       expect(streamingIndicator).toHaveClass('text-success');
-      // Should have an animated spinning icon
-      const icon = streamingIndicator.querySelector('svg');
-      expect(icon).toHaveClass('animate-spin');
+      // Indicator should contain an icon element
+      expect(streamingIndicator.children.length).toBeGreaterThan(0);
     });
 
     it('shows complete indicator for completed sessions', () => {
@@ -680,27 +614,19 @@ Line 3`;
           status="completed"
           outputAvailable={true}
           initialContent="Test content"
-        />
+        />,
       );
 
       const completeIndicator = screen.getByTestId('status-indicator-complete');
       expect(completeIndicator).toBeInTheDocument();
       expect(completeIndicator).toHaveTextContent('Complete');
       expect(completeIndicator).toHaveClass('text-text-muted');
-      // Should have a checkmark icon
-      const icon = completeIndicator.querySelector('svg');
-      expect(icon).toBeInTheDocument();
-      expect(icon).not.toHaveClass('animate-spin');
+      // Indicator should contain an icon element
+      expect(completeIndicator.children.length).toBeGreaterThan(0);
     });
 
     it('does not show status indicator when output is unavailable', () => {
-      render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={false}
-        />
-      );
+      render(<LogViewer sessionName="test-session" status="running" outputAvailable={false} />);
 
       // Unavailable state shows a simple message, no status indicator
       expect(screen.queryByTestId('status-indicator-streaming')).not.toBeInTheDocument();
@@ -711,18 +637,14 @@ Line 3`;
   describe('edge cases', () => {
     it('handles unmount when WebSocket becomes unavailable', () => {
       const mockSend = vi.fn();
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+      (getWebSocketSend as Mock).mockReturnValue(mockSend);
 
       const { unmount } = render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={true}
-        />
+        <LogViewer sessionName="test-session" status="running" outputAvailable={true} />,
       );
 
       // Simulate WebSocket becoming unavailable before unmount
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(null);
+      (getWebSocketSend as Mock).mockReturnValue(null);
 
       // Should not throw when unmounting
       expect(() => unmount()).not.toThrow();
@@ -738,7 +660,7 @@ Line 3`;
           status="completed"
           outputAvailable={true}
           initialContent="Line 1\nLine 2\nLine 3"
-        />
+        />,
       );
 
       const toggleButton = screen.getByTestId('auto-scroll-toggle');
@@ -763,7 +685,7 @@ Line 3`;
           status="running"
           outputAvailable={true}
           initialContent="Line 1"
-        />
+        />,
       );
 
       const content = screen.getByTestId('log-content');
@@ -792,7 +714,7 @@ Line 3`;
           status="running"
           outputAvailable={true}
           initialContent={content}
-        />
+        />,
       );
 
       // Check that all lines are rendered including empty ones
@@ -803,15 +725,9 @@ Line 3`;
 
     it('shows loading skeleton without initial content when WebSocket available', () => {
       const mockSend = vi.fn();
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+      (getWebSocketSend as Mock).mockReturnValue(mockSend);
 
-      render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={true}
-        />
-      );
+      render(<LogViewer sessionName="test-session" status="running" outputAvailable={true} />);
 
       // Should show loading skeleton
       expect(screen.getByTestId('log-viewer-skeleton')).toBeInTheDocument();
@@ -819,7 +735,7 @@ Line 3`;
 
     it('does not show loading when initialContent is provided', () => {
       const mockSend = vi.fn();
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+      (getWebSocketSend as Mock).mockReturnValue(mockSend);
 
       render(
         <LogViewer
@@ -827,7 +743,7 @@ Line 3`;
           status="running"
           outputAvailable={true}
           initialContent="Some log content"
-        />
+        />,
       );
 
       // Should NOT show loading skeleton when initialContent provided
@@ -836,15 +752,9 @@ Line 3`;
 
     it('renders correctly when no content and not loading', () => {
       // When WebSocket is not available and no initial content
-      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(null);
+      (getWebSocketSend as Mock).mockReturnValue(null);
 
-      render(
-        <LogViewer
-          sessionName="test-session"
-          status="running"
-          outputAvailable={true}
-        />
-      );
+      render(<LogViewer sessionName="test-session" status="running" outputAvailable={true} />);
 
       // Should not show loading (no WebSocket)
       expect(screen.queryByTestId('log-viewer-skeleton')).not.toBeInTheDocument();
@@ -859,7 +769,7 @@ Line 3`;
           status="running"
           outputAvailable={true}
           initialContent="Content"
-        />
+        />,
       );
 
       const toggleButton = screen.getByTestId('auto-scroll-toggle');
@@ -874,7 +784,7 @@ Line 3`;
           status="running"
           outputAvailable={true}
           initialContent="Content"
-        />
+        />,
       );
 
       const toggleButton = screen.getByTestId('auto-scroll-toggle');

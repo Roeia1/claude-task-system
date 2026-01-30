@@ -1,9 +1,27 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+import process from 'node:process';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'saga-status');
+
+// Constants for temp file generation
+const RANDOM_STRING_SLICE_START = 2;
+const BASE_36 = 36;
+const FILE_PERMISSION_DEFAULT = 0o644;
+const TASK_ID_PAD_LENGTH = 3;
+
+// Constants for large count tests
+const LARGE_IN_PROGRESS_TASKS_COUNT = 15;
+const LARGE_PENDING_TASKS_COUNT = 10;
+const PENDING_TASK_ID_OFFSET = 100;
+
+// Constants for performance tests
+const NS_PER_MS = 1_000_000;
+const PERFORMANCE_BUDGET_MS = 100;
 
 /**
  * Helper to run the script with given args and environment
@@ -11,7 +29,7 @@ const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
 function runScript(args = [], env = {}, cwd = undefined) {
   const fullEnv = { ...process.env, ...env };
   // Remove keys that are explicitly set to undefined
-  Object.keys(fullEnv).forEach(key => {
+  Object.keys(fullEnv).forEach((key) => {
     if (fullEnv[key] === undefined) {
       delete fullEnv[key];
     }
@@ -41,8 +59,11 @@ function runScript(args = [], env = {}, cwd = undefined) {
  */
 function createTempEnvFile(content) {
   const tmpDir = os.tmpdir();
-  const tmpFile = path.join(tmpDir, `claude-env-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`);
-  fs.writeFileSync(tmpFile, content, { mode: 0o644 });
+  const tmpFile = path.join(
+    tmpDir,
+    `claude-env-test-${Date.now()}-${Math.random().toString(BASE_36).slice(RANDOM_STRING_SLICE_START)}.sh`,
+  );
+  fs.writeFileSync(tmpFile, content, { mode: FILE_PERMISSION_DEFAULT });
   return tmpFile;
 }
 
@@ -61,11 +82,11 @@ function cleanupTempFile(filePath) {
  */
 function createMockTaskSystem(config = {}) {
   const {
-    tasksWithJournal = [],    // Task IDs that have journal.md (in-progress)
+    tasksWithJournal = [], // Task IDs that have journal.md (in-progress)
     tasksWithoutJournal = [], // Task IDs without journal.md (pending)
-    noTasksDir = false,       // Don't create task-system/tasks/ at all
-    emptyTasksDir = false,    // Create task-system/tasks/ but leave it empty
-    malformedTasks = [],      // Task IDs with malformed structure (missing task-system folder inside)
+    noTasksDir = false, // Don't create task-system/tasks/ at all
+    emptyTasksDir = false, // Create task-system/tasks/ but leave it empty
+    malformedTasks = [], // Task IDs with malformed structure (missing task-system folder inside)
   } = config;
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'task-system-test-'));
@@ -172,7 +193,9 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001', '002'],
         tasksWithoutJournal: [],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -191,7 +214,9 @@ describe('task-status --counts', () => {
         tasksWithJournal: [],
         tasksWithoutJournal: ['003', '004', '005'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -210,7 +235,9 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001', '003'],
         tasksWithoutJournal: ['002'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -230,7 +257,9 @@ describe('task-status --counts', () => {
         tasksWithoutJournal: [],
         malformedTasks: ['bad1', 'bad2'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -248,7 +277,9 @@ describe('task-status --counts', () => {
   describe('edge cases - empty and missing directories', () => {
     test('should return 0/0/0 when task-system/tasks/ does not exist', () => {
       const mockDir = createMockTaskSystem({ noTasksDir: true });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -264,7 +295,9 @@ describe('task-status --counts', () => {
 
     test('should return 0/0/0 when task-system/tasks/ is empty', () => {
       const mockDir = createMockTaskSystem({ emptyTasksDir: true });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -283,7 +316,11 @@ describe('task-status --counts', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-spawn-dir-'));
 
       try {
-        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile, SAGA_PROJECT_DIR: undefined }, tmpDir);
+        const result = runScript(
+          ['--counts', '--no-icons'],
+          { CLAUDE_ENV_FILE: envFile, SAGA_PROJECT_DIR: undefined },
+          tmpDir,
+        );
         expect(result.exitCode).toBe(0);
         // Should output zeros or graceful fallback
         expect(result.stdout).toMatch(/I:0.*P:0.*R:0/);
@@ -307,10 +344,16 @@ describe('task-status --counts', () => {
       const tasksDir = path.join(localDir, 'task-system', 'tasks');
       fs.mkdirSync(tasksDir, { recursive: true });
 
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${localDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${localDir}"`,
+      );
 
       try {
-        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, localDir);
+        const result = runScript(
+          ['--counts', '--no-icons'],
+          { CLAUDE_ENV_FILE: envFile },
+          localDir,
+        );
         expect(result.exitCode).toBe(0);
         // Should show 3 remote tasks (no local worktrees)
         expect(result.stdout).toMatch(/R:3/);
@@ -322,8 +365,8 @@ describe('task-status --counts', () => {
 
     test('should exclude remote branches that have local worktrees', () => {
       const { localDir, remoteDir } = createMockGitRepo([
-        'task-001-feature',  // Will have local worktree
-        'task-002-bugfix',   // No local worktree
+        'task-001-feature', // Will have local worktree
+        'task-002-bugfix', // No local worktree
         'task-003-refactor', // No local worktree
       ]);
 
@@ -337,10 +380,16 @@ describe('task-status --counts', () => {
       fs.writeFileSync(path.join(task001, 'task.md'), '# Task 001');
       fs.writeFileSync(path.join(task001, 'journal.md'), '# Journal');
 
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${localDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${localDir}"`,
+      );
 
       try {
-        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, localDir);
+        const result = runScript(
+          ['--counts', '--no-icons'],
+          { CLAUDE_ENV_FILE: envFile },
+          localDir,
+        );
         expect(result.exitCode).toBe(0);
         // Should show: 1 in-progress, 0 pending, 2 remote (excluding 001 which has local worktree)
         expect(result.stdout).toMatch(/I:1/);
@@ -355,18 +404,24 @@ describe('task-status --counts', () => {
     test('should ignore non-task branches', () => {
       const { localDir, remoteDir } = createMockGitRepo([
         'task-001-feature',
-        'feature/some-feature',  // Not a task branch
-        'bugfix/something',      // Not a task branch
-        'random-branch',         // Not a task branch
+        'feature/some-feature', // Not a task branch
+        'bugfix/something', // Not a task branch
+        'random-branch', // Not a task branch
       ]);
 
       const tasksDir = path.join(localDir, 'task-system', 'tasks');
       fs.mkdirSync(tasksDir, { recursive: true });
 
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${localDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${localDir}"`,
+      );
 
       try {
-        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, localDir);
+        const result = runScript(
+          ['--counts', '--no-icons'],
+          { CLAUDE_ENV_FILE: envFile },
+          localDir,
+        );
         expect(result.exitCode).toBe(0);
         // Should only count task-001-feature as remote
         expect(result.stdout).toMatch(/R:1/);
@@ -389,7 +444,9 @@ describe('task-status --counts', () => {
       const tasksDir = path.join(tmpDir, 'task-system', 'tasks');
       fs.mkdirSync(tasksDir, { recursive: true });
 
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, tmpDir);
@@ -407,7 +464,9 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, mockDir);
@@ -429,15 +488,17 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001', '002'],
         tasksWithoutJournal: ['003'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
         // Should use Unicode icons: 🔄 for in-progress, ⏸️ for pending, ☁️ for remote
-        expect(result.stdout).toMatch(/🔄 2/);   // 2 in-progress
-        expect(result.stdout).toMatch(/⏸️ 1/);   // 1 pending
-        expect(result.stdout).toMatch(/☁️ 0/);   // 0 remote (no git repo)
+        expect(result.stdout).toMatch(/🔄 2/); // 2 in-progress
+        expect(result.stdout).toMatch(/⏸️ 1/); // 1 pending
+        expect(result.stdout).toMatch(/☁️ 0/); // 0 remote (no git repo)
       } finally {
         cleanupTempFile(envFile);
         cleanupMockTaskSystem(mockDir);
@@ -449,7 +510,9 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002', '003'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -466,7 +529,9 @@ describe('task-status --counts', () => {
 
     test('should format all zeros gracefully when no tasks exist', () => {
       const mockDir = createMockTaskSystem({ emptyTasksDir: true });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         // Unicode version
@@ -489,14 +554,16 @@ describe('task-status --counts', () => {
     });
 
     test('should handle large task counts correctly', () => {
-      const manyInProgress = Array.from({ length: 15 }, (_, i) => String(i + 1).padStart(3, '0'));
-      const manyPending = Array.from({ length: 10 }, (_, i) => String(i + 100).padStart(3, '0'));
+      const manyInProgress = Array.from({ length: LARGE_IN_PROGRESS_TASKS_COUNT }, (_, i) => String(i + 1).padStart(TASK_ID_PAD_LENGTH, '0'));
+      const manyPending = Array.from({ length: LARGE_PENDING_TASKS_COUNT }, (_, i) => String(i + PENDING_TASK_ID_OFFSET).padStart(TASK_ID_PAD_LENGTH, '0'));
 
       const mockDir = createMockTaskSystem({
         tasksWithJournal: manyInProgress,
         tasksWithoutJournal: manyPending,
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -516,7 +583,9 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -539,10 +608,14 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: [],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
-        const result = runScript(['--origin', '--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
+        const result = runScript(['--origin', '--counts', '--no-icons'], {
+          CLAUDE_ENV_FILE: envFile,
+        });
         expect(result.exitCode).toBe(0);
         // Should have both origin and counts
         expect(result.stdout).toMatch(/\[M\]/);
@@ -558,7 +631,9 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -580,16 +655,18 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001', '002', '003'],
         tasksWithoutJournal: ['004', '005'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const start = process.hrtime.bigint();
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
         const end = process.hrtime.bigint();
-        const durationMs = Number(end - start) / 1_000_000;
+        const durationMs = Number(end - start) / NS_PER_MS;
 
         expect(result.exitCode).toBe(0);
-        expect(durationMs).toBeLessThan(100);
+        expect(durationMs).toBeLessThan(PERFORMANCE_BUDGET_MS);
       } finally {
         cleanupTempFile(envFile);
         cleanupMockTaskSystem(mockDir);
@@ -599,10 +676,7 @@ describe('task-status --counts', () => {
 
   describe('acceptance criteria validation', () => {
     test('running task-status --counts outputs task counts in format in-progress/pending/remote', () => {
-      const { localDir, remoteDir } = createMockGitRepo([
-        'task-010-feature',
-        'task-011-bugfix',
-      ]);
+      const { localDir, remoteDir } = createMockGitRepo(['task-010-feature', 'task-011-bugfix']);
 
       // Create local tasks
       const tasksDir = path.join(localDir, 'task-system', 'tasks');
@@ -621,10 +695,16 @@ describe('task-status --counts', () => {
       fs.mkdirSync(pendingDir, { recursive: true });
       fs.writeFileSync(path.join(pendingDir, 'task.md'), '# Task 003');
 
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${localDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${localDir}"`,
+      );
 
       try {
-        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, localDir);
+        const result = runScript(
+          ['--counts', '--no-icons'],
+          { CLAUDE_ENV_FILE: envFile },
+          localDir,
+        );
         expect(result.exitCode).toBe(0);
         // Acceptance: "in-progress/pending/remote" format
         // Expected: 2 in-progress, 1 pending, 2 remote
@@ -642,7 +722,9 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001', '002', '003'],
         tasksWithoutJournal: ['004'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -659,7 +741,9 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002', '003', '004', '005'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -673,10 +757,10 @@ describe('task-status --counts', () => {
 
     test('remote count matches task branches on origin not present locally', () => {
       const { localDir, remoteDir } = createMockGitRepo([
-        'task-001-feature',  // Has local worktree
-        'task-002-bugfix',   // Remote only
+        'task-001-feature', // Has local worktree
+        'task-002-bugfix', // Remote only
         'task-003-refactor', // Remote only
-        'task-004-perf',     // Remote only
+        'task-004-perf', // Remote only
       ]);
 
       // Create local worktree for 001 only
@@ -686,10 +770,16 @@ describe('task-status --counts', () => {
       fs.writeFileSync(path.join(task001, 'task.md'), '# Task 001');
       fs.writeFileSync(path.join(task001, 'journal.md'), '# Journal');
 
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${localDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${localDir}"`,
+      );
 
       try {
-        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile }, localDir);
+        const result = runScript(
+          ['--counts', '--no-icons'],
+          { CLAUDE_ENV_FILE: envFile },
+          localDir,
+        );
         expect(result.exitCode).toBe(0);
         // 3 remote (002, 003, 004 - excluding 001 which has local worktree)
         expect(result.stdout).toMatch(/R:3/);
@@ -704,14 +794,16 @@ describe('task-status --counts', () => {
         tasksWithJournal: ['001'],
         tasksWithoutJournal: ['002'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         // Default (icons)
         let result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
-        expect(result.stdout).toMatch(/🔄/);  // In-progress icon
-        expect(result.stdout).toMatch(/⏸️/);  // Pending icon
-        expect(result.stdout).toMatch(/☁️/);  // Remote icon
+        expect(result.stdout).toMatch(/🔄/); // In-progress icon
+        expect(result.stdout).toMatch(/⏸️/); // Pending icon
+        expect(result.stdout).toMatch(/☁️/); // Remote icon
 
         // With --no-icons (ASCII)
         result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -727,7 +819,9 @@ describe('task-status --counts', () => {
 
     test('no crashes or errors when task-system directory is missing', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'no-task-system-'));
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
+      );
 
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -742,7 +836,9 @@ describe('task-status --counts', () => {
 
     test('no crashes or errors when task-system directory is empty', () => {
       const mockDir = createMockTaskSystem({ emptyTasksDir: true });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });

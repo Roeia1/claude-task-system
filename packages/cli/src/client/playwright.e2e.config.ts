@@ -1,8 +1,15 @@
+import { cpSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { tmpdir } from 'os';
-import { cpSync, rmSync } from 'fs';
+
+// Timeout configuration constants
+const MS_PER_SECOND = 1000;
+const WEB_SERVER_TIMEOUT_SECONDS = 120;
+const TEST_TIMEOUT_SECONDS = 60;
+const EXPECT_TIMEOUT_SECONDS = 10;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -31,7 +38,6 @@ if (!process.env.TEST_WORKER_INDEX) {
   // Always delete first (force: true means no error if doesn't exist)
   rmSync(fixturesPath, { recursive: true, force: true });
   cpSync(sourceFixtures, fixturesPath, { recursive: true });
-  console.log(`E2E fixtures copied to: ${fixturesPath}`);
 }
 
 // Port for the E2E test server (different from default 3847 to avoid conflicts)
@@ -49,7 +55,7 @@ export default defineConfig({
   fullyParallel: false,
 
   // Fail the build on CI if you accidentally left test.only in the source code
-  forbidOnly: !!process.env.CI,
+  forbidOnly: Boolean(process.env.CI),
 
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
@@ -58,13 +64,12 @@ export default defineConfig({
   workers: 1,
 
   // Reporter configuration
-  reporter: process.env.CI
-    ? [['github'], ['html', { open: 'never' }]]
-    : 'html',
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'html',
 
   // Shared settings for all projects
   use: {
     // Base URL for navigation - connects to the real backend server
+    // biome-ignore lint/style/useNamingConvention: Playwright API uses baseURL
     baseURL: `http://localhost:${E2E_PORT}`,
 
     // Collect trace on first retry for debugging
@@ -93,16 +98,16 @@ export default defineConfig({
     cwd: join(__dirname, '..', '..'),
     url: `http://localhost:${E2E_PORT}/api/health`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: WEB_SERVER_TIMEOUT_SECONDS * MS_PER_SECOND,
     // Capture server output for debugging
     stdout: 'pipe',
     stderr: 'pipe',
   },
 
   // Longer timeouts for E2E tests (real network, real filesystem)
-  timeout: 60 * 1000,
+  timeout: TEST_TIMEOUT_SECONDS * MS_PER_SECOND,
   expect: {
-    timeout: 10 * 1000,
+    timeout: EXPECT_TIMEOUT_SECONDS * MS_PER_SECOND,
   },
 
   // Output directory for test artifacts

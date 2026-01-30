@@ -1,5 +1,11 @@
-import { test, expect } from '@playwright/test';
-import { readStoryFile, writeStoryFile, resetAllFixtures } from './fixtures-utils';
+import { expect, test } from '@playwright/test';
+import { readStoryFile, resetAllFixtures, writeStoryFile } from './fixtures-utils.ts';
+
+/** Test timeout for WebSocket real-time update tests (30 seconds) */
+const WEBSOCKET_TEST_TIMEOUT_MS = 30_000;
+
+/** Regex pattern for matching Journal tab name */
+const JOURNAL_TAB_PATTERN = /Journal/;
 
 /**
  * Happy path E2E tests for the SAGA dashboard.
@@ -16,16 +22,11 @@ import { readStoryFile, writeStoryFile, resetAllFixtures } from './fixtures-util
 // Reset all fixtures before each test to ensure clean state
 test.beforeEach(async () => {
   await resetAllFixtures();
-  // Small delay to let file watcher process the reset
-  await new Promise(resolve => setTimeout(resolve, 200));
 });
 
 test.describe('Epic List', () => {
   test('displays all fixture epics with correct information', async ({ page }) => {
     await page.goto('/');
-
-    // Wait for epics to load (skeleton should disappear)
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Verify all 3 epics are displayed by checking for their card links
     const featureDevCard = page.locator('a[href="/epic/feature-development"]');
@@ -50,9 +51,6 @@ test.describe('Epic List', () => {
   test('displays status badges for epics with stories', async ({ page }) => {
     await page.goto('/');
 
-    // Wait for loading to complete
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-
     // Feature Development should show In Progress and Completed badges
     const featureDevCard = page.locator('a[href="/epic/feature-development"]');
     await expect(featureDevCard).toContainText('In Progress: 1');
@@ -67,11 +65,7 @@ test.describe('Epic List', () => {
 
 test.describe('Epic Detail', () => {
   test('displays epic with stories via direct navigation', async ({ page }) => {
-    // Navigate directly to epic detail page
     await page.goto('/epic/feature-development');
-
-    // Wait for epic to load
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Verify epic title is displayed as h1 (exclude h1 inside epic-content section)
     await expect(page.locator('h1.text-2xl:has-text("Feature Development")')).toBeVisible();
@@ -85,12 +79,12 @@ test.describe('Epic Detail', () => {
   });
 
   test('displays story status badges correctly', async ({ page }) => {
-    // Navigate directly to epic
     await page.goto('/epic/feature-development');
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Auth story should show In Progress badge
-    const authStoryCard = page.locator('a[href="/epic/feature-development/story/auth-implementation"]');
+    const authStoryCard = page.locator(
+      'a[href="/epic/feature-development/story/auth-implementation"]',
+    );
     await expect(authStoryCard).toContainText('In Progress');
     await expect(authStoryCard).toContainText('tasks completed');
 
@@ -100,9 +94,7 @@ test.describe('Epic Detail', () => {
   });
 
   test('empty epic shows no stories message', async ({ page }) => {
-    // Navigate directly to empty epic
     await page.goto('/epic/empty-epic');
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Verify epic title (exclude h1 inside epic-content section)
     await expect(page.locator('h1.text-2xl:has-text("Empty Epic")')).toBeVisible();
@@ -113,9 +105,7 @@ test.describe('Epic Detail', () => {
   });
 
   test('stories are sorted by status priority', async ({ page }) => {
-    // Navigate directly to testing-suite epic
     await page.goto('/epic/testing-suite');
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Get all story cards
     const storyCards = page.locator('a[href*="/story/"]');
@@ -128,11 +118,7 @@ test.describe('Epic Detail', () => {
 
 test.describe('Story Detail', () => {
   test('displays story via direct navigation', async ({ page }) => {
-    // Navigate directly to story detail page
     await page.goto('/epic/feature-development/story/auth-implementation');
-
-    // Wait for story to load
-    await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Verify story title
     await expect(page.locator('h1:has-text("User Authentication Implementation")')).toBeVisible();
@@ -146,13 +132,11 @@ test.describe('Story Detail', () => {
     // Verify tabs are present
     await expect(page.getByRole('tab', { name: 'Tasks' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Story Content' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /Journal/ })).toBeVisible();
+    await expect(page.getByRole('tab', { name: JOURNAL_TAB_PATTERN })).toBeVisible();
   });
 
   test('displays tasks with correct status', async ({ page }) => {
-    // Navigate directly to story
     await page.goto('/epic/feature-development/story/auth-implementation');
-    await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Tasks tab should be visible by default
     await expect(page.getByText('Set up JWT token generation')).toBeVisible();
@@ -166,9 +150,7 @@ test.describe('Story Detail', () => {
   });
 
   test('displays story content tab', async ({ page }) => {
-    // Navigate directly to story
     await page.goto('/epic/feature-development/story/auth-implementation');
-    await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Click on Story Content tab
     await page.getByRole('tab', { name: 'Story Content' }).click();
@@ -180,12 +162,10 @@ test.describe('Story Detail', () => {
   });
 
   test('displays journal entries with all types', async ({ page }) => {
-    // Navigate directly to story
     await page.goto('/epic/feature-development/story/auth-implementation');
-    await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Click on Journal tab
-    await page.getByRole('tab', { name: /Journal/ }).click();
+    await page.getByRole('tab', { name: JOURNAL_TAB_PATTERN }).click();
 
     // Verify blocker section exists
     await expect(page.getByText('Blockers (1)')).toBeVisible();
@@ -199,9 +179,10 @@ test.describe('Story Detail', () => {
   });
 
   test('navigates back to epic from breadcrumb', async ({ page }) => {
-    // Navigate directly to story
     await page.goto('/epic/feature-development/story/auth-implementation');
-    await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+
+    // Wait for breadcrumb to be clickable
+    await expect(page.locator('a[href="/epic/feature-development"]').first()).toBeVisible();
 
     // Click on epic slug in breadcrumb (link that goes to /epic/feature-development)
     await page.locator('a[href="/epic/feature-development"]').first().click();
@@ -218,13 +199,10 @@ test.describe('WebSocket Real-time Updates', () => {
   // currently calls this on mount. This is a pre-existing gap in the dashboard implementation.
   // TODO: Enable these tests once WebSocket auto-connection is implemented in the dashboard.
   test.describe.configure({ mode: 'serial' });
-  test.setTimeout(30000);
+  test.setTimeout(WEBSOCKET_TEST_TIMEOUT_MS);
 
-  test.skip('epic list updates when story status changes', async ({ page }) => {
+  test('epic list updates when story status changes', async ({ page }) => {
     await page.goto('/');
-
-    // Wait for initial load
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Verify initial state - Feature Development shows 1 completed
     const featureDevCard = page.locator('a[href="/epic/feature-development"]');
@@ -238,30 +216,17 @@ test.describe('WebSocket Real-time Updates', () => {
       const updatedContent = originalContent.replace('status: in_progress', 'status: completed');
       await writeStoryFile('feature-development', 'auth-implementation', updatedContent);
 
-      // Small delay to ensure file is written before watcher picks it up
-      await page.waitForTimeout(100);
-
       // Wait for WebSocket update to be reflected in UI
       // The epic should now show Completed: 2
-      // Use polling assertion with longer timeout for file watcher propagation
-      await expect(featureDevCard).toContainText('Completed: 2', { timeout: 15000 });
+      await expect(featureDevCard).toContainText('Completed: 2', { timeout: 15_000 });
     } finally {
       // Restore original file
       await writeStoryFile('feature-development', 'auth-implementation', originalContent);
-      // Give watcher time to process restoration before test ends
-      await page.waitForTimeout(100);
     }
   });
 
-  test.skip('story detail updates when story file changes', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development"]').click();
-    await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
-    await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
-
-    // Wait for story to load
-    await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+  test('story detail updates when story file changes', async ({ page }) => {
+    await page.goto('/epic/feature-development/story/auth-implementation');
 
     // Verify initial state
     await expect(page.getByText('1/4 tasks completed')).toBeVisible();
@@ -273,20 +238,15 @@ test.describe('WebSocket Real-time Updates', () => {
       // Change t2 (login endpoint) from in_progress to completed
       const updatedContent = originalContent.replace(
         '- id: t2\n    title: Implement login endpoint\n    status: in_progress',
-        '- id: t2\n    title: Implement login endpoint\n    status: completed'
+        '- id: t2\n    title: Implement login endpoint\n    status: completed',
       );
       await writeStoryFile('feature-development', 'auth-implementation', updatedContent);
 
-      // Small delay to ensure file is written before watcher picks it up
-      await page.waitForTimeout(100);
-
       // Wait for WebSocket update with longer timeout for file watcher propagation
-      await expect(page.getByText('2/4 tasks completed')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText('2/4 tasks completed')).toBeVisible({ timeout: 15_000 });
     } finally {
       // Restore original file
       await writeStoryFile('feature-development', 'auth-implementation', originalContent);
-      // Give watcher time to process restoration before test ends
-      await page.waitForTimeout(100);
     }
   });
 });

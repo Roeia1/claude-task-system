@@ -1,10 +1,11 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig, mergeConfig } from 'vitest/config';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+import { playwright } from '@vitest/browser-playwright';
+import { defineConfig, mergeConfig } from 'vitest/config';
 
 // Import the client's vite config to get aliases and plugins for storybook tests
-import viteConfig from './src/client/vite.config';
+import viteConfig from './src/client/vite.config.ts';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -12,7 +13,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 const browserConfig = {
   enabled: true,
   headless: true,
-  provider: 'playwright' as const,
+  provider: playwright(),
   instances: [{ browser: 'chromium' as const }],
   // Visual snapshot testing configuration
   screenshotDirectory: '__snapshots__',
@@ -29,7 +30,7 @@ const browserConfig = {
   },
 };
 
-export default defineConfig({
+const config = defineConfig({
   test: {
     projects: [
       // Unit tests project - runs in Node environment from package root
@@ -68,3 +69,5 @@ export default defineConfig({
     ],
   },
 });
+
+export { config as default };
