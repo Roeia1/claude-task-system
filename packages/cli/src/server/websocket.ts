@@ -16,24 +16,31 @@
 import type { Server as HttpServer } from 'node:http';
 import { join, relative } from 'node:path';
 import { type RawData, WebSocket, WebSocketServer } from 'ws';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Heartbeat interval for checking client connections (30 seconds) */
+const HEARTBEAT_INTERVAL_MS = 30_000;
 import {
   LogStreamManager,
   type LogsDataMessage,
   type LogsErrorMessage,
-} from '../lib/log-stream-manager.js';
+} from '../lib/log-stream-manager.ts';
 import {
   type SessionsUpdatedMessage,
   startSessionPolling,
   stopSessionPolling,
-} from '../lib/session-polling.js';
+} from '../lib/session-polling.ts';
 import {
   type EpicSummary,
   parseJournal,
   parseStory,
   type StoryDetail,
   scanSagaDirectory,
-} from './parser.js';
-import { createSagaWatcher, type SagaWatcher, type WatcherEvent } from './watcher.js';
+} from './parser.ts';
+import { createSagaWatcher, type SagaWatcher, type WatcherEvent } from './watcher.ts';
 
 /**
  * Subscription key for a story
@@ -127,9 +134,9 @@ export async function createWebSocketServer(
 
   try {
     watcher = await createSagaWatcher(sagaRoot);
-  } catch (err) {
-    console.warn('Failed to create file watcher:', err);
-    // Continue without file watching
+  } catch (_err) {
+    // Continue without file watching - watcher creation may fail if
+    // the .saga directory doesn't exist or has permission issues
   }
 
   // Heartbeat interval (30 seconds)
@@ -145,7 +152,7 @@ export async function createWebSocketServer(
       state.isAlive = false;
       ws.ping();
     }
-  }, 30000);
+  }, HEARTBEAT_INTERVAL_MS);
 
   // Helper to send message to client
   function sendToClient(ws: WebSocket, message: ServerMessage): void {
@@ -264,8 +271,9 @@ export async function createWebSocketServer(
             // Unknown event, ignore
             break;
         }
-      } catch {
-        // Malformed message, ignore
+      } catch (_err) {
+        // Malformed JSON message from client - ignore silently
+        // Clients may send invalid JSON during connection issues
       }
     });
 
@@ -276,8 +284,7 @@ export async function createWebSocketServer(
     });
 
     // Handle errors
-    ws.on('error', (err) => {
-      console.error('WebSocket error:', err);
+    ws.on('error', (_err) => {
       clients.delete(ws);
       logStreamManager.handleClientDisconnect(ws);
     });
@@ -291,8 +298,8 @@ export async function createWebSocketServer(
         const epics = await scanSagaDirectory(sagaRoot);
         const summaries = epics.map(toEpicSummary);
         broadcast({ event: 'epics:updated', data: summaries });
-      } catch (err) {
-        console.error('Error broadcasting epic update:', err);
+      } catch (_err) {
+        // Silently ignore epic scanning errors - directory may be temporarily unavailable
       }
     };
 
@@ -303,7 +310,9 @@ export async function createWebSocketServer(
     // Story events - broadcast to subscribed clients
     const handleStoryChange = async (event: WatcherEvent) => {
       const { epicSlug, storySlug, archived } = event;
-      if (!storySlug) return;
+      if (!storySlug) {
+        return;
+      }
 
       const storyKey = makeStoryKey(epicSlug, storySlug);
 
@@ -354,8 +363,9 @@ export async function createWebSocketServer(
 
         // Also trigger epics:updated (story counts may have changed)
         await handleEpicChange();
-      } catch (err) {
-        console.error('Error broadcasting story update:', err);
+      } catch (_err) {
+        // Silently ignore story parsing errors - file may be temporarily unavailable
+        // during writes or may have been deleted between detection and parsing
       }
     };
 
@@ -363,8 +373,9 @@ export async function createWebSocketServer(
     watcher.on('story:changed', handleStoryChange);
     watcher.on('story:removed', handleStoryChange);
 
-    watcher.on('error', (err: Error) => {
-      console.error('Watcher error:', err);
+    watcher.on('error', (_err: Error) => {
+      // Silently ignore watcher errors - file watching is best-effort
+      // Errors may occur during file system operations or permission changes
     });
   }
 

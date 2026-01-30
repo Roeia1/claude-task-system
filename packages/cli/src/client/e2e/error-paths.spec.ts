@@ -5,7 +5,7 @@ import {
   deleteAllEpics,
   deleteEpic,
   resetAllFixtures,
-} from './fixtures-utils';
+} from './fixtures-utils.ts';
 
 /**
  * Error path E2E tests for the SAGA dashboard.

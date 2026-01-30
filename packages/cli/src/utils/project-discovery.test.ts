@@ -1,8 +1,19 @@
 import { existsSync, mkdirSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { findProjectRoot, resolveProjectPath } from './project-discovery.js';
+import { findProjectRoot, resolveProjectPath } from './project-discovery.ts';
+
+// ============================================================================
+// Test Constants
+// ============================================================================
+
+/** Base for generating random string suffixes in temp directory names */
+const RANDOM_STRING_BASE = 36;
+
+/** Start index for slicing the random string (to remove "0." prefix) */
+const RANDOM_STRING_SLICE_START = 2;
 
 /**
  * Normalize paths to handle macOS symlinks (e.g., /var -> /private/var)
@@ -20,7 +31,10 @@ describe('project-discovery', () => {
 
   beforeEach(() => {
     // Create a unique temp directory for each test
-    testDir = join(tmpdir(), `saga-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `saga-test-${Date.now()}-${Math.random().toString(RANDOM_STRING_BASE).slice(RANDOM_STRING_SLICE_START)}`,
+    );
     mkdirSync(testDir, { recursive: true });
   });
 

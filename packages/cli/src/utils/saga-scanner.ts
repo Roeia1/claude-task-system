@@ -11,6 +11,19 @@ import { join } from 'node:path';
 import matter from 'gray-matter';
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+/** Starting position to search for frontmatter end marker (after opening "---\n") */
+const FRONTMATTER_START_OFFSET = 3;
+
+/** Length of opening "---\n" marker */
+const FRONTMATTER_OPEN_LENGTH = 4;
+
+/** Length of closing "\n---" marker */
+const FRONTMATTER_CLOSE_LENGTH = 4;
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -91,26 +104,30 @@ export function parseFrontmatter(content: string): {
   frontmatter: Record<string, unknown>;
   body: string;
 } {
-  if (!content || !content.startsWith('---')) {
+  if (!content?.startsWith('---')) {
     return { frontmatter: {}, body: content };
   }
 
-  const endIndex = content.indexOf('\n---', 3);
+  const endIndex = content.indexOf('\n---', FRONTMATTER_START_OFFSET);
   if (endIndex === -1) {
     return { frontmatter: {}, body: content };
   }
 
-  const frontmatterBlock = content.slice(4, endIndex);
-  const body = content.slice(endIndex + 4).trim();
+  const frontmatterBlock = content.slice(FRONTMATTER_OPEN_LENGTH, endIndex);
+  const body = content.slice(endIndex + FRONTMATTER_CLOSE_LENGTH).trim();
 
   const frontmatter: Record<string, unknown> = {};
 
   for (const line of frontmatterBlock.split('\n')) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
+    if (!trimmed || trimmed.startsWith('#')) {
+      continue;
+    }
 
     const colonIndex = trimmed.indexOf(':');
-    if (colonIndex === -1) continue;
+    if (colonIndex === -1) {
+      continue;
+    }
 
     const key = trimmed.slice(0, colonIndex).trim();
     let value: string | unknown[] = trimmed.slice(colonIndex + 1).trim();

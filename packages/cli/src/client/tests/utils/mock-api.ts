@@ -8,13 +8,20 @@ import type {
   StoryStatus,
   Task,
   TaskStatus,
-} from '../../src/types/dashboard';
+} from '../../src/types/dashboard.ts';
 
 /**
  * API mocking utilities for Playwright integration tests.
  * These utilities help mock the dashboard API endpoints for testing
  * various UI states without a real backend.
  */
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** HTTP 200 OK status code */
+const HTTP_OK = 200;
 
 // ============================================================================
 // Mock Data Factories
@@ -232,7 +239,7 @@ export async function mockApiDelay(
   await page.route(routePattern, async (route: Route) => {
     await new Promise((resolve) => setTimeout(resolve, delayMs));
     await route.fulfill({
-      status: fulfillOptions.status ?? 200,
+      status: fulfillOptions.status ?? HTTP_OK,
       contentType: fulfillOptions.contentType ?? 'application/json',
       body: fulfillOptions.body ?? '[]',
     });

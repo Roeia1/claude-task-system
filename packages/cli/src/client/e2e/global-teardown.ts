@@ -11,5 +11,4 @@ const TEMP_FIXTURES = join(tmpdir(), 'saga-e2e-fixtures');
  */
 export default async function globalTeardown() {
   await rm(TEMP_FIXTURES, { recursive: true, force: true });
-  console.log(`E2E fixtures cleaned up: ${TEMP_FIXTURES}`);
 }

@@ -9,19 +9,20 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import process from 'node:process';
 import { Command } from 'commander';
-import { dashboardCommand } from './commands/dashboard.js';
-import { findCommand } from './commands/find.js';
-import { implementCommand } from './commands/implement.js';
-import { initCommand } from './commands/init.js';
-import { scopeValidatorCommand } from './commands/scope-validator.js';
+import { dashboardCommand } from './commands/dashboard.ts';
+import { findCommand } from './commands/find.ts';
+import { implementCommand } from './commands/implement.ts';
+import { initCommand } from './commands/init.ts';
+import { scopeValidatorCommand } from './commands/scope-validator.ts';
 import {
   sessionsKillCommand,
   sessionsListCommand,
   sessionsLogsCommand,
   sessionsStatusCommand,
-} from './commands/sessions/index.js';
-import { worktreeCommand } from './commands/worktree.js';
+} from './commands/sessions/index.ts';
+import { worktreeCommand } from './commands/worktree.ts';
 
 // Read version from package.json
 // In the bundled CJS output, __dirname will be available
@@ -54,8 +55,8 @@ program
 program
   .command('implement <story-slug>')
   .description('Run story implementation')
-  .option('--max-cycles <n>', 'Maximum number of implementation cycles', parseInt)
-  .option('--max-time <n>', 'Maximum time in minutes', parseInt)
+  .option('--max-cycles <n>', 'Maximum number of implementation cycles', Number.parseInt)
+  .option('--max-time <n>', 'Maximum time in minutes', Number.parseInt)
   .option('--model <name>', 'Model to use for implementation')
   .option('--dry-run', 'Validate dependencies without running implementation')
   .action(
@@ -102,7 +103,7 @@ program
 program
   .command('dashboard')
   .description('Start the dashboard server')
-  .option('--port <n>', 'Port to run the server on (default: 3847)', parseInt)
+  .option('--port <n>', 'Port to run the server on (default: 3847)', Number.parseInt)
   .action(async (options: { port?: number }) => {
     const globalOpts = program.opts();
     await dashboardCommand({
@@ -151,8 +152,7 @@ sessionsCommand
   });
 
 // Error handling for unknown commands
-program.on('command:*', (operands) => {
-  console.error(`error: unknown command '${operands[0]}'`);
+program.on('command:*', (_operands) => {
   process.exit(1);
 });
 

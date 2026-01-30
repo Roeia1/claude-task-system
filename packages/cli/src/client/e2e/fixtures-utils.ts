@@ -48,7 +48,7 @@ export function getJournalFilePath(epicSlug: string, storySlug: string): string 
 /**
  * Read a story file
  */
-export async function readStoryFile(epicSlug: string, storySlug: string): Promise<string> {
+export function readStoryFile(epicSlug: string, storySlug: string): Promise<string> {
   return readFile(getStoryFilePath(epicSlug, storySlug), 'utf-8');
 }
 
@@ -100,7 +100,7 @@ export async function createStory(
   epicSlug: string,
   storySlug: string,
   title: string,
-  status: string = 'ready',
+  status = 'ready',
 ): Promise<void> {
   const storyPath = getStoryPath(epicSlug, storySlug);
   await mkdir(storyPath, { recursive: true });

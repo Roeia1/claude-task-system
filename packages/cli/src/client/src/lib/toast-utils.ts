@@ -7,7 +7,7 @@ import { toast } from '@/hooks/use-toast';
 const activeToasts = new Set<string>();
 
 /** Duration for error toasts - they stay until dismissed */
-const ERROR_TOAST_DURATION = Infinity;
+const ERROR_TOAST_DURATION = Number.POSITIVE_INFINITY;
 
 /** Duration for info toasts like reconnecting */
 const INFO_TOAST_DURATION = 5000;

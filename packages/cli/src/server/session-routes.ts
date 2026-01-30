@@ -7,7 +7,7 @@
  */
 
 import { type Request, type Response, Router } from 'express';
-import { getCurrentSessions } from '../lib/session-polling.js';
+import { getCurrentSessions } from '../lib/session-polling.ts';
 
 /**
  * Create the Session API router
@@ -56,8 +56,7 @@ export function createSessionApiRouter(): Router {
       }
 
       res.json(sessions);
-    } catch (error) {
-      console.error('Error fetching sessions:', error);
+    } catch (_error) {
       res.status(500).json({ error: 'Failed to fetch sessions' });
     }
   });
@@ -81,8 +80,7 @@ export function createSessionApiRouter(): Router {
       }
 
       res.json(session);
-    } catch (error) {
-      console.error('Error fetching session:', error);
+    } catch (_error) {
       res.status(500).json({ error: 'Failed to fetch session' });
     }
   });

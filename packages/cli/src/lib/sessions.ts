@@ -12,6 +12,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import process from 'node:process';
 
 /**
  * Directory where session output files are stored
@@ -372,7 +373,7 @@ export async function killSession(sessionName: string): Promise<KillSessionResul
  * @returns Parsed slugs or null if not a valid SAGA session name (including old-format sessions)
  */
 export function parseSessionName(name: string): ParsedSessionName | null {
-  if (!name || !name.startsWith('saga__')) {
+  if (!name?.startsWith('saga__')) {
     return null;
   }
 
@@ -385,7 +386,7 @@ export function parseSessionName(name: string): ParsedSessionName | null {
   const [, epicSlug, storySlug, pid] = parts;
 
   // Validate that we have non-empty slugs and a pid
-  if (!epicSlug || !storySlug || !pid) {
+  if (!(epicSlug && storySlug && pid)) {
     return null;
   }
 

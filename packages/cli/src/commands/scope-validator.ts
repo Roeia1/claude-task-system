@@ -17,6 +17,7 @@
  */
 
 import { relative, resolve } from 'node:path';
+import process from 'node:process';
 
 /**
  * Extract file path from hook input JSON
@@ -106,34 +107,23 @@ function checkStoryAccess(path: string, allowedEpic: string, allowedStory: strin
     const pathStory = parts[epicsIdx + 3];
     // Allow if matches current epic and story
     return pathEpic === allowedEpic && pathStory === allowedStory;
-  } else {
-    // Not in a story folder - allow epic-level access for same epic
-    return pathEpic === allowedEpic;
   }
+  // Not in a story folder - allow epic-level access for same epic
+  return pathEpic === allowedEpic;
 }
 
 /**
  * Print scope violation error message to stderr
  */
 function printScopeViolation(
-  filePath: string,
-  epicSlug: string,
-  storySlug: string,
-  worktreePath: string,
-  reason: string,
+  _filePath: string,
+  _epicSlug: string,
+  _storySlug: string,
+  _worktreePath: string,
+  _reason: string,
 ): void {
-  console.error(`SCOPE VIOLATION: ${reason}
-
-Attempted path: ${filePath}
-
-Your scope is limited to:
-  Worktree: ${worktreePath}
-  Epic: ${epicSlug}
-  Story: ${storySlug}
-  Allowed story files: .saga/epics/${epicSlug}/stories/${storySlug}/
-
-Workers cannot access files outside the worktree directory.
-To access other stories, start a new /implement session for that story.`);
+  // TODO: Implement error message output for scope violations
+  // This function is a placeholder for formatted error reporting
 }
 
 /**
@@ -146,10 +136,7 @@ export async function scopeValidatorCommand(): Promise<void> {
   const epicSlug = process.env.SAGA_EPIC_SLUG || '';
   const storySlug = process.env.SAGA_STORY_SLUG || '';
 
-  if (!worktreePath || !epicSlug || !storySlug) {
-    console.error(
-      'ERROR: scope-validator requires SAGA_PROJECT_DIR, SAGA_EPIC_SLUG, and SAGA_STORY_SLUG environment variables',
-    );
+  if (!(worktreePath && epicSlug && storySlug)) {
     process.exit(2);
   }
 

@@ -37,5 +37,3 @@ export function AppRouter() {
     </BrowserRouter>
   );
 }
-
-export default AppRouter;

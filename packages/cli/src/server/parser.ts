@@ -9,7 +9,7 @@
 import { readFile } from 'node:fs/promises';
 import { relative } from 'node:path';
 import matter from 'gray-matter';
-import { type ScannedStory, scanAllStories, scanEpics } from '../utils/saga-scanner.js';
+import { type ScannedStory, scanAllStories, scanEpics } from '../utils/saga-scanner.ts';
 
 /**
  * Story counts by status

@@ -12,8 +12,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { type ServerInstance, startServer } from '../index.js';
-import type { EpicSummary, StoryDetail } from '../parser.js';
+import { type ServerInstance, startServer } from '../index.ts';
+import type { EpicSummary, StoryDetail } from '../parser.ts';
 
 describe('routes', () => {
   let testDir: string;
@@ -142,7 +142,7 @@ Archived.
     await createTestFixtures();
 
     // Start server with random port
-    const randomPort = 30000 + Math.floor(Math.random() * 20000);
+    const randomPort = 30_000 + Math.floor(Math.random() * 20_000);
     server = await startServer({ sagaRoot: testDir, port: randomPort });
   });
 
@@ -197,7 +197,7 @@ Archived.
       const emptyDir = join(tmpdir(), `saga-routes-empty-${Date.now()}`);
       await mkdir(emptyDir, { recursive: true });
 
-      const randomPort = 30000 + Math.floor(Math.random() * 20000);
+      const randomPort = 30_000 + Math.floor(Math.random() * 20_000);
       const emptyServer = await startServer({ sagaRoot: emptyDir, port: randomPort });
 
       try {

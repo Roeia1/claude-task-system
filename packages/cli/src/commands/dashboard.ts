@@ -6,8 +6,9 @@
  * and broadcasts real-time updates via WebSocket.
  */
 
-import { startServer } from '../server/index.js';
-import { resolveProjectPath } from '../utils/project-discovery.js';
+import process from 'node:process';
+import { startServer } from '../server/index.ts';
+import { resolveProjectPath } from '../utils/project-discovery.ts';
 
 /**
  * Options for the dashboard command
@@ -25,8 +26,7 @@ export async function dashboardCommand(options: DashboardOptions): Promise<void>
   let projectPath: string;
   try {
     projectPath = resolveProjectPath(options.path);
-  } catch (error) {
-    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+  } catch (_error) {
     process.exit(1);
   }
 
@@ -36,11 +36,8 @@ export async function dashboardCommand(options: DashboardOptions): Promise<void>
       port: options.port,
     });
 
-    console.log(`Project: ${projectPath}`);
-
     // Handle graceful shutdown
     process.on('SIGINT', async () => {
-      console.log('\nShutting down dashboard server...');
       await server.close();
       process.exit(0);
     });
@@ -49,10 +46,7 @@ export async function dashboardCommand(options: DashboardOptions): Promise<void>
       await server.close();
       process.exit(0);
     });
-  } catch (error) {
-    console.error(
-      `Error starting server: ${error instanceof Error ? error.message : String(error)}`,
-    );
+  } catch (_error) {
     process.exit(1);
   }
 }

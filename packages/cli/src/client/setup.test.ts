@@ -85,13 +85,13 @@ describe('Vite React TypeScript Project Setup', () => {
   });
 
   describe('Vite configuration', () => {
-    it('should have vite.config.ts with React plugin', async () => {
+    it('should have vite.config.ts with React plugin', () => {
       const viteConfigContent = fs.readFileSync(path.join(CLIENT_DIR, 'vite.config.ts'), 'utf-8');
       expect(viteConfigContent).toContain('@vitejs/plugin-react');
       expect(viteConfigContent).toContain('react()');
     });
 
-    it('should have path alias resolution configured', async () => {
+    it('should have path alias resolution configured', () => {
       const viteConfigContent = fs.readFileSync(path.join(CLIENT_DIR, 'vite.config.ts'), 'utf-8');
       expect(viteConfigContent).toContain('resolve');
       expect(viteConfigContent).toContain('alias');

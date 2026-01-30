@@ -9,8 +9,8 @@
 import { createServer, type Server as HttpServer } from 'node:http';
 import { join } from 'node:path';
 import express, { type Express, type Request, type Response } from 'express';
-import { createApiRouter } from './routes.js';
-import { createWebSocketServer, type WebSocketInstance } from './websocket.js';
+import { createApiRouter } from './routes.ts';
+import { createWebSocketServer, type WebSocketInstance } from './websocket.ts';
 
 /**
  * Configuration for starting the server
@@ -98,8 +98,6 @@ export async function startServer(config: ServerConfig): Promise<ServerInstance>
     httpServer.on('error', reject);
 
     httpServer.listen(port, () => {
-      console.log(`SAGA Dashboard server running on http://localhost:${port}`);
-
       resolve({
         app,
         httpServer,

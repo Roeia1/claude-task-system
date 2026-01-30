@@ -14,9 +14,9 @@ import {
   POLLING_INTERVAL_MS,
   startSessionPolling,
   stopSessionPolling,
-} from './session-polling.js';
-import type { DetailedSessionInfo } from './sessions.js';
-import * as sessionsModule from './sessions.js';
+} from './session-polling.ts';
+import type { DetailedSessionInfo } from './sessions.ts';
+import * as sessionsModule from './sessions.ts';
 
 // Mock the sessions module
 vi.mock('./sessions.js', async () => {
@@ -492,9 +492,15 @@ describe('session-polling', () => {
         },
       ]);
       mockBuildSessionInfo.mockImplementation(async (name) => {
-        if (name === 'saga__epic1__story1__111') return session1;
-        if (name === 'saga__epic2__story2__222') return session2;
-        if (name === 'saga__epic3__story3__333') return session3;
+        if (name === 'saga__epic1__story1__111') {
+          return session1;
+        }
+        if (name === 'saga__epic2__story2__222') {
+          return session2;
+        }
+        if (name === 'saga__epic3__story3__333') {
+          return session3;
+        }
         return null;
       });
       mockGetSessionStatus.mockResolvedValue({ running: true });
@@ -513,7 +519,9 @@ describe('session-polling', () => {
   describe('error handling', () => {
     it('should continue polling if listSessions throws an error', async () => {
       const broadcast = vi.fn();
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+        // Suppress console error output in tests
+      });
 
       // First call throws
       mockListSessions.mockRejectedValueOnce(new Error('tmux not available'));
@@ -535,7 +543,9 @@ describe('session-polling', () => {
 
     it('should handle buildSessionInfo errors gracefully', async () => {
       const broadcast = vi.fn();
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+        // Suppress console error output in tests
+      });
 
       mockListSessions.mockResolvedValue([
         {

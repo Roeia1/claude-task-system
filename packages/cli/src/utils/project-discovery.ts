@@ -7,6 +7,7 @@
 
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import process from 'node:process';
 
 /**
  * Find the project root by walking up from startDir looking for .saga/

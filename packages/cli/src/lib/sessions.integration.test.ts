@@ -16,7 +16,7 @@ import {
   listSessions,
   OUTPUT_DIR,
   validateSlug,
-} from './sessions.js';
+} from './sessions.ts';
 
 /**
  * Check if tmux is available on the system

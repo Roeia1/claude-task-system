@@ -7,7 +7,7 @@ import '../src/index.css';
  * Also disables animations for consistent visual snapshot testing.
  */
 const withDarkTheme: Decorator = (Story) => (
-  <div className="dark bg-background text-foreground min-h-screen p-4">
+  <div class="dark bg-background text-foreground min-h-screen p-4">
     <style>{`
       /* Disable animations for visual snapshot testing consistency */
       *, *::before, *::after {

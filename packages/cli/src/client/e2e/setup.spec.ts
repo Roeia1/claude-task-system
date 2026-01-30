@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { resetAllFixtures } from './fixtures-utils';
+import { resetAllFixtures } from './fixtures-utils.ts';
+
+/** Expected number of fixture epics */
+const EXPECTED_EPIC_COUNT = 3;
 
 /**
  * E2E setup verification tests.
@@ -29,7 +32,7 @@ test.describe('E2E Setup Verification', () => {
     const epics = await response.json();
 
     // Verify we have the expected fixture epics
-    expect(epics).toHaveLength(3);
+    expect(epics).toHaveLength(EXPECTED_EPIC_COUNT);
 
     const epicSlugs = epics.map((e: { slug: string }) => e.slug);
     expect(epicSlugs).toContain('feature-development');

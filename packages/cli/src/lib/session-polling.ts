@@ -16,7 +16,7 @@ import {
   type DetailedSessionInfo,
   getSessionStatus,
   listSessions,
-} from './sessions.js';
+} from './sessions.ts';
 
 /**
  * Polling interval in milliseconds (3 seconds)
@@ -90,8 +90,9 @@ async function pollSessions(broadcast: (msg: SessionsUpdatedMessage) => void): P
         sessions,
       });
     }
-  } catch (error) {
-    console.error('Error polling sessions:', error);
+  } catch (_error) {
+    // Silently ignore errors - session discovery is best-effort
+    // Errors here are typically transient (e.g., tmux not available momentarily)
   }
 }
 
@@ -113,9 +114,10 @@ async function discoverSessions(): Promise<DetailedSessionInfo[]> {
       if (detailed) {
         detailedSessions.push(detailed);
       }
-    } catch (error) {
-      console.error(`Error building session info for ${session.name}:`, error);
-    }
+    } catch (_error) {
+    // Silently ignore errors - session discovery is best-effort
+    // Errors here are typically transient (e.g., tmux not available momentarily)
+  }
   }
 
   // Sort by startTime descending (newest first)

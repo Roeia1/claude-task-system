@@ -17,7 +17,7 @@ import { join } from 'node:path';
 import type { FSWatcher } from 'chokidar';
 import chokidar from 'chokidar';
 import type { WebSocket } from 'ws';
-import { OUTPUT_DIR } from './sessions.js';
+import { OUTPUT_DIR } from './sessions.ts';
 
 /**
  * Callback type for sending log data to a specific client
@@ -55,22 +55,22 @@ export class LogStreamManager {
   /**
    * Active file watchers indexed by session name
    */
-  private watchers: Map<string, FSWatcher> = new Map();
+  private readonly watchers: Map<string, FSWatcher> = new Map();
 
   /**
    * Current file position (byte offset) per session for incremental reads
    */
-  private filePositions: Map<string, number> = new Map();
+  private readonly filePositions: Map<string, number> = new Map();
 
   /**
    * Client subscriptions per session
    */
-  private subscriptions: Map<string, Set<WebSocket>> = new Map();
+  private readonly subscriptions: Map<string, Set<WebSocket>> = new Map();
 
   /**
    * Function to send messages to clients
    */
-  private sendToClient: SendToClientFn;
+  private readonly sendToClient: SendToClientFn;
 
   /**
    * Create a new LogStreamManager instance

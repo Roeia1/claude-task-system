@@ -2,7 +2,21 @@ import { type ChildProcess, execSync, spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+// ============================================================================
+// Test Constants
+// ============================================================================
+
+/** Timeout for CLI operations in milliseconds (5 seconds) */
+const CLI_TIMEOUT_MS = 5000;
+
+/** Base port number for random port generation */
+const TEST_PORT_BASE = 30_000;
+
+/** Range for random port offset (0-19999) */
+const TEST_PORT_RANGE = 20_000;
 
 describe('saga dashboard command', () => {
   let tempDir: string;
@@ -30,7 +44,7 @@ describe('saga dashboard command', () => {
         cwd: options.cwd || tempDir,
         encoding: 'utf-8',
         env: { ...process.env },
-        timeout: 5000,
+        timeout: CLI_TIMEOUT_MS,
       });
       return { stdout, stderr: '', exitCode: 0 };
     } catch (error) {
@@ -61,7 +75,7 @@ describe('saga dashboard command', () => {
       let stdout = '';
       const timeout = setTimeout(() => {
         reject(new Error('Timeout waiting for server to start'));
-      }, 5000);
+      }, CLI_TIMEOUT_MS);
 
       proc.stdout?.on('data', (data) => {
         stdout += data.toString();
@@ -100,7 +114,7 @@ describe('saga dashboard command', () => {
   it('starts server and shows project path', async () => {
     createSagaProject(tempDir);
     // Use a random port to avoid conflicts
-    const port = 30000 + Math.floor(Math.random() * 20000);
+    const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
     const { proc, stdout } = await startCliAsync(`dashboard --port ${port}`, {
       cwd: tempDir,
       waitForProject: true,
@@ -118,7 +132,7 @@ describe('saga dashboard command', () => {
   it('uses default port 3847 when not specified', async () => {
     createSagaProject(tempDir);
     // Use a random port to avoid conflicts with the default port
-    const port = 30000 + Math.floor(Math.random() * 20000);
+    const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
     const { proc, stdout } = await startCliAsync(`dashboard --port ${port}`, { cwd: tempDir });
 
     try {
@@ -131,7 +145,7 @@ describe('saga dashboard command', () => {
 
   it('uses custom port when --port option is provided', async () => {
     createSagaProject(tempDir);
-    const port = 30000 + Math.floor(Math.random() * 20000);
+    const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
     const { proc, stdout } = await startCliAsync(`dashboard --port ${port}`, { cwd: tempDir });
 
     try {
@@ -143,7 +157,7 @@ describe('saga dashboard command', () => {
 
   it('uses custom port when --port option with equals sign', async () => {
     createSagaProject(tempDir);
-    const port = 30000 + Math.floor(Math.random() * 20000);
+    const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
     const { proc, stdout } = await startCliAsync(`dashboard --port=${port}`, { cwd: tempDir });
 
     try {
@@ -158,7 +172,7 @@ describe('saga dashboard command', () => {
     mkdirSync(projectDir, { recursive: true });
     createSagaProject(projectDir);
 
-    const port = 30000 + Math.floor(Math.random() * 20000);
+    const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
     // Run from temp dir with --path pointing to project
     const { proc, stdout } = await startCliAsync(`--path ${projectDir} dashboard --port ${port}`, {
       cwd: tempDir,
@@ -186,7 +200,7 @@ describe('saga dashboard command', () => {
     const subDir = join(tempDir, 'nested', 'deep', 'dir');
     mkdirSync(subDir, { recursive: true });
 
-    const port = 30000 + Math.floor(Math.random() * 20000);
+    const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
     const { proc, stdout } = await startCliAsync(`dashboard --port ${port}`, { cwd: subDir });
 
     try {

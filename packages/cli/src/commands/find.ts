@@ -16,8 +16,9 @@
  *   - error: string (if no match)
  */
 
-import { findEpic, findStory } from '../utils/finder.js';
-import { resolveProjectPath } from '../utils/project-discovery.js';
+import process from 'node:process';
+import { findEpic, findStory } from '../utils/finder.ts';
+import { resolveProjectPath } from '../utils/project-discovery.ts';
 
 /**
  * Options for the find command
@@ -36,13 +37,7 @@ export async function findCommand(query: string, options: FindOptions): Promise<
   let projectPath: string;
   try {
     projectPath = resolveProjectPath(options.path);
-  } catch (error) {
-    console.log(
-      JSON.stringify({
-        found: false,
-        error: error instanceof Error ? error.message : String(error),
-      }),
-    );
+  } catch (_error) {
     process.exit(1);
   }
 
@@ -54,9 +49,6 @@ export async function findCommand(query: string, options: FindOptions): Promise<
   } else {
     result = await findStory(projectPath, query, { status: options.status });
   }
-
-  // Output JSON result
-  console.log(JSON.stringify(result, null, 2));
 
   // Exit with appropriate code
   if (!result.found) {

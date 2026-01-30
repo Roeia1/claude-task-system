@@ -8,7 +8,17 @@ import {
   mockEpicDetail,
   mockEpicList,
   mockStoryDetail,
-} from '../utils/mock-api';
+} from '../utils/mock-api.ts';
+
+// HTTP Status Codes
+const HTTP_OK = 200;
+const HTTP_INTERNAL_SERVER_ERROR = 500;
+
+// Timeouts (ms)
+const LOADING_TIMEOUT_MS = 10_000;
+
+// Delay durations (ms)
+const DELAY_MS = 500;
 
 /**
  * Tests for API mocking infrastructure.
@@ -65,7 +75,9 @@ test.describe('API Mocking Infrastructure', () => {
 
       // Navigate and verify the API was mocked
       await page.goto('/');
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
+        timeout: LOADING_TIMEOUT_MS,
+      });
 
       // The page should render our mocked epics
       await expect(page.getByText('Epic One')).toBeVisible();
@@ -85,7 +97,9 @@ test.describe('API Mocking Infrastructure', () => {
       await mockEpicDetail(page, epic);
 
       await page.goto('/epic/test-epic');
-      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, {
+        timeout: LOADING_TIMEOUT_MS,
+      });
 
       // The page should show the epic detail
       await expect(page.getByRole('heading', { name: 'Test Epic Detail' })).toBeVisible();
@@ -102,14 +116,16 @@ test.describe('API Mocking Infrastructure', () => {
       await mockStoryDetail(page, story);
 
       await page.goto('/epic/test-epic/story/test-story');
-      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
+        timeout: LOADING_TIMEOUT_MS,
+      });
 
       // The page should show the story detail
       await expect(page.getByRole('heading', { name: 'Test Story Detail' })).toBeVisible();
     });
 
     test('mockApiError mocks error responses', async ({ page }) => {
-      await mockApiError(page, '**/api/epics', 500, 'Internal Server Error');
+      await mockApiError(page, '**/api/epics', HTTP_INTERNAL_SERVER_ERROR, 'Internal Server Error');
 
       await page.goto('/');
       await page.waitForLoadState('networkidle');
@@ -123,8 +139,8 @@ test.describe('API Mocking Infrastructure', () => {
       const epics = [createMockEpicSummary({ slug: 'delayed-epic' })];
 
       // Add a 500ms delay to the response
-      await mockApiDelay(page, '**/api/epics', 500, {
-        status: 200,
+      await mockApiDelay(page, '**/api/epics', DELAY_MS, {
+        status: HTTP_OK,
         contentType: 'application/json',
         body: JSON.stringify(epics),
       });
@@ -135,7 +151,7 @@ test.describe('API Mocking Infrastructure', () => {
       const elapsed = Date.now() - start;
 
       // The request should have been delayed by at least 500ms
-      expect(elapsed).toBeGreaterThanOrEqual(500);
+      expect(elapsed).toBeGreaterThanOrEqual(DELAY_MS);
     });
   });
 });

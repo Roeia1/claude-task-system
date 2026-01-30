@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import { type ServerInstance, startServer } from '../index.js';
+import { type ServerInstance, startServer } from '../index.ts';
 
 // Helper to create a temporary saga directory
 async function createTempSagaDir(): Promise<string> {
@@ -62,11 +62,11 @@ Integration test story.
 
 // Helper to get a random port in a safe range
 function getRandomPort(): number {
-  return Math.floor(Math.random() * 20000) + 30000; // 30000-50000
+  return Math.floor(Math.random() * 20_000) + 30_000; // 30000-50000
 }
 
 // Helper to create a WebSocket client and wait for connection
-async function createWSClient(port: number): Promise<WebSocket> {
+async function createWsClient(port: number): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`ws://localhost:${port}`);
     const timeout = setTimeout(() => {
@@ -142,7 +142,7 @@ describe('integration', () => {
 
   describe('full flow: file change → watcher → WebSocket → client', () => {
     it('should deliver story update to subscribed client within 1 second', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Subscribe to story updates
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
@@ -189,8 +189,8 @@ Updated content.
     });
 
     it('should deliver epic update to all clients when structure changes', async () => {
-      const ws1 = await createWSClient(port);
-      const ws2 = await createWSClient(port);
+      const ws1 = await createWsClient(port);
+      const ws2 = await createWsClient(port);
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Record start time
@@ -287,7 +287,7 @@ Done.
     });
 
     it('should close WebSocket connections on shutdown', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
       expect(ws.readyState).toBe(WebSocket.OPEN);
 
       // Close server
@@ -326,7 +326,7 @@ Done.
       // Create and close multiple connections rapidly
       const connections: WebSocket[] = [];
       for (let i = 0; i < 5; i++) {
-        const ws = await createWSClient(port);
+        const ws = await createWsClient(port);
         connections.push(ws);
       }
 
@@ -339,7 +339,7 @@ Done.
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Server should still accept new connections
-      const newWs = await createWSClient(port);
+      const newWs = await createWsClient(port);
       expect(newWs.readyState).toBe(WebSocket.OPEN);
       newWs.close();
     });
@@ -349,7 +349,7 @@ Done.
 
       // Create multiple WebSocket clients
       for (let i = 0; i < 3; i++) {
-        const ws = await createWSClient(port);
+        const ws = await createWsClient(port);
         sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
         clients.push(ws);
       }
@@ -386,7 +386,7 @@ tasks: []
 
   describe('data consistency', () => {
     it('should return consistent data between API and WebSocket', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -422,7 +422,7 @@ tasks:
     });
 
     it('should include journal in story updates when present', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -464,7 +464,7 @@ Waiting for code review.
 
       // Create multiple clients and subscribe them all
       for (let i = 0; i < clientCount; i++) {
-        const ws = await createWSClient(port);
+        const ws = await createWsClient(port);
         sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
         clients.push(ws);
       }

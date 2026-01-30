@@ -6,6 +6,7 @@ import { execSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('implement command', () => {
@@ -32,7 +33,7 @@ describe('implement command', () => {
   ): { stdout: string; stderr: string; exitCode: number } {
     // Create a clean env without SAGA_PLUGIN_ROOT (unless explicitly provided)
     const cleanEnv = { ...process.env };
-    delete cleanEnv.SAGA_PLUGIN_ROOT;
+    cleanEnv.SAGA_PLUGIN_ROOT = undefined;
 
     try {
       const stdout = execSync(`node ${cliPath} ${args.join(' ')}`, {
@@ -163,7 +164,7 @@ Test story for implement command testing.
       // Run from subDir but specify --path to testDir
       // Note: We unset SAGA_PLUGIN_ROOT to prevent actual script execution
       const cleanEnv = { ...process.env };
-      delete cleanEnv.SAGA_PLUGIN_ROOT;
+      cleanEnv.SAGA_PLUGIN_ROOT = undefined;
 
       const result = (() => {
         try {

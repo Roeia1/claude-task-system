@@ -48,7 +48,7 @@ describe('find command', () => {
     epicSlug: string,
     storySlug: string,
     frontmatter: Record<string, string>,
-    body: string = '',
+    body = '',
   ): void {
     const storyDir = join(
       testDir,

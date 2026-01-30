@@ -8,9 +8,16 @@ import { useDashboard } from '@/context/DashboardContext';
 import { showApiErrorToast } from '@/lib/toast-utils';
 import type { Epic, StoryDetail, StoryStatus } from '@/types/dashboard';
 
+/** HTTP 404 Not Found status code */
+const HTTP_NOT_FOUND = 404;
+
+/** Percentage conversion multiplier */
+const PERCENTAGE_MULTIPLIER = 100;
+
 /** Status priority for sorting (lower = higher priority) */
 const statusPriority: Record<StoryStatus, number> = {
   blocked: 0,
+  // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
   in_progress: 1,
   ready: 2,
   completed: 3,
@@ -19,14 +26,14 @@ const statusPriority: Record<StoryStatus, number> = {
 /** Skeleton loading component for the epic header */
 export function HeaderSkeleton() {
   return (
-    <div className="animate-pulse space-y-4" data-testid="epic-header-skeleton">
-      <div className="h-8 w-64 bg-bg-light rounded" />
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <div className="h-4 w-24 bg-bg-light rounded" />
-          <div className="h-4 w-32 bg-bg-light rounded" />
+    <div class="animate-pulse space-y-4" data-testid="epic-header-skeleton">
+      <div class="h-8 w-64 bg-bg-light rounded" />
+      <div class="space-y-2">
+        <div class="flex justify-between">
+          <div class="h-4 w-24 bg-bg-light rounded" />
+          <div class="h-4 w-32 bg-bg-light rounded" />
         </div>
-        <div className="h-4 w-full bg-bg-light rounded" />
+        <div class="h-4 w-full bg-bg-light rounded" />
       </div>
     </div>
   );
@@ -35,13 +42,13 @@ export function HeaderSkeleton() {
 /** Skeleton loading component for story cards */
 export function StoryCardSkeleton() {
   return (
-    <Card className="animate-pulse" data-testid="story-card-skeleton">
+    <Card class="animate-pulse" data-testid="story-card-skeleton">
       <CardHeader>
-        <div className="h-5 w-48 bg-bg-light rounded" />
+        <div class="h-5 w-48 bg-bg-light rounded" />
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="h-6 w-24 bg-bg-light rounded-full" />
-        <div className="h-4 w-32 bg-bg-light rounded" />
+      <CardContent class="space-y-3">
+        <div class="h-6 w-24 bg-bg-light rounded-full" />
+        <div class="h-4 w-32 bg-bg-light rounded" />
       </CardContent>
     </Card>
   );
@@ -51,6 +58,7 @@ export function StoryCardSkeleton() {
 export function StatusBadge({ status }: { status: StoryStatus }) {
   const variants: Record<StoryStatus, string> = {
     ready: 'bg-text-muted/20 text-text-muted',
+    // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
     in_progress: 'bg-primary/20 text-primary',
     blocked: 'bg-danger/20 text-danger',
     completed: 'bg-success/20 text-success',
@@ -58,12 +66,13 @@ export function StatusBadge({ status }: { status: StoryStatus }) {
 
   const labels: Record<StoryStatus, string> = {
     ready: 'Ready',
+    // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
     in_progress: 'In Progress',
     blocked: 'Blocked',
     completed: 'Completed',
   };
 
-  return <Badge className={variants[status]}>{labels[status]}</Badge>;
+  return <Badge class={variants[status]}>{labels[status]}</Badge>;
 }
 
 /** Calculate task progress for a story */
@@ -77,14 +86,14 @@ export function StoryCard({ story, epicSlug }: { story: StoryDetail; epicSlug: s
   const taskProgress = getTaskProgress(story.tasks);
 
   return (
-    <Link to={`/epic/${epicSlug}/story/${story.slug}`} className="block">
-      <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{story.title}</CardTitle>
+    <Link to={`/epic/${epicSlug}/story/${story.slug}`} class="block">
+      <Card class="hover:border-primary/50 transition-colors cursor-pointer">
+        <CardHeader class="pb-2">
+          <CardTitle class="text-base">{story.title}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent class="space-y-3">
           <StatusBadge status={story.status} />
-          <p className="text-sm text-text-muted">
+          <p class="text-sm text-text-muted">
             {taskProgress.completed}/{taskProgress.total} tasks completed
           </p>
         </CardContent>
@@ -102,7 +111,9 @@ export function EpicDetail() {
 
   useEffect(() => {
     const fetchEpic = async () => {
-      if (!slug) return;
+      if (!slug) {
+        return;
+      }
 
       setIsFetching(true);
       setNotFound(false);
@@ -110,7 +121,7 @@ export function EpicDetail() {
 
       try {
         const response = await fetch(`/api/epics/${slug}`);
-        if (response.status === 404) {
+        if (response.status === HTTP_NOT_FOUND) {
           setNotFound(true);
           return;
         }
@@ -141,7 +152,10 @@ export function EpicDetail() {
   // Calculate completion percentage
   const completionPercentage =
     currentEpic && currentEpic.storyCounts.total > 0
-      ? Math.round((currentEpic.storyCounts.completed / currentEpic.storyCounts.total) * 100)
+      ? Math.round(
+          (currentEpic.storyCounts.completed / currentEpic.storyCounts.total) *
+            PERCENTAGE_MULTIPLIER,
+        )
       : 0;
 
   // Sort stories by status priority: blocked first, then in_progress, then ready, then completed
@@ -152,10 +166,10 @@ export function EpicDetail() {
   // 404 state
   if (notFound) {
     return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold text-text mb-2">Epic not found</h1>
-        <p className="text-text-muted mb-4">The epic &quot;{slug}&quot; does not exist.</p>
-        <Link to="/" className="text-primary hover:underline">
+      <div class="text-center py-12">
+        <h1 class="text-2xl font-bold text-text mb-2">Epic not found</h1>
+        <p class="text-text-muted mb-4">The epic &quot;{slug}&quot; does not exist.</p>
+        <Link to="/" class="text-primary hover:underline">
           ← Back to epic list
         </Link>
       </div>
@@ -165,10 +179,10 @@ export function EpicDetail() {
   // Error state
   if (error && !loading) {
     return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold text-danger mb-2">Error</h1>
-        <p className="text-text-muted mb-4">{error}</p>
-        <Link to="/" className="text-primary hover:underline">
+      <div class="text-center py-12">
+        <h1 class="text-2xl font-bold text-danger mb-2">Error</h1>
+        <p class="text-text-muted mb-4">{error}</p>
+        <Link to="/" class="text-primary hover:underline">
           ← Back to epic list
         </Link>
       </div>
@@ -178,9 +192,9 @@ export function EpicDetail() {
   // Loading state
   if (loading || !currentEpic) {
     return (
-      <div className="space-y-6">
+      <div class="space-y-6">
         <HeaderSkeleton />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <StoryCardSkeleton />
           <StoryCardSkeleton />
           <StoryCardSkeleton />
@@ -190,14 +204,14 @@ export function EpicDetail() {
   }
 
   return (
-    <div className="space-y-6">
+    <div class="space-y-6">
       {/* Epic header */}
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold text-text">{currentEpic.title}</h1>
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-text-muted">Progress</span>
-            <span className="text-text-muted">
+      <div class="space-y-4">
+        <h1 class="text-2xl font-bold text-text">{currentEpic.title}</h1>
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-text-muted">Progress</span>
+            <span class="text-text-muted">
               {currentEpic.storyCounts.completed}/{currentEpic.storyCounts.total} stories completed
             </span>
           </div>
@@ -210,16 +224,16 @@ export function EpicDetail() {
 
       {/* Stories list */}
       {sortedStories.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-text-muted text-lg">No stories in this epic.</p>
-          <p className="text-text-muted">
-            Run <code className="text-primary">/generate-stories</code> to create stories.
+        <div class="text-center py-12">
+          <p class="text-text-muted text-lg">No stories in this epic.</p>
+          <p class="text-text-muted">
+            Run <code class="text-primary">/generate-stories</code> to create stories.
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-text">Stories</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div class="space-y-4">
+          <h2 class="text-lg font-semibold text-text">Stories</h2>
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {sortedStories.map((story) => (
               <StoryCard key={story.slug} story={story} epicSlug={slug ?? ''} />
             ))}
@@ -229,5 +243,3 @@ export function EpicDetail() {
     </div>
   );
 }
-
-export default EpicDetail;

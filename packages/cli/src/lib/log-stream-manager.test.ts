@@ -9,8 +9,8 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WebSocket } from 'ws';
-import { LogStreamManager, type LogsDataMessage } from './log-stream-manager.js';
-import { OUTPUT_DIR } from './sessions.js';
+import { LogStreamManager, type LogsDataMessage } from './log-stream-manager.ts';
+import { OUTPUT_DIR } from './sessions.ts';
 
 /**
  * Create a mock WebSocket instance for testing
@@ -399,10 +399,10 @@ describe('LogStreamManager', () => {
       // Should have received an incremental update
       expect(broadcastFn).toHaveBeenCalled();
       const calls = broadcastFn.mock.calls;
-      const lastMessage = calls[calls.length - 1][1] as LogsDataMessage;
+      const lastMessage = calls.at(-1)[1] as LogsDataMessage;
       expect(lastMessage.type).toBe('logs:data');
       expect(lastMessage.isInitial).toBe(false);
-    }, 10000); // Increase test timeout to 10 seconds
+    }, 10_000); // Increase test timeout to 10 seconds
 
     it('should close watcher when dispose is called', async () => {
       const ws = createMockWebSocket();

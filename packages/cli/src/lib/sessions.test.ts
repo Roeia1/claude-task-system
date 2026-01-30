@@ -27,7 +27,7 @@ import {
   shellEscapeArgs,
   streamLogs,
   validateSlug,
-} from './sessions.js';
+} from './sessions.ts';
 
 // Mock child_process
 vi.mock('node:child_process', () => ({

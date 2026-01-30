@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { readStoryFile, resetAllFixtures, writeStoryFile } from './fixtures-utils';
+import { readStoryFile, resetAllFixtures, writeStoryFile } from './fixtures-utils.ts';
+
+/** Test timeout for WebSocket real-time update tests (30 seconds) */
+const WEBSOCKET_TEST_TIMEOUT_MS = 30_000;
 
 /**
  * Happy path E2E tests for the SAGA dashboard.
@@ -193,9 +196,9 @@ test.describe('WebSocket Real-time Updates', () => {
   // currently calls this on mount. This is a pre-existing gap in the dashboard implementation.
   // TODO: Enable these tests once WebSocket auto-connection is implemented in the dashboard.
   test.describe.configure({ mode: 'serial' });
-  test.setTimeout(30000);
+  test.setTimeout(WEBSOCKET_TEST_TIMEOUT_MS);
 
-  test.skip('epic list updates when story status changes', async ({ page }) => {
+  test('epic list updates when story status changes', async ({ page }) => {
     await page.goto('/');
 
     // Verify initial state - Feature Development shows 1 completed
@@ -212,14 +215,14 @@ test.describe('WebSocket Real-time Updates', () => {
 
       // Wait for WebSocket update to be reflected in UI
       // The epic should now show Completed: 2
-      await expect(featureDevCard).toContainText('Completed: 2', { timeout: 15000 });
+      await expect(featureDevCard).toContainText('Completed: 2', { timeout: 15_000 });
     } finally {
       // Restore original file
       await writeStoryFile('feature-development', 'auth-implementation', originalContent);
     }
   });
 
-  test.skip('story detail updates when story file changes', async ({ page }) => {
+  test('story detail updates when story file changes', async ({ page }) => {
     await page.goto('/epic/feature-development/story/auth-implementation');
 
     // Verify initial state
@@ -237,7 +240,7 @@ test.describe('WebSocket Real-time Updates', () => {
       await writeStoryFile('feature-development', 'auth-implementation', updatedContent);
 
       // Wait for WebSocket update with longer timeout for file watcher propagation
-      await expect(page.getByText('2/4 tasks completed')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText('2/4 tasks completed')).toBeVisible({ timeout: 15_000 });
     } finally {
       // Restore original file
       await writeStoryFile('feature-development', 'auth-implementation', originalContent);

@@ -11,8 +11,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import { OUTPUT_DIR } from '../../lib/sessions.js';
-import { type ServerInstance, startServer } from '../index.js';
+import { OUTPUT_DIR } from '../../lib/sessions.ts';
+import { type ServerInstance, startServer } from '../index.ts';
 
 // Helper to create a temporary saga directory
 async function createTempSagaDir(): Promise<string> {
@@ -63,11 +63,11 @@ async function cleanupTempDir(tempDir: string): Promise<void> {
 
 // Helper to get a random port in a safe range
 function getRandomPort(): number {
-  return Math.floor(Math.random() * 20000) + 30000; // 30000-50000
+  return Math.floor(Math.random() * 20_000) + 30_000; // 30000-50000
 }
 
 // Helper to create a WebSocket client and wait for connection
-async function createWSClient(port: number): Promise<WebSocket> {
+async function createWsClient(port: number): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`ws://localhost:${port}`);
     const timeout = setTimeout(() => {
@@ -135,15 +135,15 @@ describe('websocket', () => {
 
   describe('connection', () => {
     it('should accept WebSocket connections on same port as HTTP', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
       expect(ws.readyState).toBe(WebSocket.OPEN);
       ws.close();
     });
 
     it('should handle multiple concurrent connections', async () => {
-      const ws1 = await createWSClient(port);
-      const ws2 = await createWSClient(port);
-      const ws3 = await createWSClient(port);
+      const ws1 = await createWsClient(port);
+      const ws2 = await createWsClient(port);
+      const ws3 = await createWsClient(port);
 
       expect(ws1.readyState).toBe(WebSocket.OPEN);
       expect(ws2.readyState).toBe(WebSocket.OPEN);
@@ -155,14 +155,14 @@ describe('websocket', () => {
     });
 
     it('should clean up connection on client disconnect', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
       ws.close();
 
       // Wait a bit for cleanup
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Create a new connection to verify server is still accepting
-      const ws2 = await createWSClient(port);
+      const ws2 = await createWsClient(port);
       expect(ws2.readyState).toBe(WebSocket.OPEN);
       ws2.close();
     });
@@ -170,7 +170,7 @@ describe('websocket', () => {
 
   describe('subscribe:story', () => {
     it('should accept subscribe:story messages', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Subscribe to a story - should not throw
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
@@ -182,8 +182,8 @@ describe('websocket', () => {
     });
 
     it('should track subscriptions per client', async () => {
-      const ws1 = await createWSClient(port);
-      const ws2 = await createWSClient(port);
+      const ws1 = await createWsClient(port);
+      const ws2 = await createWsClient(port);
 
       // ws1 subscribes to test-story
       sendMessage(ws1, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
@@ -201,7 +201,7 @@ describe('websocket', () => {
 
   describe('unsubscribe:story', () => {
     it('should accept unsubscribe:story messages', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Subscribe then unsubscribe
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
@@ -216,8 +216,8 @@ describe('websocket', () => {
 
   describe('epics:updated broadcast', () => {
     it('should broadcast epics:updated to all connected clients', async () => {
-      const ws1 = await createWSClient(port);
-      const ws2 = await createWSClient(port);
+      const ws1 = await createWsClient(port);
+      const ws2 = await createWsClient(port);
 
       // Wait for connections to stabilize
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -244,7 +244,7 @@ describe('websocket', () => {
     });
 
     it('should broadcast epics:updated when a new epic is added', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Create a new epic
@@ -263,7 +263,7 @@ describe('websocket', () => {
 
   describe('story:updated broadcast', () => {
     it('should broadcast story:updated to subscribed clients when story changes', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Subscribe to test-story
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
@@ -297,8 +297,8 @@ Updated story content.
     });
 
     it('should NOT broadcast story:updated to clients NOT subscribed to that story', async () => {
-      const subscribedWs = await createWSClient(port);
-      const unsubscribedWs = await createWSClient(port);
+      const subscribedWs = await createWsClient(port);
+      const unsubscribedWs = await createWsClient(port);
 
       // Only subscribedWs subscribes to test-story
       sendMessage(subscribedWs, 'subscribe:story', {
@@ -340,7 +340,7 @@ Modified.
     });
 
     it('should broadcast story:updated when journal.md is modified', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Subscribe to test-story
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
@@ -367,7 +367,7 @@ Modified.
     });
 
     it('should include full StoryDetail in story:updated payload', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -406,7 +406,7 @@ Story content.
 
   describe('heartbeat', () => {
     it('should respond to ping with pong', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Send ping
       ws.ping();
@@ -426,7 +426,7 @@ Story content.
 
   describe('error handling', () => {
     it('should handle malformed messages gracefully', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Send malformed JSON
       ws.send('not valid json');
@@ -435,7 +435,7 @@ Story content.
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Server should still accept new connections
-      const ws2 = await createWSClient(port);
+      const ws2 = await createWsClient(port);
       expect(ws2.readyState).toBe(WebSocket.OPEN);
 
       ws.close();
@@ -443,7 +443,7 @@ Story content.
     });
 
     it('should handle messages with missing fields gracefully', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Send message without required fields
       ws.send(JSON.stringify({ event: 'subscribe:story' })); // missing data
@@ -454,7 +454,7 @@ Story content.
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Server should still work
-      const ws2 = await createWSClient(port);
+      const ws2 = await createWsClient(port);
       expect(ws2.readyState).toBe(WebSocket.OPEN);
 
       ws.close();
@@ -464,8 +464,8 @@ Story content.
 
   describe('sessions:updated broadcast', () => {
     it('should broadcast sessions:updated to all connected clients on session changes', async () => {
-      const ws1 = await createWSClient(port);
-      const ws2 = await createWSClient(port);
+      const ws1 = await createWsClient(port);
+      const ws2 = await createWsClient(port);
 
       // Wait for connections to stabilize
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -484,7 +484,7 @@ Story content.
     });
 
     it('should include sessions array in sessions:updated messages', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Wait for initial poll which always broadcasts
       // Note: In a real test with tmux mocking we would verify the full flow
@@ -520,7 +520,7 @@ Story content.
       // Create log file
       await writeFile(testOutputFile, testLogContent);
 
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Subscribe to logs
       sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
@@ -537,7 +537,7 @@ Story content.
     });
 
     it('should send error when subscribing to non-existent log file', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Subscribe to logs for non-existent session
       sendMessage(ws, 'subscribe:logs', { sessionName: 'non-existent-session' });
@@ -555,7 +555,7 @@ Story content.
       // Create initial log file
       await writeFile(testOutputFile, testLogContent);
 
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Subscribe to logs
       sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
@@ -577,13 +577,13 @@ Story content.
       expect(incrementalMsg.data).toHaveProperty('isComplete', false);
 
       ws.close();
-    }, 10000);
+    }, 10_000);
 
     it('should stop receiving updates after unsubscribing from logs', async () => {
       // Create log file
       await writeFile(testOutputFile, testLogContent);
 
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Subscribe to logs
       sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
@@ -615,8 +615,8 @@ Story content.
       // Create log file
       await writeFile(testOutputFile, testLogContent);
 
-      const ws1 = await createWSClient(port);
-      const ws2 = await createWSClient(port);
+      const ws1 = await createWsClient(port);
+      const ws2 = await createWsClient(port);
 
       // Both clients subscribe
       sendMessage(ws1, 'subscribe:logs', { sessionName: testSessionName });
@@ -650,13 +650,13 @@ Story content.
 
       ws1.close();
       ws2.close();
-    }, 15000);
+    }, 15_000);
 
     it('should clean up log subscription when client disconnects', async () => {
       // Create log file
       await writeFile(testOutputFile, testLogContent);
 
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Subscribe to logs
       sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
@@ -671,7 +671,7 @@ Story content.
       await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Server should still be accepting new connections (didn't crash)
-      const ws2 = await createWSClient(port);
+      const ws2 = await createWsClient(port);
       expect(ws2.readyState).toBe(WebSocket.OPEN);
       ws2.close();
     });
@@ -697,7 +697,7 @@ Story content.
     });
 
     it('should handle subscribe:logs message with missing sessionName gracefully', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Send malformed subscribe:logs (no sessionName)
       sendMessage(ws, 'subscribe:logs', {});
@@ -711,7 +711,7 @@ Story content.
     });
 
     it('should handle unsubscribe:logs for session not subscribed to', async () => {
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Unsubscribe from a session we never subscribed to
       sendMessage(ws, 'unsubscribe:logs', { sessionName: 'never-subscribed' });
@@ -728,7 +728,7 @@ Story content.
       // Create log file
       await writeFile(testOutputFile, testLogContent);
 
-      const ws = await createWSClient(port);
+      const ws = await createWsClient(port);
 
       // Subscribe to both logs and a story
       sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
@@ -749,8 +749,8 @@ Story content.
       // Create log file
       await writeFile(testOutputFile, testLogContent);
 
-      const ws1 = await createWSClient(port);
-      const ws2 = await createWSClient(port);
+      const ws1 = await createWsClient(port);
+      const ws2 = await createWsClient(port);
 
       // Both subscribe
       sendMessage(ws1, 'subscribe:logs', { sessionName: testSessionName });
@@ -774,6 +774,6 @@ Story content.
 
       ws1.close();
       ws2.close();
-    }, 10000);
+    }, 10_000);
   });
 });

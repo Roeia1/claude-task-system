@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { DashboardProvider } from './context/DashboardContext';
-import { AppRouter } from './router';
+import { DashboardProvider } from './context/DashboardContext.tsx';
+import { AppRouter } from './router.tsx';
 import './index.css';
 
 const rootElement = document.getElementById('root');

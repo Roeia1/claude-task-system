@@ -1,9 +1,20 @@
-const { execSync } = require('node:child_process');
-const fs = require('node:fs');
-const path = require('node:path');
-const os = require('node:os');
+import process from 'node:process';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'saga-status');
+
+// Constants for temp file generation
+const RANDOM_STRING_SLICE_START = 2;
+const BASE_36 = 36;
+
+// Constants for file permissions
+const FILE_PERMISSION_NONE = 0o000;
+const FILE_PERMISSION_DEFAULT = 0o644;
 
 /**
  * Helper to run the script with given args and environment
@@ -37,9 +48,9 @@ function createTempEnvFile(content) {
   const tmpDir = os.tmpdir();
   const tmpFile = path.join(
     tmpDir,
-    `claude-env-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
+    `claude-env-test-${Date.now()}-${Math.random().toString(BASE_36).slice(RANDOM_STRING_SLICE_START)}.sh`,
   );
-  fs.writeFileSync(tmpFile, content, { mode: 0o644 });
+  fs.writeFileSync(tmpFile, content, { mode: FILE_PERMISSION_DEFAULT });
   return tmpFile;
 }
 
@@ -581,7 +592,7 @@ describe('Edge Cases: Permission and Access Issues', () => {
       try {
         // Make file unreadable (this may not work on all systems)
         try {
-          fs.chmodSync(envFile, 0o000);
+          fs.chmodSync(envFile, FILE_PERMISSION_NONE);
         } catch (_e) {
           // Skip test if chmod not supported
           return;
@@ -593,7 +604,7 @@ describe('Edge Cases: Permission and Access Issues', () => {
         expect(result.exitCode).toBe(0);
       } finally {
         try {
-          fs.chmodSync(envFile, 0o644);
+          fs.chmodSync(envFile, FILE_PERMISSION_DEFAULT);
           cleanupTempFile(envFile);
         } catch (_e) {
           // Ignore cleanup errors

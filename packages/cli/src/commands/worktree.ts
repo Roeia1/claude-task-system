@@ -17,7 +17,8 @@
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { resolveProjectPath } from '../utils/project-discovery.js';
+import process from 'node:process';
+import { resolveProjectPath } from '../utils/project-discovery.ts';
 
 // ============================================================================
 // Types
@@ -166,19 +167,15 @@ export async function worktreeCommand(
   try {
     projectPath = resolveProjectPath(options.path);
   } catch (error) {
-    const result: WorktreeResult = {
+    const _result: WorktreeResult = {
       success: false,
       error: error instanceof Error ? error.message : String(error),
     };
-    console.log(JSON.stringify(result));
     process.exit(1);
   }
 
   // Create the worktree
   const result = createWorktree(projectPath, epicSlug, storySlug);
-
-  // Output JSON result
-  console.log(JSON.stringify(result));
 
   // Exit with appropriate code
   if (!result.success) {

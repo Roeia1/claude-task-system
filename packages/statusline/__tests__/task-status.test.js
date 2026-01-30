@@ -1,9 +1,12 @@
-const { execSync } = require('node:child_process');
-const fs = require('node:fs');
-const path = require('node:path');
-const os = require('node:os');
+import process from 'node:process';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'saga-status');
 
 /**
  * Helper to run the script with given args and environment
@@ -51,7 +54,7 @@ describe('task-status script', () => {
       const result = runScript(['--help']);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Usage:');
-      expect(result.stdout).toContain('task-status');
+      expect(result.stdout).toContain('saga-status');
     });
 
     test('should document --no-icons flag', () => {

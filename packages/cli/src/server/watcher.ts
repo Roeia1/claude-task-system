@@ -38,12 +38,16 @@ export interface SagaWatcher {
   /**
    * Subscribe to watcher events
    */
-  on(event: 'epic:added', listener: (event: WatcherEvent) => void): this;
-  on(event: 'epic:changed', listener: (event: WatcherEvent) => void): this;
-  on(event: 'epic:removed', listener: (event: WatcherEvent) => void): this;
-  on(event: 'story:added', listener: (event: WatcherEvent) => void): this;
-  on(event: 'story:changed', listener: (event: WatcherEvent) => void): this;
-  on(event: 'story:removed', listener: (event: WatcherEvent) => void): this;
+  on(
+    event:
+      | 'story:removed'
+      | 'story:changed'
+      | 'story:added'
+      | 'epic:removed'
+      | 'epic:changed'
+      | 'epic:added',
+    listener: (event: WatcherEvent) => void,
+  ): this;
   on(event: 'error', listener: (error: Error) => void): this;
 
   /**
@@ -84,7 +88,7 @@ function parseFilePath(
   const isArchive = parts[1] === 'archive';
   const isEpics = parts[1] === 'epics';
 
-  if (!isArchive && !isEpics) {
+  if (!(isArchive || isEpics)) {
     return null;
   }
 
@@ -202,10 +206,14 @@ export async function createSagaWatcher(sagaRoot: string): Promise<SagaWatcher> 
 
   // Handle file events
   const handleFileEvent = (eventType: 'add' | 'change' | 'unlink', filePath: string) => {
-    if (closed || !ready) return;
+    if (closed || !ready) {
+      return;
+    }
 
     const parsed = parseFilePath(filePath, sagaRoot);
-    if (!parsed) return;
+    if (!parsed) {
+      return;
+    }
 
     const { epicSlug, storySlug, archived, isEpicFile, isStoryFile, isMainStoryFile } = parsed;
 
@@ -215,22 +223,24 @@ export async function createSagaWatcher(sagaRoot: string): Promise<SagaWatcher> 
     // Determine event type
     let watcherEventType: WatcherEventType;
     if (isEpicFile) {
-      watcherEventType =
-        eventType === 'add'
-          ? 'epic:added'
-          : eventType === 'unlink'
-            ? 'epic:removed'
-            : 'epic:changed';
+      if (eventType === 'add') {
+        watcherEventType = 'epic:added';
+      } else if (eventType === 'unlink') {
+        watcherEventType = 'epic:removed';
+      } else {
+        watcherEventType = 'epic:changed';
+      }
     } else if (isStoryFile) {
       // For story.md: add/unlink triggers story:added/removed
       // For journal.md: any change triggers story:changed (it's a change to the story, not a new story)
       if (isMainStoryFile) {
-        watcherEventType =
-          eventType === 'add'
-            ? 'story:added'
-            : eventType === 'unlink'
-              ? 'story:removed'
-              : 'story:changed';
+        if (eventType === 'add') {
+          watcherEventType = 'story:added';
+        } else if (eventType === 'unlink') {
+          watcherEventType = 'story:removed';
+        } else {
+          watcherEventType = 'story:changed';
+        }
       } else {
         // journal.md changes are always story:changed
         watcherEventType = 'story:changed';

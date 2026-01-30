@@ -8,21 +8,24 @@ const MAX_RETRIES = 5;
 const BASE_DELAY = 1000;
 
 /** Heartbeat interval in ms (30 seconds) */
-const HEARTBEAT_INTERVAL = 30000;
+const HEARTBEAT_INTERVAL = 30_000;
+
+/** Maximum backoff delay in ms (30 seconds) */
+const MAX_BACKOFF_DELAY = 30_000;
 
 /** Calculate exponential backoff delay */
 function getBackoffDelay(retryCount: number): number {
-  return Math.min(BASE_DELAY * 2 ** retryCount, 30000);
+  return Math.min(BASE_DELAY * 2 ** retryCount, MAX_BACKOFF_DELAY);
 }
 
 /** Story subscription identifier */
-export interface StorySubscription {
+interface StorySubscription {
   epicSlug: string;
   storySlug: string;
 }
 
 /** Dashboard machine context */
-export interface DashboardContext {
+interface DashboardContext {
   epics: EpicSummary[];
   currentEpic: Epic | null;
   currentStory: StoryDetail | null;
@@ -33,7 +36,7 @@ export interface DashboardContext {
 }
 
 /** Dashboard machine events */
-export type DashboardEvent =
+type DashboardEvent =
   | { type: 'CONNECT' }
   | { type: 'DISCONNECT' }
   | { type: 'EPICS_LOADED'; epics: EpicSummary[] }
@@ -61,7 +64,7 @@ type WebSocketSendFn = (message: object) => void;
 let wsSendFn: WebSocketSendFn | null = null;
 
 /** Get the current WebSocket send function */
-export function getWebSocketSend(): WebSocketSendFn | null {
+function getWebSocketSend(): WebSocketSendFn | null {
   return wsSendFn;
 }
 
@@ -182,7 +185,7 @@ const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
 );
 
 /** Dashboard state machine using XState v5 setup */
-export const dashboardMachine = setup({
+const dashboardMachine = setup({
   types: {
     context: {} as DashboardContext,
     events: {} as DashboardEvent,
@@ -238,7 +241,9 @@ export const dashboardMachine = setup({
         const exists = context.subscribedStories.some(
           (s) => s.epicSlug === params.epicSlug && s.storySlug === params.storySlug,
         );
-        if (exists) return context.subscribedStories;
+        if (exists) {
+          return context.subscribedStories;
+        }
         return [...context.subscribedStories, params];
       },
     }),
@@ -266,7 +271,7 @@ export const dashboardMachine = setup({
     currentStory: null,
     error: null,
     retryCount: 0,
-    wsUrl: `ws://localhost:3847`,
+    wsUrl: 'ws://localhost:3847',
     subscribedStories: [],
   },
   states: {
@@ -486,4 +491,7 @@ export const dashboardMachine = setup({
   },
 });
 
-export type DashboardMachine = typeof dashboardMachine;
+type DashboardMachine = typeof dashboardMachine;
+
+export { dashboardMachine, getWebSocketSend };
+export type { StorySubscription, DashboardContext, DashboardEvent, DashboardMachine };

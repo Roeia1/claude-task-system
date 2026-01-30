@@ -1,9 +1,16 @@
-const { execSync } = require('node:child_process');
-const fs = require('node:fs');
-const path = require('node:path');
-const os = require('node:os');
+import process from 'node:process';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'saga-status');
+
+// Constants for test thresholds
+const LONG_TITLE_LENGTH = 100;
+const MAX_OUTPUT_LENGTH = 150;
 
 /**
  * Helper to run the script with given args and environment
@@ -143,7 +150,7 @@ Some text without header
     test('should handle very long title (truncate to reasonable length)', () => {
       const tmpDir = createTempTaskDir();
       try {
-        const longTitle = 'A'.repeat(100);
+        const longTitle = 'A'.repeat(LONG_TITLE_LENGTH);
         createTaskMd(
           tmpDir,
           '045',
@@ -159,7 +166,7 @@ Some text without header
         });
         expect(result.exitCode).toBe(0);
         // Should truncate to ~40 chars or handle gracefully
-        expect(result.stdout.length).toBeLessThan(150);
+        expect(result.stdout.length).toBeLessThan(MAX_OUTPUT_LENGTH);
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -392,7 +399,7 @@ Content without task type
         fs.mkdirSync(featureDir, { recursive: true });
         fs.writeFileSync(
           path.join(featureDir, 'feature.md'),
-          `# Feature: User Authentication\n\n**Status:** In Progress\n`,
+          '# Feature: User Authentication\n\n**Status:** In Progress\n',
         );
 
         createTaskMd(
@@ -448,7 +455,7 @@ No feature context here
         fs.mkdirSync(featureDir, { recursive: true });
         fs.writeFileSync(
           path.join(featureDir, 'feature.md'),
-          `# Feature: API v2 Redesign\n\n**Status:** Draft\n`,
+          '# Feature: API v2 Redesign\n\n**Status:** Draft\n',
         );
 
         createTaskMd(
@@ -809,7 +816,7 @@ feature - Test
         fs.mkdirSync(featureDir, { recursive: true });
         fs.writeFileSync(
           path.join(featureDir, 'feature.md'),
-          `# Feature: Statusline Task Info\n\n**Status:** In Progress\n`,
+          '# Feature: Statusline Task Info\n\n**Status:** In Progress\n',
         );
 
         createTaskMd(

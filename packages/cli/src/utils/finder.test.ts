@@ -6,7 +6,17 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { extractContext, findEpic, findStory, parseFrontmatter } from './finder.js';
+import { extractContext, findEpic, findStory, parseFrontmatter } from './finder.ts';
+
+// ============================================================================
+// Test Constants
+// ============================================================================
+
+/** Length for testing context truncation */
+const TEST_LONG_CONTEXT_LENGTH = 400;
+
+/** Maximum length for context extraction in tests */
+const TEST_MAX_CONTEXT_LENGTH = 300;
 
 describe('parseFrontmatter', () => {
   it('should parse simple frontmatter', () => {
@@ -87,12 +97,12 @@ This is the context section with important information.
   });
 
   it('should truncate long context', () => {
-    const longContext = 'A'.repeat(400);
+    const longContext = 'A'.repeat(TEST_LONG_CONTEXT_LENGTH);
     const body = `## Context\n\n${longContext}\n\n## Tasks`;
 
-    const result = extractContext(body, 300);
+    const result = extractContext(body, TEST_MAX_CONTEXT_LENGTH);
 
-    expect(result.length).toBe(300);
+    expect(result.length).toBe(TEST_MAX_CONTEXT_LENGTH);
     expect(result.endsWith('...')).toBe(true);
   });
 
@@ -258,7 +268,7 @@ describe('findStory', () => {
     epicSlug: string,
     storySlug: string,
     frontmatter: Record<string, string>,
-    body: string = '',
+    body = '',
   ): void {
     const worktreesDir = join(testDir, '.saga', 'worktrees');
     const storyDir = join(

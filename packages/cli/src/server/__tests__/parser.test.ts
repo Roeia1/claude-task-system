@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { parseEpic, parseJournal, parseStory, scanSagaDirectory } from '../parser.js';
+import { parseEpic, parseJournal, parseStory, scanSagaDirectory } from '../parser.ts';
 
 /** Helper to assert a value is not null/undefined and return it typed */
 function assertDefined<T>(
@@ -184,7 +184,7 @@ This is the epic overview.
       const epicPath = join(sagaDir, 'epics', 'test-epic');
       mkdirSync(epicPath, { recursive: true });
 
-      const epicContent = `No heading here, just text.`;
+      const epicContent = 'No heading here, just text.';
       writeFileSync(join(epicPath, 'epic.md'), epicContent);
 
       const result = await parseEpic(join(epicPath, 'epic.md'));

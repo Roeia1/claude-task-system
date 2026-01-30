@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createMockEpicSummary, mockEpicList } from '../utils/mock-api';
+import { createMockEpicSummary, mockEpicList } from '../utils/mock-api.ts';
 
 /**
  * Archive toggle tests for the dashboard.
@@ -17,7 +17,7 @@ test.describe('Archive Toggle', () => {
     await page.goto('/');
 
     // Wait for loading to complete
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
     // Verify the archive toggle is visible
     await expect(page.getByText('Show archived')).toBeVisible();
@@ -34,7 +34,7 @@ test.describe('Archive Toggle', () => {
     await page.goto('/');
 
     // Wait for loading to complete
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
     // Verify the archive toggle is not visible
     await expect(page.getByText('Show archived')).not.toBeVisible();
@@ -51,7 +51,7 @@ test.describe('Archive Toggle', () => {
     await page.goto('/');
 
     // Wait for loading to complete
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
     // Verify active epic is visible
     await expect(page.getByText('Active Epic')).toBeVisible();
@@ -71,7 +71,7 @@ test.describe('Archive Toggle', () => {
     await page.goto('/');
 
     // Wait for loading to complete
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
     // Initially archived epic is hidden
     await expect(page.getByText('Archived Epic')).not.toBeVisible();
@@ -95,7 +95,7 @@ test.describe('Archive Toggle', () => {
     await page.goto('/');
 
     // Wait for loading to complete
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
     // Enable the toggle
     await page.getByText('Show archived').click();
@@ -119,7 +119,7 @@ test.describe('Archive Toggle', () => {
     await page.goto('/');
 
     // Wait for loading to complete
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
     // Initially shows empty state (no active epics)
     await expect(page.getByText('No epics found.')).toBeVisible();

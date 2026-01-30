@@ -1,9 +1,27 @@
-const { execSync } = require('node:child_process');
-const fs = require('node:fs');
-const path = require('node:path');
-const os = require('node:os');
+import process from 'node:process';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'saga-status');
+
+// Constants for temp file generation
+const RANDOM_STRING_SLICE_START = 2;
+const BASE_36 = 36;
+const FILE_PERMISSION_DEFAULT = 0o644;
+const TASK_ID_PAD_LENGTH = 3;
+
+// Constants for large count tests
+const LARGE_IN_PROGRESS_TASKS_COUNT = 15;
+const LARGE_PENDING_TASKS_COUNT = 10;
+const PENDING_TASK_ID_OFFSET = 100;
+
+// Constants for performance tests
+const NS_PER_MS = 1_000_000;
+const PERFORMANCE_BUDGET_MS = 100;
 
 /**
  * Helper to run the script with given args and environment
@@ -43,9 +61,9 @@ function createTempEnvFile(content) {
   const tmpDir = os.tmpdir();
   const tmpFile = path.join(
     tmpDir,
-    `claude-env-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
+    `claude-env-test-${Date.now()}-${Math.random().toString(BASE_36).slice(RANDOM_STRING_SLICE_START)}.sh`,
   );
-  fs.writeFileSync(tmpFile, content, { mode: 0o644 });
+  fs.writeFileSync(tmpFile, content, { mode: FILE_PERMISSION_DEFAULT });
   return tmpFile;
 }
 
@@ -536,8 +554,8 @@ describe('task-status --counts', () => {
     });
 
     test('should handle large task counts correctly', () => {
-      const manyInProgress = Array.from({ length: 15 }, (_, i) => String(i + 1).padStart(3, '0'));
-      const manyPending = Array.from({ length: 10 }, (_, i) => String(i + 100).padStart(3, '0'));
+      const manyInProgress = Array.from({ length: LARGE_IN_PROGRESS_TASKS_COUNT }, (_, i) => String(i + 1).padStart(TASK_ID_PAD_LENGTH, '0'));
+      const manyPending = Array.from({ length: LARGE_PENDING_TASKS_COUNT }, (_, i) => String(i + PENDING_TASK_ID_OFFSET).padStart(TASK_ID_PAD_LENGTH, '0'));
 
       const mockDir = createMockTaskSystem({
         tasksWithJournal: manyInProgress,
@@ -645,10 +663,10 @@ describe('task-status --counts', () => {
         const start = process.hrtime.bigint();
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
         const end = process.hrtime.bigint();
-        const durationMs = Number(end - start) / 1_000_000;
+        const durationMs = Number(end - start) / NS_PER_MS;
 
         expect(result.exitCode).toBe(0);
-        expect(durationMs).toBeLessThan(100);
+        expect(durationMs).toBeLessThan(PERFORMANCE_BUDGET_MS);
       } finally {
         cleanupTempFile(envFile);
         cleanupMockTaskSystem(mockDir);

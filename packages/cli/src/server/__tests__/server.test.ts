@@ -6,13 +6,13 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { type ServerInstance, startServer } from '../index.js';
+import { type ServerInstance, startServer } from '../index.ts';
 
 /**
  * Generate a random port in the ephemeral range to avoid conflicts
  */
 function getRandomPort(): number {
-  return 30000 + Math.floor(Math.random() * 20000);
+  return 30_000 + Math.floor(Math.random() * 20_000);
 }
 
 describe('server', () => {
