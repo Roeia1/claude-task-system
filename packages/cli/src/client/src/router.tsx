@@ -1,7 +1,7 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
-import { EpicList } from '@/pages/EpicList';
 import { EpicDetail } from '@/pages/EpicDetail';
+import { EpicList } from '@/pages/EpicList';
 import { StoryDetail } from '@/pages/StoryDetail';
 
 const routes = [

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 const CLIENT_DIR = path.dirname(new URL(import.meta.url).pathname);
 // After flattening package structure, dependencies are in the main CLI package.json
@@ -16,8 +16,8 @@ describe('shadcn/ui setup', () => {
       packageJson = JSON.parse(fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8'));
       // Client dependencies may be in dependencies or devDependencies (devDeps since they're bundled)
       allDeps = {
-        ...(packageJson.dependencies as Record<string, string> || {}),
-        ...(packageJson.devDependencies as Record<string, string> || {}),
+        ...((packageJson.dependencies as Record<string, string>) || {}),
+        ...((packageJson.devDependencies as Record<string, string>) || {}),
       };
     });
 
@@ -26,7 +26,7 @@ describe('shadcn/ui setup', () => {
     });
 
     it('should have clsx installed', () => {
-      expect(allDeps['clsx']).toBeDefined();
+      expect(allDeps.clsx).toBeDefined();
     });
 
     it('should have tailwind-merge installed', () => {
@@ -59,41 +59,41 @@ describe('shadcn/ui setup', () => {
     });
 
     it('should have valid $schema', () => {
-      expect(componentsJson['$schema']).toBe('https://ui.shadcn.com/schema.json');
+      expect(componentsJson.$schema).toBe('https://ui.shadcn.com/schema.json');
     });
 
     it('should use new-york style', () => {
-      expect(componentsJson['style']).toBe('new-york');
+      expect(componentsJson.style).toBe('new-york');
     });
 
     it('should have rsc set to false', () => {
-      expect(componentsJson['rsc']).toBe(false);
+      expect(componentsJson.rsc).toBe(false);
     });
 
     it('should have tsx set to true', () => {
-      expect(componentsJson['tsx']).toBe(true);
+      expect(componentsJson.tsx).toBe(true);
     });
 
     it('should have tailwind configuration', () => {
-      const tailwind = componentsJson['tailwind'] as Record<string, unknown>;
+      const tailwind = componentsJson.tailwind as Record<string, unknown>;
       expect(tailwind).toBeDefined();
-      expect(tailwind['config']).toBe('tailwind.config.js');
-      expect(tailwind['css']).toBe('src/index.css');
-      expect(tailwind['cssVariables']).toBe(true);
+      expect(tailwind.config).toBe('tailwind.config.js');
+      expect(tailwind.css).toBe('src/index.css');
+      expect(tailwind.cssVariables).toBe(true);
     });
 
     it('should have correct aliases', () => {
-      const aliases = componentsJson['aliases'] as Record<string, string>;
+      const aliases = componentsJson.aliases as Record<string, string>;
       expect(aliases).toBeDefined();
-      expect(aliases['components']).toBe('@/components');
-      expect(aliases['utils']).toBe('@/lib/utils');
-      expect(aliases['ui']).toBe('@/components/ui');
-      expect(aliases['lib']).toBe('@/lib');
-      expect(aliases['hooks']).toBe('@/hooks');
+      expect(aliases.components).toBe('@/components');
+      expect(aliases.utils).toBe('@/lib/utils');
+      expect(aliases.ui).toBe('@/components/ui');
+      expect(aliases.lib).toBe('@/lib');
+      expect(aliases.hooks).toBe('@/hooks');
     });
 
     it('should use lucide icon library', () => {
-      expect(componentsJson['iconLibrary']).toBe('lucide');
+      expect(componentsJson.iconLibrary).toBe('lucide');
     });
   });
 
@@ -233,7 +233,7 @@ describe('shadcn/ui setup', () => {
       expect(cssContent).toContain('--input:');
     });
 
-    it('should have ring CSS variable', () => {
+    it('should have ring-3 CSS variable', () => {
       expect(cssContent).toContain('--ring:');
     });
 

@@ -7,21 +7,21 @@
  *   saga dashboard         Start the dashboard server
  */
 
-import { Command } from 'commander';
-import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
-import { initCommand } from './commands/init.js';
-import { implementCommand } from './commands/implement.js';
+import { join } from 'node:path';
+import { Command } from 'commander';
 import { dashboardCommand } from './commands/dashboard.js';
-import { scopeValidatorCommand } from './commands/scope-validator.js';
 import { findCommand } from './commands/find.js';
-import { worktreeCommand } from './commands/worktree.js';
+import { implementCommand } from './commands/implement.js';
+import { initCommand } from './commands/init.js';
+import { scopeValidatorCommand } from './commands/scope-validator.js';
 import {
-  sessionsListCommand,
-  sessionsStatusCommand,
-  sessionsLogsCommand,
   sessionsKillCommand,
+  sessionsListCommand,
+  sessionsLogsCommand,
+  sessionsStatusCommand,
 } from './commands/sessions/index.js';
+import { worktreeCommand } from './commands/worktree.js';
 
 // Read version from package.json
 // In the bundled CJS output, __dirname will be available
@@ -58,16 +58,21 @@ program
   .option('--max-time <n>', 'Maximum time in minutes', parseInt)
   .option('--model <name>', 'Model to use for implementation')
   .option('--dry-run', 'Validate dependencies without running implementation')
-  .action(async (storySlug: string, options: { maxCycles?: number; maxTime?: number; model?: string; dryRun?: boolean }) => {
-    const globalOpts = program.opts();
-    await implementCommand(storySlug, {
-      path: globalOpts.path,
-      maxCycles: options.maxCycles,
-      maxTime: options.maxTime,
-      model: options.model,
-      dryRun: options.dryRun,
-    });
-  });
+  .action(
+    async (
+      storySlug: string,
+      options: { maxCycles?: number; maxTime?: number; model?: string; dryRun?: boolean },
+    ) => {
+      const globalOpts = program.opts();
+      await implementCommand(storySlug, {
+        path: globalOpts.path,
+        maxCycles: options.maxCycles,
+        maxTime: options.maxTime,
+        model: options.model,
+        dryRun: options.dryRun,
+      });
+    },
+  );
 
 // find command
 program
@@ -115,9 +120,7 @@ program
   });
 
 // sessions command group
-const sessionsCommand = program
-  .command('sessions')
-  .description('Manage SAGA tmux sessions');
+const sessionsCommand = program.command('sessions').description('Manage SAGA tmux sessions');
 
 sessionsCommand
   .command('list')

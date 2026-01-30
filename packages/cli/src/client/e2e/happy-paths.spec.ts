@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { readStoryFile, writeStoryFile, resetAllFixtures } from './fixtures-utils';
+import { expect, test } from '@playwright/test';
+import { readStoryFile, resetAllFixtures, writeStoryFile } from './fixtures-utils';
 
 /**
  * Happy path E2E tests for the SAGA dashboard.
@@ -17,7 +17,7 @@ import { readStoryFile, writeStoryFile, resetAllFixtures } from './fixtures-util
 test.beforeEach(async () => {
   await resetAllFixtures();
   // Small delay to let file watcher process the reset
-  await new Promise(resolve => setTimeout(resolve, 200));
+  await new Promise((resolve) => setTimeout(resolve, 200));
 });
 
 test.describe('Epic List', () => {
@@ -90,7 +90,9 @@ test.describe('Epic Detail', () => {
     await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
     // Auth story should show In Progress badge
-    const authStoryCard = page.locator('a[href="/epic/feature-development/story/auth-implementation"]');
+    const authStoryCard = page.locator(
+      'a[href="/epic/feature-development/story/auth-implementation"]',
+    );
     await expect(authStoryCard).toContainText('In Progress');
     await expect(authStoryCard).toContainText('tasks completed');
 
@@ -273,7 +275,7 @@ test.describe('WebSocket Real-time Updates', () => {
       // Change t2 (login endpoint) from in_progress to completed
       const updatedContent = originalContent.replace(
         '- id: t2\n    title: Implement login endpoint\n    status: in_progress',
-        '- id: t2\n    title: Implement login endpoint\n    status: completed'
+        '- id: t2\n    title: Implement login endpoint\n    status: completed',
       );
       await writeStoryFile('feature-development', 'auth-implementation', updatedContent);
 

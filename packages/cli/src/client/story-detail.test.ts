@@ -14,9 +14,9 @@
  * - Loading and error states
  */
 
-import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { describe, expect, it } from 'vitest';
 
 const clientRoot = path.join(__dirname, 'src');
 const pagesDir = path.join(clientRoot, 'pages');
@@ -26,7 +26,9 @@ describe('Story Detail view', () => {
   describe('component structure', () => {
     it('should import useDashboard hook', () => {
       const content = fs.readFileSync(storyDetailPath, 'utf-8');
-      expect(content).toMatch(/import\s+.*useDashboard.*from\s+['"]@\/context\/DashboardContext['"]/);
+      expect(content).toMatch(
+        /import\s+.*useDashboard.*from\s+['"]@\/context\/DashboardContext['"]/,
+      );
     });
 
     it('should import useParams and Link from react-router-dom', () => {
@@ -58,7 +60,9 @@ describe('Story Detail view', () => {
     it('should import Collapsible components from shadcn/ui', () => {
       const content = fs.readFileSync(storyDetailPath, 'utf-8');
       // Collapsible import may be multiline
-      expect(content).toMatch(/import[\s\S]*Collapsible[\s\S]*from\s+['"]@\/components\/ui\/collapsible['"]/);
+      expect(content).toMatch(
+        /import[\s\S]*Collapsible[\s\S]*from\s+['"]@\/components\/ui\/collapsible['"]/,
+      );
     });
 
     it('should use useParams to get epicSlug and storySlug', () => {

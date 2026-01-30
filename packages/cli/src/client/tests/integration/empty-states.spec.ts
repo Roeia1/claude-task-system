@@ -1,11 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import {
-  mockEpicList,
-  mockEpicDetail,
-  mockStoryDetail,
   createMockEpic,
-  createMockStoryDetail,
   createMockEpicSummary,
+  createMockStoryDetail,
+  mockEpicDetail,
+  mockEpicList,
+  mockStoryDetail,
 } from '../utils/mock-api';
 
 /**
@@ -180,9 +180,7 @@ test.describe('Empty States', () => {
         stories: [storyNoTasks],
       });
 
-      await mockEpicList(page, [
-        createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' }),
-      ]);
+      await mockEpicList(page, [createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' })]);
       await mockEpicDetail(page, epicWithStory);
       await mockStoryDetail(page, storyNoTasks);
 
@@ -192,7 +190,7 @@ test.describe('Empty States', () => {
       // Verify tasks tab is active by default
       await expect(page.getByRole('tab', { name: 'Tasks' })).toHaveAttribute(
         'data-state',
-        'active'
+        'active',
       );
 
       // Verify empty tasks message
@@ -216,9 +214,7 @@ test.describe('Empty States', () => {
         stories: [storyNoContent],
       });
 
-      await mockEpicList(page, [
-        createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' }),
-      ]);
+      await mockEpicList(page, [createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' })]);
       await mockEpicDetail(page, epicWithStory);
       await mockStoryDetail(page, storyNoContent);
 
@@ -232,9 +228,7 @@ test.describe('Empty States', () => {
       await expect(page.getByText('No story content available.')).toBeVisible();
     });
 
-    test('should show empty state when story has no journal entries', async ({
-      page,
-    }) => {
+    test('should show empty state when story has no journal entries', async ({ page }) => {
       // Create a story with no journal entries
       const storyNoJournal = createMockStoryDetail({
         slug: 'no-journal-story',
@@ -250,9 +244,7 @@ test.describe('Empty States', () => {
         stories: [storyNoJournal],
       });
 
-      await mockEpicList(page, [
-        createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' }),
-      ]);
+      await mockEpicList(page, [createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' })]);
       await mockEpicDetail(page, epicWithStory);
       await mockStoryDetail(page, storyNoJournal);
 
@@ -266,9 +258,7 @@ test.describe('Empty States', () => {
       await expect(page.getByText('No journal entries yet.')).toBeVisible();
     });
 
-    test('should show 0/0 tasks completed for story with no tasks', async ({
-      page,
-    }) => {
+    test('should show 0/0 tasks completed for story with no tasks', async ({ page }) => {
       // Create a story with no tasks
       const storyNoTasks = createMockStoryDetail({
         slug: 'empty-story',
@@ -284,9 +274,7 @@ test.describe('Empty States', () => {
         stories: [storyNoTasks],
       });
 
-      await mockEpicList(page, [
-        createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' }),
-      ]);
+      await mockEpicList(page, [createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' })]);
       await mockEpicDetail(page, epicWithStory);
       await mockStoryDetail(page, storyNoTasks);
 
@@ -297,9 +285,7 @@ test.describe('Empty States', () => {
       await expect(page.getByText('0/0 tasks completed')).toBeVisible();
     });
 
-    test('should display story header correctly even with all empty states', async ({
-      page,
-    }) => {
+    test('should display story header correctly even with all empty states', async ({ page }) => {
       // Create a completely empty story
       const emptyStory = createMockStoryDetail({
         slug: 'completely-empty',
@@ -317,9 +303,7 @@ test.describe('Empty States', () => {
         stories: [emptyStory],
       });
 
-      await mockEpicList(page, [
-        createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' }),
-      ]);
+      await mockEpicList(page, [createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' })]);
       await mockEpicDetail(page, epicWithStory);
       await mockStoryDetail(page, emptyStory);
 
@@ -327,9 +311,7 @@ test.describe('Empty States', () => {
       await page.goto('/epic/test-epic/story/completely-empty');
 
       // Verify header elements are displayed correctly
-      await expect(
-        page.getByRole('heading', { name: 'Completely Empty Story' })
-      ).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Completely Empty Story' })).toBeVisible();
       await expect(page.getByText('Ready')).toBeVisible();
       await expect(page.getByText('0/0 tasks completed')).toBeVisible();
 
@@ -340,9 +322,7 @@ test.describe('Empty States', () => {
   });
 
   test.describe('Multiple Empty States Combined', () => {
-    test('should navigate from empty epic list to create epic guidance', async ({
-      page,
-    }) => {
+    test('should navigate from empty epic list to create epic guidance', async ({ page }) => {
       // Mock empty epic list
       await mockEpicList(page, []);
 
@@ -354,9 +334,7 @@ test.describe('Empty States', () => {
       await expect(createEpicCode).toBeVisible();
     });
 
-    test('should navigate from empty story list to generate stories guidance', async ({
-      page,
-    }) => {
+    test('should navigate from empty story list to generate stories guidance', async ({ page }) => {
       // Create an epic with no stories
       const emptyEpic = createMockEpic({
         slug: 'empty-epic',
@@ -377,9 +355,7 @@ test.describe('Empty States', () => {
       await expect(generateStoriesCode).toBeVisible();
     });
 
-    test('should handle transition from data to empty state on navigation', async ({
-      page,
-    }) => {
+    test('should handle transition from data to empty state on navigation', async ({ page }) => {
       // First, set up an epic with stories
       const epicWithStories = createMockEpic({
         slug: 'epic-with-stories',
@@ -420,7 +396,7 @@ test.describe('Empty States', () => {
           slug: 'story-1',
           title: 'Story One',
           epicSlug: 'epic-with-stories',
-        })
+        }),
       );
 
       // Navigate to the epic with stories first

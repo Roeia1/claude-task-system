@@ -1,7 +1,7 @@
-const { execSync, spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const { execSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
 
 const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
 
@@ -96,7 +96,7 @@ describe('task-status script', () => {
           const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
           // Should contain unicode icon for main repo
-          expect(result.stdout).toMatch(/[🌿🏠]/); // Home or branch icon
+          expect(result.stdout).toMatch(/[🌿🏠]/u); // Home or branch icon
         } finally {
           cleanupTempFile(envFile);
         }
@@ -105,7 +105,9 @@ describe('task-status script', () => {
 
     describe('section selector flags', () => {
       test('--origin should show only origin section', () => {
-        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="main"\nexport CURRENT_TASK_ID="042"');
+        const envFile = createTempEnvFile(
+          'export SAGA_TASK_CONTEXT="main"\nexport CURRENT_TASK_ID="042"',
+        );
         try {
           const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -117,7 +119,9 @@ describe('task-status script', () => {
       });
 
       test('--task should show only task section', () => {
-        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
+        const envFile = createTempEnvFile(
+          'export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"',
+        );
         try {
           const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -138,7 +142,9 @@ describe('task-status script', () => {
       });
 
       test('multiple section flags can be combined', () => {
-        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
+        const envFile = createTempEnvFile(
+          'export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"',
+        );
         try {
           const result = runScript(['--origin', '--task'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -148,7 +154,9 @@ describe('task-status script', () => {
       });
 
       test('no flags should show all sections (default behavior)', () => {
-        const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
+        const envFile = createTempEnvFile(
+          'export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"',
+        );
         try {
           const result = runScript([], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
@@ -176,7 +184,9 @@ describe('task-status script', () => {
 
   describe('$CLAUDE_ENV_FILE sourcing', () => {
     test('should source environment file when CLAUDE_ENV_FILE is set', () => {
-      const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"');
+      const envFile = createTempEnvFile(
+        'export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="042"',
+      );
       try {
         const result = runScript(['--task'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
@@ -230,7 +240,7 @@ describe('task-status script', () => {
           const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
           // Unicode: home icon 🏠
-          expect(result.stdout).toMatch(/[🏠]/);
+          expect(result.stdout).toMatch(/[🏠]/u);
         } finally {
           cleanupTempFile(envFile);
         }
@@ -266,7 +276,7 @@ describe('task-status script', () => {
           const result = runScript(['--origin'], { CLAUDE_ENV_FILE: envFile });
           expect(result.exitCode).toBe(0);
           // Unicode: branch icon 🌿
-          expect(result.stdout).toMatch(/[🌿]/);
+          expect(result.stdout).toMatch(/[🌿]/u);
         } finally {
           cleanupTempFile(envFile);
         }

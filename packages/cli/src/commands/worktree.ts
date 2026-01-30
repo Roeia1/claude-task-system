@@ -14,9 +14,9 @@
  *   { "success": false, "error": "..." }
  */
 
-import { join } from 'node:path';
-import { existsSync, mkdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { resolveProjectPath } from '../utils/project-discovery.js';
 
 // ============================================================================
@@ -47,10 +47,7 @@ interface WorktreeResult {
 /**
  * Run a git command and return the result
  */
-function runGitCommand(
-  args: string[],
-  cwd: string
-): { success: boolean; output: string } {
+function runGitCommand(args: string[], cwd: string): { success: boolean; output: string } {
   try {
     const output = execSync(`git ${args.join(' ')}`, {
       cwd,
@@ -58,8 +55,9 @@ function runGitCommand(
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     return { success: true, output: output.trim() };
-  } catch (error: any) {
-    const stderr = error.stderr?.toString().trim() || error.message;
+  } catch (error) {
+    const execError = error as { stderr?: Buffer; message?: string };
+    const stderr = execError.stderr?.toString().trim() || execError.message || String(error);
     return { success: false, output: stderr };
   }
 }
@@ -76,10 +74,7 @@ function branchExists(branchName: string, cwd: string): boolean {
  * Get the main branch name (main or master)
  */
 function getMainBranch(cwd: string): string {
-  const result = runGitCommand(
-    ['symbolic-ref', 'refs/remotes/origin/HEAD'],
-    cwd
-  );
+  const result = runGitCommand(['symbolic-ref', 'refs/remotes/origin/HEAD'], cwd);
   if (result.success) {
     return result.output.replace('refs/remotes/origin/', '');
   }
@@ -93,19 +88,9 @@ function getMainBranch(cwd: string): string {
 /**
  * Create a git worktree for a story
  */
-function createWorktree(
-  projectPath: string,
-  epicSlug: string,
-  storySlug: string
-): WorktreeResult {
+function createWorktree(projectPath: string, epicSlug: string, storySlug: string): WorktreeResult {
   const branchName = `story-${storySlug}-epic-${epicSlug}`;
-  const worktreePath = join(
-    projectPath,
-    '.saga',
-    'worktrees',
-    epicSlug,
-    storySlug
-  );
+  const worktreePath = join(projectPath, '.saga', 'worktrees', epicSlug, storySlug);
 
   // Check if branch already exists
   if (branchExists(branchName, projectPath)) {
@@ -132,7 +117,7 @@ function createWorktree(
   // Create the branch from latest main
   const createBranchResult = runGitCommand(
     ['branch', branchName, `origin/${mainBranch}`],
-    projectPath
+    projectPath,
   );
   if (!createBranchResult.success) {
     return {
@@ -148,7 +133,7 @@ function createWorktree(
   // Create the worktree
   const createWorktreeResult = runGitCommand(
     ['worktree', 'add', worktreePath, branchName],
-    projectPath
+    projectPath,
   );
   if (!createWorktreeResult.success) {
     return {
@@ -174,14 +159,17 @@ function createWorktree(
 export async function worktreeCommand(
   epicSlug: string,
   storySlug: string,
-  options: WorktreeOptions
+  options: WorktreeOptions,
 ): Promise<void> {
   // Resolve project path
   let projectPath: string;
   try {
     projectPath = resolveProjectPath(options.path);
-  } catch (error: any) {
-    const result: WorktreeResult = { success: false, error: error.message };
+  } catch (error) {
+    const result: WorktreeResult = {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
     console.log(JSON.stringify(result));
     process.exit(1);
   }

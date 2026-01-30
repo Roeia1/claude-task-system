@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { describe, expect, it } from 'vitest';
 
 const CLIENT_DIR = path.join(__dirname, '.');
 // After flattening package structure, dependencies are in the main CLI package.json
@@ -41,9 +41,7 @@ describe('Vite React TypeScript Project Setup', () => {
 
   describe('Package configuration (in main CLI package.json)', () => {
     it('should have React 18+ as dependency', () => {
-      const packageJson = JSON.parse(
-        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
-      );
+      const packageJson = JSON.parse(fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8'));
       // React may be in dependencies or devDependencies (devDeps since it's bundled by Vite)
       const reactVersion = packageJson.dependencies?.react || packageJson.devDependencies?.react;
       expect(reactVersion).toBeDefined();
@@ -52,46 +50,34 @@ describe('Vite React TypeScript Project Setup', () => {
     });
 
     it('should have TypeScript as devDependency', () => {
-      const packageJson = JSON.parse(
-        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
-      );
+      const packageJson = JSON.parse(fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8'));
       expect(packageJson.devDependencies?.typescript).toBeDefined();
     });
 
     it('should have Vite as devDependency', () => {
-      const packageJson = JSON.parse(
-        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
-      );
+      const packageJson = JSON.parse(fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8'));
       expect(packageJson.devDependencies?.vite).toBeDefined();
     });
 
     it('should have dev:client script for client development', () => {
-      const packageJson = JSON.parse(
-        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
-      );
+      const packageJson = JSON.parse(fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8'));
       expect(packageJson.scripts?.['dev:client']).toBeDefined();
     });
 
     it('should have build:client script for client build', () => {
-      const packageJson = JSON.parse(
-        fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8')
-      );
+      const packageJson = JSON.parse(fs.readFileSync(CLI_PACKAGE_JSON, 'utf-8'));
       expect(packageJson.scripts?.['build:client']).toBeDefined();
     });
   });
 
   describe('TypeScript configuration', () => {
     it('should have strict mode enabled', () => {
-      const tsconfig = JSON.parse(
-        fs.readFileSync(path.join(CLIENT_DIR, 'tsconfig.json'), 'utf-8')
-      );
+      const tsconfig = JSON.parse(fs.readFileSync(path.join(CLIENT_DIR, 'tsconfig.json'), 'utf-8'));
       expect(tsconfig.compilerOptions?.strict).toBe(true);
     });
 
     it('should have path aliases configured for @/', () => {
-      const tsconfig = JSON.parse(
-        fs.readFileSync(path.join(CLIENT_DIR, 'tsconfig.json'), 'utf-8')
-      );
+      const tsconfig = JSON.parse(fs.readFileSync(path.join(CLIENT_DIR, 'tsconfig.json'), 'utf-8'));
       const paths = tsconfig.compilerOptions?.paths;
       expect(paths).toBeDefined();
       expect(paths['@/*']).toBeDefined();
@@ -100,19 +86,13 @@ describe('Vite React TypeScript Project Setup', () => {
 
   describe('Vite configuration', () => {
     it('should have vite.config.ts with React plugin', async () => {
-      const viteConfigContent = fs.readFileSync(
-        path.join(CLIENT_DIR, 'vite.config.ts'),
-        'utf-8'
-      );
+      const viteConfigContent = fs.readFileSync(path.join(CLIENT_DIR, 'vite.config.ts'), 'utf-8');
       expect(viteConfigContent).toContain('@vitejs/plugin-react');
       expect(viteConfigContent).toContain('react()');
     });
 
     it('should have path alias resolution configured', async () => {
-      const viteConfigContent = fs.readFileSync(
-        path.join(CLIENT_DIR, 'vite.config.ts'),
-        'utf-8'
-      );
+      const viteConfigContent = fs.readFileSync(path.join(CLIENT_DIR, 'vite.config.ts'), 'utf-8');
       expect(viteConfigContent).toContain('resolve');
       expect(viteConfigContent).toContain('alias');
       expect(viteConfigContent).toContain('@');

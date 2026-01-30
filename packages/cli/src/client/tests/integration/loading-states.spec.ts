@@ -1,12 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import {
-  mockApiDelay,
-  mockEpicList,
-  mockEpicDetail,
-  mockStoryDetail,
-  createMockEpicSummary,
   createMockEpic,
+  createMockEpicSummary,
   createMockStoryDetail,
+  mockApiDelay,
+  mockEpicDetail,
+  mockEpicList,
 } from '../utils/mock-api';
 
 /**
@@ -106,7 +105,9 @@ test.describe('Loading States', () => {
       await expect(headerSkeleton).toBeVisible();
 
       // Wait for data to load
-      await expect(page.getByRole('heading', { name: 'Test Epic Detail' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Test Epic Detail' })).toBeVisible({
+        timeout: 5000,
+      });
 
       // Content should now be visible
       await expect(page.getByText('Story One')).toBeVisible();
@@ -127,7 +128,9 @@ test.describe('Loading States', () => {
       await expect(page.locator('[data-testid="epic-header-skeleton"]')).toBeVisible();
 
       // Wait for real content
-      await expect(page.getByRole('heading', { name: 'Loading Epic' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Loading Epic' })).toBeVisible({
+        timeout: 5000,
+      });
     });
   });
 
@@ -154,7 +157,9 @@ test.describe('Loading States', () => {
       await expect(headerSkeleton).toBeVisible();
 
       // Wait for data to load
-      await expect(page.getByRole('heading', { name: 'Test Story Detail' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Test Story Detail' })).toBeVisible({
+        timeout: 5000,
+      });
     });
 
     test('should show skeleton placeholders for header elements', async ({ page }) => {
@@ -177,7 +182,9 @@ test.describe('Loading States', () => {
       await expect(page.locator('[data-testid="story-content-skeleton"]')).toBeVisible();
 
       // Wait for real content
-      await expect(page.getByRole('heading', { name: 'Story With Tasks' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Story With Tasks' })).toBeVisible({
+        timeout: 5000,
+      });
     });
 
     test('should transition from loading to loaded state correctly', async ({ page }) => {
@@ -200,7 +207,9 @@ test.describe('Loading States', () => {
       await expect(page.locator('[data-testid="story-header-skeleton"]')).toBeVisible();
 
       // After loading, should show the story details
-      await expect(page.getByRole('heading', { name: 'Transition Story' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Transition Story' })).toBeVisible({
+        timeout: 5000,
+      });
 
       // Status badge should be visible
       await expect(page.getByText('Ready')).toBeVisible();

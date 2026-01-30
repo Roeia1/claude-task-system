@@ -1,5 +1,5 @@
-import type { Preview, Decorator } from '@storybook/react-vite'
-import '../src/index.css'
+import type { Decorator, Preview } from '@storybook/react-vite';
+import '../src/index.css';
 
 /**
  * Decorator that provides a dark theme container matching the dashboard's default styling.
@@ -19,7 +19,7 @@ const withDarkTheme: Decorator = (Story) => (
     `}</style>
     <Story />
   </div>
-)
+);
 
 const preview: Preview = {
   parameters: {
@@ -34,6 +34,6 @@ const preview: Preview = {
     },
   },
   decorators: [withDarkTheme],
-}
+};
 
-export default preview
+export default preview;

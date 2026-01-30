@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 const clientDir = join(__dirname);
 const srcDir = join(clientDir, 'src');
@@ -10,10 +10,7 @@ describe('Epic List View - t7', () => {
     let epicListContent: string;
 
     beforeAll(() => {
-      epicListContent = readFileSync(
-        join(srcDir, 'pages', 'EpicList.tsx'),
-        'utf-8'
-      );
+      epicListContent = readFileSync(join(srcDir, 'pages', 'EpicList.tsx'), 'utf-8');
     });
 
     it('should import useDashboard hook', () => {
@@ -45,10 +42,7 @@ describe('Epic List View - t7', () => {
     let epicListContent: string;
 
     beforeAll(() => {
-      epicListContent = readFileSync(
-        join(srcDir, 'pages', 'EpicList.tsx'),
-        'utf-8'
-      );
+      epicListContent = readFileSync(join(srcDir, 'pages', 'EpicList.tsx'), 'utf-8');
     });
 
     it('should fetch from /api/epics endpoint', () => {
@@ -68,10 +62,7 @@ describe('Epic List View - t7', () => {
     let epicListContent: string;
 
     beforeAll(() => {
-      epicListContent = readFileSync(
-        join(srcDir, 'pages', 'EpicList.tsx'),
-        'utf-8'
-      );
+      epicListContent = readFileSync(join(srcDir, 'pages', 'EpicList.tsx'), 'utf-8');
     });
 
     it('should render epic cards with CardTitle for epic title', () => {
@@ -96,10 +87,7 @@ describe('Epic List View - t7', () => {
     let epicListContent: string;
 
     beforeAll(() => {
-      epicListContent = readFileSync(
-        join(srcDir, 'pages', 'EpicList.tsx'),
-        'utf-8'
-      );
+      epicListContent = readFileSync(join(srcDir, 'pages', 'EpicList.tsx'), 'utf-8');
     });
 
     it('should display badge for ready status', () => {
@@ -127,10 +115,7 @@ describe('Epic List View - t7', () => {
     let epicListContent: string;
 
     beforeAll(() => {
-      epicListContent = readFileSync(
-        join(srcDir, 'pages', 'EpicList.tsx'),
-        'utf-8'
-      );
+      epicListContent = readFileSync(join(srcDir, 'pages', 'EpicList.tsx'), 'utf-8');
     });
 
     it('should have state for showing archived epics', () => {
@@ -152,10 +137,7 @@ describe('Epic List View - t7', () => {
     let epicListContent: string;
 
     beforeAll(() => {
-      epicListContent = readFileSync(
-        join(srcDir, 'pages', 'EpicList.tsx'),
-        'utf-8'
-      );
+      epicListContent = readFileSync(join(srcDir, 'pages', 'EpicList.tsx'), 'utf-8');
     });
 
     it('should show empty state message when no epics', () => {
@@ -167,7 +149,9 @@ describe('Epic List View - t7', () => {
     });
 
     it('should conditionally render empty state based on epics length', () => {
-      expect(epicListContent).toMatch(/epics\.length|filteredEpics\.length|epics\s*===\s*0|!epics|epics\?\./);
+      expect(epicListContent).toMatch(
+        /epics\.length|filteredEpics\.length|epics\s*===\s*0|!epics|epics\?\./,
+      );
     });
   });
 
@@ -175,10 +159,7 @@ describe('Epic List View - t7', () => {
     let epicListContent: string;
 
     beforeAll(() => {
-      epicListContent = readFileSync(
-        join(srcDir, 'pages', 'EpicList.tsx'),
-        'utf-8'
-      );
+      epicListContent = readFileSync(join(srcDir, 'pages', 'EpicList.tsx'), 'utf-8');
     });
 
     it('should have loading state UI', () => {
@@ -195,10 +176,7 @@ describe('Epic List View - t7', () => {
     let epicListContent: string;
 
     beforeAll(() => {
-      epicListContent = readFileSync(
-        join(srcDir, 'pages', 'EpicList.tsx'),
-        'utf-8'
-      );
+      epicListContent = readFileSync(join(srcDir, 'pages', 'EpicList.tsx'), 'utf-8');
     });
 
     it('should have Link to epic detail page', () => {
@@ -214,10 +192,7 @@ describe('Epic List View - t7', () => {
     it('should have EpicCard component or inline card rendering', () => {
       // Check if there's either an EpicCard component file or inline rendering in EpicList
       const epicCardExists = existsSync(join(srcDir, 'components', 'EpicCard.tsx'));
-      const epicListContent = readFileSync(
-        join(srcDir, 'pages', 'EpicList.tsx'),
-        'utf-8'
-      );
+      const epicListContent = readFileSync(join(srcDir, 'pages', 'EpicList.tsx'), 'utf-8');
 
       // Either dedicated component exists or Card components are used inline
       expect(epicCardExists || epicListContent.includes('<Card')).toBe(true);
@@ -228,10 +203,7 @@ describe('Epic List View - t7', () => {
     it('should have StatusBadge component for consistent badge styling', () => {
       // Check if there's a StatusBadge component or inline styling
       const statusBadgeExists = existsSync(join(srcDir, 'components', 'StatusBadge.tsx'));
-      const epicListContent = readFileSync(
-        join(srcDir, 'pages', 'EpicList.tsx'),
-        'utf-8'
-      );
+      const epicListContent = readFileSync(join(srcDir, 'pages', 'EpicList.tsx'), 'utf-8');
 
       // Either dedicated component exists or Badge with status styling used inline
       expect(statusBadgeExists || epicListContent.includes('Badge')).toBe(true);

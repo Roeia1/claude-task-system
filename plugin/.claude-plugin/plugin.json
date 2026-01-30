@@ -9,13 +9,7 @@
   "homepage": "https://github.com/Roeia1/saga",
   "repository": "https://github.com/Roeia1/saga",
   "license": "MIT",
-  "keywords": [
-    "epic-management",
-    "story-workflow",
-    "tdd",
-    "autonomous-execution",
-    "journaling"
-  ],
+  "keywords": ["epic-management", "story-workflow", "tdd", "autonomous-execution", "journaling"],
   "skills": "./skills/",
   "agents": ["./agents/generate-story.md"]
 }

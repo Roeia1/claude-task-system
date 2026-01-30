@@ -1,7 +1,7 @@
-import { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { ArrowDownToLine, CheckCircle, Loader2, Pause } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getWebSocketSend } from '@/machines/dashboardMachine';
-import { ArrowDownToLine, Pause, Loader2, CheckCircle } from 'lucide-react';
 
 export interface LogViewerProps {
   /** The name of the session to display logs for */
@@ -23,7 +23,10 @@ const ESTIMATED_LINE_HEIGHT = 24;
 function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
   if (status === 'running') {
     return (
-      <div data-testid="status-indicator-streaming" className="flex items-center gap-1.5 text-success text-sm">
+      <div
+        data-testid="status-indicator-streaming"
+        className="flex items-center gap-1.5 text-success text-sm"
+      >
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
         <span>Streaming</span>
       </div>
@@ -31,7 +34,10 @@ function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
   }
 
   return (
-    <div data-testid="status-indicator-complete" className="flex items-center gap-1.5 text-text-muted text-sm">
+    <div
+      data-testid="status-indicator-complete"
+      className="flex items-center gap-1.5 text-text-muted text-sm"
+    >
       <CheckCircle className="h-3.5 w-3.5" />
       <span>Complete</span>
     </div>
@@ -147,8 +153,7 @@ export function LogViewer({
     if (!container) return;
 
     // Check if scrolled to bottom (with small tolerance for float precision)
-    const isAtBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
 
     // Disable auto-scroll if user scrolled away from bottom
     if (!isAtBottom && autoScroll) {
@@ -193,17 +198,18 @@ export function LogViewer({
       <div className="flex items-center justify-between px-4 py-2 border-b border-bg-light">
         <StatusIndicator status={status} />
         <button
+          type="button"
           data-testid="auto-scroll-toggle"
           onClick={toggleAutoScroll}
           aria-pressed={autoScroll}
           className="p-1.5 rounded-md bg-bg-light hover:bg-bg-lighter text-text-muted hover:text-text transition-colors"
-          title={autoScroll ? 'Auto-scroll enabled (click to disable)' : 'Auto-scroll disabled (click to enable)'}
+          title={
+            autoScroll
+              ? 'Auto-scroll enabled (click to disable)'
+              : 'Auto-scroll disabled (click to enable)'
+          }
         >
-          {autoScroll ? (
-            <ArrowDownToLine className="h-4 w-4" />
-          ) : (
-            <Pause className="h-4 w-4" />
-          )}
+          {autoScroll ? <ArrowDownToLine className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
         </button>
       </div>
 
@@ -223,10 +229,7 @@ export function LogViewer({
           </div>
         ) : (
           /* Container with total height for proper scroll area */
-          <div
-            className="relative w-full"
-            style={{ height: `${virtualizer.getTotalSize()}px` }}
-          >
+          <div className="relative w-full" style={{ height: `${virtualizer.getTotalSize()}px` }}>
             {/* Position items absolutely within the container */}
             <div
               className="absolute top-0 left-0 w-full px-4"

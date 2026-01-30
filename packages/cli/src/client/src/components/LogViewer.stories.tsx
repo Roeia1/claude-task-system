@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, within } from 'storybook/test'
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot'
-import { LogViewer } from './LogViewer'
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, within } from 'storybook/test';
+import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { LogViewer } from './LogViewer';
 
 // ============================================================================
 // Mock Data
@@ -33,19 +33,19 @@ $ npm test
    Start at  10:32:45
    Duration  1.24s
 
-Build completed successfully!`
+Build completed successfully!`;
 
 /** Generate large log content for performance testing */
 function generateLargeLog(lineCount: number): string {
-  const lines: string[] = []
+  const lines: string[] = [];
   // Use a static base time for reproducible snapshots
-  const baseTime = new Date('2026-01-30T10:00:00.000Z').getTime()
+  const baseTime = new Date('2026-01-30T10:00:00.000Z').getTime();
   for (let i = 1; i <= lineCount; i++) {
-    const timestamp = new Date(baseTime + i * 100).toISOString()
-    const logLevel = ['INFO', 'DEBUG', 'WARN', 'ERROR'][i % 4]
-    lines.push(`[${timestamp}] [${logLevel}] Processing item ${i} of ${lineCount}...`)
+    const timestamp = new Date(baseTime + i * 100).toISOString();
+    const logLevel = ['INFO', 'DEBUG', 'WARN', 'ERROR'][i % 4];
+    lines.push(`[${timestamp}] [${logLevel}] Processing item ${i} of ${lineCount}...`);
   }
-  return lines.join('\n')
+  return lines.join('\n');
 }
 
 /** Sample streaming log content that grows over time */
@@ -63,7 +63,7 @@ Worktree: /Users/dev/saga/worktrees/user-auth
 [2026-01-30 10:00:05] Tests written: auth.test.ts (12 test cases)
 [2026-01-30 10:00:06] Running tests...
 [2026-01-30 10:00:07] ✓ All tests passing
-[2026-01-30 10:00:08] Implementing auth service...`
+[2026-01-30 10:00:08] Implementing auth service...`;
 
 // ============================================================================
 // LogViewer Stories
@@ -142,10 +142,10 @@ with high performance.
       },
     },
   },
-}
+};
 
-export default meta
-type Story = StoryObj<typeof LogViewer>
+export default meta;
+type Story = StoryObj<typeof LogViewer>;
 
 /**
  * Default state showing a running session with sample log content.
@@ -159,29 +159,29 @@ export const Default: Story = {
     initialContent: sampleLogContent,
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Verify log viewer container exists
-    const logViewer = canvas.getByTestId('log-viewer')
-    await expect(logViewer).toBeInTheDocument()
+    const logViewer = canvas.getByTestId('log-viewer');
+    await expect(logViewer).toBeInTheDocument();
 
     // Verify status indicator shows streaming
-    const statusIndicator = canvas.getByTestId('status-indicator-streaming')
-    await expect(statusIndicator).toBeInTheDocument()
-    await expect(canvas.getByText('Streaming')).toBeInTheDocument()
+    const statusIndicator = canvas.getByTestId('status-indicator-streaming');
+    await expect(statusIndicator).toBeInTheDocument();
+    await expect(canvas.getByText('Streaming')).toBeInTheDocument();
 
     // Verify auto-scroll toggle exists and is enabled (for running sessions)
-    const toggleButton = canvas.getByTestId('auto-scroll-toggle')
-    await expect(toggleButton).toBeInTheDocument()
-    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true')
+    const toggleButton = canvas.getByTestId('auto-scroll-toggle');
+    await expect(toggleButton).toBeInTheDocument();
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
 
     // Verify log content is displayed (check first line - virtualization may not render all)
-    await expect(canvas.getByText(/npm install/)).toBeInTheDocument()
+    await expect(canvas.getByText(/npm install/)).toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-default')
+    await matchCanvasSnapshot(canvasElement, 'log-viewer-default');
   },
-}
+};
 
 /**
  * Loading state showing skeleton placeholders while waiting for
@@ -201,24 +201,24 @@ export const Loading: Story = {
     // No initialContent - shows empty content area (no WebSocket in Storybook)
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Verify log viewer container exists
-    const logViewer = canvas.getByTestId('log-viewer')
-    await expect(logViewer).toBeInTheDocument()
+    const logViewer = canvas.getByTestId('log-viewer');
+    await expect(logViewer).toBeInTheDocument();
 
     // Verify status indicator shows streaming (status is running)
-    const statusIndicator = canvas.getByTestId('status-indicator-streaming')
-    await expect(statusIndicator).toBeInTheDocument()
+    const statusIndicator = canvas.getByTestId('status-indicator-streaming');
+    await expect(statusIndicator).toBeInTheDocument();
 
     // Verify log content area exists (empty content state without WebSocket)
-    const logContent = canvas.getByTestId('log-content')
-    await expect(logContent).toBeInTheDocument()
+    const logContent = canvas.getByTestId('log-content');
+    await expect(logContent).toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-loading')
+    await matchCanvasSnapshot(canvasElement, 'log-viewer-loading');
   },
-}
+};
 
 /**
  * Streaming state for an active running session.
@@ -232,30 +232,30 @@ export const Streaming: Story = {
     initialContent: streamingLogContent,
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Verify streaming status indicator
-    const statusIndicator = canvas.getByTestId('status-indicator-streaming')
-    await expect(statusIndicator).toBeInTheDocument()
-    await expect(canvas.getByText('Streaming')).toBeInTheDocument()
+    const statusIndicator = canvas.getByTestId('status-indicator-streaming');
+    await expect(statusIndicator).toBeInTheDocument();
+    await expect(canvas.getByText('Streaming')).toBeInTheDocument();
 
     // Verify animated loader icon is present
-    const loader = canvasElement.querySelector('svg.animate-spin')
-    await expect(loader).toBeInTheDocument()
+    const loader = canvasElement.querySelector('svg.animate-spin');
+    await expect(loader).toBeInTheDocument();
 
     // Verify auto-scroll is enabled for running session
-    const toggleButton = canvas.getByTestId('auto-scroll-toggle')
-    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true')
+    const toggleButton = canvas.getByTestId('auto-scroll-toggle');
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
 
     // Verify log content shows streaming output
-    await expect(canvas.getByText(/saga implement/)).toBeInTheDocument()
-    await expect(canvas.getByText(/Starting story execution/)).toBeInTheDocument()
-    await expect(canvas.getByText(/Implementing auth service/)).toBeInTheDocument()
+    await expect(canvas.getByText(/saga implement/)).toBeInTheDocument();
+    await expect(canvas.getByText(/Starting story execution/)).toBeInTheDocument();
+    await expect(canvas.getByText(/Implementing auth service/)).toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-streaming')
+    await matchCanvasSnapshot(canvasElement, 'log-viewer-streaming');
   },
-}
+};
 
 /**
  * Complete state for a finished session.
@@ -269,29 +269,29 @@ export const Complete: Story = {
     initialContent: sampleLogContent,
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Verify complete status indicator
-    const statusIndicator = canvas.getByTestId('status-indicator-complete')
-    await expect(statusIndicator).toBeInTheDocument()
-    await expect(canvas.getByText('Complete')).toBeInTheDocument()
+    const statusIndicator = canvas.getByTestId('status-indicator-complete');
+    await expect(statusIndicator).toBeInTheDocument();
+    await expect(canvas.getByText('Complete')).toBeInTheDocument();
 
     // Verify status indicator has check icon (no animation)
-    const statusIcon = statusIndicator.querySelector('svg')
-    await expect(statusIcon).toBeInTheDocument()
-    await expect(statusIcon).not.toHaveClass('animate-spin')
+    const statusIcon = statusIndicator.querySelector('svg');
+    await expect(statusIcon).toBeInTheDocument();
+    await expect(statusIcon).not.toHaveClass('animate-spin');
 
     // Verify auto-scroll is disabled for completed session
-    const toggleButton = canvas.getByTestId('auto-scroll-toggle')
-    await expect(toggleButton).toHaveAttribute('aria-pressed', 'false')
+    const toggleButton = canvas.getByTestId('auto-scroll-toggle');
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
 
     // Verify log content is displayed (check first line - virtualization may not render all)
-    await expect(canvas.getByText(/npm install/)).toBeInTheDocument()
+    await expect(canvas.getByText(/npm install/)).toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-complete')
+    await matchCanvasSnapshot(canvasElement, 'log-viewer-complete');
   },
-}
+};
 
 /**
  * Unavailable state when the output file doesn't exist.
@@ -304,29 +304,33 @@ export const Unavailable: Story = {
     outputAvailable: false,
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Verify log viewer container exists
-    const logViewer = canvas.getByTestId('log-viewer')
-    await expect(logViewer).toBeInTheDocument()
+    const logViewer = canvas.getByTestId('log-viewer');
+    await expect(logViewer).toBeInTheDocument();
 
     // Verify "Output unavailable" message
-    await expect(canvas.getByText('Output unavailable')).toBeInTheDocument()
+    await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
 
     // Verify no status indicator (not shown when output unavailable)
-    const streamingIndicator = canvasElement.querySelector('[data-testid="status-indicator-streaming"]')
-    const completeIndicator = canvasElement.querySelector('[data-testid="status-indicator-complete"]')
-    await expect(streamingIndicator).not.toBeInTheDocument()
-    await expect(completeIndicator).not.toBeInTheDocument()
+    const streamingIndicator = canvasElement.querySelector(
+      '[data-testid="status-indicator-streaming"]',
+    );
+    const completeIndicator = canvasElement.querySelector(
+      '[data-testid="status-indicator-complete"]',
+    );
+    await expect(streamingIndicator).not.toBeInTheDocument();
+    await expect(completeIndicator).not.toBeInTheDocument();
 
     // Verify no auto-scroll toggle (not shown when output unavailable)
-    const toggleButton = canvasElement.querySelector('[data-testid="auto-scroll-toggle"]')
-    await expect(toggleButton).not.toBeInTheDocument()
+    const toggleButton = canvasElement.querySelector('[data-testid="auto-scroll-toggle"]');
+    await expect(toggleButton).not.toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-unavailable')
+    await matchCanvasSnapshot(canvasElement, 'log-viewer-unavailable');
   },
-}
+};
 
 /**
  * Large log with 10,000+ lines demonstrating virtual scrolling performance.
@@ -340,34 +344,34 @@ export const LargeLog: Story = {
     initialContent: generateLargeLog(10000),
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Verify log viewer container exists
-    const logViewer = canvas.getByTestId('log-viewer')
-    await expect(logViewer).toBeInTheDocument()
+    const logViewer = canvas.getByTestId('log-viewer');
+    await expect(logViewer).toBeInTheDocument();
 
     // Verify complete status indicator
-    const statusIndicator = canvas.getByTestId('status-indicator-complete')
-    await expect(statusIndicator).toBeInTheDocument()
+    const statusIndicator = canvas.getByTestId('status-indicator-complete');
+    await expect(statusIndicator).toBeInTheDocument();
 
     // Verify log content container exists
-    const logContent = canvas.getByTestId('log-content')
-    await expect(logContent).toBeInTheDocument()
+    const logContent = canvas.getByTestId('log-content');
+    await expect(logContent).toBeInTheDocument();
 
     // Verify virtualization - should NOT render all 10,000 lines
     // Only a small number of visible lines should be in the DOM
-    const renderedLines = canvasElement.querySelectorAll('[data-testid="log-line"]')
+    const renderedLines = canvasElement.querySelectorAll('[data-testid="log-line"]');
     // With overscan of 5 and typical viewport, should render < 100 lines
-    await expect(renderedLines.length).toBeLessThan(100)
-    await expect(renderedLines.length).toBeGreaterThan(0)
+    await expect(renderedLines.length).toBeLessThan(100);
+    await expect(renderedLines.length).toBeGreaterThan(0);
 
     // Verify first line content is visible
-    await expect(canvas.getByText(/Processing item 1 of 10000/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Processing item 1 of 10000/)).toBeInTheDocument();
 
     // Visual snapshot test (limited - snapshot only captures visible portion)
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-large-log')
+    await matchCanvasSnapshot(canvasElement, 'log-viewer-large-log');
   },
-}
+};
 
 /**
  * Empty content state - log viewer with no content yet but output available.
@@ -381,27 +385,27 @@ export const EmptyContent: Story = {
     initialContent: '',
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Verify log viewer container exists
-    const logViewer = canvas.getByTestId('log-viewer')
-    await expect(logViewer).toBeInTheDocument()
+    const logViewer = canvas.getByTestId('log-viewer');
+    await expect(logViewer).toBeInTheDocument();
 
     // Verify streaming status indicator
-    await expect(canvas.getByTestId('status-indicator-streaming')).toBeInTheDocument()
+    await expect(canvas.getByTestId('status-indicator-streaming')).toBeInTheDocument();
 
     // Verify log content area exists
-    const logContent = canvas.getByTestId('log-content')
-    await expect(logContent).toBeInTheDocument()
+    const logContent = canvas.getByTestId('log-content');
+    await expect(logContent).toBeInTheDocument();
 
     // Verify no loading skeleton (initialContent provided, even if empty)
-    const skeleton = canvasElement.querySelector('[data-testid="log-viewer-skeleton"]')
-    await expect(skeleton).not.toBeInTheDocument()
+    const skeleton = canvasElement.querySelector('[data-testid="log-viewer-skeleton"]');
+    await expect(skeleton).not.toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-empty')
+    await matchCanvasSnapshot(canvasElement, 'log-viewer-empty');
   },
-}
+};
 
 /**
  * Auto-scroll toggle demonstration showing the toggle button states.
@@ -415,23 +419,23 @@ export const AutoScrollToggle: Story = {
     initialContent: streamingLogContent,
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Verify auto-scroll toggle button exists
-    const toggleButton = canvas.getByTestId('auto-scroll-toggle')
-    await expect(toggleButton).toBeInTheDocument()
+    const toggleButton = canvas.getByTestId('auto-scroll-toggle');
+    await expect(toggleButton).toBeInTheDocument();
 
     // Verify initial state is enabled (for running session)
-    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true')
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
 
     // Verify toggle button has proper title
-    await expect(toggleButton).toHaveAttribute('title', 'Auto-scroll enabled (click to disable)')
+    await expect(toggleButton).toHaveAttribute('title', 'Auto-scroll enabled (click to disable)');
 
     // Verify ArrowDownToLine icon is shown when enabled
-    const arrowIcon = canvasElement.querySelector('[data-testid="auto-scroll-toggle"] svg')
-    await expect(arrowIcon).toBeInTheDocument()
+    const arrowIcon = canvasElement.querySelector('[data-testid="auto-scroll-toggle"] svg');
+    await expect(arrowIcon).toBeInTheDocument();
   },
-}
+};
 
 // ============================================================================
 // Comparison Stories
@@ -465,24 +469,24 @@ export const StatusComparison: Story = {
     </div>
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Verify section headers
-    await expect(canvas.getByText('Running Session')).toBeInTheDocument()
-    await expect(canvas.getByText('Completed Session')).toBeInTheDocument()
+    await expect(canvas.getByText('Running Session')).toBeInTheDocument();
+    await expect(canvas.getByText('Completed Session')).toBeInTheDocument();
 
     // Verify both status indicators
-    await expect(canvas.getByTestId('status-indicator-streaming')).toBeInTheDocument()
-    await expect(canvas.getByTestId('status-indicator-complete')).toBeInTheDocument()
+    await expect(canvas.getByTestId('status-indicator-streaming')).toBeInTheDocument();
+    await expect(canvas.getByTestId('status-indicator-complete')).toBeInTheDocument();
 
     // Verify status text
-    await expect(canvas.getByText('Streaming')).toBeInTheDocument()
-    await expect(canvas.getByText('Complete')).toBeInTheDocument()
+    await expect(canvas.getByText('Streaming')).toBeInTheDocument();
+    await expect(canvas.getByText('Complete')).toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-status-comparison')
+    await matchCanvasSnapshot(canvasElement, 'log-viewer-status-comparison');
   },
-}
+};
 
 /**
  * All edge cases displayed together for visual comparison.
@@ -511,30 +515,26 @@ export const AllStates: Story = {
       </div>
       <div>
         <h3 className="text-sm font-medium text-text-muted mb-2">Unavailable (no output file)</h3>
-        <LogViewer
-          sessionName="unavailable-demo"
-          status="running"
-          outputAvailable={false}
-        />
+        <LogViewer sessionName="unavailable-demo" status="running" outputAvailable={false} />
       </div>
     </div>
   ),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
     // Verify section headers
-    await expect(canvas.getByText('Streaming (active session)')).toBeInTheDocument()
-    await expect(canvas.getByText('Complete (finished session)')).toBeInTheDocument()
-    await expect(canvas.getByText('Unavailable (no output file)')).toBeInTheDocument()
+    await expect(canvas.getByText('Streaming (active session)')).toBeInTheDocument();
+    await expect(canvas.getByText('Complete (finished session)')).toBeInTheDocument();
+    await expect(canvas.getByText('Unavailable (no output file)')).toBeInTheDocument();
 
     // Verify status indicators
-    await expect(canvas.getByTestId('status-indicator-streaming')).toBeInTheDocument()
-    await expect(canvas.getByTestId('status-indicator-complete')).toBeInTheDocument()
+    await expect(canvas.getByTestId('status-indicator-streaming')).toBeInTheDocument();
+    await expect(canvas.getByTestId('status-indicator-complete')).toBeInTheDocument();
 
     // Verify unavailable message
-    await expect(canvas.getByText('Output unavailable')).toBeInTheDocument()
+    await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-all-states')
+    await matchCanvasSnapshot(canvasElement, 'log-viewer-all-states');
   },
-}
+};

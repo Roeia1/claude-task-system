@@ -1,5 +1,5 @@
-import { beforeAll, expect } from 'vitest';
 import { setProjectAnnotations } from '@storybook/react-vite';
+import { beforeAll, expect } from 'vitest';
 import * as previewAnnotations from './preview';
 
 // Types are declared in src/types/vitest-globals.d.ts

@@ -16,7 +16,7 @@
  * Output: Exit code 0 = allowed, exit code 2 = blocked (with error message)
  */
 
-import { resolve, relative } from 'node:path';
+import { relative, resolve } from 'node:path';
 
 /**
  * Extract file path from hook input JSON
@@ -120,7 +120,7 @@ function printScopeViolation(
   epicSlug: string,
   storySlug: string,
   worktreePath: string,
-  reason: string
+  reason: string,
 ): void {
   console.error(`SCOPE VIOLATION: ${reason}
 
@@ -148,7 +148,7 @@ export async function scopeValidatorCommand(): Promise<void> {
 
   if (!worktreePath || !epicSlug || !storySlug) {
     console.error(
-      'ERROR: scope-validator requires SAGA_PROJECT_DIR, SAGA_EPIC_SLUG, and SAGA_STORY_SLUG environment variables'
+      'ERROR: scope-validator requires SAGA_PROJECT_DIR, SAGA_EPIC_SLUG, and SAGA_STORY_SLUG environment variables',
     );
     process.exit(2);
   }
@@ -178,7 +178,7 @@ export async function scopeValidatorCommand(): Promise<void> {
       epicSlug,
       storySlug,
       worktreePath,
-      'Access outside worktree blocked\nReason: Workers can only access files within their assigned worktree directory.'
+      'Access outside worktree blocked\nReason: Workers can only access files within their assigned worktree directory.',
     );
     process.exit(2);
   }
@@ -190,7 +190,7 @@ export async function scopeValidatorCommand(): Promise<void> {
       epicSlug,
       storySlug,
       worktreePath,
-      'Access to archive folder blocked\nReason: The archive folder contains completed stories and is read-only during execution.'
+      'Access to archive folder blocked\nReason: The archive folder contains completed stories and is read-only during execution.',
     );
     process.exit(2);
   }
@@ -202,7 +202,7 @@ export async function scopeValidatorCommand(): Promise<void> {
       epicSlug,
       storySlug,
       worktreePath,
-      'Access to other story blocked\nReason: Workers can only access their assigned story\'s files.'
+      "Access to other story blocked\nReason: Workers can only access their assigned story's files.",
     );
     process.exit(2);
   }

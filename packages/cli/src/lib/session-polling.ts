@@ -12,10 +12,10 @@
  */
 
 import {
-  listSessions,
   buildSessionInfo,
-  getSessionStatus,
   type DetailedSessionInfo,
+  getSessionStatus,
+  listSessions,
 } from './sessions.js';
 
 /**

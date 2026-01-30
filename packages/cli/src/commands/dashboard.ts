@@ -6,8 +6,8 @@
  * and broadcasts real-time updates via WebSocket.
  */
 
-import { resolveProjectPath } from '../utils/project-discovery.js';
 import { startServer } from '../server/index.js';
+import { resolveProjectPath } from '../utils/project-discovery.js';
 
 /**
  * Options for the dashboard command
@@ -25,15 +25,15 @@ export async function dashboardCommand(options: DashboardOptions): Promise<void>
   let projectPath: string;
   try {
     projectPath = resolveProjectPath(options.path);
-  } catch (error: any) {
-    console.error(`Error: ${error.message}`);
+  } catch (error) {
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 
   try {
     const server = await startServer({
       sagaRoot: projectPath,
-      port: options.port
+      port: options.port,
     });
 
     console.log(`Project: ${projectPath}`);
@@ -49,8 +49,10 @@ export async function dashboardCommand(options: DashboardOptions): Promise<void>
       await server.close();
       process.exit(0);
     });
-  } catch (error: any) {
-    console.error(`Error starting server: ${error.message}`);
+  } catch (error) {
+    console.error(
+      `Error starting server: ${error instanceof Error ? error.message : String(error)}`,
+    );
     process.exit(1);
   }
 }

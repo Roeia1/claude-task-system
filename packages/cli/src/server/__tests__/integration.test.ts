@@ -8,19 +8,19 @@
  * - Server error handling without crashing
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm, writeFile } from 'fs/promises';
-import { join } from 'path';
-import { tmpdir } from 'os';
-import { WebSocket } from 'ws';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import request from 'supertest';
-import { startServer, type ServerInstance } from '../index.js';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { WebSocket } from 'ws';
+import { type ServerInstance, startServer } from '../index.js';
 
 // Helper to create a temporary saga directory
 async function createTempSagaDir(): Promise<string> {
   const tempDir = join(
     tmpdir(),
-    `saga-integration-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    `saga-integration-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
 
   // Create epic structure
@@ -32,7 +32,7 @@ async function createTempSagaDir(): Promise<string> {
   // Create epic.md
   await writeFile(
     join(tempDir, '.saga', 'epics', 'test-epic', 'epic.md'),
-    '# Test Epic\n\nA test epic for integration testing.'
+    '# Test Epic\n\nA test epic for integration testing.',
   );
 
   // Create story.md with valid frontmatter
@@ -54,7 +54,7 @@ tasks:
 ## Context
 
 Integration test story.
-`
+`,
   );
 
   return tempDir;
@@ -89,7 +89,7 @@ async function createWSClient(port: number): Promise<WebSocket> {
 async function waitForEvent(
   ws: WebSocket,
   eventType: string,
-  timeoutMs = 1000
+  timeoutMs = 1000,
 ): Promise<{ event: string; data: unknown }> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -170,7 +170,7 @@ tasks:
 ## Context
 
 Updated content.
-`
+`,
       );
 
       // Wait for story:updated event
@@ -208,7 +208,7 @@ title: New Story
 status: ready
 tasks: []
 ---
-`
+`,
       );
 
       // Both clients should receive epics:updated
@@ -247,7 +247,7 @@ tasks:
 ---
 
 Done.
-`
+`,
       );
 
       // Wait for watcher to detect and cache to refresh
@@ -331,7 +331,9 @@ Done.
       }
 
       // Close all connections
-      connections.forEach((ws) => ws.close());
+      for (const ws of connections) {
+        ws.close();
+      }
 
       // Wait a bit
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -363,20 +365,22 @@ title: Concurrent Test
 status: blocked
 tasks: []
 ---
-`
+`,
       );
 
       // All clients should receive update
       const messages = await Promise.all(
-        clients.map((ws) => waitForEvent(ws, 'story:updated', 1000))
+        clients.map((ws) => waitForEvent(ws, 'story:updated', 1000)),
       );
 
       expect(messages.length).toBe(3);
-      messages.forEach((msg) => {
+      for (const msg of messages) {
         expect(msg.event).toBe('story:updated');
-      });
+      }
 
-      clients.forEach((ws) => ws.close());
+      for (const ws of clients) {
+        ws.close();
+      }
     });
   });
 
@@ -398,7 +402,7 @@ tasks:
     title: Consistent Task
     status: in_progress
 ---
-`
+`,
       );
 
       // Get WebSocket update
@@ -437,12 +441,12 @@ tasks:
 ## Blocker: Need review
 
 Waiting for code review.
-`
+`,
       );
 
       // Wait for update
       const msg = await waitForEvent(ws, 'story:updated', 1000);
-      const data = msg.data as { journal?: unknown[] };
+      const _data = msg.data as { journal?: unknown[] };
 
       // Journal should be included if the story detail includes it
       // Note: The WebSocket broadcasts the parsed story data which may or may not include journal
@@ -478,12 +482,12 @@ title: Performance Test
 status: completed
 tasks: []
 ---
-`
+`,
       );
 
       // All clients should receive update within 1 second
       const messages = await Promise.all(
-        clients.map((ws) => waitForEvent(ws, 'story:updated', 1000))
+        clients.map((ws) => waitForEvent(ws, 'story:updated', 1000)),
       );
 
       const elapsed = Date.now() - startTime;
@@ -491,7 +495,9 @@ tasks: []
       expect(messages.length).toBe(clientCount);
       expect(elapsed).toBeLessThan(1000);
 
-      clients.forEach((ws) => ws.close());
+      for (const ws of clients) {
+        ws.close();
+      }
     });
   });
 });

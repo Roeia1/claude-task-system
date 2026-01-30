@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig, mergeConfig } from 'vitest/config';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+import { defineConfig, mergeConfig } from 'vitest/config';
 
 // Import the client's vite config to get aliases and plugins for storybook tests
 import viteConfig from './src/client/vite.config';

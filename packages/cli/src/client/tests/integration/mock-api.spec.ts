@@ -1,13 +1,13 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import {
-  mockEpicList,
-  mockEpicDetail,
-  mockStoryDetail,
-  mockApiError,
-  mockApiDelay,
-  createMockEpicSummary,
   createMockEpic,
+  createMockEpicSummary,
   createMockStoryDetail,
+  mockApiDelay,
+  mockApiError,
+  mockEpicDetail,
+  mockEpicList,
+  mockStoryDetail,
 } from '../utils/mock-api';
 
 /**
@@ -79,7 +79,9 @@ test.describe('API Mocking Infrastructure', () => {
       });
 
       // Mock both the list (for initial load) and detail
-      await mockEpicList(page, [createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic Detail' })]);
+      await mockEpicList(page, [
+        createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic Detail' }),
+      ]);
       await mockEpicDetail(page, epic);
 
       await page.goto('/epic/test-epic');

@@ -2,22 +2,22 @@
  * Tests for the file system parsing module
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import {
-  parseStory,
-  parseEpic,
-  parseJournal,
-  scanSagaDirectory,
-  type StoryDetail,
-  type Epic,
-  type EpicSummary,
-  type JournalEntry,
-  type Task,
-  type StoryCounts
-} from '../parser.js';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { parseEpic, parseJournal, parseStory, scanSagaDirectory } from '../parser.js';
+
+/** Helper to assert a value is not null/undefined and return it typed */
+function assertDefined<T>(
+  value: T | null | undefined,
+  message = 'Expected value to be defined',
+): T {
+  if (value === null || value === undefined) {
+    throw new Error(message);
+  }
+  return value;
+}
 
 describe('parser', () => {
   let testDir: string;
@@ -59,16 +59,15 @@ This is the story context.
 `;
       writeFileSync(join(storyPath, 'story.md'), storyContent);
 
-      const result = await parseStory(join(storyPath, 'story.md'), 'test-epic');
+      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
 
-      expect(result).not.toBeNull();
-      expect(result!.slug).toBe('test-story');
-      expect(result!.title).toBe('Test Story Title');
-      expect(result!.status).toBe('in_progress');
-      expect(result!.epicSlug).toBe('test-epic');
-      expect(result!.tasks).toHaveLength(2);
-      expect(result!.tasks[0]).toEqual({ id: 't1', title: 'First Task', status: 'completed' });
-      expect(result!.tasks[1]).toEqual({ id: 't2', title: 'Second Task', status: 'pending' });
+      expect(result.slug).toBe('test-story');
+      expect(result.title).toBe('Test Story Title');
+      expect(result.status).toBe('in_progress');
+      expect(result.epicSlug).toBe('test-epic');
+      expect(result.tasks).toHaveLength(2);
+      expect(result.tasks[0]).toEqual({ id: 't1', title: 'First Task', status: 'completed' });
+      expect(result.tasks[1]).toEqual({ id: 't2', title: 'Second Task', status: 'pending' });
     });
 
     it('should return null for non-existent file', async () => {
@@ -89,12 +88,11 @@ Some content.
 `;
       writeFileSync(join(storyPath, 'story.md'), storyContent);
 
-      const result = await parseStory(join(storyPath, 'story.md'), 'test-epic');
+      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
 
-      expect(result).not.toBeNull();
-      expect(result!.title).toBe('Just a Title');
-      expect(result!.status).toBe('ready'); // default
-      expect(result!.tasks).toEqual([]); // default empty array
+      expect(result.title).toBe('Just a Title');
+      expect(result.status).toBe('ready'); // default
+      expect(result.tasks).toEqual([]); // default empty array
     });
 
     it('should handle completely invalid YAML gracefully', async () => {
@@ -112,12 +110,11 @@ Content here.
 `;
       writeFileSync(join(storyPath, 'story.md'), storyContent);
 
-      const result = await parseStory(join(storyPath, 'story.md'), 'test-epic');
-
       // Should return with defaults rather than throwing
-      expect(result).not.toBeNull();
-      expect(result!.status).toBe('ready');
-      expect(result!.tasks).toEqual([]);
+      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
+
+      expect(result.status).toBe('ready');
+      expect(result.tasks).toEqual([]);
     });
 
     it('should include paths in the result', async () => {
@@ -134,10 +131,9 @@ tasks: []
 `;
       writeFileSync(join(storyPath, 'story.md'), storyContent);
 
-      const result = await parseStory(join(storyPath, 'story.md'), 'test-epic');
+      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
 
-      expect(result).not.toBeNull();
-      expect(result!.paths.storyMd).toContain('story.md');
+      expect(result.paths.storyMd).toContain('story.md');
     });
 
     it('should detect journal.md if present', async () => {
@@ -155,10 +151,9 @@ tasks: []
       writeFileSync(join(storyPath, 'story.md'), storyContent);
       writeFileSync(join(storyPath, 'journal.md'), '# Journal');
 
-      const result = await parseStory(join(storyPath, 'story.md'), 'test-epic');
+      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
 
-      expect(result).not.toBeNull();
-      expect(result!.paths.journalMd).toContain('journal.md');
+      expect(result.paths.journalMd).toContain('journal.md');
     });
   });
 
@@ -339,7 +334,9 @@ Implemented GitHub OAuth.
       // Create story
       const storyPath = join(epicPath, 'stories', 'my-story');
       mkdirSync(storyPath, { recursive: true });
-      writeFileSync(join(storyPath, 'story.md'), `---
+      writeFileSync(
+        join(storyPath, 'story.md'),
+        `---
 id: my-story
 title: My Test Story
 status: ready
@@ -351,7 +348,8 @@ tasks:
 ---
 
 Story content.
-`);
+`,
+      );
 
       const result = await scanSagaDirectory(testDir);
 
@@ -375,14 +373,17 @@ Story content.
       for (let i = 0; i < statuses.length; i++) {
         const storyPath = join(epicPath, 'stories', `story-${i}`);
         mkdirSync(storyPath, { recursive: true });
-        writeFileSync(join(storyPath, 'story.md'), `---
+        writeFileSync(
+          join(storyPath, 'story.md'),
+          `---
 id: story-${i}
 title: Story ${i}
 status: ${statuses[i]}
 epic: counting-epic
 tasks: []
 ---
-`);
+`,
+        );
       }
 
       const result = await scanSagaDirectory(testDir);
@@ -393,7 +394,7 @@ tasks: []
         ready: 1,
         inProgress: 1,
         blocked: 1,
-        completed: 2
+        completed: 2,
       });
     });
 
@@ -406,20 +407,23 @@ tasks: []
 
         const storyPath = join(epicPath, 'stories', 'story-a');
         mkdirSync(storyPath, { recursive: true });
-        writeFileSync(join(storyPath, 'story.md'), `---
+        writeFileSync(
+          join(storyPath, 'story.md'),
+          `---
 id: story-a
 title: Story A for ${epicSlug}
 status: ready
 epic: ${epicSlug}
 tasks: []
 ---
-`);
+`,
+        );
       }
 
       const result = await scanSagaDirectory(testDir);
 
       expect(result).toHaveLength(2);
-      const slugs = result.map(e => e.slug).sort();
+      const slugs = result.map((e) => e.slug).sort();
       expect(slugs).toEqual(['epic-one', 'epic-two']);
     });
 
@@ -432,40 +436,46 @@ tasks: []
       // Create active story
       const activeStoryPath = join(epicPath, 'stories', 'active-story');
       mkdirSync(activeStoryPath, { recursive: true });
-      writeFileSync(join(activeStoryPath, 'story.md'), `---
+      writeFileSync(
+        join(activeStoryPath, 'story.md'),
+        `---
 id: active-story
 title: Active Story
 status: ready
 epic: my-epic
 tasks: []
 ---
-`);
+`,
+      );
 
       // Create archived story
       const archivedPath = join(sagaDir, 'archive', 'my-epic', 'archived-story');
       mkdirSync(archivedPath, { recursive: true });
-      writeFileSync(join(archivedPath, 'story.md'), `---
+      writeFileSync(
+        join(archivedPath, 'story.md'),
+        `---
 id: archived-story
 title: Archived Story
 status: completed
 epic: my-epic
 tasks: []
 ---
-`);
+`,
+      );
 
       const result = await scanSagaDirectory(testDir);
 
       expect(result).toHaveLength(1);
       expect(result[0].stories).toHaveLength(2);
 
-      const activeStory = result[0].stories.find(s => s.slug === 'active-story');
-      const archivedStory = result[0].stories.find(s => s.slug === 'archived-story');
+      const activeStory = result[0].stories.find((s) => s.slug === 'active-story');
+      const archivedStory = result[0].stories.find((s) => s.slug === 'archived-story');
 
       expect(activeStory).toBeDefined();
-      expect(activeStory!.archived).toBeFalsy();
+      expect(assertDefined(activeStory).archived).toBeFalsy();
 
       expect(archivedStory).toBeDefined();
-      expect(archivedStory!.archived).toBe(true);
+      expect(assertDefined(archivedStory).archived).toBe(true);
     });
 
     it('should handle epic with no stories directory', async () => {
@@ -489,14 +499,17 @@ tasks: []
 
       const storyPath = join(epicPath, 'stories', 'my-story');
       mkdirSync(storyPath, { recursive: true });
-      writeFileSync(join(storyPath, 'story.md'), `---
+      writeFileSync(
+        join(storyPath, 'story.md'),
+        `---
 id: my-story
 title: My Story
 status: ready
 epic: path-test
 tasks: []
 ---
-`);
+`,
+      );
 
       const result = await scanSagaDirectory(testDir);
 

@@ -1,8 +1,5 @@
-import { test, expect } from '@playwright/test';
-import {
-  createMockEpicSummary,
-  mockEpicList,
-} from '../utils/mock-api';
+import { expect, test } from '@playwright/test';
+import { createMockEpicSummary, mockEpicList } from '../utils/mock-api';
 
 /**
  * Archive toggle tests for the dashboard.
@@ -94,7 +91,9 @@ test.describe('Archive Toggle', () => {
     await expect(page.getByText('Archived Epic')).not.toBeVisible();
   });
 
-  test('should show only archived epics when all epics are archived and toggle is on', async ({ page }) => {
+  test('should show only archived epics when all epics are archived and toggle is on', async ({
+    page,
+  }) => {
     const epics = [
       createMockEpicSummary({ slug: 'archived-1', title: 'Archived One', isArchived: true }),
       createMockEpicSummary({ slug: 'archived-2', title: 'Archived Two', isArchived: true }),

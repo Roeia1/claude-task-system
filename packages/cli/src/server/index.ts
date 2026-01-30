@@ -6,9 +6,9 @@
  * real-time updates to connected clients via WebSocket.
  */
 
+import { createServer, type Server as HttpServer } from 'node:http';
+import { join } from 'node:path';
 import express, { type Express, type Request, type Response } from 'express';
-import { createServer, type Server as HttpServer } from 'http';
-import { join } from 'path';
 import { createApiRouter } from './routes.js';
 import { createWebSocketServer, type WebSocketInstance } from './websocket.js';
 
@@ -68,7 +68,7 @@ function createApp(sagaRoot: string): Express {
 
   // Serve static files from built client (dist/client relative to dist/cli.cjs)
   const clientDistPath = join(__dirname, 'client');
-  const indexHtmlPath = join(clientDistPath, 'index.html');
+  const _indexHtmlPath = join(clientDistPath, 'index.html');
   app.use(express.static(clientDistPath));
 
   // SPA fallback - serve index.html for client-side routing
@@ -119,7 +119,7 @@ export async function startServer(config: ServerConfig): Promise<ServerInstance>
               }
             });
           });
-        }
+        },
       });
     });
   });

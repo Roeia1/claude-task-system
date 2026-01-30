@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { describe, it, expect, afterEach } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import { EpicContent } from './EpicContent';
 
 describe('EpicContent', () => {
@@ -126,6 +126,7 @@ describe('EpicContent', () => {
       // Find the trigger button (contains "Epic Documentation")
       const trigger = screen.getByText('Epic Documentation').closest('button');
       expect(trigger).toBeInTheDocument();
+      if (!trigger) throw new Error('Trigger button not found');
 
       const collapsible = container.querySelector('[data-testid="epic-content"]');
 
@@ -133,7 +134,7 @@ describe('EpicContent', () => {
       expect(collapsible).toHaveAttribute('data-state', 'open');
 
       // Click to collapse
-      fireEvent.click(trigger!);
+      fireEvent.click(trigger);
 
       // Content should be collapsed
       expect(collapsible).toHaveAttribute('data-state', 'closed');

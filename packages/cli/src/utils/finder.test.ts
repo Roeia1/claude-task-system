@@ -2,19 +2,11 @@
  * Tests for finder utility
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, realpathSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  parseFrontmatter,
-  extractContext,
-  findEpic,
-  findStory,
-  type EpicInfo,
-  type StoryInfo,
-  type FindResult,
-} from './finder.js';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { extractContext, findEpic, findStory, parseFrontmatter } from './finder.js';
 
 describe('parseFrontmatter', () => {
   it('should parse simple frontmatter', () => {
@@ -266,7 +258,7 @@ describe('findStory', () => {
     epicSlug: string,
     storySlug: string,
     frontmatter: Record<string, string>,
-    body: string = ''
+    body: string = '',
   ): void {
     const worktreesDir = join(testDir, '.saga', 'worktrees');
     const storyDir = join(
@@ -277,7 +269,7 @@ describe('findStory', () => {
       'epics',
       epicSlug,
       'stories',
-      storySlug
+      storySlug,
     );
     mkdirSync(storyDir, { recursive: true });
 
@@ -360,7 +352,7 @@ This story implements the login feature for the application.
 
 ## Tasks
 
-- Task 1`
+- Task 1`,
     );
 
     const result = await findStory(testDir, 'implement-login');
@@ -368,7 +360,7 @@ This story implements the login feature for the application.
     expect(result.found).toBe(true);
     if (result.found) {
       expect(result.data.context).toBe(
-        'This story implements the login feature for the application.'
+        'This story implements the login feature for the application.',
       );
     }
   });

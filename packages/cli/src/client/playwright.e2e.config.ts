@@ -1,8 +1,8 @@
+import { cpSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { tmpdir } from 'os';
-import { cpSync, rmSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -58,9 +58,7 @@ export default defineConfig({
   workers: 1,
 
   // Reporter configuration
-  reporter: process.env.CI
-    ? [['github'], ['html', { open: 'never' }]]
-    : 'html',
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'html',
 
   // Shared settings for all projects
   use: {

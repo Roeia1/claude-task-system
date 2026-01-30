@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 const clientDir = join(__dirname);
 const srcDir = join(clientDir, 'src');
@@ -10,16 +10,11 @@ describe('WebSocket Client for Real-time Updates - t6', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should use fromCallback from xstate for WebSocket actor', () => {
-      expect(machineContent).toMatch(
-        /import\s*\{[^}]*fromCallback[^}]*\}\s*from\s*['"]xstate['"]/
-      );
+      expect(machineContent).toMatch(/import\s*\{[^}]*fromCallback[^}]*\}\s*from\s*['"]xstate['"]/);
     });
 
     it('should define websocket actor', () => {
@@ -47,10 +42,7 @@ describe('WebSocket Client for Real-time Updates - t6', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should handle epics:updated server event', () => {
@@ -66,10 +58,7 @@ describe('WebSocket Client for Real-time Updates - t6', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should have SUBSCRIBE_STORY event type', () => {
@@ -93,10 +82,7 @@ describe('WebSocket Client for Real-time Updates - t6', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should implement heartbeat or ping mechanism', () => {
@@ -113,10 +99,7 @@ describe('WebSocket Client for Real-time Updates - t6', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should use default port 3847', () => {
@@ -132,10 +115,7 @@ describe('WebSocket Client for Real-time Updates - t6', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should track subscribed stories in context', () => {
@@ -147,10 +127,7 @@ describe('WebSocket Client for Real-time Updates - t6', () => {
     let contextContent: string;
 
     beforeAll(() => {
-      contextContent = readFileSync(
-        join(srcDir, 'context', 'DashboardContext.tsx'),
-        'utf-8'
-      );
+      contextContent = readFileSync(join(srcDir, 'context', 'DashboardContext.tsx'), 'utf-8');
     });
 
     it('should export subscribeToStory action in useDashboard', () => {
@@ -166,10 +143,7 @@ describe('WebSocket Client for Real-time Updates - t6', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should close WebSocket on cleanup', () => {

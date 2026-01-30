@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useDashboard } from '@/context/DashboardContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { useDashboard } from '@/context/DashboardContext';
 import { showApiErrorToast } from '@/lib/toast-utils';
 import type { EpicSummary, StoryStatus } from '@/types/dashboard';
 
@@ -53,9 +53,7 @@ export function StatusBadge({ status, count }: { status: StoryStatus; count: num
 export function EpicCard({ epic }: { epic: EpicSummary }) {
   const { storyCounts } = epic;
   const completionPercentage =
-    storyCounts.total > 0
-      ? Math.round((storyCounts.completed / storyCounts.total) * 100)
-      : 0;
+    storyCounts.total > 0 ? Math.round((storyCounts.completed / storyCounts.total) * 100) : 0;
 
   return (
     <Link to={`/epic/${epic.slug}`} className="block">
@@ -74,9 +72,7 @@ export function EpicCard({ epic }: { epic: EpicSummary }) {
             <Progress value={completionPercentage} />
           </div>
           <div className="flex flex-wrap gap-2">
-            {storyCounts.ready > 0 && (
-              <StatusBadge status="ready" count={storyCounts.ready} />
-            )}
+            {storyCounts.ready > 0 && <StatusBadge status="ready" count={storyCounts.ready} />}
             {storyCounts.inProgress > 0 && (
               <StatusBadge status="in_progress" count={storyCounts.inProgress} />
             )}

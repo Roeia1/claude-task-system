@@ -8,12 +8,7 @@
  *   saga sessions kill <name>    Terminate session
  */
 
-import {
-  listSessions,
-  getSessionStatus,
-  streamLogs,
-  killSession,
-} from '../../lib/sessions.js';
+import { getSessionStatus, killSession, listSessions, streamLogs } from '../../lib/sessions.js';
 
 /**
  * List all SAGA sessions

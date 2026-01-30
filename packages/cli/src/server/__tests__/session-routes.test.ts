@@ -6,11 +6,11 @@
  * - GET /api/sessions/:sessionName - returns DetailedSessionInfo
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import request from 'supertest';
 import express from 'express';
-import { createSessionApiRouter } from '../session-routes.js';
+import request from 'supertest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DetailedSessionInfo } from '../../lib/sessions.js';
+import { createSessionApiRouter } from '../session-routes.js';
 
 // Mock the session-polling module
 vi.mock('../../lib/session-polling.js', () => ({
@@ -54,8 +54,16 @@ describe('session routes', () => {
   describe('GET /api/sessions', () => {
     it('should return all sessions', async () => {
       const mockSessions = [
-        createMockSession({ name: 'saga__epic1__story1__111', epicSlug: 'epic1', storySlug: 'story1' }),
-        createMockSession({ name: 'saga__epic2__story2__222', epicSlug: 'epic2', storySlug: 'story2' }),
+        createMockSession({
+          name: 'saga__epic1__story1__111',
+          epicSlug: 'epic1',
+          storySlug: 'story1',
+        }),
+        createMockSession({
+          name: 'saga__epic2__story2__222',
+          epicSlug: 'epic2',
+          storySlug: 'story2',
+        }),
       ];
       mockGetCurrentSessions.mockReturnValue(mockSessions);
 
@@ -96,9 +104,21 @@ describe('session routes', () => {
 
     it('should filter by epicSlug', async () => {
       const mockSessions = [
-        createMockSession({ name: 'saga__epic1__story1__111', epicSlug: 'epic1', storySlug: 'story1' }),
-        createMockSession({ name: 'saga__epic2__story2__222', epicSlug: 'epic2', storySlug: 'story2' }),
-        createMockSession({ name: 'saga__epic1__story3__333', epicSlug: 'epic1', storySlug: 'story3' }),
+        createMockSession({
+          name: 'saga__epic1__story1__111',
+          epicSlug: 'epic1',
+          storySlug: 'story1',
+        }),
+        createMockSession({
+          name: 'saga__epic2__story2__222',
+          epicSlug: 'epic2',
+          storySlug: 'story2',
+        }),
+        createMockSession({
+          name: 'saga__epic1__story3__333',
+          epicSlug: 'epic1',
+          storySlug: 'story3',
+        }),
       ];
       mockGetCurrentSessions.mockReturnValue(mockSessions);
 
@@ -111,9 +131,21 @@ describe('session routes', () => {
 
     it('should filter by storySlug (requires epicSlug)', async () => {
       const mockSessions = [
-        createMockSession({ name: 'saga__epic1__story1__111', epicSlug: 'epic1', storySlug: 'story1' }),
-        createMockSession({ name: 'saga__epic1__story2__222', epicSlug: 'epic1', storySlug: 'story2' }),
-        createMockSession({ name: 'saga__epic2__story1__333', epicSlug: 'epic2', storySlug: 'story1' }),
+        createMockSession({
+          name: 'saga__epic1__story1__111',
+          epicSlug: 'epic1',
+          storySlug: 'story1',
+        }),
+        createMockSession({
+          name: 'saga__epic1__story2__222',
+          epicSlug: 'epic1',
+          storySlug: 'story2',
+        }),
+        createMockSession({
+          name: 'saga__epic2__story1__333',
+          epicSlug: 'epic2',
+          storySlug: 'story1',
+        }),
       ];
       mockGetCurrentSessions.mockReturnValue(mockSessions);
 
@@ -156,14 +188,36 @@ describe('session routes', () => {
 
     it('should apply filters in order: epicSlug, then storySlug, then status', async () => {
       const mockSessions = [
-        createMockSession({ name: 'saga__epic1__story1__111', epicSlug: 'epic1', storySlug: 'story1', status: 'running' }),
-        createMockSession({ name: 'saga__epic1__story1__222', epicSlug: 'epic1', storySlug: 'story1', status: 'completed' }),
-        createMockSession({ name: 'saga__epic1__story2__333', epicSlug: 'epic1', storySlug: 'story2', status: 'running' }),
-        createMockSession({ name: 'saga__epic2__story1__444', epicSlug: 'epic2', storySlug: 'story1', status: 'running' }),
+        createMockSession({
+          name: 'saga__epic1__story1__111',
+          epicSlug: 'epic1',
+          storySlug: 'story1',
+          status: 'running',
+        }),
+        createMockSession({
+          name: 'saga__epic1__story1__222',
+          epicSlug: 'epic1',
+          storySlug: 'story1',
+          status: 'completed',
+        }),
+        createMockSession({
+          name: 'saga__epic1__story2__333',
+          epicSlug: 'epic1',
+          storySlug: 'story2',
+          status: 'running',
+        }),
+        createMockSession({
+          name: 'saga__epic2__story1__444',
+          epicSlug: 'epic2',
+          storySlug: 'story1',
+          status: 'running',
+        }),
       ];
       mockGetCurrentSessions.mockReturnValue(mockSessions);
 
-      const res = await request(app).get('/api/sessions?epicSlug=epic1&storySlug=story1&status=running');
+      const res = await request(app).get(
+        '/api/sessions?epicSlug=epic1&storySlug=story1&status=running',
+      );
 
       expect(res.status).toBe(200);
       expect(res.body.length).toBe(1);
@@ -215,8 +269,16 @@ describe('session routes', () => {
 
     it('should ignore storySlug filter when epicSlug is not provided', async () => {
       const mockSessions = [
-        createMockSession({ name: 'saga__epic1__story1__111', epicSlug: 'epic1', storySlug: 'story1' }),
-        createMockSession({ name: 'saga__epic2__story1__222', epicSlug: 'epic2', storySlug: 'story1' }),
+        createMockSession({
+          name: 'saga__epic1__story1__111',
+          epicSlug: 'epic1',
+          storySlug: 'story1',
+        }),
+        createMockSession({
+          name: 'saga__epic2__story1__222',
+          epicSlug: 'epic2',
+          storySlug: 'story1',
+        }),
       ];
       mockGetCurrentSessions.mockReturnValue(mockSessions);
 

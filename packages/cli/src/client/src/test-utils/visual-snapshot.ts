@@ -24,16 +24,18 @@ function isVitestTest(): boolean {
  * Removes dynamic attributes that change between runs.
  */
 function normalizeHtml(html: string): string {
-  return html
-    // Remove data-state attributes that may be dynamic
-    .replace(/data-state="[^"]*"/g, 'data-state="..."')
-    // Remove style attributes with dynamic values
-    .replace(/style="[^"]*"/g, 'style="..."')
-    // Normalize Radix UI generated IDs (e.g., radix-:r8:, radix-:rk:)
-    .replace(/radix-:[a-z0-9]+:/g, 'radix-:id:')
-    // Normalize whitespace
-    .replace(/\s+/g, ' ')
-    .trim();
+  return (
+    html
+      // Remove data-state attributes that may be dynamic
+      .replace(/data-state="[^"]*"/g, 'data-state="..."')
+      // Remove style attributes with dynamic values
+      .replace(/style="[^"]*"/g, 'style="..."')
+      // Normalize Radix UI generated IDs (e.g., radix-:r8:, radix-:rk:)
+      .replace(/radix-:[a-z0-9]+:/g, 'radix-:id:')
+      // Normalize whitespace
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 }
 
 /**
@@ -47,7 +49,7 @@ function normalizeHtml(html: string): string {
  */
 export async function matchCanvasSnapshot(
   canvasElement: HTMLElement,
-  snapshotName?: string
+  snapshotName?: string,
 ): Promise<void> {
   if (!isVitestTest()) {
     return;
@@ -73,7 +75,7 @@ export async function matchCanvasSnapshot(
 export async function matchElementSnapshot(
   canvasElement: HTMLElement,
   testId: string,
-  snapshotName?: string
+  snapshotName?: string,
 ): Promise<void> {
   if (!isVitestTest()) {
     return;

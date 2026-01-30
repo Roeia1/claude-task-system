@@ -1,7 +1,7 @@
-import { useCallback, useMemo } from 'react';
 import { createActorContext } from '@xstate/react';
+import { useCallback, useMemo } from 'react';
 import { dashboardMachine } from '@/machines';
-import type { EpicSummary, Epic, StoryDetail } from '@/types/dashboard';
+import type { Epic, EpicSummary, StoryDetail } from '@/types/dashboard';
 
 /**
  * Dashboard context using XState's createActorContext
@@ -42,39 +42,33 @@ export function useDashboard() {
 
   const setEpics = useCallback(
     (epics: EpicSummary[]) => actorRef.send({ type: 'EPICS_LOADED', epics }),
-    [actorRef]
+    [actorRef],
   );
 
   const setCurrentEpic = useCallback(
     (epic: Epic) => actorRef.send({ type: 'EPIC_LOADED', epic }),
-    [actorRef]
+    [actorRef],
   );
 
   const setCurrentStory = useCallback(
     (story: StoryDetail) => actorRef.send({ type: 'STORY_LOADED', story }),
-    [actorRef]
+    [actorRef],
   );
 
-  const clearCurrentEpic = useCallback(
-    () => actorRef.send({ type: 'CLEAR_EPIC' }),
-    [actorRef]
-  );
+  const clearCurrentEpic = useCallback(() => actorRef.send({ type: 'CLEAR_EPIC' }), [actorRef]);
 
-  const clearCurrentStory = useCallback(
-    () => actorRef.send({ type: 'CLEAR_STORY' }),
-    [actorRef]
-  );
+  const clearCurrentStory = useCallback(() => actorRef.send({ type: 'CLEAR_STORY' }), [actorRef]);
 
   const subscribeToStory = useCallback(
     (epicSlug: string, storySlug: string) =>
       actorRef.send({ type: 'SUBSCRIBE_STORY', epicSlug, storySlug }),
-    [actorRef]
+    [actorRef],
   );
 
   const unsubscribeFromStory = useCallback(
     (epicSlug: string, storySlug: string) =>
       actorRef.send({ type: 'UNSUBSCRIBE_STORY', epicSlug, storySlug }),
-    [actorRef]
+    [actorRef],
   );
 
   // Memoize the returned object to prevent unnecessary re-renders
@@ -130,7 +124,7 @@ export function useDashboard() {
       subscribeToStory,
       unsubscribeFromStory,
       actorRef,
-    ]
+    ],
   );
 }
 

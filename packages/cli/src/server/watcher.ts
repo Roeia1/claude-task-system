@@ -5,9 +5,9 @@
  * using chokidar. Emits events for epic and story changes.
  */
 
+import { EventEmitter } from 'node:events';
+import { join, relative, sep } from 'node:path';
 import chokidar, { type FSWatcher } from 'chokidar';
-import { EventEmitter } from 'events';
-import { join, relative, sep } from 'path';
 
 /**
  * Event types emitted by the watcher
@@ -57,7 +57,7 @@ export interface SagaWatcher {
  */
 function parseFilePath(
   filePath: string,
-  sagaRoot: string
+  sagaRoot: string,
 ): {
   epicSlug: string;
   storySlug?: string;
@@ -210,21 +210,27 @@ export async function createSagaWatcher(sagaRoot: string): Promise<SagaWatcher> 
     const { epicSlug, storySlug, archived, isEpicFile, isStoryFile, isMainStoryFile } = parsed;
 
     // Create a unique key for debouncing
-    const key = storySlug
-      ? `story:${epicSlug}:${storySlug}:${archived}`
-      : `epic:${epicSlug}`;
+    const key = storySlug ? `story:${epicSlug}:${storySlug}:${archived}` : `epic:${epicSlug}`;
 
     // Determine event type
     let watcherEventType: WatcherEventType;
     if (isEpicFile) {
-      watcherEventType = eventType === 'add' ? 'epic:added' :
-                         eventType === 'unlink' ? 'epic:removed' : 'epic:changed';
+      watcherEventType =
+        eventType === 'add'
+          ? 'epic:added'
+          : eventType === 'unlink'
+            ? 'epic:removed'
+            : 'epic:changed';
     } else if (isStoryFile) {
       // For story.md: add/unlink triggers story:added/removed
       // For journal.md: any change triggers story:changed (it's a change to the story, not a new story)
       if (isMainStoryFile) {
-        watcherEventType = eventType === 'add' ? 'story:added' :
-                           eventType === 'unlink' ? 'story:removed' : 'story:changed';
+        watcherEventType =
+          eventType === 'add'
+            ? 'story:added'
+            : eventType === 'unlink'
+              ? 'story:removed'
+              : 'story:changed';
       } else {
         // journal.md changes are always story:changed
         watcherEventType = 'story:changed';

@@ -9,8 +9,15 @@
  * It also updates .gitignore to ignore worktrees/
  */
 
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
-import { existsSync, statSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
 import { findProjectRoot } from '../utils/project-discovery.js';
 
 /**
@@ -153,14 +160,14 @@ function updateGitignore(projectRoot: string): void {
     } else {
       appendFileSync(
         gitignorePath,
-        `\n# Claude Tasks - Worktrees (git worktree isolation for stories)\n${WORKTREES_PATTERN}\n`
+        `\n# Claude Tasks - Worktrees (git worktree isolation for stories)\n${WORKTREES_PATTERN}\n`,
       );
       console.log('Updated .gitignore with worktrees pattern');
     }
   } else {
     writeFileSync(
       gitignorePath,
-      `# Claude Tasks - Worktrees (git worktree isolation for stories)\n${WORKTREES_PATTERN}\n`
+      `# Claude Tasks - Worktrees (git worktree isolation for stories)\n${WORKTREES_PATTERN}\n`,
     );
     console.log('Created .gitignore with worktrees pattern');
   }

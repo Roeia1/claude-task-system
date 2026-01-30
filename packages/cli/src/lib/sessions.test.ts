@@ -12,22 +12,21 @@
  * - killSession
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { spawn, spawnSync, ChildProcess } from 'node:child_process';
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import { EventEmitter } from 'node:events';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  shellEscape,
-  shellEscapeArgs,
-  validateSlug,
+  buildSessionInfo,
   createSession,
-  listSessions,
   getSessionStatus,
-  streamLogs,
   killSession,
+  listSessions,
   OUTPUT_DIR,
   parseSessionName,
-  buildSessionInfo,
-  type DetailedSessionInfo,
+  shellEscape,
+  shellEscapeArgs,
+  streamLogs,
+  validateSlug,
 } from './sessions.js';
 
 // Mock child_process
@@ -58,13 +57,24 @@ vi.mock('node:fs/promises', async () => {
 });
 
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { stat, readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
+
+/** Helper to assert a value is not null/undefined and return it typed */
+function assertDefined<T>(
+  value: T | null | undefined,
+  message = 'Expected value to be defined',
+): T {
+  if (value === null || value === undefined) {
+    throw new Error(message);
+  }
+  return value;
+}
 
 const mockSpawn = spawn as ReturnType<typeof vi.fn>;
 const mockSpawnSync = spawnSync as ReturnType<typeof vi.fn>;
 const mockExistsSync = existsSync as ReturnType<typeof vi.fn>;
 const mockMkdirSync = mkdirSync as ReturnType<typeof vi.fn>;
-const mockWriteFileSync = writeFileSync as ReturnType<typeof vi.fn>;
+const _mockWriteFileSync = writeFileSync as ReturnType<typeof vi.fn>;
 const mockStat = stat as ReturnType<typeof vi.fn>;
 const mockReadFile = readFile as ReturnType<typeof vi.fn>;
 
@@ -118,7 +128,7 @@ describe('sessions', () => {
     });
 
     it('should handle double quotes', () => {
-      expect(shellEscape('"quoted"')).toBe("'\"quoted\"'");
+      expect(shellEscape('"quoted"')).toBe('\'"quoted"\'');
     });
 
     it('should handle backslashes', () => {
@@ -128,18 +138,19 @@ describe('sessions', () => {
 
   describe('shellEscapeArgs', () => {
     it('should escape and join multiple arguments', () => {
-      expect(shellEscapeArgs(['echo', 'hello', 'world']))
-        .toBe("'echo' 'hello' 'world'");
+      expect(shellEscapeArgs(['echo', 'hello', 'world'])).toBe("'echo' 'hello' 'world'");
     });
 
     it('should handle arguments with spaces', () => {
-      expect(shellEscapeArgs(['command', '--path', '/some path/with spaces']))
-        .toBe("'command' '--path' '/some path/with spaces'");
+      expect(shellEscapeArgs(['command', '--path', '/some path/with spaces'])).toBe(
+        "'command' '--path' '/some path/with spaces'",
+      );
     });
 
     it('should handle mixed safe and unsafe arguments', () => {
-      expect(shellEscapeArgs(['saga', 'implement', 'my-story', '--path', "/Users/test's folder"]))
-        .toBe("'saga' 'implement' 'my-story' '--path' '/Users/test'\\''s folder'");
+      expect(
+        shellEscapeArgs(['saga', 'implement', 'my-story', '--path', "/Users/test's folder"]),
+      ).toBe("'saga' 'implement' 'my-story' '--path' '/Users/test'\\''s folder'");
     });
 
     it('should handle empty array', () => {
@@ -215,13 +226,15 @@ describe('sessions', () => {
 
   describe('createSession', () => {
     it('should reject invalid epic slug', async () => {
-      await expect(createSession('Invalid_Epic', 'valid-story', 'echo hello'))
-        .rejects.toThrow(/invalid epic slug/i);
+      await expect(createSession('Invalid_Epic', 'valid-story', 'echo hello')).rejects.toThrow(
+        /invalid epic slug/i,
+      );
     });
 
     it('should reject invalid story slug', async () => {
-      await expect(createSession('valid-epic', 'Invalid_Story', 'echo hello'))
-        .rejects.toThrow(/invalid story slug/i);
+      await expect(createSession('valid-epic', 'Invalid_Story', 'echo hello')).rejects.toThrow(
+        /invalid story slug/i,
+      );
     });
 
     it('should create output directory if it does not exist', async () => {
@@ -252,8 +265,9 @@ describe('sessions', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValueOnce({ status: 1, stdout: '' }); // which tmux fails
 
-      await expect(createSession('my-epic', 'my-story', 'echo hello'))
-        .rejects.toThrow(/tmux.*not found|not installed/i);
+      await expect(createSession('my-epic', 'my-story', 'echo hello')).rejects.toThrow(
+        /tmux.*not found|not installed/i,
+      );
     });
 
     it('should throw error if tmux session creation fails', async () => {
@@ -262,8 +276,9 @@ describe('sessions', () => {
         .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
         .mockReturnValueOnce({ status: 1, stderr: 'session creation failed' }); // tmux new-session fails
 
-      await expect(createSession('my-epic', 'my-story', 'echo hello'))
-        .rejects.toThrow(/failed to create.*session/i);
+      await expect(createSession('my-epic', 'my-story', 'echo hello')).rejects.toThrow(
+        /failed to create.*session/i,
+      );
     });
   });
 
@@ -280,7 +295,8 @@ describe('sessions', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValue({
         status: 0,
-        stdout: 'saga-epic1-story1-1234: 1 windows\nother-session: 1 windows\nsaga-epic2-story2-5678: 2 windows\n',
+        stdout:
+          'saga-epic1-story1-1234: 1 windows\nother-session: 1 windows\nsaga-epic2-story2-5678: 2 windows\n',
       });
 
       const result = await listSessions();
@@ -340,7 +356,7 @@ describe('sessions', () => {
       expect(mockSpawnSync).toHaveBeenCalledWith(
         'tmux',
         ['has-session', '-t', 'saga-epic1-story1-1234'],
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
@@ -370,7 +386,7 @@ describe('sessions', () => {
       expect(mockSpawnSync).toHaveBeenCalledWith(
         'tmux',
         ['kill-session', '-t', 'saga-epic1-story1-1234'],
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
@@ -380,16 +396,15 @@ describe('sessions', () => {
 
     beforeEach(() => {
       mockChildProcess = new EventEmitter() as ChildProcess & EventEmitter;
-      mockChildProcess.stdout = new EventEmitter() as any;
-      mockChildProcess.stderr = new EventEmitter() as any;
+      mockChildProcess.stdout = new EventEmitter() as NodeJS.ReadableStream;
+      mockChildProcess.stderr = new EventEmitter() as NodeJS.ReadableStream;
       mockChildProcess.kill = vi.fn();
     });
 
     it('should throw error when output file does not exist', async () => {
       mockExistsSync.mockReturnValue(false);
 
-      await expect(streamLogs('saga-epic1-story1-1234'))
-        .rejects.toThrow(/output file.*not found/i);
+      await expect(streamLogs('saga-epic1-story1-1234')).rejects.toThrow(/output file.*not found/i);
     });
 
     it('should spawn tail -f on the output file', async () => {
@@ -409,7 +424,7 @@ describe('sessions', () => {
       expect(mockSpawn).toHaveBeenCalledWith(
         'tail',
         ['-f', '/tmp/saga-sessions/saga-epic1-story1-1234.out'],
-        expect.objectContaining({ stdio: ['ignore', 'pipe', 'pipe'] })
+        expect.objectContaining({ stdio: ['ignore', 'pipe', 'pipe'] }),
       );
     });
 
@@ -502,17 +517,16 @@ describe('sessions', () => {
       });
       mockReadFile.mockResolvedValue('line 1\nline 2\nline 3\nline 4\nline 5\n');
 
-      const result = await buildSessionInfo(sessionName, 'running');
+      const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
-      expect(result).not.toBeNull();
-      expect(result!.name).toBe(sessionName);
-      expect(result!.epicSlug).toBe('my-epic');
-      expect(result!.storySlug).toBe('my-story');
-      expect(result!.status).toBe('running');
-      expect(result!.outputFile).toBe(`/tmp/saga-sessions/${sessionName}.out`);
-      expect(result!.outputAvailable).toBe(true);
-      expect(result!.startTime).toEqual(startTime);
-      expect(result!.endTime).toBeUndefined(); // running sessions don't have endTime
+      expect(result.name).toBe(sessionName);
+      expect(result.epicSlug).toBe('my-epic');
+      expect(result.storySlug).toBe('my-story');
+      expect(result.status).toBe('running');
+      expect(result.outputFile).toBe(`/tmp/saga-sessions/${sessionName}.out`);
+      expect(result.outputAvailable).toBe(true);
+      expect(result.startTime).toEqual(startTime);
+      expect(result.endTime).toBeUndefined(); // running sessions don't have endTime
     });
 
     it('should include endTime for completed sessions', async () => {
@@ -523,20 +537,20 @@ describe('sessions', () => {
       });
       mockReadFile.mockResolvedValue('output\n');
 
-      const result = await buildSessionInfo(sessionName, 'completed');
+      const result = assertDefined(await buildSessionInfo(sessionName, 'completed'));
 
-      expect(result!.status).toBe('completed');
-      expect(result!.endTime).toEqual(modifiedTime);
+      expect(result.status).toBe('completed');
+      expect(result.endTime).toEqual(modifiedTime);
     });
 
     it('should set outputAvailable to false when output file does not exist', async () => {
       mockExistsSync.mockReturnValue(false);
 
-      const result = await buildSessionInfo(sessionName, 'running');
+      const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
-      expect(result!.outputAvailable).toBe(false);
-      expect(result!.outputPreview).toBeUndefined();
-      expect(result!.startTime).toBeInstanceOf(Date); // fallback to now
+      expect(result.outputAvailable).toBe(false);
+      expect(result.outputPreview).toBeUndefined();
+      expect(result.startTime).toBeInstanceOf(Date); // fallback to now
     });
 
     it('should generate outputPreview with last 5 lines', async () => {
@@ -547,10 +561,10 @@ describe('sessions', () => {
       });
       mockReadFile.mockResolvedValue('line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\n');
 
-      const result = await buildSessionInfo(sessionName, 'running');
+      const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
       // Should contain last 5 lines (lines 3-7 since we filter empty)
-      expect(result!.outputPreview).toBe('line 3\nline 4\nline 5\nline 6\nline 7');
+      expect(result.outputPreview).toBe('line 3\nline 4\nline 5\nline 6\nline 7');
     });
 
     it('should truncate outputPreview to max 500 chars', async () => {
@@ -564,9 +578,9 @@ describe('sessions', () => {
       const content = `${longLine}\n${longLine}\n${longLine}\n${longLine}\n${longLine}\n`;
       mockReadFile.mockResolvedValue(content);
 
-      const result = await buildSessionInfo(sessionName, 'running');
+      const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
-      expect(result!.outputPreview!.length).toBeLessThanOrEqual(500);
+      expect(assertDefined(result.outputPreview).length).toBeLessThanOrEqual(500);
     });
 
     it('should handle output file with fewer than 5 lines', async () => {
@@ -577,9 +591,9 @@ describe('sessions', () => {
       });
       mockReadFile.mockResolvedValue('only one line\n');
 
-      const result = await buildSessionInfo(sessionName, 'running');
+      const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
-      expect(result!.outputPreview).toBe('only one line');
+      expect(result.outputPreview).toBe('only one line');
     });
 
     it('should handle empty output file', async () => {
@@ -590,9 +604,9 @@ describe('sessions', () => {
       });
       mockReadFile.mockResolvedValue('');
 
-      const result = await buildSessionInfo(sessionName, 'running');
+      const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
-      expect(result!.outputPreview).toBeUndefined();
+      expect(result.outputPreview).toBeUndefined();
     });
 
     it('should handle read errors gracefully', async () => {
@@ -603,10 +617,10 @@ describe('sessions', () => {
       });
       mockReadFile.mockRejectedValue(new Error('Permission denied'));
 
-      const result = await buildSessionInfo(sessionName, 'running');
+      const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
-      expect(result!.outputAvailable).toBe(true); // file exists but we couldn't read it
-      expect(result!.outputPreview).toBeUndefined();
+      expect(result.outputAvailable).toBe(true); // file exists but we couldn't read it
+      expect(result.outputPreview).toBeUndefined();
     });
   });
 });

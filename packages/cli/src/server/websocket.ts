@@ -13,13 +13,27 @@
  * - unsubscribe:story: Unsubscribe from story updates
  */
 
-import { WebSocketServer, WebSocket, type RawData } from 'ws';
-import type { Server as HttpServer } from 'http';
-import { scanSagaDirectory, parseStory, parseJournal, type StoryDetail, type EpicSummary } from './parser.js';
+import type { Server as HttpServer } from 'node:http';
+import { join, relative } from 'node:path';
+import { type RawData, WebSocket, WebSocketServer } from 'ws';
+import {
+  LogStreamManager,
+  type LogsDataMessage,
+  type LogsErrorMessage,
+} from '../lib/log-stream-manager.js';
+import {
+  type SessionsUpdatedMessage,
+  startSessionPolling,
+  stopSessionPolling,
+} from '../lib/session-polling.js';
+import {
+  type EpicSummary,
+  parseJournal,
+  parseStory,
+  type StoryDetail,
+  scanSagaDirectory,
+} from './parser.js';
 import { createSagaWatcher, type SagaWatcher, type WatcherEvent } from './watcher.js';
-import { join, relative } from 'path';
-import { startSessionPolling, stopSessionPolling, type SessionsUpdatedMessage } from '../lib/session-polling.js';
-import { LogStreamManager, type LogsDataMessage, type LogsErrorMessage } from '../lib/log-stream-manager.js';
 
 /**
  * Subscription key for a story
@@ -77,7 +91,12 @@ function makeStoryKey(epicSlug: string, storySlug: string): StoryKey {
 /**
  * Convert Epic to EpicSummary (remove stories and content)
  */
-function toEpicSummary(epic: { slug: string; title: string; storyCounts: EpicSummary['storyCounts']; path: string }): EpicSummary {
+function toEpicSummary(epic: {
+  slug: string;
+  title: string;
+  storyCounts: EpicSummary['storyCounts'];
+  path: string;
+}): EpicSummary {
   return {
     slug: epic.slug,
     title: epic.title,
@@ -95,7 +114,7 @@ function toEpicSummary(epic: { slug: string; title: string; storyCounts: EpicSum
  */
 export async function createWebSocketServer(
   httpServer: HttpServer,
-  sagaRoot: string
+  sagaRoot: string,
 ): Promise<WebSocketInstance> {
   // Create WebSocket server attached to HTTP server
   const wss = new WebSocketServer({ server: httpServer });

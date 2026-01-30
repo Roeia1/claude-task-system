@@ -1,13 +1,13 @@
-import { Page, Route } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 import type {
-  EpicSummary,
   Epic,
-  StoryDetail,
-  StoryCounts,
-  Task,
+  EpicSummary,
   JournalEntry,
-  TaskStatus,
+  StoryCounts,
+  StoryDetail,
   StoryStatus,
+  Task,
+  TaskStatus,
 } from '../../src/types/dashboard';
 
 /**
@@ -23,9 +23,7 @@ import type {
 /**
  * Creates a default StoryCounts object.
  */
-export function createMockStoryCounts(
-  overrides: Partial<StoryCounts> = {}
-): StoryCounts {
+export function createMockStoryCounts(overrides: Partial<StoryCounts> = {}): StoryCounts {
   return {
     ready: 0,
     inProgress: 0,
@@ -51,9 +49,7 @@ export function createMockTask(overrides: Partial<Task> = {}): Task {
 /**
  * Creates a mock JournalEntry with sensible defaults.
  */
-export function createMockJournalEntry(
-  overrides: Partial<JournalEntry> = {}
-): JournalEntry {
+export function createMockJournalEntry(overrides: Partial<JournalEntry> = {}): JournalEntry {
   return {
     type: 'session',
     title: 'Mock Session',
@@ -67,9 +63,7 @@ export function createMockJournalEntry(
  * Creates a mock EpicSummary with sensible defaults.
  * Used for the epic list view (/api/epics endpoint).
  */
-export function createMockEpicSummary(
-  overrides: Partial<EpicSummary> = {}
-): EpicSummary {
+export function createMockEpicSummary(overrides: Partial<EpicSummary> = {}): EpicSummary {
   const slug = overrides.slug || `mock-epic-${Date.now()}`;
   return {
     slug,
@@ -83,9 +77,7 @@ export function createMockEpicSummary(
  * Creates a mock StoryDetail with sensible defaults.
  * Used for story detail view (/api/stories/:epicSlug/:storySlug endpoint).
  */
-export function createMockStoryDetail(
-  overrides: Partial<StoryDetail> = {}
-): StoryDetail {
+export function createMockStoryDetail(overrides: Partial<StoryDetail> = {}): StoryDetail {
   const slug = overrides.slug || `mock-story-${Date.now()}`;
   return {
     slug,
@@ -140,10 +132,7 @@ export function createMockEpic(overrides: Partial<Epic> = {}): Epic {
  * Uses a function matcher to match exactly /api/epics (with optional trailing slash)
  * but NOT /api/epics/some-slug.
  */
-export async function mockEpicList(
-  page: Page,
-  epics: EpicSummary[]
-): Promise<void> {
+export async function mockEpicList(page: Page, epics: EpicSummary[]): Promise<void> {
   await page.route(
     (url) => url.pathname === '/api/epics' || url.pathname === '/api/epics/',
     async (route: Route) => {
@@ -152,7 +141,7 @@ export async function mockEpicList(
         contentType: 'application/json',
         body: JSON.stringify(epics),
       });
-    }
+    },
   );
 }
 
@@ -169,7 +158,7 @@ export async function mockEpicDetail(page: Page, epic: Epic): Promise<void> {
         contentType: 'application/json',
         body: JSON.stringify(epic),
       });
-    }
+    },
   );
 }
 
@@ -177,10 +166,7 @@ export async function mockEpicDetail(page: Page, epic: Epic): Promise<void> {
  * Mocks the GET /api/stories/:epicSlug/:storySlug endpoint to return story details.
  * Uses a function matcher to handle the URL properly.
  */
-export async function mockStoryDetail(
-  page: Page,
-  story: StoryDetail
-): Promise<void> {
+export async function mockStoryDetail(page: Page, story: StoryDetail): Promise<void> {
   await page.route(
     (url) => url.pathname === `/api/stories/${story.epicSlug}/${story.slug}`,
     async (route: Route) => {
@@ -189,7 +175,7 @@ export async function mockStoryDetail(
         contentType: 'application/json',
         body: JSON.stringify(story),
       });
-    }
+    },
   );
 }
 
@@ -208,7 +194,7 @@ export async function mockApiError(
   page: Page,
   routePattern: RoutePattern,
   status: number,
-  message: string
+  message: string,
 ): Promise<void> {
   await page.route(routePattern, async (route: Route) => {
     await route.fulfill({
@@ -241,7 +227,7 @@ export async function mockApiDelay(
   page: Page,
   routePattern: RoutePattern,
   delayMs: number,
-  fulfillOptions: FulfillOptions = {}
+  fulfillOptions: FulfillOptions = {},
 ): Promise<void> {
   await page.route(routePattern, async (route: Route) => {
     await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -260,15 +246,11 @@ export async function mockApiDelay(
  * @param page - Playwright page object
  * @param routePattern - URL pattern to match (glob like `**\/api/epics`, regex, or function)
  */
-export async function mockNetworkFailure(
-  page: Page,
-  routePattern: RoutePattern
-): Promise<void> {
+export async function mockNetworkFailure(page: Page, routePattern: RoutePattern): Promise<void> {
   await page.route(routePattern, async (route: Route) => {
     await route.abort('connectionrefused');
   });
 }
-
 
 // ============================================================================
 // Convenience Helpers

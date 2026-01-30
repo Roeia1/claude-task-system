@@ -1,11 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import {
-  createMockEpicSummary,
   createMockEpic,
+  createMockEpicSummary,
   createMockStoryDetail,
   createMockTask,
-  mockEpicList,
   mockEpicDetail,
+  mockEpicList,
   mockStoryDetail,
 } from '../utils/mock-api';
 
@@ -15,7 +15,9 @@ import {
  */
 test.describe('Navigation', () => {
   test.describe('Epic List to Epic Detail', () => {
-    test('should navigate from epic list to epic detail when clicking an epic card', async ({ page }) => {
+    test('should navigate from epic list to epic detail when clicking an epic card', async ({
+      page,
+    }) => {
       // Setup mock data
       const epic = createMockEpicSummary({
         slug: 'test-epic',
@@ -26,7 +28,12 @@ test.describe('Navigation', () => {
         slug: 'test-epic',
         title: 'Test Epic',
         stories: [
-          createMockStoryDetail({ slug: 'story-1', title: 'Story One', status: 'ready', epicSlug: 'test-epic' }),
+          createMockStoryDetail({
+            slug: 'story-1',
+            title: 'Story One',
+            status: 'ready',
+            epicSlug: 'test-epic',
+          }),
         ],
       });
 
@@ -77,7 +84,10 @@ test.describe('Navigation', () => {
       ];
 
       await mockEpicList(page, epics);
-      await mockEpicDetail(page, createMockEpic({ slug: 'epic-beta', title: 'Epic Beta', stories: [] }));
+      await mockEpicDetail(
+        page,
+        createMockEpic({ slug: 'epic-beta', title: 'Epic Beta', stories: [] }),
+      );
 
       await page.goto('/');
 
@@ -90,7 +100,9 @@ test.describe('Navigation', () => {
   });
 
   test.describe('Epic Detail to Story Detail', () => {
-    test('should navigate from epic detail to story detail when clicking a story card', async ({ page }) => {
+    test('should navigate from epic detail to story detail when clicking a story card', async ({
+      page,
+    }) => {
       const epicDetail = createMockEpic({
         slug: 'test-epic',
         title: 'Test Epic',
@@ -263,7 +275,9 @@ test.describe('Navigation', () => {
   });
 
   test.describe('Full Navigation Flow', () => {
-    test('should complete full navigation flow: list -> epic -> story -> back to epic -> back to list', async ({ page }) => {
+    test('should complete full navigation flow: list -> epic -> story -> back to epic -> back to list', async ({
+      page,
+    }) => {
       const epics = [
         createMockEpicSummary({
           slug: 'flow-epic',

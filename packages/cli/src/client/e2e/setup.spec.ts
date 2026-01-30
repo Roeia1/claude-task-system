@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { resetAllFixtures } from './fixtures-utils';
 
 /**
@@ -12,7 +12,7 @@ import { resetAllFixtures } from './fixtures-utils';
 test.beforeEach(async () => {
   await resetAllFixtures();
   // Small delay to let file watcher process the reset
-  await new Promise(resolve => setTimeout(resolve, 200));
+  await new Promise((resolve) => setTimeout(resolve, 200));
 });
 
 test.describe('E2E Setup Verification', () => {

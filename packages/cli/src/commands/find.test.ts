@@ -2,11 +2,11 @@
  * Tests for saga find command
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, realpathSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('find command', () => {
   let testDir: string;
@@ -29,11 +29,12 @@ describe('find command', () => {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
       return { stdout, stderr: '', exitCode: 0 };
-    } catch (error: any) {
+    } catch (error) {
+      const spawnError = error as { stdout?: Buffer; stderr?: Buffer; status?: number };
       return {
-        stdout: error.stdout?.toString() || '',
-        stderr: error.stderr?.toString() || '',
-        exitCode: error.status || 1,
+        stdout: spawnError.stdout?.toString() || '',
+        stderr: spawnError.stderr?.toString() || '',
+        exitCode: spawnError.status || 1,
       };
     }
   }
@@ -47,7 +48,7 @@ describe('find command', () => {
     epicSlug: string,
     storySlug: string,
     frontmatter: Record<string, string>,
-    body: string = ''
+    body: string = '',
   ): void {
     const storyDir = join(
       testDir,
@@ -59,7 +60,7 @@ describe('find command', () => {
       'epics',
       epicSlug,
       'stories',
-      storySlug
+      storySlug,
     );
     mkdirSync(storyDir, { recursive: true });
 
@@ -95,7 +96,7 @@ describe('find command', () => {
           title: 'Implement Login Feature',
           status: 'in-progress',
         },
-        '## Context\n\nLogin context here.'
+        '## Context\n\nLogin context here.',
       );
 
       const result = runCli(['find', 'implement-login', '--path', testDir]);

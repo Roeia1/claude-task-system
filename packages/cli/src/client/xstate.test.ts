@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 const clientDir = join(__dirname);
 const srcDir = join(clientDir, 'src');
-const packagesDir = join(__dirname, '..');
+const _packagesDir = join(__dirname, '..');
 // After flattening package structure, dependencies are in the main CLI package.json
 const cliDir = join(__dirname, '..', '..');
 const cliPackageJson = join(cliDir, 'package.json');
@@ -12,18 +12,13 @@ const cliPackageJson = join(cliDir, 'package.json');
 describe('XState Dashboard State Machine - t5', () => {
   describe('dependencies (in main CLI package.json)', () => {
     it('should have xstate installed', () => {
-      const packageJson = JSON.parse(
-        readFileSync(cliPackageJson, 'utf-8')
-      );
-      const hasDependency =
-        packageJson.dependencies?.xstate || packageJson.devDependencies?.xstate;
+      const packageJson = JSON.parse(readFileSync(cliPackageJson, 'utf-8'));
+      const hasDependency = packageJson.dependencies?.xstate || packageJson.devDependencies?.xstate;
       expect(hasDependency).toBeTruthy();
     });
 
     it('should have @xstate/react installed', () => {
-      const packageJson = JSON.parse(
-        readFileSync(cliPackageJson, 'utf-8')
-      );
+      const packageJson = JSON.parse(readFileSync(cliPackageJson, 'utf-8'));
       const hasDependency =
         packageJson.dependencies?.['@xstate/react'] ||
         packageJson.devDependencies?.['@xstate/react'];
@@ -37,16 +32,11 @@ describe('XState Dashboard State Machine - t5', () => {
     });
 
     it('should have dashboardMachine.ts file', () => {
-      expect(existsSync(join(srcDir, 'machines', 'dashboardMachine.ts'))).toBe(
-        true
-      );
+      expect(existsSync(join(srcDir, 'machines', 'dashboardMachine.ts'))).toBe(true);
     });
 
     it('should export dashboardMachine', () => {
-      const content = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      const content = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
       expect(content).toMatch(/export\s+(const|function)\s+dashboardMachine/);
     });
   });
@@ -55,10 +45,7 @@ describe('XState Dashboard State Machine - t5', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should use setup() from xstate v5', () => {
@@ -90,10 +77,7 @@ describe('XState Dashboard State Machine - t5', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should define context type with epics array', () => {
@@ -121,10 +105,7 @@ describe('XState Dashboard State Machine - t5', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should handle CONNECT event', () => {
@@ -176,10 +157,7 @@ describe('XState Dashboard State Machine - t5', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should transition from idle to loading on CONNECT', () => {
@@ -209,10 +187,7 @@ describe('XState Dashboard State Machine - t5', () => {
     let machineContent: string;
 
     beforeAll(() => {
-      machineContent = readFileSync(
-        join(srcDir, 'machines', 'dashboardMachine.ts'),
-        'utf-8'
-      );
+      machineContent = readFileSync(join(srcDir, 'machines', 'dashboardMachine.ts'), 'utf-8');
     });
 
     it('should track retry count in context', () => {
@@ -235,74 +210,48 @@ describe('XState Dashboard State Machine - t5', () => {
     });
 
     it('should export EpicSummary type', () => {
-      const content = readFileSync(
-        join(srcDir, 'types', 'dashboard.ts'),
-        'utf-8'
-      );
+      const content = readFileSync(join(srcDir, 'types', 'dashboard.ts'), 'utf-8');
       expect(content).toMatch(/export\s+(interface|type)\s+EpicSummary/);
     });
 
     it('should export Epic type', () => {
-      const content = readFileSync(
-        join(srcDir, 'types', 'dashboard.ts'),
-        'utf-8'
-      );
+      const content = readFileSync(join(srcDir, 'types', 'dashboard.ts'), 'utf-8');
       expect(content).toMatch(/export\s+(interface|type)\s+Epic/);
     });
 
     it('should export StoryDetail type', () => {
-      const content = readFileSync(
-        join(srcDir, 'types', 'dashboard.ts'),
-        'utf-8'
-      );
+      const content = readFileSync(join(srcDir, 'types', 'dashboard.ts'), 'utf-8');
       expect(content).toMatch(/export\s+(interface|type)\s+StoryDetail/);
     });
 
     it('should export Task type', () => {
-      const content = readFileSync(
-        join(srcDir, 'types', 'dashboard.ts'),
-        'utf-8'
-      );
+      const content = readFileSync(join(srcDir, 'types', 'dashboard.ts'), 'utf-8');
       expect(content).toMatch(/export\s+(interface|type)\s+Task/);
     });
 
     it('should export JournalEntry type', () => {
-      const content = readFileSync(
-        join(srcDir, 'types', 'dashboard.ts'),
-        'utf-8'
-      );
+      const content = readFileSync(join(srcDir, 'types', 'dashboard.ts'), 'utf-8');
       expect(content).toMatch(/export\s+(interface|type)\s+JournalEntry/);
     });
   });
 
   describe('React integration', () => {
     it('should have DashboardContext file', () => {
-      expect(
-        existsSync(join(srcDir, 'context', 'DashboardContext.tsx'))
-      ).toBe(true);
+      expect(existsSync(join(srcDir, 'context', 'DashboardContext.tsx'))).toBe(true);
     });
 
     it('should export DashboardProvider component', () => {
-      const content = readFileSync(
-        join(srcDir, 'context', 'DashboardContext.tsx'),
-        'utf-8'
-      );
+      const content = readFileSync(join(srcDir, 'context', 'DashboardContext.tsx'), 'utf-8');
       expect(content).toMatch(/export\s+(const|function)\s+DashboardProvider/);
     });
 
     it('should export useDashboard hook', () => {
-      const content = readFileSync(
-        join(srcDir, 'context', 'DashboardContext.tsx'),
-        'utf-8'
-      );
+      const content = readFileSync(join(srcDir, 'context', 'DashboardContext.tsx'), 'utf-8');
       expect(content).toMatch(/export\s+(const|function)\s+useDashboard/);
     });
 
     it('should use createActorContext from @xstate/react', () => {
-      const content = readFileSync(
-        join(srcDir, 'context', 'DashboardContext.tsx'),
-        'utf-8'
-      );
+      const content = readFileSync(join(srcDir, 'context', 'DashboardContext.tsx'), 'utf-8');
       expect(content).toMatch(/createActorContext|useActorRef|useSelector/);
     });
   });
@@ -313,10 +262,7 @@ describe('XState Dashboard State Machine - t5', () => {
     });
 
     it('should re-export dashboardMachine from index', () => {
-      const content = readFileSync(
-        join(srcDir, 'machines', 'index.ts'),
-        'utf-8'
-      );
+      const content = readFileSync(join(srcDir, 'machines', 'index.ts'), 'utf-8');
       expect(content).toMatch(/export.*dashboardMachine/);
     });
   });

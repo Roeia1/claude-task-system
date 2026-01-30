@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useDashboard } from '@/context/DashboardContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { EpicContent } from '@/components/EpicContent';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { useDashboard } from '@/context/DashboardContext';
 import { showApiErrorToast } from '@/lib/toast-utils';
 import type { Epic, StoryDetail, StoryStatus } from '@/types/dashboard';
 
@@ -154,9 +154,7 @@ export function EpicDetail() {
     return (
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold text-text mb-2">Epic not found</h1>
-        <p className="text-text-muted mb-4">
-          The epic &quot;{slug}&quot; does not exist.
-        </p>
+        <p className="text-text-muted mb-4">The epic &quot;{slug}&quot; does not exist.</p>
         <Link to="/" className="text-primary hover:underline">
           ← Back to epic list
         </Link>
@@ -223,7 +221,7 @@ export function EpicDetail() {
           <h2 className="text-lg font-semibold text-text">Stories</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {sortedStories.map((story) => (
-              <StoryCard key={story.slug} story={story} epicSlug={slug!} />
+              <StoryCard key={story.slug} story={story} epicSlug={slug ?? ''} />
             ))}
           </div>
         </div>

@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { spawn, execSync, type ChildProcess } from 'node:child_process';
-import { mkdtempSync, rmSync, mkdirSync, realpathSync } from 'node:fs';
+import { type ChildProcess, execSync, spawn } from 'node:child_process';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('saga dashboard command', () => {
   let tempDir: string;
@@ -21,7 +21,10 @@ describe('saga dashboard command', () => {
   /**
    * Run the CLI and wait for it to exit (for error cases)
    */
-  function runCliSync(args: string, options: { cwd?: string } = {}): { stdout: string; stderr: string; exitCode: number } {
+  function runCliSync(
+    args: string,
+    options: { cwd?: string } = {},
+  ): { stdout: string; stderr: string; exitCode: number } {
     try {
       const stdout = execSync(`node ${cliPath} ${args}`, {
         cwd: options.cwd || tempDir,
@@ -30,11 +33,12 @@ describe('saga dashboard command', () => {
         timeout: 5000,
       });
       return { stdout, stderr: '', exitCode: 0 };
-    } catch (error: any) {
+    } catch (error) {
+      const spawnError = error as { stdout?: Buffer; stderr?: Buffer; status?: number };
       return {
-        stdout: error.stdout?.toString() || '',
-        stderr: error.stderr?.toString() || '',
-        exitCode: error.status || 1,
+        stdout: spawnError.stdout?.toString() || '',
+        stderr: spawnError.stderr?.toString() || '',
+        exitCode: spawnError.status || 1,
       };
     }
   }
@@ -43,7 +47,10 @@ describe('saga dashboard command', () => {
    * Start the CLI as a child process and capture output until server starts
    * @param waitForProject - If true, waits for both server startup and "Project:" line
    */
-  function startCliAsync(args: string, options: { cwd?: string; waitForProject?: boolean } = {}): Promise<{ proc: ChildProcess; stdout: string }> {
+  function startCliAsync(
+    args: string,
+    options: { cwd?: string; waitForProject?: boolean } = {},
+  ): Promise<{ proc: ChildProcess; stdout: string }> {
     return new Promise((resolve, reject) => {
       const proc = spawn('node', [cliPath, ...args.split(' ').filter(Boolean)], {
         cwd: options.cwd || tempDir,
@@ -94,7 +101,10 @@ describe('saga dashboard command', () => {
     createSagaProject(tempDir);
     // Use a random port to avoid conflicts
     const port = 30000 + Math.floor(Math.random() * 20000);
-    const { proc, stdout } = await startCliAsync(`dashboard --port ${port}`, { cwd: tempDir, waitForProject: true });
+    const { proc, stdout } = await startCliAsync(`dashboard --port ${port}`, {
+      cwd: tempDir,
+      waitForProject: true,
+    });
 
     try {
       expect(stdout).toContain(`SAGA Dashboard server running on http://localhost:${port}`);
@@ -150,7 +160,10 @@ describe('saga dashboard command', () => {
 
     const port = 30000 + Math.floor(Math.random() * 20000);
     // Run from temp dir with --path pointing to project
-    const { proc, stdout } = await startCliAsync(`--path ${projectDir} dashboard --port ${port}`, { cwd: tempDir, waitForProject: true });
+    const { proc, stdout } = await startCliAsync(`--path ${projectDir} dashboard --port ${port}`, {
+      cwd: tempDir,
+      waitForProject: true,
+    });
 
     try {
       expect(stdout).toContain('SAGA Dashboard server running on');

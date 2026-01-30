@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 
 const clientDir = join(__dirname);
 
@@ -110,7 +110,9 @@ describe('Toast Notifications - t10', () => {
 
     it('should import useDashboard hook', () => {
       const content = readFileSync(toastHookPath, 'utf-8');
-      expect(content).toMatch(/import.*\{.*useDashboard.*\}.*from.*['"]@\/context\/DashboardContext['"]/);
+      expect(content).toMatch(
+        /import.*\{.*useDashboard.*\}.*from.*['"]@\/context\/DashboardContext['"]/,
+      );
     });
 
     it('should import toast utilities or toast function', () => {
@@ -145,7 +147,9 @@ describe('Toast Notifications - t10', () => {
 
     it('should import useDashboardToasts hook', () => {
       const content = readFileSync(layoutPath, 'utf-8');
-      expect(content).toMatch(/import.*\{.*useDashboardToasts.*\}.*from.*['"]@\/hooks\/use-dashboard-toasts['"]/);
+      expect(content).toMatch(
+        /import.*\{.*useDashboardToasts.*\}.*from.*['"]@\/hooks\/use-dashboard-toasts['"]/,
+      );
     });
 
     it('should call useDashboardToasts in Layout component', () => {

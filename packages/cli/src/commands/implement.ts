@@ -22,11 +22,11 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { resolveProjectPath } from '../utils/project-discovery.js';
-import { findStory as findStoryUtil, type StoryInfo as FinderStoryInfo } from '../utils/finder.js';
 import { createSession, shellEscapeArgs } from '../lib/sessions.js';
+import { findStory as findStoryUtil } from '../utils/finder.js';
+import { resolveProjectPath } from '../utils/project-discovery.js';
 
 /**
  * Options for the implement command
@@ -136,7 +136,7 @@ function computeStoryPath(worktree: string, epicSlug: string, storySlug: string)
 function validateStoryFiles(
   worktree: string,
   epicSlug: string,
-  storySlug: string
+  storySlug: string,
 ): { valid: boolean; error?: string } {
   // Check worktree exists
   if (!existsSync(worktree)) {
@@ -217,8 +217,8 @@ interface DryRunResult {
  */
 function runDryRun(
   storyInfo: StoryInfo,
-  projectPath: string,
-  pluginRoot: string | undefined
+  _projectPath: string,
+  pluginRoot: string | undefined,
 ): DryRunResult {
   const checks: DryRunCheck[] = [];
   let allPassed = true;
@@ -268,7 +268,6 @@ function runDryRun(
       });
       allPassed = false;
     }
-
   }
 
   // Check 4: Story exists
@@ -300,7 +299,7 @@ function runDryRun(
     const storyMdPath = computeStoryPath(
       storyInfo.worktreePath,
       storyInfo.epicSlug,
-      storyInfo.storySlug
+      storyInfo.storySlug,
     );
     if (existsSync(storyMdPath)) {
       checks.push({
@@ -435,9 +434,7 @@ function formatStreamLine(line: string): string | null {
  * Searches for assistant messages containing a StructuredOutput tool_use block
  * Returns the input object if found, null otherwise
  */
-function extractStructuredOutputFromToolCall(
-  lines: string[]
-): Record<string, unknown> | null {
+function extractStructuredOutputFromToolCall(lines: string[]): Record<string, unknown> | null {
   // Search backwards to find the most recent StructuredOutput tool call
   for (let i = lines.length - 1; i >= 0; i--) {
     try {
@@ -463,7 +460,7 @@ function extractStructuredOutputFromToolCall(
  * is missing (can happen with error_during_execution subtype).
  */
 function parseStreamingResult(buffer: string): WorkerOutput {
-  const lines = buffer.split('\n').filter(line => line.trim());
+  const lines = buffer.split('\n').filter((line) => line.trim());
 
   // Find the result line (should be the last one)
   for (let i = lines.length - 1; i >= 0; i--) {
@@ -516,7 +513,7 @@ function spawnWorkerAsync(
   prompt: string,
   model: string,
   settings: Record<string, unknown>,
-  workingDir: string
+  workingDir: string,
 ): Promise<WorkerOutput> {
   return new Promise((resolve, reject) => {
     let buffer = '';
@@ -566,7 +563,7 @@ function spawnWorkerAsync(
       reject(new Error(`Failed to spawn worker: ${err.message}`));
     });
 
-    child.on('close', (code) => {
+    child.on('close', (_code) => {
       // Add newline after streaming output
       process.stdout.write('\n');
 
@@ -590,7 +587,7 @@ async function runLoop(
   maxTime: number,
   model: string,
   projectDir: string,
-  pluginRoot: string
+  pluginRoot: string,
 ): Promise<LoopResult> {
   // Compute worktree path
   const worktree = join(projectDir, '.saga', 'worktrees', epicSlug, storySlug);
@@ -613,10 +610,10 @@ async function runLoop(
   let workerPrompt: string;
   try {
     workerPrompt = loadWorkerPrompt(pluginRoot);
-  } catch (e: any) {
+  } catch (e) {
     return {
       status: 'ERROR',
-      summary: e.message,
+      summary: e instanceof Error ? e.message : String(e),
       cycles: 0,
       elapsedMinutes: 0,
       blocker: null,
@@ -653,10 +650,10 @@ async function runLoop(
     console.log(`\n--- Worker ${cycles} started ---\n`);
     try {
       parsed = await spawnWorkerAsync(workerPrompt, model, settings, worktree);
-    } catch (e: any) {
+    } catch (e) {
       return {
         status: 'ERROR',
-        summary: e.message,
+        summary: e instanceof Error ? e.message : String(e),
         cycles,
         elapsedMinutes: (Date.now() - startTime) / 60000,
         blocker: null,
@@ -714,7 +711,7 @@ function buildDetachedCommand(
     maxCycles?: number;
     maxTime?: number;
     model?: string;
-  }
+  },
 ): string {
   const parts = ['saga', 'implement', storySlug];
 
@@ -739,13 +736,16 @@ function buildDetachedCommand(
 /**
  * Execute the implement command
  */
-export async function implementCommand(storySlug: string, options: ImplementOptions): Promise<void> {
+export async function implementCommand(
+  storySlug: string,
+  options: ImplementOptions,
+): Promise<void> {
   // Resolve project path
   let projectPath: string;
   try {
     projectPath = resolveProjectPath(options.path);
-  } catch (error: any) {
-    console.error(`Error: ${error.message}`);
+  } catch (error) {
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 
@@ -808,23 +808,31 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
       const sessionResult = await createSession(
         storyInfo.epicSlug,
         storyInfo.storySlug,
-        detachedCommand
+        detachedCommand,
       );
 
       // Output session info as JSON
-      console.log(JSON.stringify({
-        mode: 'detached',
-        sessionName: sessionResult.sessionName,
-        outputFile: sessionResult.outputFile,
-        epicSlug: storyInfo.epicSlug,
-        storySlug: storyInfo.storySlug,
-        worktreePath: storyInfo.worktreePath,
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            mode: 'detached',
+            sessionName: sessionResult.sessionName,
+            outputFile: sessionResult.outputFile,
+            epicSlug: storyInfo.epicSlug,
+            storySlug: storyInfo.storySlug,
+            worktreePath: storyInfo.worktreePath,
+          },
+          null,
+          2,
+        ),
+      );
 
       // Exit immediately - worker runs in background
       return;
-    } catch (error: any) {
-      console.error(`Error: Failed to create detached session: ${error.message}`);
+    } catch (error) {
+      console.error(
+        `Error: Failed to create detached session: ${error instanceof Error ? error.message : String(error)}`,
+      );
       process.exit(1);
     }
   }
@@ -844,7 +852,7 @@ export async function implementCommand(storySlug: string, options: ImplementOpti
     maxTime,
     model,
     projectPath,
-    pluginRoot
+    pluginRoot,
   );
 
   // Output result as JSON

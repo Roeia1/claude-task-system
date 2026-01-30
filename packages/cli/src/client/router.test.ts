@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { describe, expect, it } from 'vitest';
 
 const clientDir = path.join(__dirname, '.');
 const srcDir = path.join(clientDir, 'src');
@@ -10,9 +10,7 @@ const cliPackageJson = path.join(cliDir, 'package.json');
 
 describe('React Router Setup', () => {
   describe('dependencies (in main CLI package.json)', () => {
-    const packageJson = JSON.parse(
-      fs.readFileSync(cliPackageJson, 'utf-8'),
-    );
+    const packageJson = JSON.parse(fs.readFileSync(cliPackageJson, 'utf-8'));
     // Client dependencies may be in dependencies or devDependencies (devDeps since they're bundled)
     const allDeps = {
       ...(packageJson.dependencies || {}),
@@ -37,34 +35,22 @@ describe('React Router Setup', () => {
     });
 
     it('should configure BrowserRouter', () => {
-      const routerContent = fs.readFileSync(
-        path.join(srcDir, 'router.tsx'),
-        'utf-8',
-      );
+      const routerContent = fs.readFileSync(path.join(srcDir, 'router.tsx'), 'utf-8');
       expect(routerContent).toContain('BrowserRouter');
     });
 
     it('should define root route /', () => {
-      const routerContent = fs.readFileSync(
-        path.join(srcDir, 'router.tsx'),
-        'utf-8',
-      );
+      const routerContent = fs.readFileSync(path.join(srcDir, 'router.tsx'), 'utf-8');
       expect(routerContent).toMatch(/path:\s*['"]\/['"]/);
     });
 
     it('should define epic detail route /epic/:slug', () => {
-      const routerContent = fs.readFileSync(
-        path.join(srcDir, 'router.tsx'),
-        'utf-8',
-      );
+      const routerContent = fs.readFileSync(path.join(srcDir, 'router.tsx'), 'utf-8');
       expect(routerContent).toMatch(/path:\s*['"]epic\/:slug['"]/);
     });
 
     it('should define story detail route /epic/:epicSlug/story/:storySlug', () => {
-      const routerContent = fs.readFileSync(
-        path.join(srcDir, 'router.tsx'),
-        'utf-8',
-      );
+      const routerContent = fs.readFileSync(path.join(srcDir, 'router.tsx'), 'utf-8');
       // Can be either full path or nested route pattern
       expect(routerContent).toMatch(
         /path:\s*['"]epic\/:epicSlug\/story\/:storySlug['"]|path:\s*['"]story\/:storySlug['"]/,
@@ -79,26 +65,17 @@ describe('React Router Setup', () => {
     });
 
     it('should export Layout component', () => {
-      const layoutContent = fs.readFileSync(
-        path.join(srcDir, 'components', 'Layout.tsx'),
-        'utf-8',
-      );
+      const layoutContent = fs.readFileSync(path.join(srcDir, 'components', 'Layout.tsx'), 'utf-8');
       expect(layoutContent).toMatch(/export\s+(default\s+)?function\s+Layout/);
     });
 
     it('should include navigation header', () => {
-      const layoutContent = fs.readFileSync(
-        path.join(srcDir, 'components', 'Layout.tsx'),
-        'utf-8',
-      );
+      const layoutContent = fs.readFileSync(path.join(srcDir, 'components', 'Layout.tsx'), 'utf-8');
       expect(layoutContent).toContain('<header');
     });
 
     it('should include Outlet for nested routes', () => {
-      const layoutContent = fs.readFileSync(
-        path.join(srcDir, 'components', 'Layout.tsx'),
-        'utf-8',
-      );
+      const layoutContent = fs.readFileSync(path.join(srcDir, 'components', 'Layout.tsx'), 'utf-8');
       expect(layoutContent).toContain('Outlet');
     });
   });
@@ -114,9 +91,7 @@ describe('React Router Setup', () => {
         path.join(srcDir, 'components', 'Breadcrumb.tsx'),
         'utf-8',
       );
-      expect(breadcrumbContent).toMatch(
-        /export\s+(default\s+)?function\s+Breadcrumb/,
-      );
+      expect(breadcrumbContent).toMatch(/export\s+(default\s+)?function\s+Breadcrumb/);
     });
 
     it('should use useLocation or useMatches for route info', () => {
@@ -153,60 +128,39 @@ describe('React Router Setup', () => {
     });
 
     it('should export EpicList component', () => {
-      const content = fs.readFileSync(
-        path.join(srcDir, 'pages', 'EpicList.tsx'),
-        'utf-8',
-      );
+      const content = fs.readFileSync(path.join(srcDir, 'pages', 'EpicList.tsx'), 'utf-8');
       expect(content).toMatch(/export\s+(default\s+)?function\s+EpicList/);
     });
 
     it('should export EpicDetail component', () => {
-      const content = fs.readFileSync(
-        path.join(srcDir, 'pages', 'EpicDetail.tsx'),
-        'utf-8',
-      );
+      const content = fs.readFileSync(path.join(srcDir, 'pages', 'EpicDetail.tsx'), 'utf-8');
       expect(content).toMatch(/export\s+(default\s+)?function\s+EpicDetail/);
     });
 
     it('should export StoryDetail component', () => {
-      const content = fs.readFileSync(
-        path.join(srcDir, 'pages', 'StoryDetail.tsx'),
-        'utf-8',
-      );
+      const content = fs.readFileSync(path.join(srcDir, 'pages', 'StoryDetail.tsx'), 'utf-8');
       expect(content).toMatch(/export\s+(default\s+)?function\s+StoryDetail/);
     });
 
     it('should use useParams in EpicDetail for slug', () => {
-      const content = fs.readFileSync(
-        path.join(srcDir, 'pages', 'EpicDetail.tsx'),
-        'utf-8',
-      );
+      const content = fs.readFileSync(path.join(srcDir, 'pages', 'EpicDetail.tsx'), 'utf-8');
       expect(content).toContain('useParams');
     });
 
     it('should use useParams in StoryDetail for slugs', () => {
-      const content = fs.readFileSync(
-        path.join(srcDir, 'pages', 'StoryDetail.tsx'),
-        'utf-8',
-      );
+      const content = fs.readFileSync(path.join(srcDir, 'pages', 'StoryDetail.tsx'), 'utf-8');
       expect(content).toContain('useParams');
     });
   });
 
   describe('App integration', () => {
     it('should render Router in main.tsx', () => {
-      const mainContent = fs.readFileSync(
-        path.join(srcDir, 'main.tsx'),
-        'utf-8',
-      );
+      const mainContent = fs.readFileSync(path.join(srcDir, 'main.tsx'), 'utf-8');
       expect(mainContent).toContain('AppRouter');
     });
 
     it('should import AppRouter from router.tsx', () => {
-      const mainContent = fs.readFileSync(
-        path.join(srcDir, 'main.tsx'),
-        'utf-8',
-      );
+      const mainContent = fs.readFileSync(path.join(srcDir, 'main.tsx'), 'utf-8');
       expect(mainContent).toMatch(/import.*AppRouter.*from\s+['"].\/router/);
     });
   });

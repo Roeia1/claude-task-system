@@ -12,9 +12,9 @@
  * - Loading state
  */
 
-import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { describe, expect, it } from 'vitest';
 
 const clientRoot = path.join(__dirname, 'src');
 const pagesDir = path.join(clientRoot, 'pages');
@@ -24,7 +24,9 @@ describe('Epic Detail view', () => {
   describe('component structure', () => {
     it('should import useDashboard hook', () => {
       const content = fs.readFileSync(epicDetailPath, 'utf-8');
-      expect(content).toMatch(/import\s+.*useDashboard.*from\s+['"]@\/context\/DashboardContext['"]/);
+      expect(content).toMatch(
+        /import\s+.*useDashboard.*from\s+['"]@\/context\/DashboardContext['"]/,
+      );
     });
 
     it('should import useParams and Link from react-router-dom', () => {

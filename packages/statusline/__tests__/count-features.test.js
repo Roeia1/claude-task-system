@@ -1,7 +1,7 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const { execSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
 
 const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
 
@@ -11,7 +11,7 @@ const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
 function runScript(args = [], env = {}, cwd = undefined) {
   const fullEnv = { ...process.env, ...env };
   // Remove keys that are explicitly set to undefined
-  Object.keys(fullEnv).forEach(key => {
+  Object.keys(fullEnv).forEach((key) => {
     if (fullEnv[key] === undefined) {
       delete fullEnv[key];
     }
@@ -41,7 +41,10 @@ function runScript(args = [], env = {}, cwd = undefined) {
  */
 function createTempEnvFile(content) {
   const tmpDir = os.tmpdir();
-  const tmpFile = path.join(tmpDir, `claude-env-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`);
+  const tmpFile = path.join(
+    tmpDir,
+    `claude-env-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
+  );
   fs.writeFileSync(tmpFile, content, { mode: 0o644 });
   return tmpFile;
 }
@@ -61,10 +64,10 @@ function cleanupTempFile(filePath) {
  */
 function createMockFeatures(config = {}) {
   const {
-    features = [],           // Array of { id, name, status } objects
-    noFeaturesDir = false,   // Don't create task-system/features/ at all
+    features = [], // Array of { id, name, status } objects
+    noFeaturesDir = false, // Don't create task-system/features/ at all
     emptyFeaturesDir = false, // Create task-system/features/ but leave it empty
-    malformedFeatures = [],  // Feature IDs with malformed feature.md (missing Status line)
+    malformedFeatures = [], // Feature IDs with malformed feature.md (missing Status line)
   } = config;
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'features-test-'));
@@ -115,7 +118,9 @@ describe('task-status --counts (feature counts)', () => {
           { id: '002', name: 'payments', status: 'In Progress' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -136,7 +141,9 @@ describe('task-status --counts (feature counts)', () => {
           { id: '003', name: 'feature-c', status: 'Draft' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -156,7 +163,9 @@ describe('task-status --counts (feature counts)', () => {
           { id: '002', name: 'feature-b', status: 'Planned' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -178,7 +187,9 @@ describe('task-status --counts (feature counts)', () => {
           { id: '004', name: 'notifications', status: 'In Progress' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -199,7 +210,9 @@ describe('task-status --counts (feature counts)', () => {
           { id: '002', name: 'feature-b', status: 'Draft   ' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -222,7 +235,9 @@ describe('task-status --counts (feature counts)', () => {
           { id: '004', name: 'feature-d', status: 'PLANNED' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -238,12 +253,12 @@ describe('task-status --counts (feature counts)', () => {
 
     test('should skip features with malformed feature.md (missing Status line)', () => {
       const mockDir = createMockFeatures({
-        features: [
-          { id: '001', name: 'good', status: 'Draft' },
-        ],
+        features: [{ id: '001', name: 'good', status: 'Draft' }],
         malformedFeatures: ['002', '003'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -265,7 +280,9 @@ describe('task-status --counts (feature counts)', () => {
           { id: '003', name: 'weird', status: 'OnHold' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -282,7 +299,9 @@ describe('task-status --counts (feature counts)', () => {
   describe('edge cases - empty and missing directories', () => {
     test('should return 0/0 when task-system/features/ does not exist', () => {
       const mockDir = createMockFeatures({ noFeaturesDir: true });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -298,7 +317,9 @@ describe('task-status --counts (feature counts)', () => {
 
     test('should return 0/0 when task-system/features/ is empty', () => {
       const mockDir = createMockFeatures({ emptyFeaturesDir: true });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -315,7 +336,10 @@ describe('task-status --counts (feature counts)', () => {
       const envFile = createTempEnvFile('export SAGA_TASK_CONTEXT="main"');
 
       try {
-        const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile, SAGA_PROJECT_DIR: undefined });
+        const result = runScript(['--counts', '--no-icons'], {
+          CLAUDE_ENV_FILE: envFile,
+          SAGA_PROJECT_DIR: undefined,
+        });
         expect(result.exitCode).toBe(0);
         // Should output zeros or graceful fallback
         expect(result.stdout).toMatch(/A:0/);
@@ -333,7 +357,9 @@ describe('task-status --counts (feature counts)', () => {
       fs.mkdirSync(path.join(featuresDir, '001-empty'), { recursive: true });
       fs.mkdirSync(path.join(featuresDir, '002-also-empty'), { recursive: true });
 
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -357,14 +383,16 @@ describe('task-status --counts (feature counts)', () => {
           { id: '003', name: 'analytics', status: 'Draft' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
         // Should use Unicode icons: ⭐ for active, 📝 for draft
-        expect(result.stdout).toMatch(/⭐ 1/);   // 1 active
-        expect(result.stdout).toMatch(/📝 2/);   // 2 draft
+        expect(result.stdout).toMatch(/⭐ 1/); // 1 active
+        expect(result.stdout).toMatch(/📝 2/); // 2 draft
       } finally {
         cleanupTempFile(envFile);
         cleanupMockFeatures(mockDir);
@@ -379,7 +407,9 @@ describe('task-status --counts (feature counts)', () => {
           { id: '003', name: 'analytics', status: 'Draft' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -395,7 +425,9 @@ describe('task-status --counts (feature counts)', () => {
 
     test('should format all zeros gracefully when no features exist', () => {
       const mockDir = createMockFeatures({ emptyFeaturesDir: true });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         // Unicode version
@@ -430,7 +462,9 @@ describe('task-status --counts (feature counts)', () => {
       const mockDir = createMockFeatures({
         features: [...manyActive, ...manyDraft],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -457,18 +491,20 @@ describe('task-status --counts (feature counts)', () => {
       const tasksDir = path.join(mockDir, 'task-system', 'tasks');
       fs.mkdirSync(tasksDir, { recursive: true });
 
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
         expect(result.exitCode).toBe(0);
 
         // Check that both task and feature counts are present
-        expect(result.stdout).toMatch(/I:\d/);  // Task in-progress
-        expect(result.stdout).toMatch(/P:\d/);  // Task pending
-        expect(result.stdout).toMatch(/R:\d/);  // Task remote
-        expect(result.stdout).toMatch(/A:1/);   // Feature active
-        expect(result.stdout).toMatch(/D:1/);   // Feature draft
+        expect(result.stdout).toMatch(/I:\d/); // Task in-progress
+        expect(result.stdout).toMatch(/P:\d/); // Task pending
+        expect(result.stdout).toMatch(/R:\d/); // Task remote
+        expect(result.stdout).toMatch(/A:1/); // Feature active
+        expect(result.stdout).toMatch(/D:1/); // Feature draft
 
         // Feature counts should appear after task counts
         const stdout = result.stdout;
@@ -488,7 +524,9 @@ describe('task-status --counts (feature counts)', () => {
           { id: '002', name: 'payments', status: 'Draft' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -515,7 +553,9 @@ describe('task-status --counts (feature counts)', () => {
           { id: '003', name: 'analytics', status: 'Planned' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -539,7 +579,9 @@ describe('task-status --counts (feature counts)', () => {
           { id: '005', name: 'reporting', status: 'Planned' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -555,12 +597,12 @@ describe('task-status --counts (feature counts)', () => {
 
     test('script handles missing or malformed feature.md files without crashing', () => {
       const mockDir = createMockFeatures({
-        features: [
-          { id: '001', name: 'good', status: 'Draft' },
-        ],
+        features: [{ id: '001', name: 'good', status: 'Draft' }],
         malformedFeatures: ['002', '003'],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -580,13 +622,15 @@ describe('task-status --counts (feature counts)', () => {
           { id: '002', name: 'payments', status: 'Draft' },
         ],
       });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         // Default (icons)
         let result = runScript(['--counts'], { CLAUDE_ENV_FILE: envFile });
-        expect(result.stdout).toMatch(/⭐/);  // Active icon
-        expect(result.stdout).toMatch(/📝/);  // Draft icon
+        expect(result.stdout).toMatch(/⭐/); // Active icon
+        expect(result.stdout).toMatch(/📝/); // Draft icon
 
         // With --no-icons (ASCII)
         result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -601,16 +645,16 @@ describe('task-status --counts (feature counts)', () => {
 
     test('feature counts appear after task counts in the output, properly separated', () => {
       const mockDir = createMockFeatures({
-        features: [
-          { id: '001', name: 'auth', status: 'In Progress' },
-        ],
+        features: [{ id: '001', name: 'auth', status: 'In Progress' }],
       });
 
       // Create task structure
       const tasksDir = path.join(mockDir, 'task-system', 'tasks');
       fs.mkdirSync(tasksDir, { recursive: true });
 
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const result = runScript(['--counts', '--no-icons'], { CLAUDE_ENV_FILE: envFile });
@@ -627,7 +671,9 @@ describe('task-status --counts (feature counts)', () => {
         const featureMatch = result.stdout.match(featurePattern);
 
         if (taskMatch && featureMatch) {
-          expect(result.stdout.indexOf(featureMatch[0])).toBeGreaterThan(result.stdout.indexOf(taskMatch[0]));
+          expect(result.stdout.indexOf(featureMatch[0])).toBeGreaterThan(
+            result.stdout.indexOf(taskMatch[0]),
+          );
         }
       } finally {
         cleanupTempFile(envFile);
@@ -645,7 +691,9 @@ describe('task-status --counts (feature counts)', () => {
       }));
 
       const mockDir = createMockFeatures({ features });
-      const envFile = createTempEnvFile(`export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`);
+      const envFile = createTempEnvFile(
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${mockDir}"`,
+      );
 
       try {
         const start = process.hrtime.bigint();

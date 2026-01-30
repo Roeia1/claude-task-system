@@ -1,9 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useDashboard } from '@/context/DashboardContext';
-import {
-  showConnectionErrorToast,
-  showReconnectingToast,
-} from '@/lib/toast-utils';
+import { showConnectionErrorToast, showReconnectingToast } from '@/lib/toast-utils';
 
 /**
  * Hook that displays toast notifications for dashboard state changes
@@ -21,10 +18,7 @@ export function useDashboardToasts() {
   // Show error toast when entering error state
   useEffect(() => {
     if (isError && !prevIsError.current) {
-      showConnectionErrorToast(
-        error || 'Connection to server failed',
-        retry
-      );
+      showConnectionErrorToast(error || 'Connection to server failed', retry);
     }
     prevIsError.current = isError;
   }, [isError, error, retry]);

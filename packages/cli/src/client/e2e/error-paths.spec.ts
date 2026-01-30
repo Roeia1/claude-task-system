@@ -1,5 +1,11 @@
-import { test, expect } from '@playwright/test';
-import { deleteAllEpics, deleteEpic, createEpic, createStory, resetAllFixtures } from './fixtures-utils';
+import { expect, test } from '@playwright/test';
+import {
+  createEpic,
+  createStory,
+  deleteAllEpics,
+  deleteEpic,
+  resetAllFixtures,
+} from './fixtures-utils';
 
 /**
  * Error path E2E tests for the SAGA dashboard.
@@ -16,7 +22,7 @@ import { deleteAllEpics, deleteEpic, createEpic, createStory, resetAllFixtures }
 test.beforeEach(async () => {
   await resetAllFixtures();
   // Small delay to let file watcher process the reset
-  await new Promise(resolve => setTimeout(resolve, 200));
+  await new Promise((resolve) => setTimeout(resolve, 200));
 });
 
 test.describe('404 Error Handling', () => {
@@ -82,7 +88,7 @@ test.describe('Empty State Handling', () => {
     await deleteAllEpics();
 
     // Small delay to let file watcher process the changes
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     await page.goto('/');
 
@@ -114,7 +120,7 @@ test.describe('Empty State Handling', () => {
     await createEpic('feature-development', 'Feature Development');
 
     // Small delay for file watcher
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     await page.goto('/');
     await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
@@ -243,7 +249,9 @@ test.describe('WebSocket Disconnection', () => {
 
     // Verify can navigate to testing-suite epic (different from first test)
     await page.locator('a[href="/epic/testing-suite"]').click();
-    await expect(page.locator('h1.text-2xl:has-text("Testing Suite")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1.text-2xl:has-text("Testing Suite")')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Verify stories are displayed
     await expect(page.getByText('Ready')).toBeVisible();
@@ -266,7 +274,7 @@ test.describe('Dynamic Content Changes', () => {
     await createEpic('dynamic-epic', 'Dynamic Epic');
 
     // Small delay for file watcher
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     // Refresh the page
     await page.reload();
@@ -283,7 +291,7 @@ test.describe('Dynamic Content Changes', () => {
     await createStory('feature-development', 'new-story', 'New Dynamic Story', 'ready');
 
     // Small delay for file watcher
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     await page.goto('/');
     await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
@@ -307,7 +315,7 @@ test.describe('Dynamic Content Changes', () => {
     await deleteEpic('empty-epic');
 
     // Small delay for file watcher
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     // Refresh the page
     await page.reload();

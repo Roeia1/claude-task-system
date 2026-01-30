@@ -6,10 +6,8 @@
  */
 
 declare global {
-  // eslint-disable-next-line no-var, @typescript-eslint/no-explicit-any
-  var __vitest_expect__: any;
-  // eslint-disable-next-line no-var, @typescript-eslint/no-explicit-any
-  var __vitest_page__: any;
+  var __vitest_expect__: typeof import('vitest').expect | undefined;
+  var __vitest_page__: import('playwright').Page | undefined;
 }
 
 export {};

@@ -2,11 +2,11 @@
  * Tests for the Express server foundation
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { startServer, type ServerInstance, type ServerConfig } from '../index.js';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { type ServerInstance, startServer } from '../index.js';
 
 /**
  * Generate a random port in the ephemeral range to avoid conflicts
@@ -101,7 +101,7 @@ describe('server', () => {
       // The health endpoint should work, indicating JSON middleware is loaded
       const response = await fetch(`http://localhost:${port}/api/health`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
       expect(response.status).toBe(200);
     });

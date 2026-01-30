@@ -11,12 +11,12 @@
  * - Session completion notifications
  */
 
-import type { WebSocket } from 'ws';
-import type { FSWatcher } from 'chokidar';
-import chokidar from 'chokidar';
-import { existsSync, createReadStream } from 'node:fs';
+import { createReadStream, existsSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { FSWatcher } from 'chokidar';
+import chokidar from 'chokidar';
+import type { WebSocket } from 'ws';
 import { OUTPUT_DIR } from './sessions.js';
 
 /**

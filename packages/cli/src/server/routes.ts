@@ -7,15 +7,15 @@
  * - GET /api/stories/:epicSlug/:storySlug - returns StoryDetail with parsed journal
  */
 
-import { Router, type Request, type Response } from 'express';
+import { join } from 'node:path';
+import { type Request, type Response, Router } from 'express';
 import {
-  scanSagaDirectory,
-  parseJournal,
-  type EpicSummary,
   type Epic,
+  type EpicSummary,
+  parseJournal,
   type StoryDetail,
+  scanSagaDirectory,
 } from './parser.js';
-import { join } from 'path';
 import { createSessionApiRouter } from './session-routes.js';
 
 /**

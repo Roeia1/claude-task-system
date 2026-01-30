@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { resolve, relative } from 'node:path';
+import { relative, resolve } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 // Test the internal functions by importing the module
 // We'll test the logic directly since the command reads from stdin
@@ -32,7 +32,9 @@ describe('scope-validator', () => {
     it('should allow paths within the worktree', () => {
       expect(isWithinWorktree('/project/worktree/src/file.ts', '/project/worktree')).toBe(true);
       expect(isWithinWorktree('/project/worktree/package.json', '/project/worktree')).toBe(true);
-      expect(isWithinWorktree('/project/worktree/.saga/epics/test/story.md', '/project/worktree')).toBe(true);
+      expect(
+        isWithinWorktree('/project/worktree/.saga/epics/test/story.md', '/project/worktree'),
+      ).toBe(true);
     });
 
     it('should block paths outside the worktree', () => {
@@ -43,7 +45,9 @@ describe('scope-validator', () => {
 
     it('should block parent directory traversal', () => {
       expect(isWithinWorktree('/project/worktree/../secret.txt', '/project/worktree')).toBe(false);
-      expect(isWithinWorktree('/project/worktree/../../etc/passwd', '/project/worktree')).toBe(false);
+      expect(isWithinWorktree('/project/worktree/../../etc/passwd', '/project/worktree')).toBe(
+        false,
+      );
     });
 
     it('should allow the worktree root itself', () => {
@@ -175,19 +179,23 @@ describe('scope-validator', () => {
 
     it('should allow access to assigned story', () => {
       expect(
-        checkStoryAccess('.saga/epics/my-epic/stories/my-story/story.md', 'my-epic', 'my-story')
+        checkStoryAccess('.saga/epics/my-epic/stories/my-story/story.md', 'my-epic', 'my-story'),
       ).toBe(true);
     });
 
     it('should block access to other stories in same epic', () => {
       expect(
-        checkStoryAccess('.saga/epics/my-epic/stories/other-story/story.md', 'my-epic', 'my-story')
+        checkStoryAccess('.saga/epics/my-epic/stories/other-story/story.md', 'my-epic', 'my-story'),
       ).toBe(false);
     });
 
     it('should block access to other epics', () => {
       expect(
-        checkStoryAccess('.saga/epics/other-epic/stories/some-story/story.md', 'my-epic', 'my-story')
+        checkStoryAccess(
+          '.saga/epics/other-epic/stories/some-story/story.md',
+          'my-epic',
+          'my-story',
+        ),
       ).toBe(false);
     });
 

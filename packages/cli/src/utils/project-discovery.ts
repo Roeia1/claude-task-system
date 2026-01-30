@@ -6,7 +6,7 @@
  */
 
 import { existsSync } from 'node:fs';
-import { dirname, join, parse } from 'node:path';
+import { dirname, join } from 'node:path';
 
 /**
  * Find the project root by walking up from startDir looking for .saga/
@@ -48,7 +48,7 @@ export function resolveProjectPath(explicitPath?: string): string {
     if (!existsSync(sagaDir)) {
       throw new Error(
         `No .saga/ directory found at specified path: ${explicitPath}\n` +
-          'Make sure the path points to a SAGA project root.'
+          'Make sure the path points to a SAGA project root.',
       );
     }
     return explicitPath;
@@ -60,7 +60,7 @@ export function resolveProjectPath(explicitPath?: string): string {
     throw new Error(
       'Could not find a SAGA project.\n' +
         'No .saga/ directory found in the current directory or any parent.\n' +
-        'Run "saga init" to initialize a new project, or use --path to specify the project location.'
+        'Run "saga init" to initialize a new project, or use --path to specify the project location.',
     );
   }
 

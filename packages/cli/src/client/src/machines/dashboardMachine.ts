@@ -1,5 +1,5 @@
-import { setup, assign, fromCallback } from 'xstate';
-import type { EpicSummary, Epic, StoryDetail } from '@/types/dashboard';
+import { assign, fromCallback, setup } from 'xstate';
+import type { Epic, EpicSummary, StoryDetail } from '@/types/dashboard';
 
 /** Maximum number of reconnection attempts */
 const MAX_RETRIES = 5;
@@ -12,7 +12,7 @@ const HEARTBEAT_INTERVAL = 30000;
 
 /** Calculate exponential backoff delay */
 function getBackoffDelay(retryCount: number): number {
-  return Math.min(BASE_DELAY * Math.pow(2, retryCount), 30000);
+  return Math.min(BASE_DELAY * 2 ** retryCount, 30000);
 }
 
 /** Story subscription identifier */
@@ -69,7 +69,7 @@ export function getWebSocketSend(): WebSocketSendFn | null {
 const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
   ({ sendBack, input, receive }) => {
     let ws: WebSocket | null = null;
-    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    const reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
     let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
     let lastPong = Date.now();
 
@@ -178,7 +178,7 @@ const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
         ws.close();
       }
     };
-  }
+  },
 );
 
 /** Dashboard state machine using XState v5 setup */
@@ -234,24 +234,18 @@ export const dashboardMachine = setup({
       },
     }),
     addSubscription: assign({
-      subscribedStories: (
-        { context },
-        params: { epicSlug: string; storySlug: string }
-      ) => {
+      subscribedStories: ({ context }, params: { epicSlug: string; storySlug: string }) => {
         const exists = context.subscribedStories.some(
-          (s) => s.epicSlug === params.epicSlug && s.storySlug === params.storySlug
+          (s) => s.epicSlug === params.epicSlug && s.storySlug === params.storySlug,
         );
         if (exists) return context.subscribedStories;
         return [...context.subscribedStories, params];
       },
     }),
     removeSubscription: assign({
-      subscribedStories: (
-        { context },
-        params: { epicSlug: string; storySlug: string }
-      ) => {
+      subscribedStories: ({ context }, params: { epicSlug: string; storySlug: string }) => {
         return context.subscribedStories.filter(
-          (s) => !(s.epicSlug === params.epicSlug && s.storySlug === params.storySlug)
+          (s) => !(s.epicSlug === params.epicSlug && s.storySlug === params.storySlug),
         );
       },
     }),

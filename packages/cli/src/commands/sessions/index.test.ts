@@ -4,7 +4,7 @@
  * Tests the CLI commands: sessions list, sessions status, sessions logs, sessions kill
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as sessions from '../../lib/sessions.js';
 
 // Mock the sessions library module
@@ -23,8 +23,16 @@ describe('sessions CLI subcommands', () => {
   describe('sessionsListCommand', () => {
     it('should call listSessions and output JSON array', async () => {
       const mockSessions = [
-        { name: 'saga-epic1-story1-1234', status: 'running' as const, outputFile: '/tmp/saga-sessions/saga-epic1-story1-1234.out' },
-        { name: 'saga-epic2-story2-5678', status: 'running' as const, outputFile: '/tmp/saga-sessions/saga-epic2-story2-5678.out' },
+        {
+          name: 'saga-epic1-story1-1234',
+          status: 'running' as const,
+          outputFile: '/tmp/saga-sessions/saga-epic1-story1-1234.out',
+        },
+        {
+          name: 'saga-epic2-story2-5678',
+          status: 'running' as const,
+          outputFile: '/tmp/saga-sessions/saga-epic2-story2-5678.out',
+        },
       ];
       vi.mocked(sessions.listSessions).mockResolvedValue(mockSessions);
 
@@ -110,7 +118,9 @@ describe('sessions CLI subcommands', () => {
         throw new Error('process.exit called');
       });
 
-      await expect(sessionsLogsCommand('saga-nonexistent-1234')).rejects.toThrow('process.exit called');
+      await expect(sessionsLogsCommand('saga-nonexistent-1234')).rejects.toThrow(
+        'process.exit called',
+      );
 
       expect(errorSpy).toHaveBeenCalledWith('Error: Output file not found');
       expect(exitSpy).toHaveBeenCalledWith(1);

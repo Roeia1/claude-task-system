@@ -5,24 +5,29 @@
  * for epic and story changes.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdir, rm, writeFile, appendFile } from 'fs/promises';
-import { existsSync, mkdirSync, rmSync } from 'fs';
-import { join } from 'path';
-import { tmpdir } from 'os';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { appendFile, mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import { startServer, type ServerInstance } from '../index.js';
 import { OUTPUT_DIR } from '../../lib/sessions.js';
+import { type ServerInstance, startServer } from '../index.js';
 
 // Helper to create a temporary saga directory
 async function createTempSagaDir(): Promise<string> {
-  const tempDir = join(tmpdir(), `saga-ws-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  await mkdir(join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story'), { recursive: true });
+  const tempDir = join(
+    tmpdir(),
+    `saga-ws-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  await mkdir(join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story'), {
+    recursive: true,
+  });
 
   // Create epic.md
   await writeFile(
     join(tempDir, '.saga', 'epics', 'test-epic', 'epic.md'),
-    '# Test Epic\n\nA test epic for WebSocket tests.'
+    '# Test Epic\n\nA test epic for WebSocket tests.',
   );
 
   // Create story.md
@@ -41,7 +46,7 @@ tasks:
 ## Context
 
 Test story for WebSocket testing.
-`
+`,
   );
 
   return tempDir;
@@ -82,7 +87,10 @@ async function createWSClient(port: number): Promise<WebSocket> {
 }
 
 // Helper to wait for a message from WebSocket
-async function waitForMessage(ws: WebSocket, timeoutMs = 5000): Promise<{ event: string; data: unknown }> {
+async function waitForMessage(
+  ws: WebSocket,
+  timeoutMs = 5000,
+): Promise<{ event: string; data: unknown }> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error('WebSocket message timeout'));
@@ -217,7 +225,7 @@ describe('websocket', () => {
       // Trigger an epic update by modifying epic.md
       await writeFile(
         join(tempDir, '.saga', 'epics', 'test-epic', 'epic.md'),
-        '# Updated Test Epic\n\nModified content.'
+        '# Updated Test Epic\n\nModified content.',
       );
 
       // Both clients should receive epics:updated
@@ -243,7 +251,7 @@ describe('websocket', () => {
       await mkdir(join(tempDir, '.saga', 'epics', 'new-epic'), { recursive: true });
       await writeFile(
         join(tempDir, '.saga', 'epics', 'new-epic', 'epic.md'),
-        '# New Epic\n\nA brand new epic.'
+        '# New Epic\n\nA brand new epic.',
       );
 
       const msg = await waitForMessage(ws, 3000);
@@ -277,7 +285,7 @@ tasks:
 ## Context
 
 Updated story content.
-`
+`,
       );
 
       const msg = await waitForMessage(ws, 3000);
@@ -293,7 +301,10 @@ Updated story content.
       const unsubscribedWs = await createWSClient(port);
 
       // Only subscribedWs subscribes to test-story
-      sendMessage(subscribedWs, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
+      sendMessage(subscribedWs, 'subscribe:story', {
+        epicSlug: 'test-epic',
+        storySlug: 'test-story',
+      });
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Modify the story
@@ -307,7 +318,7 @@ tasks: []
 ---
 
 Modified.
-`
+`,
       );
 
       // subscribedWs should receive story:updated
@@ -346,7 +357,7 @@ Modified.
 
 **What was done:**
 - Started working on task 1
-`
+`,
       );
 
       const msg = await waitForMessage(ws, 3000);
@@ -378,7 +389,7 @@ tasks:
 ---
 
 Story content.
-`
+`,
       );
 
       const msg = await waitForMessage(ws, 3000);
@@ -583,7 +594,7 @@ Story content.
 
       // Unsubscribe
       sendMessage(ws, 'unsubscribe:logs', { sessionName: testSessionName });
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Append new content
       await appendFile(testOutputFile, 'Should not receive this\n');
@@ -657,7 +668,7 @@ Story content.
       ws.close();
 
       // Wait for cleanup
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Server should still be accepting new connections (didn't crash)
       const ws2 = await createWSClient(port);
@@ -692,7 +703,7 @@ Story content.
       sendMessage(ws, 'subscribe:logs', {});
 
       // Wait a bit - server should not crash
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Server should still work
       expect(ws.readyState).toBe(WebSocket.OPEN);
@@ -706,7 +717,7 @@ Story content.
       sendMessage(ws, 'unsubscribe:logs', { sessionName: 'never-subscribed' });
 
       // Wait a bit - server should not crash
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Server should still work
       expect(ws.readyState).toBe(WebSocket.OPEN);
@@ -746,14 +757,11 @@ Story content.
       sendMessage(ws2, 'subscribe:logs', { sessionName: testSessionName });
 
       // Wait for initial content on both
-      await Promise.all([
-        waitForMessage(ws1, 3000),
-        waitForMessage(ws2, 3000),
-      ]);
+      await Promise.all([waitForMessage(ws1, 3000), waitForMessage(ws2, 3000)]);
 
       // ws1 unsubscribes
       sendMessage(ws1, 'unsubscribe:logs', { sessionName: testSessionName });
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Append new content
       const newContent = 'Only ws2 should receive this\n';

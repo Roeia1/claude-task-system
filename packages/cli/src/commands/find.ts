@@ -36,14 +36,19 @@ export async function findCommand(query: string, options: FindOptions): Promise<
   let projectPath: string;
   try {
     projectPath = resolveProjectPath(options.path);
-  } catch (error: any) {
-    console.log(JSON.stringify({ found: false, error: error.message }));
+  } catch (error) {
+    console.log(
+      JSON.stringify({
+        found: false,
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
     process.exit(1);
   }
 
   const type = options.type ?? 'story';
 
-  let result;
+  let result: ReturnType<typeof findEpic> | Awaited<ReturnType<typeof findStory>>;
   if (type === 'epic') {
     result = findEpic(projectPath, query);
   } else {

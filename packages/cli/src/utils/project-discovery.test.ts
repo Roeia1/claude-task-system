@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { findProjectRoot, resolveProjectPath } from './project-discovery.js';
-import { mkdirSync, rmSync, existsSync, realpathSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { findProjectRoot, resolveProjectPath } from './project-discovery.js';
 
 /**
  * Normalize paths to handle macOS symlinks (e.g., /var -> /private/var)

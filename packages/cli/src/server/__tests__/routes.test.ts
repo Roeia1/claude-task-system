@@ -7,13 +7,13 @@
  * - GET /api/stories/:epicSlug/:storySlug - returns StoryDetail with parsed journal
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { mkdir, writeFile, rm } from 'fs/promises';
-import { join } from 'path';
-import { tmpdir } from 'os';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import request from 'supertest';
-import { startServer, type ServerInstance } from '../index.js';
-import type { EpicSummary, Epic, StoryDetail } from '../parser.js';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { type ServerInstance, startServer } from '../index.js';
+import type { EpicSummary, StoryDetail } from '../parser.js';
 
 describe('routes', () => {
   let testDir: string;
@@ -34,11 +34,11 @@ describe('routes', () => {
     // Create epic.md files
     await writeFile(
       join(epicsDir, 'epic-one', 'epic.md'),
-      '# First Epic\n\nThis is the first epic.'
+      '# First Epic\n\nThis is the first epic.',
     );
     await writeFile(
       join(epicsDir, 'epic-two', 'epic.md'),
-      '# Second Epic\n\nThis is the second epic.'
+      '# Second Epic\n\nThis is the second epic.',
     );
 
     // Create story.md files
@@ -59,7 +59,7 @@ tasks:
 
 ## Description
 This is story alpha.
-`
+`,
     );
 
     await writeFile(
@@ -76,7 +76,7 @@ tasks:
 
 ## Description
 This is story beta.
-`
+`,
     );
 
     // Create journal for story-beta
@@ -98,7 +98,7 @@ Waiting for API spec confirmation.
 ## Resolution: API spec confirmed
 
 Got confirmation, proceeding with REST endpoints.
-`
+`,
     );
 
     await writeFile(
@@ -114,7 +114,7 @@ tasks:
 ---
 
 Completed story.
-`
+`,
     );
 
     // Create archived story
@@ -131,7 +131,7 @@ tasks:
 ---
 
 Archived.
-`
+`,
     );
   }
 

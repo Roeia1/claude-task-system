@@ -1,14 +1,14 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const { execSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
 
 const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
 
 // Performance targets
-const PERF_TARGET_95TH = 50;   // 95th percentile < 50ms
-const PERF_TARGET_MAX = 100;   // Max < 100ms
-const SAMPLE_SIZE = 20;        // Number of runs for performance testing
+const PERF_TARGET_95TH = 50; // 95th percentile < 50ms
+const PERF_TARGET_MAX = 100; // Max < 100ms
+const SAMPLE_SIZE = 20; // Number of runs for performance testing
 
 /**
  * Helper to run the script with given args and environment, measuring execution time
@@ -34,7 +34,7 @@ function runScriptTimed(args = [], env = {}, cwd = undefined) {
       stdout: result,
       stderr: '',
       exitCode: 0,
-      durationMs
+      durationMs,
     };
   } catch (error) {
     const endTime = process.hrtime.bigint();
@@ -44,7 +44,7 @@ function runScriptTimed(args = [], env = {}, cwd = undefined) {
       stdout: error.stdout || '',
       stderr: error.stderr || '',
       exitCode: error.status || 1,
-      durationMs
+      durationMs,
     };
   }
 }
@@ -54,7 +54,10 @@ function runScriptTimed(args = [], env = {}, cwd = undefined) {
  */
 function createTempEnvFile(content) {
   const tmpDir = os.tmpdir();
-  const tmpFile = path.join(tmpDir, `claude-env-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`);
+  const tmpFile = path.join(
+    tmpDir,
+    `claude-env-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
+  );
   fs.writeFileSync(tmpFile, content, { mode: 0o644 });
   return tmpFile;
 }
@@ -166,7 +169,7 @@ describe('Performance Tests: <100ms Execution Target', () => {
     test('--task only should complete in <100ms (p95 <50ms)', () => {
       const tmpDir = createTempTaskSystem(1, 1);
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const stats = runPerformanceTest(['--task'], { CLAUDE_ENV_FILE: envFile });
@@ -182,7 +185,7 @@ describe('Performance Tests: <100ms Execution Target', () => {
     test('--counts only with 5 tasks should complete in <100ms (p95 <50ms)', () => {
       const tmpDir = createTempTaskSystem(5, 3);
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const stats = runPerformanceTest(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -200,7 +203,7 @@ describe('Performance Tests: <100ms Execution Target', () => {
     test('all sections with 10 tasks and 5 features should complete in <100ms (p95 <50ms)', () => {
       const tmpDir = createTempTaskSystem(10, 5);
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const stats = runPerformanceTest([], { CLAUDE_ENV_FILE: envFile });
@@ -216,10 +219,12 @@ describe('Performance Tests: <100ms Execution Target', () => {
     test('--origin --task --counts with moderate data should complete in <100ms (p95 <50ms)', () => {
       const tmpDir = createTempTaskSystem(10, 5);
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
-        const stats = runPerformanceTest(['--origin', '--task', '--counts'], { CLAUDE_ENV_FILE: envFile });
+        const stats = runPerformanceTest(['--origin', '--task', '--counts'], {
+          CLAUDE_ENV_FILE: envFile,
+        });
 
         expect(stats.max).toBeLessThan(PERF_TARGET_MAX);
         expect(stats.p95).toBeLessThan(PERF_TARGET_95TH);
@@ -234,7 +239,7 @@ describe('Performance Tests: <100ms Execution Target', () => {
     test('should handle 20 tasks and 10 features within performance budget', () => {
       const tmpDir = createTempTaskSystem(20, 10);
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const stats = runPerformanceTest([], { CLAUDE_ENV_FILE: envFile });
@@ -250,7 +255,7 @@ describe('Performance Tests: <100ms Execution Target', () => {
     test('should handle --counts with 30 tasks within performance budget', () => {
       const tmpDir = createTempTaskSystem(30, 5);
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const stats = runPerformanceTest(['--counts'], { CLAUDE_ENV_FILE: envFile });
@@ -275,7 +280,7 @@ describe('Performance Tests: <100ms Execution Target', () => {
     test('should handle missing task-system directory efficiently', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'task-system-empty-'));
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const stats = runPerformanceTest([], { CLAUDE_ENV_FILE: envFile });
@@ -293,7 +298,7 @@ describe('Performance Tests: <100ms Execution Target', () => {
     test('should show consistent performance across multiple runs', () => {
       const tmpDir = createTempTaskSystem(10, 5);
       const envFile = createTempEnvFile(
-        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+        `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
       );
       try {
         const stats = runPerformanceTest([], { CLAUDE_ENV_FILE: envFile });
@@ -313,7 +318,7 @@ describe('Performance Optimization Validation', () => {
   test('should minimize subshell invocations (baseline check)', () => {
     const tmpDir = createTempTaskSystem(10, 5);
     const envFile = createTempEnvFile(
-      `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+      `export SAGA_TASK_CONTEXT="main"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
     );
     try {
       // Single run to establish baseline
@@ -331,7 +336,7 @@ describe('Performance Optimization Validation', () => {
   test('should handle powerline formatting overhead efficiently', () => {
     const tmpDir = createTempTaskSystem(10, 5);
     const envFile = createTempEnvFile(
-      `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport SAGA_PROJECT_DIR="${tmpDir}"`
+      `export SAGA_TASK_CONTEXT="worktree"\nexport CURRENT_TASK_ID="001"\nexport SAGA_PROJECT_DIR="${tmpDir}"`,
     );
     try {
       // Test with all sections (most formatting overhead)

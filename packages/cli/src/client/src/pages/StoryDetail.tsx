@@ -1,19 +1,21 @@
+import { AlertCircle, CheckCircle, ChevronDown, ChevronRight, Circle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import { Link, useParams } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
-import { useDashboard } from '@/context/DashboardContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { useDashboard } from '@/context/DashboardContext';
 import { showApiErrorToast } from '@/lib/toast-utils';
-import type { StoryDetail as StoryDetailType, StoryStatus, TaskStatus, JournalEntry, JournalEntryType } from '@/types/dashboard';
-import { ChevronDown, ChevronRight, CheckCircle, Circle, AlertCircle } from 'lucide-react';
+import type {
+  JournalEntry,
+  JournalEntryType,
+  StoryDetail as StoryDetailType,
+  StoryStatus,
+  TaskStatus,
+} from '@/types/dashboard';
 
 /** Skeleton loading component for the story header */
 export function HeaderSkeleton() {
@@ -69,8 +71,9 @@ export function TaskStatusIcon({ status }: { status: TaskStatus }) {
     case 'completed':
       return <CheckCircle {...iconProps} className={`${iconProps.className} text-success`} />;
     case 'in_progress':
-      return <Circle {...iconProps} className={`${iconProps.className} text-primary fill-primary/20`} />;
-    case 'pending':
+      return (
+        <Circle {...iconProps} className={`${iconProps.className} text-primary fill-primary/20`} />
+      );
     default:
       return <Circle {...iconProps} className={`${iconProps.className} text-text-muted`} />;
   }
@@ -89,8 +92,8 @@ export function TaskItem({ task }: { task: StoryDetailType['tasks'][0] }) {
           task.status === 'completed'
             ? 'bg-success/20 text-success'
             : task.status === 'in_progress'
-            ? 'bg-primary/20 text-primary'
-            : 'bg-text-muted/20 text-text-muted'
+              ? 'bg-primary/20 text-primary'
+              : 'bg-text-muted/20 text-text-muted'
         }`}
       >
         {task.status.replace('_', ' ')}
@@ -106,14 +109,19 @@ function getEntryTypeStyle(type: JournalEntryType): { bg: string; text: string; 
       return { bg: 'bg-danger/10', text: 'text-danger', border: 'border-danger/30' };
     case 'resolution':
       return { bg: 'bg-success/10', text: 'text-success', border: 'border-success/30' };
-    case 'session':
     default:
       return { bg: 'bg-bg-light', text: 'text-text', border: 'border-border-muted' };
   }
 }
 
 /** Single journal entry with collapsible content */
-export function JournalEntryItem({ entry, defaultOpen = false }: { entry: JournalEntry; defaultOpen?: boolean }) {
+export function JournalEntryItem({
+  entry,
+  defaultOpen = false,
+}: {
+  entry: JournalEntry;
+  defaultOpen?: boolean;
+}) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const style = getEntryTypeStyle(entry.type);
 
@@ -131,16 +139,10 @@ export function JournalEntryItem({ entry, defaultOpen = false }: { entry: Journa
               <Badge className={`${style.bg} ${style.text} border ${style.border}`}>
                 {entry.type}
               </Badge>
-              <CardTitle className={`text-sm font-medium ${style.text}`}>
-                {entry.title}
-              </CardTitle>
-              {entry.type === 'blocker' && (
-                <AlertCircle className="w-4 h-4 text-danger ml-auto" />
-              )}
+              <CardTitle className={`text-sm font-medium ${style.text}`}>{entry.title}</CardTitle>
+              {entry.type === 'blocker' && <AlertCircle className="w-4 h-4 text-danger ml-auto" />}
               {entry.timestamp && (
-                <span className="text-xs text-text-muted ml-auto">
-                  {entry.timestamp}
-                </span>
+                <span className="text-xs text-text-muted ml-auto">{entry.timestamp}</span>
               )}
             </div>
           </CardHeader>
@@ -218,7 +220,14 @@ export function StoryDetail() {
         unsubscribeFromStory(epicSlug, storySlug);
       }
     };
-  }, [epicSlug, storySlug, setCurrentStory, clearCurrentStory, subscribeToStory, unsubscribeFromStory]);
+  }, [
+    epicSlug,
+    storySlug,
+    setCurrentStory,
+    clearCurrentStory,
+    subscribeToStory,
+    unsubscribeFromStory,
+  ]);
 
   const loading = isLoading || isFetching;
 
@@ -336,10 +345,8 @@ export function StoryDetail() {
             </CardHeader>
             <CardContent>
               {currentStory.content ? (
-                <div className="prose prose-sm prose-invert max-w-none prose-headings:text-text prose-p:text-text-muted prose-strong:text-text prose-code:text-primary prose-code:bg-bg-dark prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-dark prose-pre:border prose-pre:border-border-muted prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-li:text-text-muted prose-table:border prose-table:border-border-muted prose-th:bg-bg-dark prose-th:px-3 prose-th:py-2 prose-th:text-text prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-border-muted">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {currentStory.content}
-                  </ReactMarkdown>
+                <div className="prose prose-sm prose-invert max-w-none prose-headings:text-text prose-p:text-text-muted prose-strong:text-text prose-code:text-primary prose-code:bg-bg-dark prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-dark prose-pre:border prose-pre:border-border-muted prose-a:text-primary prose-a:no-underline prose-a:hover:underline prose-li:text-text-muted prose-table:border prose-table:border-border-muted prose-th:bg-bg-dark prose-th:px-3 prose-th:py-2 prose-th:text-text prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-border-muted">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentStory.content}</ReactMarkdown>
                 </div>
               ) : (
                 <p className="text-text-muted text-center py-4">No story content available.</p>
@@ -365,9 +372,9 @@ export function StoryDetail() {
                     <AlertCircle className="w-4 h-4" />
                     Blockers ({blockerEntries.length})
                   </h3>
-                  {blockerEntries.map((entry, index) => (
+                  {blockerEntries.map((entry) => (
                     <JournalEntryItem
-                      key={`blocker-${index}`}
+                      key={`blocker-${entry.title}-${entry.timestamp ?? ''}`}
                       entry={entry}
                       defaultOpen={true}
                     />
@@ -382,9 +389,9 @@ export function StoryDetail() {
                     <CheckCircle className="w-4 h-4" />
                     Resolutions ({resolutionEntries.length})
                   </h3>
-                  {resolutionEntries.map((entry, index) => (
+                  {resolutionEntries.map((entry) => (
                     <JournalEntryItem
-                      key={`resolution-${index}`}
+                      key={`resolution-${entry.title}-${entry.timestamp ?? ''}`}
                       entry={entry}
                       defaultOpen={false}
                     />
@@ -398,9 +405,9 @@ export function StoryDetail() {
                   <h3 className="text-sm font-semibold text-text flex items-center gap-2">
                     Sessions ({sessionEntries.length})
                   </h3>
-                  {sessionEntries.map((entry, index) => (
+                  {sessionEntries.map((entry) => (
                     <JournalEntryItem
-                      key={`session-${index}`}
+                      key={`session-${entry.title}-${entry.timestamp ?? ''}`}
                       entry={entry}
                       defaultOpen={false}
                     />

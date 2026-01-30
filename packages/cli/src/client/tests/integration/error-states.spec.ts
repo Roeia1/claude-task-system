@@ -1,11 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import {
-  mockApiError,
-  mockNetworkFailure,
-  mockEpicList,
-  mockEpicDetail,
-  createMockEpicSummary,
   createMockEpic,
+  createMockEpicSummary,
+  mockApiError,
+  mockEpicDetail,
+  mockEpicList,
+  mockNetworkFailure,
 } from '../utils/mock-api';
 
 /**
@@ -120,13 +120,20 @@ test.describe('Error States', () => {
   test.describe('Story Detail Page', () => {
     test('should show 404 error page for non-existent story', async ({ page }) => {
       // Mock 404 for non-existent story
-      await mockApiError(page, '**/api/stories/test-epic/non-existent-story', 404, 'Story not found');
+      await mockApiError(
+        page,
+        '**/api/stories/test-epic/non-existent-story',
+        404,
+        'Story not found',
+      );
 
       await page.goto('/epic/test-epic/story/non-existent-story');
 
       // Should show the 404 error message
       await expect(page.getByRole('heading', { name: 'Story not found' })).toBeVisible();
-      await expect(page.getByText('The story "non-existent-story" does not exist in epic "test-epic".')).toBeVisible();
+      await expect(
+        page.getByText('The story "non-existent-story" does not exist in epic "test-epic".'),
+      ).toBeVisible();
 
       // Should have a link back to epic
       await expect(page.getByRole('link', { name: /Back to epic/i })).toBeVisible();
@@ -134,7 +141,12 @@ test.describe('Error States', () => {
 
     test('should show error page on 500 server error', async ({ page }) => {
       // Mock 500 error for story detail
-      await mockApiError(page, '**/api/stories/test-epic/broken-story', 500, 'Internal Server Error');
+      await mockApiError(
+        page,
+        '**/api/stories/test-epic/broken-story',
+        500,
+        'Internal Server Error',
+      );
 
       await page.goto('/epic/test-epic/story/broken-story');
 
@@ -181,9 +193,7 @@ test.describe('Error States', () => {
   test.describe('Mixed Error Scenarios', () => {
     test('should handle error on one page and success on another', async ({ page }) => {
       // Epic list works
-      await mockEpicList(page, [
-        createMockEpicSummary({ slug: 'good-epic', title: 'Good Epic' }),
-      ]);
+      await mockEpicList(page, [createMockEpicSummary({ slug: 'good-epic', title: 'Good Epic' })]);
 
       // But epic detail fails
       await mockApiError(page, '**/api/epics/good-epic', 500, 'Server Error');
@@ -206,7 +216,10 @@ test.describe('Error States', () => {
       ]);
 
       // Mock working epic detail
-      await mockEpicDetail(page, createMockEpic({ slug: 'working-epic', title: 'Working Epic Detail' }));
+      await mockEpicDetail(
+        page,
+        createMockEpic({ slug: 'working-epic', title: 'Working Epic Detail' }),
+      );
 
       // Mock error for non-existent epic
       await mockApiError(page, '**/api/epics/broken-epic', 404, 'Not found');

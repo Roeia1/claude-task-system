@@ -1,9 +1,5 @@
-import { test, expect } from '@playwright/test';
-import {
-  createMockEpic,
-  createMockStoryDetail,
-  mockEpicDetail,
-} from '../utils/mock-api';
+import { expect, test } from '@playwright/test';
+import { createMockEpic, createMockStoryDetail, mockEpicDetail } from '../utils/mock-api';
 
 /**
  * Integration tests for epic content display in the dashboard.
@@ -15,7 +11,8 @@ test.describe('Epic Content Display', () => {
       const epicWithContent = createMockEpic({
         slug: 'content-epic',
         title: 'Epic With Content',
-        content: '# Epic Overview\n\nThis is the main description.\n\n## Goals\n\n- Goal 1\n- Goal 2',
+        content:
+          '# Epic Overview\n\nThis is the main description.\n\n## Goals\n\n- Goal 1\n- Goal 2',
         stories: [],
       });
 
@@ -54,7 +51,9 @@ test.describe('Epic Content Display', () => {
       await expect(epicContent).not.toBeVisible();
     });
 
-    test('should not display epic content section when content is empty string', async ({ page }) => {
+    test('should not display epic content section when content is empty string', async ({
+      page,
+    }) => {
       const epicWithEmptyContent = createMockEpic({
         slug: 'empty-content-epic',
         title: 'Epic With Empty Content',

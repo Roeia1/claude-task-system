@@ -5,9 +5,9 @@
  * Used by both the finder utility (CLI) and parser (server).
  */
 
-import { readdir, stat, readFile } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join } from 'path';
+import { existsSync } from 'node:fs';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { join } from 'node:path';
 import matter from 'gray-matter';
 
 // ============================================================================
@@ -87,7 +87,10 @@ async function fileExists(path: string): Promise<boolean> {
 /**
  * Parse YAML frontmatter from markdown content
  */
-export function parseFrontmatter(content: string): { frontmatter: Record<string, unknown>; body: string } {
+export function parseFrontmatter(content: string): {
+  frontmatter: Record<string, unknown>;
+  body: string;
+} {
   if (!content || !content.startsWith('---')) {
     return { frontmatter: {}, body: content };
   }
@@ -144,7 +147,7 @@ function extractEpicTitle(content: string): string | null {
 async function parseStoryFile(
   storyPath: string,
   epicSlug: string,
-  options: { worktreePath?: string; archived?: boolean } = {}
+  options: { worktreePath?: string; archived?: boolean } = {},
 ): Promise<ScannedStory | null> {
   try {
     const content = await readFile(storyPath, 'utf-8');
@@ -215,7 +218,7 @@ export async function scanWorktrees(sagaRoot: string): Promise<ScannedStory[]> {
         epicSlug,
         'stories',
         storySlug,
-        'story.md'
+        'story.md',
       );
 
       const story = await parseStoryFile(storyPath, epicSlug, { worktreePath });

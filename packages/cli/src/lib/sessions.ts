@@ -8,9 +8,9 @@
  * Output files stored in: /tmp/saga-sessions/<session-name>.out
  */
 
-import { spawn, spawnSync, ChildProcess } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { stat, readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /**
@@ -85,7 +85,7 @@ export interface KillSessionResult {
 export function shellEscape(str: string): string {
   // Wrap in single quotes and escape any single quotes within
   // The pattern 'text'\''more' closes the quote, adds an escaped quote, reopens
-  return "'" + str.replace(/'/g, "'\\''") + "'";
+  return `'${str.replace(/'/g, "'\\''")}'`;
 }
 
 /**
@@ -105,8 +105,8 @@ export function shellEscapeArgs(args: string[]): string {
  * @param slug - The slug to validate
  * @returns true if valid, false otherwise
  */
-export function validateSlug(slug: string): boolean {
-  if (!slug || slug.length === 0) {
+export function validateSlug(slug: unknown): boolean {
+  if (typeof slug !== 'string' || slug.length === 0) {
     return false;
   }
 
@@ -147,14 +147,18 @@ function checkTmuxAvailable(): void {
 export async function createSession(
   epicSlug: string,
   storySlug: string,
-  command: string
+  command: string,
 ): Promise<CreateSessionResult> {
   // Validate slugs
   if (!validateSlug(epicSlug)) {
-    throw new Error(`Invalid epic slug: '${epicSlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`);
+    throw new Error(
+      `Invalid epic slug: '${epicSlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`,
+    );
   }
   if (!validateSlug(storySlug)) {
-    throw new Error(`Invalid story slug: '${storySlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`);
+    throw new Error(
+      `Invalid story slug: '${storySlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`,
+    );
   }
 
   // Check tmux is available
@@ -190,11 +194,11 @@ OUTPUT_FILE="${outputFile}"
 SCRIPT_FILE="${wrapperScriptPath}"
 
 # Read the command from file
-COMMAND="\$(cat "\$COMMAND_FILE")"
+COMMAND="$(cat "$COMMAND_FILE")"
 
 # Cleanup temporary files on exit
 cleanup() {
-  rm -f "\$COMMAND_FILE" "\$SCRIPT_FILE"
+  rm -f "$COMMAND_FILE" "$SCRIPT_FILE"
 }
 trap cleanup EXIT
 
@@ -202,23 +206,28 @@ trap cleanup EXIT
 # script syntax differs between macOS and Linux:
 #   macOS (Darwin): script -q <file> <shell> -c <command>
 #   Linux:          script -q -c <command> <file>
-if [[ "\$(uname)" == "Darwin" ]]; then
+if [[ "$(uname)" == "Darwin" ]]; then
   # -F: flush output after each write (ensures immediate visibility)
-  exec script -qF "\$OUTPUT_FILE" /bin/bash -c "\$COMMAND"
+  exec script -qF "$OUTPUT_FILE" /bin/bash -c "$COMMAND"
 else
-  exec script -q -c "\$COMMAND" "\$OUTPUT_FILE"
+  exec script -q -c "$COMMAND" "$OUTPUT_FILE"
 fi
 `;
 
   writeFileSync(wrapperScriptPath, wrapperScriptContent, { mode: 0o700 });
 
   // Create detached tmux session that runs the wrapper script
-  const createResult = spawnSync('tmux', [
-    'new-session',
-    '-d',              // detached
-    '-s', sessionName, // session name
-    wrapperScriptPath, // run the wrapper script
-  ], { encoding: 'utf-8' });
+  const createResult = spawnSync(
+    'tmux',
+    [
+      'new-session',
+      '-d', // detached
+      '-s',
+      sessionName, // session name
+      wrapperScriptPath, // run the wrapper script
+    ],
+    { encoding: 'utf-8' },
+  );
 
   if (createResult.status !== 0) {
     throw new Error(`Failed to create tmux session: ${createResult.stderr || 'unknown error'}`);
@@ -318,7 +327,7 @@ export async function streamLogs(sessionName: string): Promise<void> {
       reject(new Error(`Failed to stream logs: ${err.message}`));
     });
 
-    child.on('close', (code) => {
+    child.on('close', (_code) => {
       resolve();
     });
 
@@ -395,7 +404,7 @@ export function parseSessionName(name: string): ParsedSessionName | null {
  */
 export async function buildSessionInfo(
   name: string,
-  status: 'running' | 'completed'
+  status: 'running' | 'completed',
 ): Promise<DetailedSessionInfo | null> {
   const parsed = parseSessionName(name);
   if (!parsed) {
@@ -422,7 +431,7 @@ export async function buildSessionInfo(
 
     try {
       const content = await readFile(outputFile, 'utf-8');
-      const lines = content.split('\n').filter(line => line.length > 0);
+      const lines = content.split('\n').filter((line) => line.length > 0);
       if (lines.length > 0) {
         const lastLines = lines.slice(-5);
         let preview = lastLines.join('\n');
