@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { SessionInfo } from '@/types/dashboard';
@@ -46,6 +46,7 @@ function truncateOutput(output: string | undefined): string {
 /**
  * Component to display a single session card with live duration updates.
  * Shows story title, epic title, duration timer, and output preview.
+ * Output preview auto-scrolls to bottom when content changes.
  */
 export function SessionCard({ session }: { session: SessionInfo }) {
   const [duration, setDuration] = useState(() => {
@@ -53,6 +54,7 @@ export function SessionCard({ session }: { session: SessionInfo }) {
     const now = Date.now();
     return Math.floor((now - startTime) / 1000);
   });
+  const outputRef = useRef<HTMLPreElement>(null);
 
   // Update duration every second
   useEffect(() => {
@@ -64,6 +66,13 @@ export function SessionCard({ session }: { session: SessionInfo }) {
 
     return () => clearInterval(interval);
   }, [session.startTime]);
+
+  // Auto-scroll output to bottom when content changes
+  useEffect(() => {
+    if (outputRef.current) {
+      outputRef.current.scrollTop = outputRef.current.scrollHeight;
+    }
+  }, [session.outputPreview]);
 
   const truncatedOutput = truncateOutput(session.outputPreview);
 
@@ -84,7 +93,8 @@ export function SessionCard({ session }: { session: SessionInfo }) {
           {session.outputAvailable ? (
             truncatedOutput ? (
               <pre
-                className="font-mono bg-bg-dark text-xs p-2 rounded overflow-hidden whitespace-pre-wrap"
+                ref={outputRef}
+                className="font-mono bg-bg-dark text-xs p-2 rounded max-h-24 overflow-y-auto whitespace-pre-wrap"
                 role="presentation"
               >
                 {truncatedOutput}

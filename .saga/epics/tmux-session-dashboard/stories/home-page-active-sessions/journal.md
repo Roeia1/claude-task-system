@@ -253,3 +253,61 @@
 **Story Status:**
 - All 7 tasks completed
 - Story marked as completed
+
+## Session: 2026-01-30T04:45:00Z
+
+### Bug Fixes: Real-time WebSocket updates and session discovery
+
+**Issues discovered during manual testing:**
+
+1. **Session naming format mismatch in `listSessions()`**
+   - The regex only matched `saga-` prefix (single hyphen) format
+   - But `parseSessionName()` expects `saga__` prefix (double underscore) format
+   - Sessions created with new naming convention weren't being discovered
+
+2. **ActiveSessions component using inline SessionCard**
+   - Had its own simplified `SessionCard` without duration timer
+   - Wasn't importing the proper `SessionCard` from `SessionCard.tsx`
+
+3. **No real-time updates**
+   - Component only fetched once on mount
+   - No polling or WebSocket subscription
+
+4. **Session polling not detecting output changes**
+   - `detectChanges()` only checked for session add/remove/status changes
+   - Didn't broadcast updates when `outputPreview` content changed
+
+**Fixes applied:**
+
+1. **`src/lib/sessions.ts` - Fixed `listSessions()` regex**
+   - Changed regex to `/^(saga[-_][-_]?[a-z0-9_-]+):/` to match both formats
+   - Sessions with `saga__epic__story__pid` format now discovered
+
+2. **`src/client/src/components/ActiveSessions.tsx` - WebSocket integration**
+   - Now imports and uses proper `SessionCard` from `SessionCard.tsx`
+   - Uses `useDashboard()` context for sessions state
+   - Fetches initial sessions via REST, then receives WebSocket updates
+   - Removed HTTP polling in favor of WebSocket
+
+3. **`src/client/src/machines/dashboardMachine.ts` - Added sessions support**
+   - Added `sessions: SessionInfo[]` to context
+   - Added `SESSIONS_LOADED` and `SESSIONS_UPDATED` events
+   - WebSocket actor now handles `sessions:updated` messages
+
+4. **`src/client/src/context/DashboardContext.tsx` - Exposed sessions**
+   - Added `sessions` and `setSessions` to `useDashboard()` hook
+
+5. **`src/lib/session-polling.ts` - Fixed `detectChanges()`**
+   - Now compares `outputPreview` content between polling cycles
+   - Broadcasts update when output preview changes
+
+6. **`src/client/src/components/SessionCard.tsx` - Auto-scroll output**
+   - Added `useRef` for output preview element
+   - Auto-scrolls to bottom when `outputPreview` changes
+   - Changed `overflow-hidden` to `overflow-y-auto` with `max-h-24`
+
+**Result:**
+- Sessions with `saga__` naming format now appear in dashboard
+- Duration timer updates every second
+- Output preview updates in real-time via WebSocket (3-second polling on backend)
+- Output auto-scrolls to show latest lines

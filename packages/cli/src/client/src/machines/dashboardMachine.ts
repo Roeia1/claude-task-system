@@ -1,5 +1,5 @@
 import { setup, assign, fromCallback } from 'xstate';
-import type { EpicSummary, Epic, StoryDetail } from '@/types/dashboard';
+import type { EpicSummary, Epic, StoryDetail, SessionInfo } from '@/types/dashboard';
 
 /** Maximum number of reconnection attempts */
 const MAX_RETRIES = 5;
@@ -26,6 +26,7 @@ export interface DashboardContext {
   epics: EpicSummary[];
   currentEpic: Epic | null;
   currentStory: StoryDetail | null;
+  sessions: SessionInfo[];
   error: string | null;
   retryCount: number;
   wsUrl: string;
@@ -39,12 +40,14 @@ export type DashboardEvent =
   | { type: 'EPICS_LOADED'; epics: EpicSummary[] }
   | { type: 'EPIC_LOADED'; epic: Epic }
   | { type: 'STORY_LOADED'; story: StoryDetail }
+  | { type: 'SESSIONS_LOADED'; sessions: SessionInfo[] }
   | { type: 'WS_CONNECTED' }
   | { type: 'WS_DISCONNECTED' }
   | { type: 'WS_ERROR'; error: string }
   | { type: 'RETRY' }
   | { type: 'EPICS_UPDATED'; epics: EpicSummary[] }
   | { type: 'STORY_UPDATED'; story: StoryDetail }
+  | { type: 'SESSIONS_UPDATED'; sessions: SessionInfo[] }
   | { type: 'LOAD_EPICS' }
   | { type: 'LOAD_EPIC'; slug: string }
   | { type: 'LOAD_STORY'; epicSlug: string; storySlug: string }
@@ -135,6 +138,8 @@ const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
               sendBack({ type: 'EPICS_UPDATED', epics: message.data });
             } else if (message.type === 'story:updated' && message.data) {
               sendBack({ type: 'STORY_UPDATED', story: message.data });
+            } else if (message.type === 'sessions:updated' && message.sessions) {
+              sendBack({ type: 'SESSIONS_UPDATED', sessions: message.sessions });
             }
           } catch {
             // Ignore malformed messages
@@ -199,6 +204,12 @@ export const dashboardMachine = setup({
     }),
     setCurrentStory: assign({
       currentStory: (_, params: { story: StoryDetail }) => params.story,
+    }),
+    setSessions: assign({
+      sessions: (_, params: { sessions: SessionInfo[] }) => params.sessions,
+    }),
+    updateSessions: assign({
+      sessions: (_, params: { sessions: SessionInfo[] }) => params.sessions,
     }),
     clearCurrentEpic: assign({
       currentEpic: () => null,
@@ -270,6 +281,7 @@ export const dashboardMachine = setup({
     epics: [],
     currentEpic: null,
     currentStory: null,
+    sessions: [],
     error: null,
     retryCount: 0,
     wsUrl: `ws://localhost:3847`,
@@ -305,6 +317,22 @@ export const dashboardMachine = setup({
             {
               type: 'setCurrentStory',
               params: ({ event }) => ({ story: event.story }),
+            },
+          ],
+        },
+        SESSIONS_LOADED: {
+          actions: [
+            {
+              type: 'setSessions',
+              params: ({ event }) => ({ sessions: event.sessions }),
+            },
+          ],
+        },
+        SESSIONS_UPDATED: {
+          actions: [
+            {
+              type: 'updateSessions',
+              params: ({ event }) => ({ sessions: event.sessions }),
             },
           ],
         },
@@ -395,6 +423,22 @@ export const dashboardMachine = setup({
             {
               type: 'updateStory',
               params: ({ event }) => ({ story: event.story }),
+            },
+          ],
+        },
+        SESSIONS_LOADED: {
+          actions: [
+            {
+              type: 'setSessions',
+              params: ({ event }) => ({ sessions: event.sessions }),
+            },
+          ],
+        },
+        SESSIONS_UPDATED: {
+          actions: [
+            {
+              type: 'updateSessions',
+              params: ({ event }) => ({ sessions: event.sessions }),
             },
           ],
         },

@@ -162,11 +162,16 @@ function detectChanges(newSessions: DetailedSessionInfo[]): boolean {
     }
   }
 
-  // Check for status changes
+  // Check for status changes or output preview changes
   for (const [name, newSession] of newSessionMap) {
     const currentSession = currentSessionMap.get(name);
-    if (currentSession && currentSession.status !== newSession.status) {
-      return true; // Status changed
+    if (currentSession) {
+      if (currentSession.status !== newSession.status) {
+        return true; // Status changed
+      }
+      if (currentSession.outputPreview !== newSession.outputPreview) {
+        return true; // Output preview changed
+      }
     }
   }
 

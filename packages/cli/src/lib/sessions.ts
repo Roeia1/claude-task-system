@@ -248,10 +248,11 @@ export async function listSessions(): Promise<SessionInfo[]> {
 
   for (const line of lines) {
     // tmux ls output format: "session-name: N windows ..."
-    // Session name format: saga-<epic>-<story>-<pid>
-    // - epic/story slugs contain only [a-z0-9] with hyphens between (no leading/trailing hyphens)
-    // - pid is always numeric
-    const match = line.match(/^(saga-[a-z0-9]+(?:-[a-z0-9]+)*-\d+):/);
+    // Session name formats supported:
+    // - New format: saga__<epic>__<story>__<pid> (double underscore delimiter)
+    // - Legacy format: saga-<epic>-<story>-<pid> (single hyphen delimiter)
+    // Only new format sessions will appear in the dashboard (parseSessionName requires saga__)
+    const match = line.match(/^(saga[-_][-_]?[a-z0-9_-]+):/);
     if (match) {
       const name = match[1];
       sessions.push({

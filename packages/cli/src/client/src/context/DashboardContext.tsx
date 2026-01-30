@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { createActorContext } from '@xstate/react';
 import { dashboardMachine } from '@/machines';
-import type { EpicSummary, Epic, StoryDetail } from '@/types/dashboard';
+import type { EpicSummary, Epic, StoryDetail, SessionInfo } from '@/types/dashboard';
 
 /**
  * Dashboard context using XState's createActorContext
@@ -55,6 +55,11 @@ export function useDashboard() {
     [actorRef]
   );
 
+  const setSessions = useCallback(
+    (sessions: SessionInfo[]) => actorRef.send({ type: 'SESSIONS_LOADED', sessions }),
+    [actorRef]
+  );
+
   const clearCurrentEpic = useCallback(
     () => actorRef.send({ type: 'CLEAR_EPIC' }),
     [actorRef]
@@ -92,6 +97,7 @@ export function useDashboard() {
       epics: context.epics,
       currentEpic: context.currentEpic,
       currentStory: context.currentStory,
+      sessions: context.sessions,
       error: context.error,
       retryCount: context.retryCount,
       subscribedStories: context.subscribedStories,
@@ -103,6 +109,7 @@ export function useDashboard() {
       setEpics,
       setCurrentEpic,
       setCurrentStory,
+      setSessions,
       clearCurrentEpic,
       clearCurrentStory,
       subscribeToStory,
@@ -116,6 +123,7 @@ export function useDashboard() {
       context.epics,
       context.currentEpic,
       context.currentStory,
+      context.sessions,
       context.error,
       context.retryCount,
       context.subscribedStories,
@@ -125,6 +133,7 @@ export function useDashboard() {
       setEpics,
       setCurrentEpic,
       setCurrentStory,
+      setSessions,
       clearCurrentEpic,
       clearCurrentStory,
       subscribeToStory,
