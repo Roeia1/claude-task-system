@@ -6,10 +6,10 @@ epic: tmux-session-dashboard
 tasks:
   - id: t1
     title: Define SessionInfo type and extend dashboard types
-    status: pending
+    status: completed
   - id: t2
     title: Write tests for ActiveSessions component
-    status: pending
+    status: completed
   - id: t3
     title: Implement ActiveSessions component
     status: pending
