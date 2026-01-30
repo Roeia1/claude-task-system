@@ -17,7 +17,22 @@ const LOG_LEVEL_COUNT = 4;
 const LARGE_LOG_LINE_COUNT = 10_000;
 
 /** Maximum rendered lines for virtualization test */
-const _MAX_RENDERED_LINES_THRESHOLD = 100;
+const MAX_RENDERED_LINES_THRESHOLD = 100;
+
+/** Regex pattern for npm install text */
+const NPM_INSTALL_PATTERN = /npm install/;
+
+/** Regex pattern for saga implement text */
+const SAGA_IMPLEMENT_PATTERN = /saga implement/;
+
+/** Regex pattern for starting story execution text */
+const STARTING_STORY_EXECUTION_PATTERN = /Starting story execution/;
+
+/** Regex pattern for implementing auth service text */
+const IMPLEMENTING_AUTH_SERVICE_PATTERN = /Implementing auth service/;
+
+/** Regex pattern for processing item text */
+const PROCESSING_ITEM_PATTERN = /Processing item 1 of 10000/;
 
 // ============================================================================
 // Mock Data
@@ -191,7 +206,7 @@ export const Default: Story = {
     await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
 
     // Verify log content is displayed (check first line - virtualization may not render all)
-    await expect(canvas.getByText(/npm install/)).toBeInTheDocument();
+    await expect(canvas.getByText(NPM_INSTALL_PATTERN)).toBeInTheDocument();
 
     // Visual snapshot test
     await matchCanvasSnapshot(canvasElement, 'log-viewer-default');
@@ -263,9 +278,9 @@ export const Streaming: Story = {
     await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
 
     // Verify log content shows streaming output
-    await expect(canvas.getByText(/saga implement/)).toBeInTheDocument();
-    await expect(canvas.getByText(/Starting story execution/)).toBeInTheDocument();
-    await expect(canvas.getByText(/Implementing auth service/)).toBeInTheDocument();
+    await expect(canvas.getByText(SAGA_IMPLEMENT_PATTERN)).toBeInTheDocument();
+    await expect(canvas.getByText(STARTING_STORY_EXECUTION_PATTERN)).toBeInTheDocument();
+    await expect(canvas.getByText(IMPLEMENTING_AUTH_SERVICE_PATTERN)).toBeInTheDocument();
 
     // Visual snapshot test
     await matchCanvasSnapshot(canvasElement, 'log-viewer-streaming');
@@ -301,7 +316,7 @@ export const Complete: Story = {
     await expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
 
     // Verify log content is displayed (check first line - virtualization may not render all)
-    await expect(canvas.getByText(/npm install/)).toBeInTheDocument();
+    await expect(canvas.getByText(NPM_INSTALL_PATTERN)).toBeInTheDocument();
 
     // Visual snapshot test
     await matchCanvasSnapshot(canvasElement, 'log-viewer-complete');
@@ -373,11 +388,11 @@ export const LargeLog: Story = {
     // Only a small number of visible lines should be in the DOM
     const renderedLines = canvas.queryAllByTestId('log-line');
     // With overscan of 5 and typical viewport, should render < 100 lines
-    await expect(renderedLines.length).toBeLessThan(100);
+    await expect(renderedLines.length).toBeLessThan(MAX_RENDERED_LINES_THRESHOLD);
     await expect(renderedLines.length).toBeGreaterThan(0);
 
     // Verify first line content is visible
-    await expect(canvas.getByText(/Processing item 1 of 10000/)).toBeInTheDocument();
+    await expect(canvas.getByText(PROCESSING_ITEM_PATTERN)).toBeInTheDocument();
 
     // Visual snapshot test (limited - snapshot only captures visible portion)
     await matchCanvasSnapshot(canvasElement, 'log-viewer-large-log');

@@ -16,19 +16,19 @@ const DashboardContext = createActorContext(machine);
 /**
  * Provider component that wraps the app with dashboard state
  */
-export const DashboardProvider = DashboardContext.Provider;
+const DashboardProvider = DashboardContext.Provider;
 
 /**
  * Hook to access the dashboard actor ref
  * Use this to send events to the machine
  */
-export const useDashboardActorRef = DashboardContext.useActorRef;
+const useDashboardActorRef = DashboardContext.useActorRef;
 
 /**
  * Hook to select state from the dashboard machine
  * Use this to read state values with optimal re-rendering
  */
-export const useDashboardSelector = DashboardContext.useSelector;
+const useDashboardSelector = DashboardContext.useSelector;
 
 /**
  * Hook to create memoized connection actions
@@ -82,7 +82,7 @@ function useSubscriptionActions(actorRef: DashboardActorRef) {
  * Convenience hook that provides common dashboard state and actions
  * Actions are memoized to prevent infinite loops in useEffect dependencies
  */
-export function useDashboard() {
+function useDashboard() {
   const actorRef = useDashboardActorRef();
   const state = useDashboardSelector((snapshot) => snapshot.value);
   const context = useDashboardSelector((snapshot) => snapshot.context);
@@ -113,3 +113,5 @@ export function useDashboard() {
     [state, context, connectionActions, dataActions, subscriptionActions, actorRef],
   );
 }
+
+export { DashboardProvider, useDashboardActorRef, useDashboardSelector, useDashboard };

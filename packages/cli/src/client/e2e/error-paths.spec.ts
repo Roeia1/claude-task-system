@@ -7,6 +7,9 @@ import {
   resetAllFixtures,
 } from './fixtures-utils.ts';
 
+/** Regex pattern for matching socket.io routes */
+const SOCKET_IO_ROUTE_PATTERN = /\/socket\.io\//;
+
 /**
  * Error path E2E tests for the SAGA dashboard.
  *
@@ -184,7 +187,7 @@ test.describe('WebSocket Disconnection', () => {
 
   test('dashboard loads and functions without WebSocket connection', async ({ page }) => {
     // Block WebSocket connections
-    await page.route(/\/socket\.io\//, (route) => {
+    await page.route(SOCKET_IO_ROUTE_PATTERN, (route) => {
       route.abort('failed');
     });
 

@@ -6,7 +6,7 @@ import { expect, within } from 'storybook/test';
  * This demonstrates that all custom color tokens render correctly.
  * Exported for use as component reference in Storybook meta.
  */
-export const ThemeTest = () => (
+const ThemeTest = () => (
   <div class="space-y-6">
     <section>
       <h2 class="text-lg font-semibold mb-3">Background Colors</h2>
@@ -96,4 +96,4 @@ const AllColors: Story = {
 };
 
 export default meta;
-export { AllColors };
+export { ThemeTest, AllColors };

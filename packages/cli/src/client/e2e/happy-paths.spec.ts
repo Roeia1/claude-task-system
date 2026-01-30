@@ -4,6 +4,9 @@ import { readStoryFile, resetAllFixtures, writeStoryFile } from './fixtures-util
 /** Test timeout for WebSocket real-time update tests (30 seconds) */
 const WEBSOCKET_TEST_TIMEOUT_MS = 30_000;
 
+/** Regex pattern for matching Journal tab name */
+const JOURNAL_TAB_PATTERN = /Journal/;
+
 /**
  * Happy path E2E tests for the SAGA dashboard.
  *
@@ -129,7 +132,7 @@ test.describe('Story Detail', () => {
     // Verify tabs are present
     await expect(page.getByRole('tab', { name: 'Tasks' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Story Content' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /Journal/ })).toBeVisible();
+    await expect(page.getByRole('tab', { name: JOURNAL_TAB_PATTERN })).toBeVisible();
   });
 
   test('displays tasks with correct status', async ({ page }) => {
@@ -162,7 +165,7 @@ test.describe('Story Detail', () => {
     await page.goto('/epic/feature-development/story/auth-implementation');
 
     // Click on Journal tab
-    await page.getByRole('tab', { name: /Journal/ }).click();
+    await page.getByRole('tab', { name: JOURNAL_TAB_PATTERN }).click();
 
     // Verify blocker section exists
     await expect(page.getByText('Blockers (1)')).toBeVisible();

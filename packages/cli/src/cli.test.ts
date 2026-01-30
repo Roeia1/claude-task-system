@@ -9,6 +9,9 @@ import { describe, expect, it } from 'vitest';
 
 const CLI_PATH = join(import.meta.dirname, '..', 'dist', 'cli.cjs');
 
+/** Regex pattern for semantic version (e.g., 0.1.0) */
+const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
+
 /**
  * Run the CLI with given arguments and return stdout
  */
@@ -51,7 +54,7 @@ describe('CLI entry point', () => {
       const { stdout, exitCode } = runCli(['--version']);
       expect(exitCode).toBe(0);
       // Should be semantic version like 0.1.0
-      expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
+      expect(stdout.trim()).toMatch(SEMVER_PATTERN);
     });
   });
 

@@ -3,6 +3,9 @@ import { expect, userEvent, within } from 'storybook/test';
 import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
 import { EpicContent } from './EpicContent.tsx';
 
+/** Regex pattern for matching Epic Documentation button (case insensitive) */
+const EPIC_DOCUMENTATION_PATTERN = /epic documentation/i;
+
 // ============================================================================
 // EpicContent Stories
 // ============================================================================
@@ -101,9 +104,15 @@ Regular paragraph text below the headings.`}
     const proseCanvas = within(proseContainer);
 
     // Check headings are rendered using role queries
-    await expect(proseCanvas.getByRole('heading', { level: 1, name: 'Main Heading' })).toBeInTheDocument();
-    await expect(proseCanvas.getByRole('heading', { level: 2, name: 'Secondary Heading' })).toBeInTheDocument();
-    await expect(proseCanvas.getByRole('heading', { level: 3, name: 'Tertiary Heading' })).toBeInTheDocument();
+    await expect(
+      proseCanvas.getByRole('heading', { level: 1, name: 'Main Heading' }),
+    ).toBeInTheDocument();
+    await expect(
+      proseCanvas.getByRole('heading', { level: 2, name: 'Secondary Heading' }),
+    ).toBeInTheDocument();
+    await expect(
+      proseCanvas.getByRole('heading', { level: 3, name: 'Tertiary Heading' }),
+    ).toBeInTheDocument();
 
     // Visual snapshot
     await matchCanvasSnapshot(canvasElement, 'epic-content-headings');
@@ -299,7 +308,7 @@ This content can be collapsed and expanded by clicking the header.
     await expect(epicContent).toHaveAttribute('data-state', 'open');
 
     // Click to collapse
-    const trigger = canvas.getByRole('button', { name: /epic documentation/i });
+    const trigger = canvas.getByRole('button', { name: EPIC_DOCUMENTATION_PATTERN });
     await userEvent.click(trigger);
 
     // Should be collapsed
@@ -381,7 +390,9 @@ See the [project board](https://github.com/example/saga/projects/1) for details.
     const proseCanvas = within(proseContainer);
 
     // Check main heading using role query
-    await expect(proseCanvas.getByRole('heading', { level: 1, name: 'Dashboard Restructure Epic' })).toBeInTheDocument();
+    await expect(
+      proseCanvas.getByRole('heading', { level: 1, name: 'Dashboard Restructure Epic' }),
+    ).toBeInTheDocument();
 
     // Check table using role query
     await expect(canvas.getByRole('table')).toBeInTheDocument();

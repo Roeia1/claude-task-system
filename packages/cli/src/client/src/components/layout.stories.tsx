@@ -6,8 +6,14 @@ import { dashboardMachine } from '@/machines';
 import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
 import { Layout } from './Layout.tsx';
 
+/** Number of sample cards to render in stories */
+const SAMPLE_CARD_COUNT = 3;
+
 /** Array of sample card indices for iteration */
-const SAMPLE_CARD_INDICES = [1, 2, 3];
+const SAMPLE_CARD_INDICES = Array.from({ length: SAMPLE_CARD_COUNT }, (_, i) => i + 1);
+
+/** Regex pattern for matching Dashboard text */
+const DASHBOARD_PATTERN = /Dashboard/;
 
 /**
  * The Layout component provides the main application shell including:
@@ -42,7 +48,7 @@ export const Default: Story = {
 
     // Verify header renders with SAGA Dashboard branding (text is split across elements)
     await expect(canvas.getByText('SAGA')).toBeInTheDocument();
-    await expect(canvas.getByText(/Dashboard/)).toBeInTheDocument();
+    await expect(canvas.getByText(DASHBOARD_PATTERN)).toBeInTheDocument();
 
     // Verify breadcrumb shows root "Epics" path
     await expect(canvas.getByText('Epics')).toBeInTheDocument();

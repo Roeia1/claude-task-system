@@ -30,7 +30,7 @@ const statusLabels: Record<StoryStatus, string> = {
  * Status badge with count - used in EpicList to show story counts per status.
  * Exported for use as component reference in Storybook meta.
  */
-export function StatusBadgeWithCount({ status, count }: { status: StoryStatus; count: number }) {
+function StatusBadgeWithCount({ status, count }: { status: StoryStatus; count: number }) {
   return (
     <Badge class={statusVariants[status]}>
       {statusLabels[status]}: {count}
@@ -43,7 +43,7 @@ export function StatusBadgeWithCount({ status, count }: { status: StoryStatus; c
  * individual story/task status.
  * Exported for use as component reference in Storybook meta.
  */
-export function StatusBadge({ status }: { status: StoryStatus }) {
+function StatusBadge({ status }: { status: StoryStatus }) {
   return <Badge class={statusVariants[status]}>{statusLabels[status]}</Badge>;
 }
 
@@ -182,7 +182,7 @@ export const AllVariants: Story = {
 /**
  * Status badge with count - used in EpicList to show aggregated story counts.
  */
-export const statusBadgeWithCountMeta: Meta<typeof StatusBadgeWithCount> = {
+const statusBadgeWithCountMeta: Meta<typeof StatusBadgeWithCount> = {
   title: 'Components/StatusBadge/WithCount',
   component: StatusBadgeWithCount,
   argTypes: {
@@ -390,3 +390,4 @@ export const EdgeCases: Story = {
 };
 
 export default meta;
+export { StatusBadgeWithCount, StatusBadge, statusBadgeWithCountMeta };

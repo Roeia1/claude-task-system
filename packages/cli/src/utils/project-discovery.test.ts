@@ -9,6 +9,12 @@ import { findProjectRoot, resolveProjectPath } from './project-discovery.ts';
 // Test Constants
 // ============================================================================
 
+/** Regex pattern for error message containing .saga */
+const SAGA_ERROR_PATTERN = /\.saga/;
+
+/** Regex pattern for SAGA project error message */
+const SAGA_PROJECT_ERROR_PATTERN = /SAGA project/;
+
 /** Base for generating random string suffixes in temp directory names */
 const RANDOM_STRING_BASE = 36;
 
@@ -103,7 +109,7 @@ describe('project-discovery', () => {
     });
 
     it('throws error with helpful message when project not found', () => {
-      expect(() => resolveProjectPath(testDir)).toThrow(/\.saga/);
+      expect(() => resolveProjectPath(testDir)).toThrow(SAGA_ERROR_PATTERN);
     });
 
     it('discovers project root when no explicit path provided', () => {
@@ -129,7 +135,7 @@ describe('project-discovery', () => {
       const originalCwd = process.cwd();
       try {
         process.chdir(testDir);
-        expect(() => resolveProjectPath()).toThrow(/SAGA project/);
+        expect(() => resolveProjectPath()).toThrow(SAGA_PROJECT_ERROR_PATTERN);
       } finally {
         process.chdir(originalCwd);
       }

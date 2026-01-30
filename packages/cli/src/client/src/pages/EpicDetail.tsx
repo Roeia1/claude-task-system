@@ -24,7 +24,7 @@ const statusPriority: Record<StoryStatus, number> = {
 };
 
 /** Skeleton loading component for the epic header */
-export function HeaderSkeleton() {
+function HeaderSkeleton() {
   return (
     <div class="animate-pulse space-y-4" data-testid="epic-header-skeleton">
       <div class="h-8 w-64 bg-bg-light rounded" />
@@ -40,7 +40,7 @@ export function HeaderSkeleton() {
 }
 
 /** Skeleton loading component for story cards */
-export function StoryCardSkeleton() {
+function StoryCardSkeleton() {
   return (
     <Card class="animate-pulse" data-testid="story-card-skeleton">
       <CardHeader>
@@ -55,7 +55,7 @@ export function StoryCardSkeleton() {
 }
 
 /** Status badge with appropriate color based on story status */
-export function StatusBadge({ status }: { status: StoryStatus }) {
+function StatusBadge({ status }: { status: StoryStatus }) {
   const variants: Record<StoryStatus, string> = {
     ready: 'bg-text-muted/20 text-text-muted',
     // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
@@ -82,7 +82,7 @@ function getTaskProgress(tasks: StoryDetail['tasks']) {
 }
 
 /** Card component for displaying a single story */
-export function StoryCard({ story, epicSlug }: { story: StoryDetail; epicSlug: string }) {
+function StoryCard({ story, epicSlug }: { story: StoryDetail; epicSlug: string }) {
   const taskProgress = getTaskProgress(story.tasks);
 
   return (
@@ -102,7 +102,7 @@ export function StoryCard({ story, epicSlug }: { story: StoryDetail; epicSlug: s
   );
 }
 
-export function EpicDetail() {
+function EpicDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { currentEpic, setCurrentEpic, clearCurrentEpic, isLoading } = useDashboard();
   const [isFetching, setIsFetching] = useState(true);
@@ -243,3 +243,5 @@ export function EpicDetail() {
     </div>
   );
 }
+
+export { HeaderSkeleton, StoryCardSkeleton, StatusBadge, StoryCard, EpicDetail };
