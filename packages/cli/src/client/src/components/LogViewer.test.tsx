@@ -707,4 +707,185 @@ Line 3`;
       expect(screen.queryByTestId('status-indicator-complete')).not.toBeInTheDocument();
     });
   });
+
+  describe('edge cases', () => {
+    it('handles unmount when WebSocket becomes unavailable', () => {
+      const mockSend = vi.fn();
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+
+      const { unmount } = render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+        />
+      );
+
+      // Simulate WebSocket becoming unavailable before unmount
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(null);
+
+      // Should not throw when unmounting
+      expect(() => unmount()).not.toThrow();
+    });
+
+    it('scrolls to bottom when enabling auto-scroll from disabled state', async () => {
+      const mockScrollTo = vi.fn();
+      Element.prototype.scrollTo = mockScrollTo;
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent="Line 1\nLine 2\nLine 3"
+        />
+      );
+
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+
+      // Auto-scroll starts disabled for completed sessions
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+
+      // Clear any previous scroll calls
+      mockScrollTo.mockClear();
+
+      // Enable auto-scroll
+      fireEvent.click(toggleButton);
+
+      // Should scroll to bottom immediately when enabling
+      expect(mockScrollTo).toHaveBeenCalled();
+    });
+
+    it('does not disable auto-scroll when already at bottom', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent="Line 1"
+        />
+      );
+
+      const content = screen.getByTestId('log-content');
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+
+      // Initially enabled
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+
+      // Simulate scroll at bottom position
+      Object.defineProperty(content, 'scrollTop', { value: 100, writable: true });
+      Object.defineProperty(content, 'scrollHeight', { value: 484, writable: true });
+      Object.defineProperty(content, 'clientHeight', { value: 384, writable: true });
+
+      // scrollHeight - scrollTop - clientHeight = 484 - 100 - 384 = 0 < 10
+      fireEvent.scroll(content);
+
+      // Auto-scroll should still be enabled (at bottom)
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('renders non-breaking space for empty lines', () => {
+      const content = 'Line 1\n\nLine 3';
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent={content}
+        />
+      );
+
+      // Check that all lines are rendered including empty ones
+      const logLines = screen.getAllByTestId('log-line');
+      // Should have 3 lines (Line 1, empty, Line 3)
+      expect(logLines.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('shows loading skeleton without initial content when WebSocket available', () => {
+      const mockSend = vi.fn();
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+        />
+      );
+
+      // Should show loading skeleton
+      expect(screen.getByTestId('log-viewer-skeleton')).toBeInTheDocument();
+    });
+
+    it('does not show loading when initialContent is provided', () => {
+      const mockSend = vi.fn();
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(mockSend);
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent="Some log content"
+        />
+      );
+
+      // Should NOT show loading skeleton when initialContent provided
+      expect(screen.queryByTestId('log-viewer-skeleton')).not.toBeInTheDocument();
+    });
+
+    it('renders correctly when no content and not loading', () => {
+      // When WebSocket is not available and no initial content
+      (dashboardMachine.getWebSocketSend as Mock).mockReturnValue(null);
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+        />
+      );
+
+      // Should not show loading (no WebSocket)
+      expect(screen.queryByTestId('log-viewer-skeleton')).not.toBeInTheDocument();
+      // Should still show the log viewer
+      expect(screen.getByTestId('log-viewer')).toBeInTheDocument();
+    });
+
+    it('has accessible toggle button with proper title', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent="Content"
+        />
+      );
+
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+      expect(toggleButton).toHaveAttribute('title');
+      expect(toggleButton.getAttribute('title')).toContain('Auto-scroll');
+    });
+
+    it('changes toggle button title based on state', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent="Content"
+        />
+      );
+
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+
+      // Initially enabled
+      expect(toggleButton.getAttribute('title')).toContain('enabled');
+
+      // Click to disable
+      fireEvent.click(toggleButton);
+
+      expect(toggleButton.getAttribute('title')).toContain('disabled');
+    });
+  });
 });

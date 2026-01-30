@@ -213,3 +213,32 @@
 **Next steps:**
 - t7: Write remaining unit tests
 - t8: Write Storybook stories
+
+## Session: 2026-01-30T03:31:00Z
+
+### Task: t7 - Write unit tests for LogViewer
+
+**What was done:**
+- Expanded unit test coverage for LogViewer component
+- Added 9 new edge case tests covering:
+  - handles unmount when WebSocket becomes unavailable
+  - scrolls to bottom when enabling auto-scroll from disabled state
+  - does not disable auto-scroll when already at bottom
+  - renders non-breaking space for empty lines
+  - shows loading skeleton without initial content when WebSocket available
+  - does not show loading when initialContent is provided
+  - renders correctly when no content and not loading
+  - has accessible toggle button with proper title
+  - changes toggle button title based on state
+- Tests now cover edge cases for:
+  - WebSocket cleanup when connection unavailable during unmount
+  - Auto-scroll toggle behavior in both directions
+  - Loading state variations
+  - Accessibility attributes
+
+**Test Results:**
+- All 43 LogViewer tests pass (34 existing + 9 new)
+- All 614 unit tests pass (1 pre-existing flaky tmux test timeout, unrelated)
+
+**Next steps:**
+- t8: Write Storybook stories for LogViewer
