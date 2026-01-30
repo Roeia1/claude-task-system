@@ -12,7 +12,7 @@ tasks:
     status: completed
   - id: t3
     title: Implement virtual scrolling for log lines
-    status: pending
+    status: completed
   - id: t4
     title: Add WebSocket log subscription hook
     status: pending
