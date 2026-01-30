@@ -19,8 +19,6 @@ export default defineConfig({
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
 
-  // Limit parallel workers on CI for stability
-  workers: process.env.CI ? 1 : undefined,
 
   // Reporter configuration
   reporter: process.env.CI ? 'github' : 'html',
@@ -47,7 +45,7 @@ export default defineConfig({
 
   // Web server configuration - starts Vite dev server before tests
   webServer: {
-    command: 'pnpm dev:client',
+    command: 'vite --config src/client/vite.config.ts',
     cwd: '../..',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
