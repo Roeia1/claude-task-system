@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+import { playwright } from '@vitest/browser-playwright';
 import { defineConfig, mergeConfig } from 'vitest/config';
 
 // Import the client's vite config to get aliases and plugins for storybook tests
@@ -12,7 +13,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 const browserConfig = {
   enabled: true,
   headless: true,
-  provider: 'playwright' as const,
+  provider: playwright(),
   instances: [{ browser: 'chromium' as const }],
   // Visual snapshot testing configuration
   screenshotDirectory: '__snapshots__',
