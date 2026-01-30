@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useDashboard } from '@/context/DashboardContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -334,10 +336,10 @@ export function StoryDetail() {
             </CardHeader>
             <CardContent>
               {currentStory.content ? (
-                <div className="prose prose-sm prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap text-sm text-text font-mono bg-bg-dark p-4 rounded-md overflow-x-auto">
+                <div className="prose prose-sm prose-invert max-w-none prose-headings:text-text prose-p:text-text-muted prose-strong:text-text prose-code:text-primary prose-code:bg-bg-dark prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-dark prose-pre:border prose-pre:border-border-muted prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-li:text-text-muted prose-table:border prose-table:border-border-muted prose-th:bg-bg-dark prose-th:px-3 prose-th:py-2 prose-th:text-text prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-border-muted">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {currentStory.content}
-                  </pre>
+                  </ReactMarkdown>
                 </div>
               ) : (
                 <p className="text-text-muted text-center py-4">No story content available.</p>

@@ -14,7 +14,7 @@
     "build:all": "pnpm build && pnpm build:client",
     "dev": "npm run build && node dist/cli.cjs",
     "dev:client": "vite --config src/client/vite.config.ts",
-    "test": "concurrently -g \"vitest run\" \"pnpm run test:integration\" \"pnpm run test:e2e\"",
+    "test": "pnpm build:all && vitest run && pnpm run test:integration && pnpm run test:e2e",
     "test:watch": "vitest",
     "test:integration": "playwright test --config src/client/playwright.config.ts",
     "test:integration:ui": "playwright test --config src/client/playwright.config.ts --ui",

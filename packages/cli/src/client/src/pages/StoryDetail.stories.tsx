@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import { MemoryRouter, Link } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -1403,10 +1405,10 @@ export const WithContent: StoryDetailStory = {
                 <CardTitle className="text-lg">Story Content</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose prose-sm prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap text-sm text-text font-mono bg-bg-dark p-4 rounded-md overflow-x-auto">
+                <div className="prose prose-sm prose-invert max-w-none prose-headings:text-text prose-p:text-text-muted prose-strong:text-text prose-code:text-primary prose-code:bg-bg-dark prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-dark prose-pre:border prose-pre:border-border-muted prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-li:text-text-muted prose-table:border prose-table:border-border-muted prose-th:bg-bg-dark prose-th:px-3 prose-th:py-2 prose-th:text-text prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-border-muted">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {sampleStory.content}
-                  </pre>
+                  </ReactMarkdown>
                 </div>
               </CardContent>
             </Card>
@@ -1424,13 +1426,13 @@ export const WithContent: StoryDetailStory = {
     await expect(contentTab).toBeInTheDocument()
     // Verify Story Content card title
     await expect(canvas.getByText('Story Content', { selector: '.text-lg' })).toBeInTheDocument()
-    // Verify markdown content is displayed (check for specific text from content)
-    await expect(canvas.getByText(/Context/)).toBeInTheDocument()
+    // Verify markdown content is rendered (check for headings and text)
+    await expect(canvas.getByRole('heading', { name: 'Context' })).toBeInTheDocument()
     await expect(canvas.getByText(/The SAGA Dashboard needs Storybook/)).toBeInTheDocument()
-    await expect(canvas.getByText(/Acceptance Criteria/)).toBeInTheDocument()
-    // Verify pre element for content display
-    const preElement = canvasElement.querySelector('pre.bg-bg-dark')
-    await expect(preElement).toBeInTheDocument()
+    await expect(canvas.getByRole('heading', { name: 'Acceptance Criteria' })).toBeInTheDocument()
+    // Verify prose container is present
+    const proseContainer = canvasElement.querySelector('.prose')
+    await expect(proseContainer).toBeInTheDocument()
   },
 }
 
