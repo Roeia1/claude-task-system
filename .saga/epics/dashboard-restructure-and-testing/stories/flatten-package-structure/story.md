@@ -1,27 +1,27 @@
 ---
 id: flatten-package-structure
 title: Flatten Dashboard Package Structure
-status: ready
+status: completed
 epic: dashboard-restructure-and-testing
 tasks:
   - id: t1
     title: Audit Current Dependencies
-    status: pending
+    status: completed
   - id: t2
     title: Move Client Dependencies to CLI package.json
-    status: pending
+    status: completed
   - id: t3
     title: Update Vite Configuration
-    status: pending
+    status: completed
   - id: t4
     title: Update Build Scripts
-    status: pending
+    status: completed
   - id: t5
     title: Remove Nested package.json
-    status: pending
+    status: completed
   - id: t6
     title: Verify Build and Development Workflow
-    status: pending
+    status: completed
 ---
 
 ## Context

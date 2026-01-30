@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot'
 import { Breadcrumb } from './Breadcrumb'
 
 /**
@@ -62,6 +63,9 @@ export const Root: Story = {
 
     // Accessibility: Verify nav has proper aria-label for screen readers
     await expect(nav).toHaveAttribute('aria-label', 'Breadcrumb')
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'breadcrumb-root')
   },
 }
 
@@ -100,6 +104,9 @@ export const EpicDetail: Story = {
     // Verify nav has proper aria-label
     const nav = canvasElement.querySelector('nav[aria-label="Breadcrumb"]')
     await expect(nav).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'breadcrumb-epic-detail')
   },
 }
 
@@ -149,6 +156,9 @@ export const StoryDetail: Story = {
     // Verify nav has proper aria-label
     const nav = canvasElement.querySelector('nav[aria-label="Breadcrumb"]')
     await expect(nav).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'breadcrumb-story-detail')
   },
 }
 

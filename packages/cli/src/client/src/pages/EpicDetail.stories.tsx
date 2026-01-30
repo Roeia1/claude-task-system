@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import { MemoryRouter, Routes, Route, Link } from 'react-router-dom'
+import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot'
 import { Progress } from '@/components/ui/progress'
+import { EpicContent } from '@/components/EpicContent'
 import {
   EpicDetail,
   HeaderSkeleton,
@@ -552,6 +554,9 @@ export const Loading: EpicDetailStory = {
     // Verify three story card skeletons
     const skeletonCards = canvasElement.querySelectorAll('.animate-pulse')
     await expect(skeletonCards.length).toBe(4) // 1 header + 3 cards
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'epic-detail-loading')
   },
 }
 
@@ -593,6 +598,9 @@ export const NotFound: EpicDetailStory = {
 
     // Accessibility: Verify back link has accessible name
     await expect(backLink).toHaveAccessibleName()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'epic-detail-not-found')
   },
 }
 
@@ -678,6 +686,9 @@ export const Empty: EpicDetailStory = {
     await expect(canvas.getByText('No stories in this epic.')).toBeInTheDocument()
     // Verify guidance text with command
     await expect(canvas.getByText('/generate-stories')).toBeInTheDocument()
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'epic-detail-empty')
   },
 }
 
@@ -734,6 +745,27 @@ const sampleStories: StoryDetailType[] = [
   },
 ]
 
+const sampleEpicContent = `# Dashboard Restructure Epic
+
+This epic covers the complete restructuring of the SAGA dashboard to improve usability and add new features.
+
+## Goals
+
+- Improve navigation with breadcrumbs
+- Add epic content display with markdown rendering
+- Implement session management UI
+- Add visual regression testing
+
+## Technical Stack
+
+| Component | Technology |
+|-----------|------------|
+| Frontend | React 18 + TypeScript |
+| Styling | TailwindCSS |
+| Components | Radix UI |
+| Testing | Vitest + Playwright |
+`;
+
 /**
  * Populated state with multiple stories showing various statuses.
  * Stories are sorted by status priority: blocked, in_progress, ready, completed.
@@ -755,6 +787,9 @@ export const Populated: EpicDetailStory = {
             <Progress value={25} />
           </div>
         </div>
+
+        {/* Epic content (markdown documentation) */}
+        <EpicContent content={sampleEpicContent} />
 
         {/* Stories list */}
         <div className="space-y-4">
@@ -780,6 +815,15 @@ export const Populated: EpicDetailStory = {
     ).toBeInTheDocument()
     // Verify progress text
     await expect(canvas.getByText('1/4 stories completed')).toBeInTheDocument()
+    // Verify EpicContent section is present
+    await expect(canvas.getByTestId('epic-content')).toBeInTheDocument()
+    await expect(canvas.getByText('Epic Documentation')).toBeInTheDocument()
+    // Verify markdown content is rendered (heading inside prose)
+    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]')
+    const proseContainer = epicContent?.querySelector('.prose')
+    await expect(proseContainer?.querySelector('h1')).toHaveTextContent('Dashboard Restructure Epic')
+    // Verify table is rendered
+    await expect(epicContent?.querySelector('table')).toBeInTheDocument()
     // Verify "Stories" section header
     await expect(canvas.getByText('Stories')).toBeInTheDocument()
     // Verify all story cards by title
@@ -799,6 +843,9 @@ export const Populated: EpicDetailStory = {
     // Verify four story card links
     const links = canvas.getAllByRole('link')
     await expect(links.length).toBe(4)
+
+    // Visual snapshot test
+    await matchCanvasSnapshot(canvasElement, 'epic-detail-populated')
   },
 }
 
