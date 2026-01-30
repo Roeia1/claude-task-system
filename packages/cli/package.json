@@ -11,10 +11,10 @@
   "scripts": {
     "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.cjs --format=cjs --banner:js='#!/usr/bin/env node' --external:express --external:ws --external:chokidar --external:gray-matter --external:fuse.js --external:commander",
     "build:client": "vite build --config src/client/vite.config.ts",
-    "build:all": "pnpm build && pnpm build:client",
+    "build:all": "concurrently -g \"pnpm build\" \"pnpm build:client\"",
     "dev": "npm run build && node dist/cli.cjs",
     "dev:client": "vite --config src/client/vite.config.ts",
-    "test": "pnpm build:all && vitest run && pnpm run test:integration && pnpm run test:e2e",
+    "test": "pnpm build:all && concurrently -g \"vitest run\" \"pnpm run test:integration\" \"pnpm run test:e2e\"",
     "test:watch": "vitest",
     "test:integration": "playwright test --config src/client/playwright.config.ts",
     "test:integration:ui": "playwright test --config src/client/playwright.config.ts --ui",
