@@ -1,7 +1,7 @@
 ---
 id: home-page-active-sessions
 title: Home Page Active Sessions Section
-status: ready
+status: completed
 epic: tmux-session-dashboard
 tasks:
   - id: t1
@@ -24,7 +24,7 @@ tasks:
     status: completed
   - id: t7
     title: Add Storybook stories for session components
-    status: pending
+    status: completed
 ---
 
 ## Context

@@ -203,3 +203,53 @@
 
 **Next steps:**
 - Task t7: Add Storybook stories for session components
+
+## Session: 2026-01-30T04:00:00Z
+
+### Task: t7 - Add Storybook stories for session components
+
+**What was done:**
+- Created `SessionCard.stories.tsx` with comprehensive Storybook stories for the SessionCard component
+- Created `ActiveSessions.stories.tsx` with stories for the ActiveSessions component and skeleton
+- Stories cover all required states per task guidance:
+
+**SessionCard stories (8 stories):**
+- `Default`: Standard session card with all elements (story title, epic, duration, output preview)
+- `NoOutputPreview`: Session with undefined outputPreview
+- `OutputUnavailable`: Session with `outputAvailable: false` showing dimmed message
+- `LongOutputPreview`: Demonstrates truncation to last 5 lines and 500 chars
+- `JustStarted`: Session started 15 seconds ago (duration in seconds format)
+- `LongRunning`: Session running for 1+ hour (duration in hours format)
+- `MultipleCards`: Three cards in horizontal layout
+- `FormatDurationExamples`: Visual reference for all duration format cases
+
+**ActiveSessions stories (9 stories):**
+- `Skeleton`: Loading skeleton with heading and 3 placeholder cards
+- `Loading`: Same as skeleton (for clarity)
+- `Empty`: Explanatory placeholder showing that section returns null when empty
+- `SingleSession`: One running session
+- `MultipleSessions`: Four sessions demonstrating horizontal scroll
+- `OutputUnavailable`: Session with output unavailable state
+- `LongOutputPreview`: Session with long output showing truncation
+- `MixedSessionStates`: Sessions with output, without output, and unavailable output
+
+**Implementation details:**
+- Used existing Storybook patterns from `EpicList.stories.tsx`
+- Stories use mock data matching `SessionInfo` type
+- Each story includes a `play` function for interactive testing verification
+- Fixed nested `MemoryRouter` issue in `MultipleCards` story by removing duplicate decorator
+- Stories do not require live backend - all data is mocked
+
+**Tests passed:**
+- All 17 new Storybook tests pass (8 SessionCard + 9 ActiveSessions)
+- Total Storybook tests: 133 passed
+- All unit tests still pass: 621 passed, 1 pre-existing timeout
+
+**References:**
+- `packages/cli/src/client/src/pages/EpicList.stories.tsx` - Storybook patterns
+- `packages/cli/src/client/src/components/SessionCard.stories.tsx:1-299` - new file
+- `packages/cli/src/client/src/components/ActiveSessions.stories.tsx:1-298` - new file
+
+**Story Status:**
+- All 7 tasks completed
+- Story marked as completed
