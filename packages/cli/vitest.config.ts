@@ -30,7 +30,7 @@ const browserConfig = {
   },
 };
 
-export default defineConfig({
+const config = defineConfig({
   test: {
     projects: [
       // Unit tests project - runs in Node environment from package root
@@ -69,3 +69,5 @@ export default defineConfig({
     ],
   },
 });
+
+export { config as default };

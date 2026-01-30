@@ -210,28 +210,27 @@ async function parseStoryFile(
  */
 async function scanWorktrees(sagaRoot: string): Promise<ScannedStory[]> {
   const worktreesDir = join(sagaRoot, '.saga', 'worktrees');
-  const stories: ScannedStory[] = [];
 
   if (!(await isDirectory(worktreesDir))) {
-    return stories;
+    return [];
   }
 
   const epicEntries = await readdir(worktreesDir);
 
-  for (const epicSlug of epicEntries) {
+  const epicPromises = epicEntries.map(async (epicSlug) => {
     const epicWorktreesDir = join(worktreesDir, epicSlug);
 
     if (!(await isDirectory(epicWorktreesDir))) {
-      continue;
+      return [];
     }
 
     const storyEntries = await readdir(epicWorktreesDir);
 
-    for (const storySlug of storyEntries) {
+    const storyPromises = storyEntries.map(async (storySlug) => {
       const worktreePath = join(epicWorktreesDir, storySlug);
 
       if (!(await isDirectory(worktreePath))) {
-        continue;
+        return null;
       }
 
       const storyPath = join(
@@ -244,14 +243,15 @@ async function scanWorktrees(sagaRoot: string): Promise<ScannedStory[]> {
         'story.md',
       );
 
-      const story = await parseStoryFile(storyPath, epicSlug, { worktreePath });
-      if (story) {
-        stories.push(story);
-      }
-    }
-  }
+      return await parseStoryFile(storyPath, epicSlug, { worktreePath });
+    });
 
-  return stories;
+    const stories = await Promise.all(storyPromises);
+    return stories.filter((story) => story !== null);
+  });
+
+  const epicStories = await Promise.all(epicPromises);
+  return epicStories.flat();
 }
 
 /**
@@ -261,39 +261,39 @@ async function scanWorktrees(sagaRoot: string): Promise<ScannedStory[]> {
  */
 async function scanEpicsStories(sagaRoot: string): Promise<ScannedStory[]> {
   const epicsDir = join(sagaRoot, '.saga', 'epics');
-  const stories: ScannedStory[] = [];
 
   if (!(await isDirectory(epicsDir))) {
-    return stories;
+    return [];
   }
 
   const epicEntries = await readdir(epicsDir);
 
-  for (const epicSlug of epicEntries) {
+  const epicPromises = epicEntries.map(async (epicSlug) => {
     const storiesDir = join(epicsDir, epicSlug, 'stories');
 
     if (!(await isDirectory(storiesDir))) {
-      continue;
+      return [];
     }
 
     const storyEntries = await readdir(storiesDir);
 
-    for (const storySlug of storyEntries) {
+    const storyPromises = storyEntries.map(async (storySlug) => {
       const storyDir = join(storiesDir, storySlug);
 
       if (!(await isDirectory(storyDir))) {
-        continue;
+        return null;
       }
 
       const storyPath = join(storyDir, 'story.md');
-      const story = await parseStoryFile(storyPath, epicSlug);
-      if (story) {
-        stories.push(story);
-      }
-    }
-  }
+      return await parseStoryFile(storyPath, epicSlug);
+    });
 
-  return stories;
+    const stories = await Promise.all(storyPromises);
+    return stories.filter((story) => story !== null);
+  });
+
+  const epicStories = await Promise.all(epicPromises);
+  return epicStories.flat();
 }
 
 /**
@@ -303,39 +303,39 @@ async function scanEpicsStories(sagaRoot: string): Promise<ScannedStory[]> {
  */
 async function scanArchive(sagaRoot: string): Promise<ScannedStory[]> {
   const archiveDir = join(sagaRoot, '.saga', 'archive');
-  const stories: ScannedStory[] = [];
 
   if (!(await isDirectory(archiveDir))) {
-    return stories;
+    return [];
   }
 
   const epicEntries = await readdir(archiveDir);
 
-  for (const epicSlug of epicEntries) {
+  const epicPromises = epicEntries.map(async (epicSlug) => {
     const epicArchiveDir = join(archiveDir, epicSlug);
 
     if (!(await isDirectory(epicArchiveDir))) {
-      continue;
+      return [];
     }
 
     const storyEntries = await readdir(epicArchiveDir);
 
-    for (const storySlug of storyEntries) {
+    const storyPromises = storyEntries.map(async (storySlug) => {
       const storyDir = join(epicArchiveDir, storySlug);
 
       if (!(await isDirectory(storyDir))) {
-        continue;
+        return null;
       }
 
       const storyPath = join(storyDir, 'story.md');
-      const story = await parseStoryFile(storyPath, epicSlug, { archived: true });
-      if (story) {
-        stories.push(story);
-      }
-    }
-  }
+      return await parseStoryFile(storyPath, epicSlug, { archived: true });
+    });
 
-  return stories;
+    const stories = await Promise.all(storyPromises);
+    return stories.filter((story) => story !== null);
+  });
+
+  const epicStories = await Promise.all(epicPromises);
+  return epicStories.flat();
 }
 
 /**
@@ -393,19 +393,18 @@ async function scanAllStories(sagaRoot: string): Promise<ScannedStory[]> {
  */
 async function scanEpics(sagaRoot: string): Promise<ScannedEpic[]> {
   const epicsDir = join(sagaRoot, '.saga', 'epics');
-  const epics: ScannedEpic[] = [];
 
   if (!(await isDirectory(epicsDir))) {
-    return epics;
+    return [];
   }
 
   const epicEntries = await readdir(epicsDir);
 
-  for (const epicSlug of epicEntries) {
+  const epicPromises = epicEntries.map(async (epicSlug) => {
     const epicPath = join(epicsDir, epicSlug);
 
     if (!(await isDirectory(epicPath))) {
-      continue;
+      return null;
     }
 
     const epicMdPath = join(epicPath, 'epic.md');
@@ -419,16 +418,17 @@ async function scanEpics(sagaRoot: string): Promise<ScannedEpic[]> {
       // No epic.md, use slug as title
     }
 
-    epics.push({
+    return {
       slug: epicSlug,
       title,
       epicPath,
       epicMdPath,
       content,
-    });
-  }
+    };
+  });
 
-  return epics;
+  const epics = await Promise.all(epicPromises);
+  return epics.filter((epic) => epic !== null);
 }
 
 /**

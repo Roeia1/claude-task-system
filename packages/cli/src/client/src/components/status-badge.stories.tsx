@@ -153,7 +153,7 @@ export const Completed: Story = {
  * All status variants displayed together to demonstrate color contrast
  * and visual hierarchy.
  */
-export const AllVariants: Story = {
+const AllVariants: Story = {
   render: () => (
     <div class="flex flex-wrap gap-2">
       <StatusBadge status="ready" />
@@ -390,4 +390,9 @@ export const EdgeCases: Story = {
 };
 
 export default meta;
-export { StatusBadgeWithCount, StatusBadge, statusBadgeWithCountMeta };
+export {
+  StatusBadgeWithCount,
+  StatusBadge,
+  statusBadgeWithCountMeta,
+  AllVariants,
+};

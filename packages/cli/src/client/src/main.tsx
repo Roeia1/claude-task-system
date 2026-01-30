@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { DashboardProvider } from './context/DashboardContext.tsx';
+import { DashboardProvider } from './context/dashboard-context.tsx';
 import { AppRouter } from './router.tsx';
 import './index.css';
 

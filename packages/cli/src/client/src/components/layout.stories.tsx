@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { expect, within } from 'storybook/test';
-import { DashboardProvider } from '@/context/DashboardContext';
+import { DashboardProvider } from '@/context/dashboard-context';
 import { dashboardMachine } from '@/machines';
 import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
 import { Layout } from './Layout.tsx';

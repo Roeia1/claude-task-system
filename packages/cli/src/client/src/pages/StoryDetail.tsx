@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useDashboard } from '@/context/DashboardContext';
+import { useDashboard } from '@/context/dashboard-context';
 import { showApiErrorToast } from '@/lib/toast-utils';
 import type {
   JournalEntry,
@@ -21,7 +21,7 @@ import type {
 const HTTP_NOT_FOUND = 404;
 
 /** Skeleton loading component for the story header */
-export function HeaderSkeleton() {
+function HeaderSkeleton() {
   return (
     <div class="animate-pulse space-y-4" data-testid="story-header-skeleton">
       <div class="h-8 w-64 bg-bg-light rounded" />
@@ -34,7 +34,7 @@ export function HeaderSkeleton() {
 }
 
 /** Skeleton loading component for content sections */
-export function ContentSkeleton() {
+function ContentSkeleton() {
   return (
     <div class="animate-pulse space-y-4" data-testid="story-content-skeleton">
       <div class="h-6 w-48 bg-bg-light rounded" />
@@ -48,7 +48,7 @@ export function ContentSkeleton() {
 }
 
 /** Status badge with appropriate color based on story status */
-export function StatusBadge({ status }: { status: StoryStatus }) {
+function StatusBadge({ status }: { status: StoryStatus }) {
   const variants: Record<StoryStatus, string> = {
     ready: 'bg-text-muted/20 text-text-muted',
     // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
@@ -69,7 +69,7 @@ export function StatusBadge({ status }: { status: StoryStatus }) {
 }
 
 /** Task status icon (visual only, not interactive) */
-export function TaskStatusIcon({ status }: { status: TaskStatus }) {
+function TaskStatusIcon({ status }: { status: TaskStatus }) {
   const iconProps = { className: 'w-5 h-5 pointer-events-none cursor-default' };
 
   switch (status) {
@@ -112,7 +112,7 @@ function getTaskBadgeClass(status: TaskStatus): string {
 }
 
 /** Single task item display */
-export function TaskItem({ task }: { task: StoryDetailType['tasks'][0] }) {
+function TaskItem({ task }: { task: StoryDetailType['tasks'][0] }) {
   const badgeClass = getTaskBadgeClass(task.status);
 
   return (
@@ -139,7 +139,7 @@ function getEntryTypeStyle(type: JournalEntryType): { bg: string; text: string; 
 }
 
 /** Single journal entry with collapsible content */
-export function JournalEntryItem({
+function JournalEntryItem({
   entry,
   defaultOpen = false,
 }: {
@@ -185,7 +185,7 @@ export function JournalEntryItem({
   );
 }
 
-export function StoryDetail() {
+function StoryDetail() {
   const { epicSlug, storySlug } = useParams<{
     epicSlug: string;
     storySlug: string;
@@ -445,3 +445,13 @@ export function StoryDetail() {
     </div>
   );
 }
+
+export {
+  HeaderSkeleton,
+  ContentSkeleton,
+  StatusBadge,
+  TaskStatusIcon,
+  TaskItem,
+  JournalEntryItem,
+  StoryDetail,
+};

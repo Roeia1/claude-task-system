@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useDashboard } from '@/context/DashboardContext';
+import { useDashboard } from '@/context/dashboard-context';
 import { showConnectionErrorToast, showReconnectingToast } from '@/lib/toast-utils';
 
 /**

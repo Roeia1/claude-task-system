@@ -4,7 +4,7 @@ import { EpicContent } from '@/components/EpicContent';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { useDashboard } from '@/context/DashboardContext';
+import { useDashboard } from '@/context/dashboard-context';
 import { showApiErrorToast } from '@/lib/toast-utils';
 import type { Epic, StoryDetail, StoryStatus } from '@/types/dashboard';
 
