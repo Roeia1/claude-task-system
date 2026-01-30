@@ -12,7 +12,7 @@ tasks:
     status: completed
   - id: t3
     title: Implement ActiveSessions component
-    status: pending
+    status: completed
   - id: t4
     title: Write tests for SessionCard component
     status: pending

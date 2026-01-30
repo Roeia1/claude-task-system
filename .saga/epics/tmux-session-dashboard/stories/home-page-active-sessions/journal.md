@@ -58,3 +58,37 @@
 
 **Next steps:**
 - Task t3: Implement ActiveSessions component to make tests pass
+
+## Session: 2026-01-30T03:25:00Z
+
+### Task: t3 - Implement ActiveSessions component
+
+**What was done:**
+- Implemented `ActiveSessions` component in `src/client/src/components/ActiveSessions.tsx`
+- Implemented `ActiveSessionsSkeleton` for loading state
+- Implemented internal `SessionCard` component for individual session display
+- Component fetches sessions from `/api/sessions?status=running` on mount
+- Filters sessions to only show running status (defensive filtering)
+- Shows loading skeleton during fetch
+- Hides section when no running sessions (returns null)
+- Session cards display: story slug, epic slug, output preview
+- Cards link to `/epic/:epicSlug/story/:storySlug?tab=sessions`
+- Used horizontal scrollable flex container for cards
+
+**Implementation details:**
+- Used `useState` for sessions array and loading state
+- Used `useEffect` with async fetch on mount
+- Error handling: silently fails by showing empty state (section hidden)
+- Card styling follows existing patterns from `EpicList.tsx`
+- Output preview uses `pre` tag with monospace font and `bg-bg-dark`
+
+**Tests passed:**
+- All 13 tests pass (was 9 failing, 4 passing before implementation)
+
+**References:**
+- Pattern from `EpicList.tsx` for data fetching
+- Card components from `@/components/ui/card`
+- Link component from `react-router-dom`
+
+**Next steps:**
+- Task t4: Write tests for SessionCard component
