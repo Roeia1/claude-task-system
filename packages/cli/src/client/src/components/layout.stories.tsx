@@ -68,8 +68,8 @@ export const Default: Story = {
               <Route
                 index={true}
                 element={
-                  <div class="p-4 border border-dashed border-border rounded-lg">
-                    <p class="text-text-muted text-center">Main content area (via Outlet)</p>
+                  <div className="p-4 border border-dashed border-border rounded-lg">
+                    <p className="text-text-muted text-center">Main content area (via Outlet)</p>
                   </div>
                 }
               />
@@ -113,16 +113,16 @@ export const WithPageContent: Story = {
               <Route
                 index={true}
                 element={
-                  <div class="space-y-4">
-                    <h2 class="text-2xl font-bold text-text">Epics</h2>
-                    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="space-y-4">
+                    <h2 className="text-2xl font-bold text-text">Epics</h2>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {SAMPLE_CARD_INDICES.map((i) => (
                         <div
                           key={i}
-                          class="bg-card text-card-foreground p-4 rounded-lg border border-border"
+                          className="bg-card text-card-foreground p-4 rounded-lg border border-border"
                         >
-                          <h3 class="font-medium">Sample Epic {i}</h3>
-                          <p class="text-muted-foreground text-sm mt-1">
+                          <h3 className="font-medium">Sample Epic {i}</h3>
+                          <p className="text-muted-foreground text-sm mt-1">
                             This is a placeholder epic card
                           </p>
                         </div>
@@ -172,9 +172,9 @@ export const EpicDetailView: Story = {
               <Route
                 index={true}
                 element={
-                  <div class="space-y-4">
-                    <h2 class="text-2xl font-bold text-text">dashboard-restructure</h2>
-                    <p class="text-text-muted">Epic detail content area</p>
+                  <div className="space-y-4">
+                    <h2 className="text-2xl font-bold text-text">dashboard-restructure</h2>
+                    <p className="text-text-muted">Epic detail content area</p>
                   </div>
                 }
               />
@@ -220,9 +220,9 @@ export const StoryDetailView: Story = {
               <Route
                 index={true}
                 element={
-                  <div class="space-y-4">
-                    <h2 class="text-2xl font-bold text-text">storybook-setup</h2>
-                    <p class="text-text-muted">Story detail content area</p>
+                  <div className="space-y-4">
+                    <h2 className="text-2xl font-bold text-text">storybook-setup</h2>
+                    <p className="text-text-muted">Story detail content area</p>
                   </div>
                 }
               />
