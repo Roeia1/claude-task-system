@@ -173,3 +173,43 @@
 - t6: Add loading and status indicators (status indicator portion)
 - t7: Write remaining unit tests
 - t8: Write Storybook stories
+
+## Session: 2026-01-30T03:27:00Z
+
+### Task: t6 - Add loading and status indicators
+
+**What was done:**
+- Added `StatusIndicator` component within LogViewer.tsx that shows:
+  - "Streaming" with animated spinning `Loader2` icon for running sessions
+  - "Complete" with `CheckCircle` icon for completed sessions
+- Restructured LogViewer layout to include a header bar:
+  - Header contains status indicator on the left, auto-scroll toggle on the right
+  - Header is separated from content with a border (`border-b border-bg-light`)
+  - Content area moved to `data-testid="log-content"` for scroll handling
+- Applied SAGA theme colors:
+  - Streaming indicator uses `text-success` (green)
+  - Complete indicator uses `text-text-muted` (subdued)
+- Added test IDs for status indicators:
+  - `status-indicator-streaming` for running sessions
+  - `status-indicator-complete` for completed sessions
+- Updated existing tests to account for new structure:
+  - Tests now use `log-content` for scroll-related assertions
+  - Updated 4 tests that checked classes on `log-viewer` container
+- Added 3 new unit tests for status indicator:
+  - shows streaming indicator with animation for running sessions
+  - shows complete indicator for completed sessions
+  - does not show status indicator when output is unavailable
+
+**Decisions:**
+- Used Lucide icons (`Loader2`, `CheckCircle`) for visual consistency with codebase
+- Added `animate-spin` to Loader2 for visible streaming activity indication
+- Structured component with flex layout for clean header/content separation
+- Loading skeleton (from t4) remains unchanged - complements the status indicator
+
+**Test Results:**
+- All 34 LogViewer tests pass (31 existing + 3 new)
+- All 605 unit tests pass (1 pre-existing flaky tmux test timeout, unrelated)
+
+**Next steps:**
+- t7: Write remaining unit tests
+- t8: Write Storybook stories

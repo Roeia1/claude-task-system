@@ -1,7 +1,7 @@
 import { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { getWebSocketSend } from '@/machines/dashboardMachine';
-import { ArrowDownToLine, Pause } from 'lucide-react';
+import { ArrowDownToLine, Pause, Loader2, CheckCircle } from 'lucide-react';
 
 export interface LogViewerProps {
   /** The name of the session to display logs for */
@@ -16,6 +16,27 @@ export interface LogViewerProps {
 
 // Estimated height in pixels for a single log line with monospace font
 const ESTIMATED_LINE_HEIGHT = 24;
+
+/**
+ * Status indicator component showing streaming or complete state
+ */
+function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
+  if (status === 'running') {
+    return (
+      <div data-testid="status-indicator-streaming" className="flex items-center gap-1.5 text-success text-sm">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <span>Streaming</span>
+      </div>
+    );
+  }
+
+  return (
+    <div data-testid="status-indicator-complete" className="flex items-center gap-1.5 text-text-muted text-sm">
+      <CheckCircle className="h-3.5 w-3.5" />
+      <span>Complete</span>
+    </div>
+  );
+}
 
 /**
  * Custom hook for managing WebSocket log subscription
@@ -167,27 +188,31 @@ export function LogViewer({
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div className="relative">
-      {/* Auto-scroll toggle button */}
-      <button
-        data-testid="auto-scroll-toggle"
-        onClick={toggleAutoScroll}
-        aria-pressed={autoScroll}
-        className="absolute top-2 right-2 z-10 p-2 rounded-md bg-bg-light hover:bg-bg-lighter text-text-muted hover:text-text transition-colors"
-        title={autoScroll ? 'Auto-scroll enabled (click to disable)' : 'Auto-scroll disabled (click to enable)'}
-      >
-        {autoScroll ? (
-          <ArrowDownToLine className="h-4 w-4" />
-        ) : (
-          <Pause className="h-4 w-4" />
-        )}
-      </button>
+    <div data-testid="log-viewer" className="flex flex-col bg-bg-dark rounded-md">
+      {/* Header with status indicator and auto-scroll toggle */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-bg-light">
+        <StatusIndicator status={status} />
+        <button
+          data-testid="auto-scroll-toggle"
+          onClick={toggleAutoScroll}
+          aria-pressed={autoScroll}
+          className="p-1.5 rounded-md bg-bg-light hover:bg-bg-lighter text-text-muted hover:text-text transition-colors"
+          title={autoScroll ? 'Auto-scroll enabled (click to disable)' : 'Auto-scroll disabled (click to enable)'}
+        >
+          {autoScroll ? (
+            <ArrowDownToLine className="h-4 w-4" />
+          ) : (
+            <Pause className="h-4 w-4" />
+          )}
+        </button>
+      </div>
 
+      {/* Scrollable log content area */}
       <div
-        data-testid="log-viewer"
+        data-testid="log-content"
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="h-96 bg-bg-dark rounded-md font-mono overflow-auto"
+        className="h-96 font-mono overflow-auto"
       >
         {showLoading ? (
           <div data-testid="log-viewer-skeleton" className="p-4 space-y-2">

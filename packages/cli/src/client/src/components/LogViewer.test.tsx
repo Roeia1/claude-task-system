@@ -58,8 +58,10 @@ describe('LogViewer', () => {
 
       const container = screen.getByTestId('log-viewer');
       expect(container).toBeInTheDocument();
-      expect(container).toHaveClass('font-mono');
       expect(container).toHaveClass('bg-bg-dark');
+      // font-mono is on the content area
+      const content = screen.getByTestId('log-content');
+      expect(content).toHaveClass('font-mono');
     });
 
     it('displays log content with correct text styling', () => {
@@ -87,9 +89,9 @@ describe('LogViewer', () => {
         />
       );
 
-      const container = screen.getByTestId('log-viewer');
+      const content = screen.getByTestId('log-content');
       // Should have a defined height for scrolling
-      expect(container).toHaveClass('h-96');
+      expect(content).toHaveClass('h-96');
     });
   });
 
@@ -283,9 +285,9 @@ describe('LogViewer', () => {
         />
       );
 
-      const container = screen.getByTestId('log-viewer');
+      const content = screen.getByTestId('log-content');
       // Should have overflow-auto for scrolling
-      expect(container).toHaveClass('overflow-auto');
+      expect(content).toHaveClass('overflow-auto');
     });
 
     it('handles multiline content rendering', () => {
@@ -633,21 +635,76 @@ Line 3`;
         />
       );
 
-      const container = screen.getByTestId('log-viewer');
+      const content = screen.getByTestId('log-content');
       const toggleButton = screen.getByTestId('auto-scroll-toggle');
 
       // Initially enabled
       expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
 
       // Simulate user scroll - set scroll position to NOT be at bottom
-      Object.defineProperty(container, 'scrollTop', { value: 0, writable: true });
-      Object.defineProperty(container, 'scrollHeight', { value: 500, writable: true });
-      Object.defineProperty(container, 'clientHeight', { value: 384, writable: true });
+      Object.defineProperty(content, 'scrollTop', { value: 0, writable: true });
+      Object.defineProperty(content, 'scrollHeight', { value: 500, writable: true });
+      Object.defineProperty(content, 'clientHeight', { value: 384, writable: true });
 
-      fireEvent.scroll(container);
+      fireEvent.scroll(content);
 
       // Auto-scroll should be disabled after manual scroll up
       expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+    });
+  });
+
+  describe('status indicator', () => {
+    it('shows streaming indicator with animation for running sessions', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent="Test content"
+        />
+      );
+
+      const streamingIndicator = screen.getByTestId('status-indicator-streaming');
+      expect(streamingIndicator).toBeInTheDocument();
+      expect(streamingIndicator).toHaveTextContent('Streaming');
+      expect(streamingIndicator).toHaveClass('text-success');
+      // Should have an animated spinning icon
+      const icon = streamingIndicator.querySelector('svg');
+      expect(icon).toHaveClass('animate-spin');
+    });
+
+    it('shows complete indicator for completed sessions', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent="Test content"
+        />
+      );
+
+      const completeIndicator = screen.getByTestId('status-indicator-complete');
+      expect(completeIndicator).toBeInTheDocument();
+      expect(completeIndicator).toHaveTextContent('Complete');
+      expect(completeIndicator).toHaveClass('text-text-muted');
+      // Should have a checkmark icon
+      const icon = completeIndicator.querySelector('svg');
+      expect(icon).toBeInTheDocument();
+      expect(icon).not.toHaveClass('animate-spin');
+    });
+
+    it('does not show status indicator when output is unavailable', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={false}
+        />
+      );
+
+      // Unavailable state shows a simple message, no status indicator
+      expect(screen.queryByTestId('status-indicator-streaming')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('status-indicator-complete')).not.toBeInTheDocument();
     });
   });
 });

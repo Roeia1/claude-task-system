@@ -21,7 +21,7 @@ tasks:
     status: completed
   - id: t6
     title: Add loading and status indicators
-    status: pending
+    status: completed
   - id: t7
     title: Write unit tests for LogViewer
     status: pending
