@@ -64,3 +64,31 @@ export interface Epic {
   storyCounts: StoryCounts;
   isArchived?: boolean;
 }
+
+/** Session status values */
+export type SessionStatus = 'running' | 'completed';
+
+/**
+ * Session info from the dashboard API
+ * Matches the backend DetailedSessionInfo type with JSON-serialized dates
+ */
+export interface SessionInfo {
+  /** Unique session name (saga__<epic>__<story>__<pid>) */
+  name: string;
+  /** Epic slug extracted from session name */
+  epicSlug: string;
+  /** Story slug extracted from session name */
+  storySlug: string;
+  /** Current session status */
+  status: SessionStatus;
+  /** Path to the output file */
+  outputFile: string;
+  /** Whether the output file exists and is readable */
+  outputAvailable: boolean;
+  /** Session start time (ISO 8601 string) */
+  startTime: string;
+  /** Session end time (ISO 8601 string), only present for completed sessions */
+  endTime?: string;
+  /** Preview of the last 5 lines of output (max 500 chars) */
+  outputPreview?: string;
+}
