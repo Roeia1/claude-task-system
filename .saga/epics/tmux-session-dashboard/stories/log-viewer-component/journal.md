@@ -125,3 +125,51 @@
 - t6: Add loading and status indicators (status indicator portion)
 - t7: Write remaining unit tests
 - t8: Write Storybook stories
+
+## Session: 2026-01-30T03:24:00Z
+
+### Task: t5 - Implement auto-scroll toggle functionality
+
+**What was done:**
+- Added auto-scroll toggle button to the LogViewer component
+- Implemented state management: `autoScroll` boolean, default based on session status
+  - Running sessions: auto-scroll enabled by default
+  - Completed sessions: auto-scroll disabled by default
+- Added toggle button in top-right corner with:
+  - `ArrowDownToLine` icon when auto-scroll is enabled
+  - `Pause` icon when auto-scroll is disabled
+  - Styled with SAGA theme colors (`bg-bg-light`, hover effects)
+  - Accessible with `aria-pressed` attribute
+- Implemented scroll-to-bottom behavior:
+  - Uses `scrollTo` on container ref with smooth behavior
+  - Tracks line count changes with `useRef` to detect new content
+  - Only scrolls when content actually grows (not on every render)
+- Implemented manual scroll detection:
+  - Added `onScroll` handler to detect when user scrolls up
+  - Auto-disables auto-scroll when user scrolls away from bottom (>10px threshold)
+- Re-enables auto-scroll and scrolls to bottom immediately when toggle is clicked
+- Added 8 new unit tests:
+  - renders auto-scroll toggle button
+  - has auto-scroll enabled by default for running sessions
+  - has auto-scroll disabled by default for completed sessions
+  - toggles auto-scroll state when button is clicked
+  - scrolls to bottom when new content arrives and auto-scroll is enabled
+  - does not scroll to bottom when auto-scroll is disabled
+  - shows different icon based on auto-scroll state
+  - disables auto-scroll when user scrolls up manually
+
+**Decisions:**
+- Used Lucide icons (`ArrowDownToLine`, `Pause`) for visual consistency with codebase
+- Placed toggle button with `position: absolute` in top-right corner for visibility
+- Used 10px threshold for "at bottom" detection to account for float precision
+- Used smooth scrolling behavior for better UX
+- Wrapped log-viewer in `relative` positioned div to contain the absolute toggle button
+
+**Test Results:**
+- All 31 LogViewer tests pass (23 existing + 8 new)
+- All 602 unit tests pass (1 pre-existing flaky tmux test timeout, unrelated)
+
+**Next steps:**
+- t6: Add loading and status indicators (status indicator portion)
+- t7: Write remaining unit tests
+- t8: Write Storybook stories

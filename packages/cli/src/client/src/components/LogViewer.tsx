@@ -1,6 +1,7 @@
 import { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { getWebSocketSend } from '@/machines/dashboardMachine';
+import { ArrowDownToLine, Pause } from 'lucide-react';
 
 export interface LogViewerProps {
   /** The name of the session to display logs for */
@@ -75,12 +76,18 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
  */
 export function LogViewer({
   sessionName,
-  status: _status,
+  status,
   outputAvailable,
   initialContent = '',
 }: LogViewerProps) {
   // Ref for the scroll container
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll state: enabled by default for running sessions, disabled for completed
+  const [autoScroll, setAutoScroll] = useState(status === 'running');
+
+  // Track the previous line count for detecting new content
+  const prevLineCountRef = useRef<number>(0);
 
   // WebSocket log subscription hook
   const { content: wsContent, isLoading } = useLogSubscription(sessionName, outputAvailable);
@@ -102,6 +109,46 @@ export function LogViewer({
     overscan: 5, // Number of items to render above/below visible area
   });
 
+  // Scroll to bottom when new content arrives and auto-scroll is enabled
+  useEffect(() => {
+    if (autoScroll && lines.length > prevLineCountRef.current && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+    prevLineCountRef.current = lines.length;
+  }, [lines.length, autoScroll]);
+
+  // Handle manual scroll - disable auto-scroll when user scrolls up
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Check if scrolled to bottom (with small tolerance for float precision)
+    const isAtBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+
+    // Disable auto-scroll if user scrolled away from bottom
+    if (!isAtBottom && autoScroll) {
+      setAutoScroll(false);
+    }
+  }, [autoScroll]);
+
+  // Toggle auto-scroll
+  const toggleAutoScroll = useCallback(() => {
+    setAutoScroll((prev) => {
+      if (!prev && scrollContainerRef.current) {
+        // When enabling, scroll to bottom immediately
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+      return !prev;
+    });
+  }, []);
+
   // Handle unavailable output state
   if (!outputAvailable) {
     return (
@@ -120,43 +167,61 @@ export function LogViewer({
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div
-      data-testid="log-viewer"
-      ref={scrollContainerRef}
-      className="h-96 bg-bg-dark rounded-md font-mono overflow-auto"
-    >
-      {showLoading ? (
-        <div data-testid="log-viewer-skeleton" className="p-4 space-y-2">
-          <div className="h-4 bg-bg-light rounded animate-pulse w-3/4" />
-          <div className="h-4 bg-bg-light rounded animate-pulse w-1/2" />
-          <div className="h-4 bg-bg-light rounded animate-pulse w-5/6" />
-          <div className="h-4 bg-bg-light rounded animate-pulse w-2/3" />
-        </div>
-      ) : (
-        /* Container with total height for proper scroll area */
-        <div
-          className="relative w-full"
-          style={{ height: `${virtualizer.getTotalSize()}px` }}
-        >
-          {/* Position items absolutely within the container */}
-          <div
-            className="absolute top-0 left-0 w-full px-4"
-            style={{ transform: `translateY(${virtualItems[0]?.start ?? 0}px)` }}
-          >
-            {virtualItems.map((virtualItem) => (
-              <div
-                key={virtualItem.key}
-                data-testid="log-line"
-                data-index={virtualItem.index}
-                className="text-text leading-relaxed"
-                style={{ height: `${ESTIMATED_LINE_HEIGHT}px` }}
-              >
-                {lines[virtualItem.index] || '\u00A0'}
-              </div>
-            ))}
+    <div className="relative">
+      {/* Auto-scroll toggle button */}
+      <button
+        data-testid="auto-scroll-toggle"
+        onClick={toggleAutoScroll}
+        aria-pressed={autoScroll}
+        className="absolute top-2 right-2 z-10 p-2 rounded-md bg-bg-light hover:bg-bg-lighter text-text-muted hover:text-text transition-colors"
+        title={autoScroll ? 'Auto-scroll enabled (click to disable)' : 'Auto-scroll disabled (click to enable)'}
+      >
+        {autoScroll ? (
+          <ArrowDownToLine className="h-4 w-4" />
+        ) : (
+          <Pause className="h-4 w-4" />
+        )}
+      </button>
+
+      <div
+        data-testid="log-viewer"
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="h-96 bg-bg-dark rounded-md font-mono overflow-auto"
+      >
+        {showLoading ? (
+          <div data-testid="log-viewer-skeleton" className="p-4 space-y-2">
+            <div className="h-4 bg-bg-light rounded animate-pulse w-3/4" />
+            <div className="h-4 bg-bg-light rounded animate-pulse w-1/2" />
+            <div className="h-4 bg-bg-light rounded animate-pulse w-5/6" />
+            <div className="h-4 bg-bg-light rounded animate-pulse w-2/3" />
           </div>
-        </div>
-      )}
+        ) : (
+          /* Container with total height for proper scroll area */
+          <div
+            className="relative w-full"
+            style={{ height: `${virtualizer.getTotalSize()}px` }}
+          >
+            {/* Position items absolutely within the container */}
+            <div
+              className="absolute top-0 left-0 w-full px-4"
+              style={{ transform: `translateY(${virtualItems[0]?.start ?? 0}px)` }}
+            >
+              {virtualItems.map((virtualItem) => (
+                <div
+                  key={virtualItem.key}
+                  data-testid="log-line"
+                  data-index={virtualItem.index}
+                  className="text-text leading-relaxed"
+                  style={{ height: `${ESTIMATED_LINE_HEIGHT}px` }}
+                >
+                  {lines[virtualItem.index] || '\u00A0'}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

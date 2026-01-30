@@ -18,7 +18,7 @@ tasks:
     status: completed
   - id: t5
     title: Implement auto-scroll toggle functionality
-    status: pending
+    status: completed
   - id: t6
     title: Add loading and status indicators
     status: pending

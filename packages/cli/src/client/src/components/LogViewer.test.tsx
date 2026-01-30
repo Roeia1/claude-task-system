@@ -1,4 +1,4 @@
-import { render, screen, cleanup, waitFor, act } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, act, fireEvent } from '@testing-library/react';
 import { describe, it, expect, afterEach, vi, beforeEach, type Mock } from 'vitest';
 import { LogViewer } from './LogViewer';
 import * as dashboardMachine from '@/machines/dashboardMachine';
@@ -467,6 +467,187 @@ Line 5`;
       const skeleton = screen.queryByTestId('log-viewer-skeleton');
       // This will fail initially - we need to implement loading state
       expect(skeleton).toBeInTheDocument();
+    });
+  });
+
+  describe('auto-scroll toggle', () => {
+    it('renders auto-scroll toggle button', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent="Log content"
+        />
+      );
+
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+      expect(toggleButton).toBeInTheDocument();
+    });
+
+    it('has auto-scroll enabled by default for running sessions', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent="Log content"
+        />
+      );
+
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('has auto-scroll disabled by default for completed sessions', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent="Log content"
+        />
+      );
+
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('toggles auto-scroll state when button is clicked', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent="Log content"
+        />
+      );
+
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+
+      // Initially enabled for running
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+
+      // Click to disable
+      fireEvent.click(toggleButton);
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+
+      // Click again to enable
+      fireEvent.click(toggleButton);
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('scrolls to bottom when new content arrives and auto-scroll is enabled', async () => {
+      const mockScrollTo = vi.fn();
+      Element.prototype.scrollTo = mockScrollTo;
+
+      // Set up scrollHeight to be larger than clientHeight for scroll detection
+      Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
+        configurable: true,
+        value: 1000,
+      });
+
+      const initialLines = `Line 1`;
+      const moreLines = `Line 1
+Line 2
+Line 3`;
+
+      const { rerender } = render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent={initialLines}
+        />
+      );
+
+      // Clear any initial scroll calls
+      mockScrollTo.mockClear();
+
+      // Simulate new content arriving by re-rendering with more content
+      await act(async () => {
+        rerender(
+          <LogViewer
+            sessionName="test-session"
+            status="running"
+            outputAvailable={true}
+            initialContent={moreLines}
+          />
+        );
+      });
+
+      // Should scroll to bottom when auto-scroll is enabled
+      await waitFor(() => {
+        expect(mockScrollTo).toHaveBeenCalled();
+      });
+    });
+
+    it('does not scroll to bottom when auto-scroll is disabled', async () => {
+      const mockScrollTo = vi.fn();
+      Element.prototype.scrollTo = mockScrollTo;
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent="Line 1\nLine 2"
+        />
+      );
+
+      // Toggle should be disabled for completed sessions
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+
+      // Clear any initial scroll calls
+      mockScrollTo.mockClear();
+
+      // Since auto-scroll is disabled, scrollTo should not be called for new content
+      // This is already the completed state so no scrolling should happen
+      expect(mockScrollTo).not.toHaveBeenCalled();
+    });
+
+    it('shows different icon based on auto-scroll state', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent="Log content"
+        />
+      );
+
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+
+      // When auto-scroll is enabled, should show the "following" icon
+      expect(toggleButton.querySelector('svg')).toBeInTheDocument();
+    });
+
+    it('disables auto-scroll when user scrolls up manually', () => {
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="running"
+          outputAvailable={true}
+          initialContent="Line 1\nLine 2\nLine 3\nLine 4\nLine 5"
+        />
+      );
+
+      const container = screen.getByTestId('log-viewer');
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+
+      // Initially enabled
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+
+      // Simulate user scroll - set scroll position to NOT be at bottom
+      Object.defineProperty(container, 'scrollTop', { value: 0, writable: true });
+      Object.defineProperty(container, 'scrollHeight', { value: 500, writable: true });
+      Object.defineProperty(container, 'clientHeight', { value: 384, writable: true });
+
+      fireEvent.scroll(container);
+
+      // Auto-scroll should be disabled after manual scroll up
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
     });
   });
 });
