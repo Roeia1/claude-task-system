@@ -27,7 +27,7 @@ tasks:
     status: completed
   - id: t8
     title: Write Storybook stories for LogViewer
-    status: pending
+    status: completed
 ---
 
 ## Context

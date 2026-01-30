@@ -242,3 +242,40 @@
 
 **Next steps:**
 - t8: Write Storybook stories for LogViewer
+
+## Session: 2026-01-30T03:47:00Z
+
+### Task: t8 - Write Storybook stories for LogViewer
+
+**What was done:**
+- Created `LogViewer.stories.tsx` with 10 comprehensive stories covering all component states:
+  - **Default**: Running session with sample log content, auto-scroll enabled
+  - **Loading**: Empty content state (WebSocket not available in Storybook)
+  - **Streaming**: Active running session with animated status indicator
+  - **Complete**: Finished session with static status indicator, auto-scroll disabled
+  - **Unavailable**: Output file not available state
+  - **LargeLog**: 10,000+ lines demonstrating virtual scrolling performance
+  - **EmptyContent**: Empty string initial content
+  - **AutoScrollToggle**: Demonstrates toggle button states
+  - **StatusComparison**: Side-by-side running vs completed sessions
+  - **AllStates**: Visual comparison of streaming, complete, and unavailable states
+- Added JSDoc documentation for all stories with component description
+- Implemented play functions with assertions for each story
+- Used `matchCanvasSnapshot` for visual snapshot tests
+- Used static timestamps in `generateLargeLog` for reproducible snapshots
+- Followed existing Storybook patterns from StatusBadge.stories.tsx and StoryDetail.stories.tsx
+
+**Decisions:**
+- Used static base timestamp (2026-01-30T10:00:00.000Z) for LargeLog to avoid snapshot mismatches
+- Removed Loading section from AllStates since WebSocket is not available in Storybook context
+- Focused tests on visible elements due to virtual scrolling (not all lines rendered)
+- Skipped skeleton verification in Loading story since it requires WebSocket subscription
+
+**Test Results:**
+- All 10 LogViewer Storybook tests pass
+- All 43 LogViewer unit tests pass
+- All 53 combined LogViewer tests pass
+- Storybook build completes successfully
+
+**Story Completion:**
+All 8 tasks (t1-t8) are now completed. The story is ready for final review.
