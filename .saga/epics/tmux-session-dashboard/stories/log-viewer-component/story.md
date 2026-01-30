@@ -6,10 +6,10 @@ epic: tmux-session-dashboard
 tasks:
   - id: t1
     title: Install @tanstack/react-virtual dependency
-    status: pending
+    status: completed
   - id: t2
     title: Create LogViewer component with terminal styling
-    status: pending
+    status: completed
   - id: t3
     title: Implement virtual scrolling for log lines
     status: pending
