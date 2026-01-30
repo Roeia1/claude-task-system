@@ -95,3 +95,37 @@
 - t4: Implement file watcher with chokidar
 - t5: Implement incremental content delivery
 - t6: Add watcher cleanup with reference counting
+
+## Session: 2026-01-30T02:01:00
+
+### Task: t4 - Implement file watcher with chokidar
+
+**What was done:**
+- Added `createWatcher(sessionName: string, outputFile: string)` private method to LogStreamManager
+- Uses chokidar to watch the output file with options `{ persistent: true, awaitWriteFinish: false }` for immediate updates
+- On 'change' event, triggers `sendIncrementalContent()` to deliver new content
+- Watcher is stored in the `watchers` Map and created lazily on first subscription
+- Added `sendIncrementalContent()` private method for sending only new file content
+- Added `readFromPosition()` private method using `fs.createReadStream` with `start` option for efficient partial reads
+- Modified `subscribe()` to create watcher when first client subscribes to a session
+- Imported `chokidar`, `createReadStream`, and `stat` for file watching and reading
+
+**Tests added:**
+- `should create a watcher when first client subscribes`
+- `should not create a new watcher when second client subscribes to same session`
+- `should detect file changes via watcher` (with polling for timing reliability)
+- `should close watcher when dispose is called`
+
+**Test results:**
+- 30 tests passing in log-stream-manager.test.ts (4 new tests added)
+- 143 tests passing in src/lib/ (1 unrelated test skipped)
+
+**Notes:**
+- Task t4 and t5 were implemented together since the watcher needs to trigger incremental content delivery
+- The `sendIncrementalContent()` method tracks file position and sends only new bytes to all subscribed clients
+- Uses `createReadStream` with `{ start, end }` options for efficient partial file reads
+- Reference counting cleanup (t6) still needed - watchers are created but not cleaned up on unsubscribe yet
+
+**Next steps:**
+- t6: Add watcher cleanup with reference counting
+- t7: Integrate with session completion notifications

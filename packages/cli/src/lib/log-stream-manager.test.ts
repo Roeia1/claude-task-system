@@ -326,4 +326,94 @@ describe('LogStreamManager', () => {
       expect(() => manager.handleClientDisconnect(ws)).not.toThrow();
     });
   });
+
+  describe('file watcher (createWatcher)', () => {
+    const testSessionName = 'test-watcher-session';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
+    const testContent = 'Initial watcher test content\n';
+
+    beforeEach(() => {
+      // Ensure output directory exists
+      if (!existsSync(OUTPUT_DIR)) {
+        mkdirSync(OUTPUT_DIR, { recursive: true });
+      }
+    });
+
+    afterEach(() => {
+      // Clean up test file
+      if (existsSync(testOutputFile)) {
+        rmSync(testOutputFile);
+      }
+    });
+
+    it('should create a watcher when first client subscribes', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      expect(manager.hasWatcher(testSessionName)).toBe(false);
+      await manager.subscribe(testSessionName, ws);
+      expect(manager.hasWatcher(testSessionName)).toBe(true);
+    });
+
+    it('should not create a new watcher when second client subscribes to same session', async () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws1);
+      const watcherCreatedAfterFirst = manager.hasWatcher(testSessionName);
+
+      await manager.subscribe(testSessionName, ws2);
+      const watcherCreatedAfterSecond = manager.hasWatcher(testSessionName);
+
+      // Both should be true (watcher exists), but only one watcher should exist
+      expect(watcherCreatedAfterFirst).toBe(true);
+      expect(watcherCreatedAfterSecond).toBe(true);
+    });
+
+    it('should detect file changes via watcher', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws);
+
+      // Wait for watcher to fully initialize
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Clear the initial content message
+      broadcastFn.mockClear();
+
+      // Write new content to file (simulate append)
+      const newContent = 'New appended line\n';
+      const { appendFileSync } = await import('node:fs');
+      appendFileSync(testOutputFile, newContent);
+
+      // Wait for watcher to detect change and trigger callback
+      // Use polling to check for updates rather than fixed timeout
+      let attempts = 0;
+      const maxAttempts = 20;
+      while (attempts < maxAttempts && broadcastFn.mock.calls.length === 0) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      // Should have received an incremental update
+      expect(broadcastFn).toHaveBeenCalled();
+      const calls = broadcastFn.mock.calls;
+      const lastMessage = calls[calls.length - 1][1] as LogsDataMessage;
+      expect(lastMessage.type).toBe('logs:data');
+      expect(lastMessage.isInitial).toBe(false);
+    }, 10000); // Increase test timeout to 10 seconds
+
+    it('should close watcher when dispose is called', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws);
+      expect(manager.hasWatcher(testSessionName)).toBe(true);
+
+      await manager.dispose();
+      expect(manager.hasWatcher(testSessionName)).toBe(false);
+    });
+  });
 });

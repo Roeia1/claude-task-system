@@ -13,8 +13,9 @@
 
 import type { WebSocket } from 'ws';
 import type { FSWatcher } from 'chokidar';
-import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import chokidar from 'chokidar';
+import { existsSync, createReadStream } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { OUTPUT_DIR } from './sessions.js';
 
@@ -116,6 +117,7 @@ export class LogStreamManager {
    *
    * Reads the full file content and sends it as the initial message.
    * Adds the client to the subscription set for incremental updates.
+   * Creates a file watcher if this is the first subscriber.
    *
    * @param sessionName - The session to subscribe to
    * @param ws - The WebSocket client to subscribe
@@ -155,6 +157,103 @@ export class LogStreamManager {
       this.subscriptions.set(sessionName, subs);
     }
     subs.add(ws);
+
+    // Create watcher if this is the first subscriber
+    if (!this.watchers.has(sessionName)) {
+      this.createWatcher(sessionName, outputFile);
+    }
+  }
+
+  /**
+   * Create a chokidar file watcher for a session's output file
+   *
+   * The watcher detects changes and triggers incremental content delivery
+   * to all subscribed clients.
+   *
+   * @param sessionName - The session name
+   * @param outputFile - Path to the session output file
+   */
+  private createWatcher(sessionName: string, outputFile: string): void {
+    const watcher = chokidar.watch(outputFile, {
+      persistent: true,
+      awaitWriteFinish: false,
+    });
+
+    watcher.on('change', async () => {
+      await this.sendIncrementalContent(sessionName, outputFile);
+    });
+
+    this.watchers.set(sessionName, watcher);
+  }
+
+  /**
+   * Send incremental content to all subscribed clients for a session
+   *
+   * Reads from the last known position to the end of the file and sends
+   * the new content to all subscribed clients.
+   *
+   * @param sessionName - The session name
+   * @param outputFile - Path to the session output file
+   */
+  private async sendIncrementalContent(sessionName: string, outputFile: string): Promise<void> {
+    const lastPosition = this.filePositions.get(sessionName) ?? 0;
+    const fileStat = await stat(outputFile);
+    const currentSize = fileStat.size;
+
+    // No new content
+    if (currentSize <= lastPosition) {
+      return;
+    }
+
+    // Read new content from last position to end
+    const newContent = await this.readFromPosition(outputFile, lastPosition, currentSize);
+
+    // Update file position
+    this.filePositions.set(sessionName, currentSize);
+
+    // Send to all subscribed clients
+    const subs = this.subscriptions.get(sessionName);
+    if (subs) {
+      const message: LogsDataMessage = {
+        type: 'logs:data',
+        sessionName,
+        data: newContent,
+        isInitial: false,
+        isComplete: false,
+      };
+      for (const ws of subs) {
+        this.sendToClient(ws, message);
+      }
+    }
+  }
+
+  /**
+   * Read file content from a specific position
+   *
+   * @param filePath - Path to the file
+   * @param start - Starting byte position
+   * @param end - Ending byte position
+   * @returns The content read from the file
+   */
+  private readFromPosition(filePath: string, start: number, end: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+      let content = '';
+      const stream = createReadStream(filePath, {
+        start,
+        end: end - 1, // createReadStream end is inclusive
+        encoding: 'utf-8',
+      });
+
+      stream.on('data', (chunk) => {
+        content += chunk;
+      });
+
+      stream.on('end', () => {
+        resolve(content);
+      });
+
+      stream.on('error', reject);
+    });
   }
 
   /**
