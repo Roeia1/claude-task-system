@@ -9,7 +9,7 @@ vi.mock('@/machines/dashboardMachine', () => ({
 }));
 
 // Regex patterns defined at top level for performance
-const OUTPUT_UNAVAILABLE_REGEX = OUTPUT_UNAVAILABLE_REGEX;
+const OUTPUT_UNAVAILABLE_REGEX = /output unavailable/i;
 
 // Magic number constants
 const LARGE_CONTENT_LINE_COUNT = 1000;
