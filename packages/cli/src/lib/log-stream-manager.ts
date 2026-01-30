@@ -187,6 +187,24 @@ export class LogStreamManager {
   }
 
   /**
+   * Clean up a watcher and associated state for a session
+   *
+   * Closes the file watcher and removes all tracking state for the session.
+   * Should be called when the last subscriber unsubscribes or disconnects.
+   *
+   * @param sessionName - The session to clean up
+   */
+  private cleanupWatcher(sessionName: string): void {
+    const watcher = this.watchers.get(sessionName);
+    if (watcher) {
+      watcher.close();
+      this.watchers.delete(sessionName);
+    }
+    this.filePositions.delete(sessionName);
+    this.subscriptions.delete(sessionName);
+  }
+
+  /**
    * Send incremental content to all subscribed clients for a session
    *
    * Reads from the last known position to the end of the file and sends
@@ -259,8 +277,8 @@ export class LogStreamManager {
   /**
    * Unsubscribe a client from a session's log stream
    *
-   * Removes the client from the subscription set. Does nothing if
-   * the client was not subscribed to this session.
+   * Removes the client from the subscription set. If this was the last
+   * subscriber, cleans up the watcher and associated state.
    *
    * @param sessionName - The session to unsubscribe from
    * @param ws - The WebSocket client to unsubscribe
@@ -269,6 +287,10 @@ export class LogStreamManager {
     const subs = this.subscriptions.get(sessionName);
     if (subs) {
       subs.delete(ws);
+      // If no more subscribers, clean up watcher
+      if (subs.size === 0) {
+        this.cleanupWatcher(sessionName);
+      }
     }
   }
 
@@ -276,14 +298,19 @@ export class LogStreamManager {
    * Handle client disconnect by removing from all subscriptions
    *
    * Should be called when a WebSocket connection closes to clean up
-   * any subscriptions the client may have had.
+   * any subscriptions the client may have had. Also triggers watcher
+   * cleanup for any sessions that no longer have subscribers.
    *
    * @param ws - The WebSocket client that disconnected
    */
   handleClientDisconnect(ws: WebSocket): void {
-    // Remove client from all session subscriptions
-    for (const [, subs] of this.subscriptions) {
+    // Remove client from all session subscriptions and clean up empty watchers
+    for (const [sessionName, subs] of this.subscriptions) {
       subs.delete(ws);
+      // If no more subscribers, clean up watcher
+      if (subs.size === 0) {
+        this.cleanupWatcher(sessionName);
+      }
     }
   }
 

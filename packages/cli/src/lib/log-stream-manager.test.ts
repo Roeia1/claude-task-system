@@ -416,4 +416,131 @@ describe('LogStreamManager', () => {
       expect(manager.hasWatcher(testSessionName)).toBe(false);
     });
   });
+
+  describe('watcher cleanup with reference counting (t6)', () => {
+    const testSessionName = 'test-cleanup-session';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
+    const testContent = 'Cleanup test content\n';
+
+    beforeEach(() => {
+      // Ensure output directory exists
+      if (!existsSync(OUTPUT_DIR)) {
+        mkdirSync(OUTPUT_DIR, { recursive: true });
+      }
+    });
+
+    afterEach(() => {
+      // Clean up test file
+      if (existsSync(testOutputFile)) {
+        rmSync(testOutputFile);
+      }
+    });
+
+    it('should close watcher when last client unsubscribes', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws);
+      expect(manager.hasWatcher(testSessionName)).toBe(true);
+
+      manager.unsubscribe(testSessionName, ws);
+      expect(manager.hasWatcher(testSessionName)).toBe(false);
+    });
+
+    it('should not close watcher when other clients are still subscribed', async () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws1);
+      await manager.subscribe(testSessionName, ws2);
+      expect(manager.hasWatcher(testSessionName)).toBe(true);
+
+      manager.unsubscribe(testSessionName, ws1);
+      // Watcher should still exist since ws2 is still subscribed
+      expect(manager.hasWatcher(testSessionName)).toBe(true);
+    });
+
+    it('should close watcher when second-to-last client unsubscribes and last client unsubscribes', async () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws1);
+      await manager.subscribe(testSessionName, ws2);
+
+      manager.unsubscribe(testSessionName, ws1);
+      expect(manager.hasWatcher(testSessionName)).toBe(true);
+
+      manager.unsubscribe(testSessionName, ws2);
+      expect(manager.hasWatcher(testSessionName)).toBe(false);
+    });
+
+    it('should clean up file position when watcher is closed', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws);
+      expect(manager.getFilePosition(testSessionName)).toBe(testContent.length);
+
+      manager.unsubscribe(testSessionName, ws);
+      expect(manager.getFilePosition(testSessionName)).toBe(0);
+    });
+
+    it('should close watcher when client disconnects and was the only subscriber', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws);
+      expect(manager.hasWatcher(testSessionName)).toBe(true);
+
+      manager.handleClientDisconnect(ws);
+      expect(manager.hasWatcher(testSessionName)).toBe(false);
+    });
+
+    it('should not close watcher when disconnected client was one of multiple subscribers', async () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws1);
+      await manager.subscribe(testSessionName, ws2);
+
+      manager.handleClientDisconnect(ws1);
+      expect(manager.hasWatcher(testSessionName)).toBe(true);
+    });
+
+    it('should close watchers for all sessions when last subscriber disconnects from each', async () => {
+      const testSession2 = 'test-cleanup-session-2';
+      const testOutputFile2 = join(OUTPUT_DIR, `${testSession2}.out`);
+      writeFileSync(testOutputFile, testContent);
+      writeFileSync(testOutputFile2, testContent);
+
+      const ws = createMockWebSocket();
+      await manager.subscribe(testSessionName, ws);
+      await manager.subscribe(testSession2, ws);
+      expect(manager.hasWatcher(testSessionName)).toBe(true);
+      expect(manager.hasWatcher(testSession2)).toBe(true);
+
+      manager.handleClientDisconnect(ws);
+      expect(manager.hasWatcher(testSessionName)).toBe(false);
+      expect(manager.hasWatcher(testSession2)).toBe(false);
+
+      // Cleanup
+      if (existsSync(testOutputFile2)) {
+        rmSync(testOutputFile2);
+      }
+    });
+
+    it('should clean up subscription set when watcher is closed', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+
+      await manager.subscribe(testSessionName, ws);
+      manager.unsubscribe(testSessionName, ws);
+
+      // Subscription set should be cleaned up
+      expect(manager.getSubscriptionCount(testSessionName)).toBe(0);
+    });
+  });
 });

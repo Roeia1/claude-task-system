@@ -129,3 +129,36 @@
 **Next steps:**
 - t6: Add watcher cleanup with reference counting
 - t7: Integrate with session completion notifications
+
+## Session: 2026-01-30T02:07:00
+
+### Task: t6 - Add watcher cleanup with reference counting
+
+**What was done:**
+- Added private `cleanupWatcher(sessionName: string)` method to LogStreamManager
+- Method closes the file watcher and removes all tracking state (watcher, filePosition, subscriptions)
+- Modified `unsubscribe()` to trigger watcher cleanup when subscription count reaches 0
+- Modified `handleClientDisconnect()` to trigger cleanup for each session that becomes empty
+- Reference counting is implicit: subscription set size determines when cleanup happens
+
+**Tests added:**
+- `should close watcher when last client unsubscribes`
+- `should not close watcher when other clients are still subscribed`
+- `should close watcher when second-to-last client unsubscribes and last client unsubscribes`
+- `should clean up file position when watcher is closed`
+- `should close watcher when client disconnects and was the only subscriber`
+- `should not close watcher when disconnected client was one of multiple subscribers`
+- `should close watchers for all sessions when last subscriber disconnects from each`
+- `should clean up subscription set when watcher is closed`
+
+**Test results:**
+- 38 tests passing in log-stream-manager.test.ts (8 new tests added)
+- 151 tests passing in src/lib/ (1 unrelated test skipped)
+
+**Notes:**
+- Reference counting uses implicit approach (subscription set size) rather than a separate counter
+- Cleanup removes: watcher, file position tracking, and subscription set
+- This completes the watcher lifecycle: create on first subscribe, clean up when last unsubscribes
+
+**Next steps:**
+- t7: Integrate with session completion notifications
