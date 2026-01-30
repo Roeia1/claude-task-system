@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { resetAllFixtures } from './fixtures-utils';
 
 /**
  * E2E setup verification tests.
@@ -6,6 +7,13 @@ import { test, expect } from '@playwright/test';
  * These tests verify that the Playwright E2E configuration works correctly
  * with the real backend server and test fixtures.
  */
+
+// Reset all fixtures before each test to ensure clean state
+test.beforeEach(async () => {
+  await resetAllFixtures();
+  // Small delay to let file watcher process the reset
+  await new Promise(resolve => setTimeout(resolve, 200));
+});
 
 test.describe('E2E Setup Verification', () => {
   test('backend server is running and healthy', async ({ request }) => {
