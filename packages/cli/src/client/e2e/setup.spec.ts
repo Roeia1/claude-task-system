@@ -11,8 +11,6 @@ import { resetAllFixtures } from './fixtures-utils';
 // Reset all fixtures before each test to ensure clean state
 test.beforeEach(async () => {
   await resetAllFixtures();
-  // Small delay to let file watcher process the reset
-  await new Promise((resolve) => setTimeout(resolve, 200));
 });
 
 test.describe('E2E Setup Verification', () => {
@@ -42,10 +40,10 @@ test.describe('E2E Setup Verification', () => {
   test('dashboard loads in browser', async ({ page }) => {
     await page.goto('/');
 
-    // Wait for the page to load with content
-    await expect(page.locator('body')).not.toBeEmpty();
-
-    // The dashboard should render something - verify no error page
+    // The dashboard should render with content - verify no error page
     await expect(page.locator('body')).not.toContainText('Cannot GET');
+
+    // Verify actual content loads
+    await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
   });
 });

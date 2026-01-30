@@ -11,6 +11,8 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // Prevent multiple copies of React when dependencies (e.g., Storybook) have their own React versions
+    dedupe: ['react', 'react-dom'],
   },
   build: {
     outDir: '../../dist/client',
