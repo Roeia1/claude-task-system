@@ -6,7 +6,8 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignoreUnknown": true
+    "ignoreUnknown": true,
+    "includes": ["**", "!!packages/statusline"]
   },
   "formatter": {
     "enabled": true,
@@ -16,24 +17,20 @@
   },
   "linter": {
     "enabled": true,
+    "domains": {
+      "react": "all",
+      "solid": "none",
+      "test": "all",
+      "project": "all"
+    },
     "rules": {
-      "recommended": true,
-      "correctness": {
-        "noUnusedImports": "error",
-        "noUnusedVariables": "error"
-      },
-      "style": {
-        "useNodejsImportProtocol": "error"
-      },
-      "suspicious": {
-        "noControlCharactersInRegex": "error",
-        "noUnknownAtRules": {
-          "level": "error",
-          "options": {
-            "ignore": ["theme", "plugin", "custom-variant"]
-          }
-        }
-      }
+      "a11y": "error",
+      "complexity": "error",
+      "correctness": "error",
+      "performance": "error",
+      "security": "error",
+      "style": "error",
+      "suspicious": "error"
     }
   },
   "javascript": {
@@ -68,11 +65,96 @@
   },
   "overrides": [
     {
-      "includes": ["packages/statusline/__tests__/**"],
+      "includes": [
+        "packages/cli/src/**",
+        "!packages/cli/src/client/src/**",
+        "packages/cli/*.config.ts"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noNodejsModules": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/*.stories.tsx",
+        "**/.storybook/**",
+        "**/playwright.config.ts",
+        "**/playwright.*.config.ts",
+        "**/global-teardown.ts",
+        "**/jest.config.mjs"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off",
+            "useComponentExportOnlyModules": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/components/ui/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useComponentExportOnlyModules": {
+              "level": "error",
+              "options": {
+                "allowExportNames": [
+                  "badgeVariants",
+                  "buttonVariants",
+                  "toastVariants",
+                  "BadgeProps",
+                  "ButtonProps",
+                  "ToastProps",
+                  "ToastActionElement"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/cli/src/client/.storybook/vitest.setup.ts"],
       "linter": {
         "rules": {
           "suspicious": {
-            "noControlCharactersInRegex": "off"
+            "noMisplacedAssertion": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.test.js",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/*.spec.js"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          },
+          "style": {
+            "useNamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/machines/*.ts", "**/machines/*.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useNamingConvention": "off"
           }
         }
       }

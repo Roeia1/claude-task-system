@@ -1,4 +1,5 @@
 import { relative, resolve } from 'node:path';
+import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 // Test the internal functions by importing the module
@@ -62,7 +63,7 @@ describe('scope-validator', () => {
     });
   });
 
-  describe('getFilePathFromInput', () => {
+  describe('file path extraction from hook input', () => {
     // Mirror the function logic for testing (uses hook input structure)
     const getFilePathFromInput = (hookInput: string): string | null => {
       try {
@@ -172,9 +173,8 @@ describe('scope-validator', () => {
       if (parts.length > epicsIdx + 3 && parts[epicsIdx + 2] === 'stories') {
         const pathStory = parts[epicsIdx + 3];
         return pathEpic === allowedEpic && pathStory === allowedStory;
-      } else {
-        return pathEpic === allowedEpic;
       }
+      return pathEpic === allowedEpic;
     };
 
     it('should allow access to assigned story', () => {

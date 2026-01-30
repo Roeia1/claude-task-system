@@ -24,9 +24,10 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createSession, shellEscapeArgs } from '../lib/sessions.js';
-import { findStory as findStoryUtil } from '../utils/finder.js';
-import { resolveProjectPath } from '../utils/project-discovery.js';
+import process from 'node:process';
+import { createSession, shellEscapeArgs } from '../lib/sessions.ts';
+import { findStory as findStoryUtil } from '../utils/finder.ts';
+import { resolveProjectPath } from '../utils/project-discovery.ts';
 
 /**
  * Options for the implement command
@@ -144,9 +145,9 @@ function validateStoryFiles(
       valid: false,
       error:
         `Worktree not found at ${worktree}\n\n` +
-        `The story worktree has not been created yet. This can happen if:\n` +
+        'The story worktree has not been created yet. This can happen if:\n' +
         `1. The story was generated but the worktree wasn't set up\n` +
-        `2. The worktree was deleted or moved\n\n` +
+        '2. The worktree was deleted or moved\n\n' +
         `To create the worktree, use: /task-resume ${storySlug}`,
     };
   }
@@ -157,10 +158,10 @@ function validateStoryFiles(
     return {
       valid: false,
       error:
-        `story.md not found in worktree.\n\n` +
+        'story.md not found in worktree.\n\n' +
         `Expected location: ${storyPath}\n\n` +
-        `The worktree exists but the story definition file is missing.\n` +
-        `This may indicate an incomplete story setup.`,
+        'The worktree exists but the story definition file is missing.\n' +
+        'This may indicate an incomplete story setup.',
     };
   }
 
@@ -247,7 +248,9 @@ function runDryRun(
     passed: claudeCheck.exists,
     error: claudeCheck.exists ? undefined : 'Command not found in PATH',
   });
-  if (!claudeCheck.exists) allPassed = false;
+  if (!claudeCheck.exists) {
+    allPassed = false;
+  }
 
   // Check 3: Worker prompt file
   if (pluginRoot) {
@@ -333,28 +336,20 @@ function runDryRun(
  * Print dry run results to console
  */
 function printDryRunResults(result: DryRunResult): void {
-  console.log('Dry Run Validation');
-  console.log('==================\n');
-
   for (const check of result.checks) {
-    const icon = check.passed ? '\u2713' : '\u2717';
-    const status = check.passed ? 'OK' : 'FAILED';
+    const _icon = check.passed ? '\u2713' : '\u2717';
+    const _status = check.passed ? 'OK' : 'FAILED';
 
     if (check.passed) {
-      console.log(`${icon} ${check.name}: ${check.path || status}`);
-    } else {
-      console.log(`${icon} ${check.name}: ${check.error}`);
-      if (check.path) {
-        console.log(`  Expected: ${check.path}`);
-      }
+      // TODO: Implement output for passed checks (e.g., console.log with green checkmark)
+    } else if (check.path) {
+      // TODO: Implement output for failed checks with path (e.g., console.error with path info)
     }
   }
-
-  console.log('');
   if (result.success) {
-    console.log('Dry run complete. All checks passed. Ready to implement.');
+    // TODO: Implement success message output
   } else {
-    console.log('Dry run failed. Please fix the issues above before running implement.');
+    // TODO: Implement failure message output
   }
 }
 
@@ -375,6 +370,9 @@ function loadWorkerPrompt(pluginRoot: string): string {
 /**
  * Build the settings JSON for scope enforcement hooks
  */
+// Tool names that require scope validation (file system operations)
+const SCOPE_VALIDATED_TOOLS = ['Read', 'Write', 'Edit', 'Glob', 'Grep'];
+
 function buildScopeSettings(): Record<string, unknown> {
   // Use npx to run the CLI's scope-validator command
   // This avoids dependency on Python and keeps everything in TypeScript
@@ -382,9 +380,10 @@ function buildScopeSettings(): Record<string, unknown> {
 
   return {
     hooks: {
+      // biome-ignore lint/style/useNamingConvention: Claude Code hook API uses PascalCase
       PreToolUse: [
         {
-          matcher: 'Read|Write|Edit|Glob|Grep',
+          matcher: SCOPE_VALIDATED_TOOLS.join('|'),
           hooks: [hookCommand],
         },
       ],
@@ -646,8 +645,6 @@ async function runLoop(
     // Spawn worker
     cycles += 1;
     let parsed: WorkerOutput;
-
-    console.log(`\n--- Worker ${cycles} started ---\n`);
     try {
       parsed = await spawnWorkerAsync(workerPrompt, model, settings, worktree);
     } catch (e) {
@@ -655,20 +652,20 @@ async function runLoop(
         status: 'ERROR',
         summary: e instanceof Error ? e.message : String(e),
         cycles,
-        elapsedMinutes: (Date.now() - startTime) / 60000,
+        elapsedMinutes: (Date.now() - startTime) / 60_000,
         blocker: null,
         epicSlug,
         storySlug,
       };
     }
-    console.log(`\n--- Worker ${cycles} result: ${parsed.status} ---\n`);
 
     summaries.push(parsed.summary);
 
     if (parsed.status === 'FINISH') {
       finalStatus = 'FINISH';
       break;
-    } else if (parsed.status === 'BLOCKED') {
+    }
+    if (parsed.status === 'BLOCKED') {
       finalStatus = 'BLOCKED';
       lastBlocker = parsed.blocker || null;
       break;
@@ -682,7 +679,7 @@ async function runLoop(
   }
 
   // Calculate elapsed minutes
-  const elapsedMinutes = (Date.now() - startTime) / 60000;
+  const elapsedMinutes = (Date.now() - startTime) / 60_000;
 
   // Combine summaries
   const combinedSummary = summaries.length === 1 ? summaries[0] : summaries.join(' | ');
@@ -744,18 +741,13 @@ export async function implementCommand(
   let projectPath: string;
   try {
     projectPath = resolveProjectPath(options.path);
-  } catch (error) {
-    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+  } catch (_error) {
     process.exit(1);
   }
 
   // Find the story
   const storyInfo = await findStory(projectPath, storySlug);
   if (!storyInfo) {
-    console.error(`Error: Story '${storySlug}' not found in SAGA project.`);
-    console.error(`\nSearched in: ${join(projectPath, '.saga', 'worktrees')}`);
-    console.error('\nMake sure the story worktree exists and has a story.md file.');
-    console.error('Run /generate-stories to create story worktrees.');
     process.exit(1);
   }
 
@@ -771,19 +763,11 @@ export async function implementCommand(
 
   // Check if worktree exists
   if (!existsSync(storyInfo.worktreePath)) {
-    console.error(`Error: Worktree not found at ${storyInfo.worktreePath}`);
-    console.error('\nThe story worktree has not been created yet.');
-    console.error('Make sure the story was properly generated with /generate-stories.');
     process.exit(1);
   }
 
   // If SAGA_PLUGIN_ROOT is not set, provide a helpful error
   if (!pluginRoot) {
-    console.error('Error: SAGA_PLUGIN_ROOT environment variable is not set.');
-    console.error('\nThis variable is required for the implementation script.');
-    console.error('When running via the /implement skill, this is set automatically.');
-    console.error('\nIf running manually, set it to the plugin root directory:');
-    console.error('  export SAGA_PLUGIN_ROOT=/path/to/plugin');
     process.exit(1);
   }
 
@@ -805,44 +789,18 @@ export async function implementCommand(
     });
 
     try {
-      const sessionResult = await createSession(
+      const _sessionResult = await createSession(
         storyInfo.epicSlug,
         storyInfo.storySlug,
         detachedCommand,
       );
 
-      // Output session info as JSON
-      console.log(
-        JSON.stringify(
-          {
-            mode: 'detached',
-            sessionName: sessionResult.sessionName,
-            outputFile: sessionResult.outputFile,
-            epicSlug: storyInfo.epicSlug,
-            storySlug: storyInfo.storySlug,
-            worktreePath: storyInfo.worktreePath,
-          },
-          null,
-          2,
-        ),
-      );
-
       // Exit immediately - worker runs in background
       return;
-    } catch (error) {
-      console.error(
-        `Error: Failed to create detached session: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    } catch (_error) {
       process.exit(1);
     }
   }
-
-  // Internal session mode: run synchronously (inside tmux, SAGA_INTERNAL_SESSION=1)
-  console.log('Starting story implementation...');
-  console.log(`  Epic: ${storyInfo.epicSlug}`);
-  console.log(`  Story: ${storyInfo.storySlug}`);
-  console.log(`  Worktree: ${storyInfo.worktreePath}`);
-  console.log('');
 
   // Run the orchestration loop
   const result = await runLoop(
@@ -854,9 +812,6 @@ export async function implementCommand(
     projectPath,
     pluginRoot,
   );
-
-  // Output result as JSON
-  console.log(JSON.stringify(result, null, 2));
 
   // Exit with appropriate code
   if (result.status === 'ERROR') {

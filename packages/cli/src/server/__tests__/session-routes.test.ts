@@ -9,17 +9,24 @@
 import express from 'express';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DetailedSessionInfo } from '../../lib/sessions.js';
-import { createSessionApiRouter } from '../session-routes.js';
+import type { DetailedSessionInfo } from '../../lib/sessions.ts';
+import { createSessionApiRouter } from '../session-routes.ts';
 
 // Mock the session-polling module
 vi.mock('../../lib/session-polling.js', () => ({
   getCurrentSessions: vi.fn(),
 }));
 
-import { getCurrentSessions } from '../../lib/session-polling.js';
+import { getCurrentSessions } from '../../lib/session-polling.ts';
 
 const mockGetCurrentSessions = getCurrentSessions as ReturnType<typeof vi.fn>;
+
+// Helper to build API paths with query parameters
+function sessionsPath(params?: Record<string, string>): string {
+  if (!params) return '/api/sessions';
+  const query = new URLSearchParams(params).toString();
+  return `/api/sessions?${query}`;
+}
 
 describe('session routes', () => {
   let app: express.Express;
@@ -149,7 +156,7 @@ describe('session routes', () => {
       ];
       mockGetCurrentSessions.mockReturnValue(mockSessions);
 
-      const res = await request(app).get('/api/sessions?epicSlug=epic1&storySlug=story1');
+      const res = await request(app).get(sessionsPath({ epicSlug: 'epic1', storySlug: 'story1' }));
 
       expect(res.status).toBe(200);
       expect(res.body.length).toBe(1);
@@ -216,7 +223,7 @@ describe('session routes', () => {
       mockGetCurrentSessions.mockReturnValue(mockSessions);
 
       const res = await request(app).get(
-        '/api/sessions?epicSlug=epic1&storySlug=story1&status=running',
+        sessionsPath({ epicSlug: 'epic1', storySlug: 'story1', status: 'running' }),
       );
 
       expect(res.status).toBe(200);

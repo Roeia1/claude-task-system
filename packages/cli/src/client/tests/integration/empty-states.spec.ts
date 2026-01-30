@@ -6,7 +6,7 @@ import {
   mockEpicDetail,
   mockEpicList,
   mockStoryDetail,
-} from '../utils/mock-api';
+} from '../utils/mock-api.ts';
 
 /**
  * Empty State Tests
@@ -25,7 +25,7 @@ test.describe('Empty States', () => {
       await page.goto('/');
 
       // Wait for loading to complete
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Verify empty state message is displayed
       await expect(page.getByText('No epics found.')).toBeVisible();
@@ -56,7 +56,7 @@ test.describe('Empty States', () => {
       await page.goto('/');
 
       // Wait for loading to complete
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Verify empty state shows (archived epics are hidden by default)
       await expect(page.getByText('No epics found.')).toBeVisible();
@@ -80,7 +80,7 @@ test.describe('Empty States', () => {
       await page.goto('/');
 
       // Wait for loading to complete
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Initially shows empty state
       await expect(page.getByText('No epics found.')).toBeVisible();
@@ -167,7 +167,7 @@ test.describe('Empty States', () => {
       await page.goto('/epic/no-stories');
 
       // Verify progress bar shows (value should be 0)
-      const progressBar = page.locator('[role="progressbar"]');
+      const progressBar = page.getByRole('progressbar');
       await expect(progressBar).toBeVisible();
     });
   });
