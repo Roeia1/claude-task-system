@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router';
 import { Toaster } from '@/components/ui/toaster';
 import { useDashboardToasts } from '@/hooks/use-dashboard-toasts';
 import { Breadcrumb } from './Breadcrumb';

@@ -224,6 +224,7 @@ test.describe('Loading States', () => {
       await mockEpicList(page, epics);
 
       await page.goto('/');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Data should appear quickly
       await expect(page.getByText('Fast Epic')).toBeVisible();
@@ -248,10 +249,12 @@ test.describe('Loading States', () => {
       await mockEpicDetail(page, epic1);
 
       await page.goto('/');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
       await expect(page.getByText('Nav Epic 1')).toBeVisible();
 
       // Click to navigate to epic detail
       await page.getByRole('link', { name: /Nav Epic 1/i }).click();
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Should eventually show the epic detail
       await expect(page.getByRole('heading', { name: 'Nav Epic 1 Detail' })).toBeVisible();

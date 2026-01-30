@@ -233,8 +233,8 @@ test.describe('WebSocket Disconnection', () => {
     await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
     await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
-    // Story should display without WebSocket
-    await expect(page.getByText('tasks completed')).toBeVisible();
+    // Story should display without WebSocket - verify the story title (h1 element)
+    await expect(page.locator('h1:has-text("User Authentication")')).toBeVisible();
   });
 
   test('can navigate between pages when WebSocket is blocked', async ({ page }) => {

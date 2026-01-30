@@ -42,6 +42,7 @@ test.describe('Navigation', () => {
 
       // Navigate to epic list
       await page.goto('/');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
       await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
       await expect(page.getByText('Test Epic')).toBeVisible();
 
@@ -70,7 +71,9 @@ test.describe('Navigation', () => {
       await mockEpicDetail(page, epicDetail);
 
       await page.goto('/');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
       await page.getByText('Progress Epic').click();
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Verify progress information is displayed
       await expect(page.getByText('3/6 stories completed')).toBeVisible();
@@ -90,6 +93,7 @@ test.describe('Navigation', () => {
       );
 
       await page.goto('/');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Click on the middle epic
       await page.getByText('Epic Beta').click();
@@ -129,6 +133,7 @@ test.describe('Navigation', () => {
 
       // Navigate directly to epic detail
       await page.goto('/epic/test-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
       await expect(page.getByText('My Story')).toBeVisible();
 
       // Click on the story card
@@ -163,7 +168,9 @@ test.describe('Navigation', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/epic-1');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
       await page.getByText('Blocked Story').click();
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Verify the status badge shows "Blocked"
       await expect(page.getByText('Blocked', { exact: true })).toBeVisible();
@@ -181,6 +188,7 @@ test.describe('Navigation', () => {
       await mockEpicDetail(page, epicDetail);
 
       await page.goto('/epic/my-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Verify breadcrumb shows "Epics" link and current epic
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
@@ -197,6 +205,7 @@ test.describe('Navigation', () => {
       await mockEpicDetail(page, epicDetail);
 
       await page.goto('/epic/test-epic');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Click on "Epics" in breadcrumb
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
@@ -231,6 +240,7 @@ test.describe('Navigation', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/parent-epic/story/child-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Verify breadcrumb shows full path
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
@@ -264,6 +274,7 @@ test.describe('Navigation', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/nav-epic/story/nav-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Click on the epic name in breadcrumb
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
@@ -311,15 +322,18 @@ test.describe('Navigation', () => {
 
       // Start at epic list
       await page.goto('/');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
       await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
 
       // Navigate to epic detail
       await page.getByText('Flow Epic').click();
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
       await expect(page).toHaveURL('/epic/flow-epic');
       await expect(page.getByRole('heading', { name: 'Flow Epic' })).toBeVisible();
 
       // Navigate to story detail
       await page.getByText('Flow Story').click();
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
       await expect(page).toHaveURL('/epic/flow-epic/story/flow-story');
       await expect(page.getByRole('heading', { name: 'Flow Story' })).toBeVisible();
       await expect(page.getByText('Flow Task')).toBeVisible();
@@ -362,8 +376,11 @@ test.describe('Navigation', () => {
 
       // Navigate forward through app
       await page.goto('/');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
       await page.getByText('Nav Epic').click();
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
       await page.getByText('Nav Story').click();
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
       await expect(page).toHaveURL('/epic/nav-epic/story/nav-story');
 
       // Go back to epic
@@ -407,6 +424,7 @@ test.describe('Navigation', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/link-epic/story/link-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // The story detail page has an inline link to the epic in the header
       // Find and click the epic link in the story header (in main content, not breadcrumb)

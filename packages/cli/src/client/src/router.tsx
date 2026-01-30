@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router';
 import { Layout } from '@/components/Layout';
 import { EpicDetail } from '@/pages/EpicDetail';
 import { EpicList } from '@/pages/EpicList';

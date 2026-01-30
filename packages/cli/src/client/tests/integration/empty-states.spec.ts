@@ -24,6 +24,9 @@ test.describe('Empty States', () => {
       // Navigate to the epic list page
       await page.goto('/');
 
+      // Wait for loading to complete
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
       // Verify empty state message is displayed
       await expect(page.getByText('No epics found.')).toBeVisible();
       await expect(page.getByText('/create-epic')).toBeVisible();
@@ -52,6 +55,9 @@ test.describe('Empty States', () => {
       // Navigate to the epic list page
       await page.goto('/');
 
+      // Wait for loading to complete
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
+
       // Verify empty state shows (archived epics are hidden by default)
       await expect(page.getByText('No epics found.')).toBeVisible();
 
@@ -72,6 +78,9 @@ test.describe('Empty States', () => {
 
       // Navigate to the epic list page
       await page.goto('/');
+
+      // Wait for loading to complete
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Initially shows empty state
       await expect(page.getByText('No epics found.')).toBeVisible();

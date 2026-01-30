@@ -31,10 +31,10 @@ describe('Story Detail view', () => {
       );
     });
 
-    it('should import useParams and Link from react-router-dom', () => {
+    it('should import useParams and Link from react-router', () => {
       const content = fs.readFileSync(storyDetailPath, 'utf-8');
-      expect(content).toMatch(/import\s+.*useParams.*from\s+['"]react-router-dom['"]/);
-      expect(content).toMatch(/import\s+.*Link.*from\s+['"]react-router-dom['"]/);
+      expect(content).toMatch(/import\s+.*useParams.*from\s+['"]react-router['"]/);
+      expect(content).toMatch(/import\s+.*Link.*from\s+['"]react-router['"]/);
     });
 
     it('should import useEffect from react', () => {

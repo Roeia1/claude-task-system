@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { Link, MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter } from 'react-router';
 import remarkGfm from 'remark-gfm';
 import { expect, within } from 'storybook/test';
 import { Badge } from '@/components/ui/badge';

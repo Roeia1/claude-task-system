@@ -17,14 +17,14 @@ describe('React Router Setup', () => {
       ...(packageJson.devDependencies || {}),
     };
 
-    it('should have react-router-dom installed', () => {
-      expect(allDeps).toHaveProperty('react-router-dom');
+    it('should have react-router installed', () => {
+      expect(allDeps).toHaveProperty('react-router');
     });
 
-    it('should use react-router-dom v6 or higher', () => {
-      const version = allDeps['react-router-dom'];
-      // Version should be ^6.x or higher
-      expect(version).toMatch(/^[\^~]?6\./);
+    it('should use react-router v7 or higher', () => {
+      const version = allDeps['react-router'];
+      // Version should be ^7.x or higher
+      expect(version).toMatch(/^[\^~]?7\./);
     });
   });
 

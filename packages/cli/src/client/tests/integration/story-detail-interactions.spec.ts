@@ -36,6 +36,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/tab-epic/story/tab-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Verify Tasks tab is active and content is visible
       await expect(page.getByRole('tab', { name: 'Tasks' })).toHaveAttribute(
@@ -65,6 +66,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/content-epic/story/content-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Click on Story Content tab
       await page.getByRole('tab', { name: 'Story Content' }).click();
@@ -107,6 +109,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/journal-epic/story/journal-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Click on Journal tab
       await page.getByRole('tab', { name: /Journal/ }).click();
@@ -142,6 +145,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/blocker-epic/story/blocker-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Verify Journal tab shows blocker count
       const journalTab = page.getByRole('tab', { name: /Journal/ });
@@ -168,6 +172,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/persist-epic/story/persist-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Switch to Story Content
       await page.getByRole('tab', { name: 'Story Content' }).click();
@@ -210,6 +215,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/collapsible-epic/story/collapsible-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Go to Journal tab
       await page.getByRole('tab', { name: /Journal/ }).click();
@@ -253,6 +259,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/toggle-epic/story/toggle-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
       await page.getByRole('tab', { name: /Journal/ }).click();
 
       // Expand
@@ -289,6 +296,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/blocker-expand-epic/story/blocker-expand-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
       await page.getByRole('tab', { name: /Journal/ }).click();
 
       // Blocker entries should be expanded by default
@@ -320,6 +328,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/multi-epic/story/multi-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
       await page.getByRole('tab', { name: /Journal/ }).click();
 
       // Both collapsed initially

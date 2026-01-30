@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { expect, within } from 'storybook/test';
 import { DashboardProvider } from '@/context/DashboardContext';
 import { dashboardMachine } from '@/machines';

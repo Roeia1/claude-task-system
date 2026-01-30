@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Link, MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter } from 'react-router';
 import { expect, within } from 'storybook/test';
 import { EpicContent } from '@/components/EpicContent';
 import { Progress } from '@/components/ui/progress';

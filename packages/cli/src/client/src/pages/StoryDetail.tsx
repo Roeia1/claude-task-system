@@ -1,7 +1,7 @@
 import { AlertCircle, CheckCircle, ChevronDown, ChevronRight, Circle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router';
 import remarkGfm from 'remark-gfm';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

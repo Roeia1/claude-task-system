@@ -65,7 +65,7 @@ test.describe('API Mocking Infrastructure', () => {
 
       // Navigate and verify the API was mocked
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // The page should render our mocked epics
       await expect(page.getByText('Epic One')).toBeVisible();
@@ -85,7 +85,7 @@ test.describe('API Mocking Infrastructure', () => {
       await mockEpicDetail(page, epic);
 
       await page.goto('/epic/test-epic');
-      await page.waitForLoadState('networkidle');
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // The page should show the epic detail
       await expect(page.getByRole('heading', { name: 'Test Epic Detail' })).toBeVisible();
@@ -102,7 +102,7 @@ test.describe('API Mocking Infrastructure', () => {
       await mockStoryDetail(page, story);
 
       await page.goto('/epic/test-epic/story/test-story');
-      await page.waitForLoadState('networkidle');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // The page should show the story detail
       await expect(page.getByRole('heading', { name: 'Test Story Detail' })).toBeVisible();

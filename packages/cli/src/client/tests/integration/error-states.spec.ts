@@ -23,7 +23,7 @@ test.describe('Error States', () => {
       await page.goto('/');
 
       // Wait for loading to complete
-      await page.waitForLoadState('networkidle');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Should show empty state (no toast for 500 errors in current implementation)
       await expect(page.getByText('No epics found.')).toBeVisible();
@@ -48,7 +48,7 @@ test.describe('Error States', () => {
       await page.goto('/');
 
       // Wait for loading to complete
-      await page.waitForTimeout(500);
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // The empty state message should appear (no cached epics to show)
       await expect(page.getByText('No epics found.')).toBeVisible();
@@ -108,8 +108,14 @@ test.describe('Error States', () => {
 
       await page.goto('/epic/missing-epic');
 
+      // Wait for error page to load
+      await expect(page.getByRole('heading', { name: 'Epic not found' })).toBeVisible({ timeout: 10000 });
+
       // Click the back link
       await page.getByRole('link', { name: /Back to epic list/i }).click();
+
+      // Wait for epic list to load
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Should navigate to epic list and show the epic
       await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
@@ -182,8 +188,14 @@ test.describe('Error States', () => {
 
       await page.goto('/epic/test-epic/story/missing-story');
 
+      // Wait for error page to load
+      await expect(page.getByRole('heading', { name: 'Story not found' })).toBeVisible({ timeout: 10000 });
+
       // Click the back link
       await page.getByRole('link', { name: /Back to epic/i }).click();
+
+      // Wait for epic detail to load
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Should navigate to epic detail
       await expect(page.getByRole('heading', { name: 'Test Epic' })).toBeVisible();
@@ -200,6 +212,7 @@ test.describe('Error States', () => {
 
       // Navigate to epic list - should work
       await page.goto('/');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
       await expect(page.getByText('Good Epic')).toBeVisible();
 
       // Click to navigate to epic detail - should fail
@@ -230,7 +243,9 @@ test.describe('Error States', () => {
 
       // Navigate back and then to working epic
       await page.getByRole('link', { name: /Back to epic list/i }).click();
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10000 });
       await page.getByRole('link', { name: /Working Epic/i }).click();
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10000 });
 
       // Should show working epic
       await expect(page.getByRole('heading', { name: 'Working Epic Detail' })).toBeVisible();

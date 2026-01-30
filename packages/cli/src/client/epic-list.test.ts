@@ -21,8 +21,8 @@ describe('Epic List View - t7', () => {
       expect(epicListContent).toMatch(/import.*useEffect.*from\s*['"]react['"]/);
     });
 
-    it('should import Link from react-router-dom', () => {
-      expect(epicListContent).toMatch(/import.*Link.*from\s*['"]react-router-dom['"]/);
+    it('should import Link from react-router', () => {
+      expect(epicListContent).toMatch(/import.*Link.*from\s*['"]react-router['"]/);
     });
 
     it('should import Card components', () => {
