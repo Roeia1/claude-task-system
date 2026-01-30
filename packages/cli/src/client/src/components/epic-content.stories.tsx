@@ -49,8 +49,9 @@ type Story = StoryObj<typeof EpicContent>;
 export const EmptyContent: Story = {
   render: () => <EpicContent content={undefined} />,
   play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
     // Component should render nothing for empty content
-    await expect(canvasElement.querySelector('[data-testid="epic-content"]')).toBeNull();
+    await expect(canvas.queryByTestId('epic-content')).toBeNull();
   },
 };
 
@@ -90,17 +91,19 @@ Regular paragraph text below the headings.`}
     />
   ),
   play: async ({ canvasElement }) => {
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]');
-    await expect(epicContent).not.toBeNull();
+    const canvas = within(canvasElement);
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
     // Query within the prose container to avoid the "Epic Documentation" h2 header
-    const proseContainer = epicContent?.querySelector('.prose');
-    await expect(proseContainer).not.toBeNull();
+    const proseContainer = canvas.getByTestId('epic-content-prose');
+    await expect(proseContainer).toBeInTheDocument();
+    const proseCanvas = within(proseContainer);
 
-    // Check headings are rendered
-    await expect(proseContainer?.querySelector('h1')).toHaveTextContent('Main Heading');
-    await expect(proseContainer?.querySelector('h2')).toHaveTextContent('Secondary Heading');
-    await expect(proseContainer?.querySelector('h3')).toHaveTextContent('Tertiary Heading');
+    // Check headings are rendered using role queries
+    await expect(proseCanvas.getByRole('heading', { level: 1, name: 'Main Heading' })).toBeInTheDocument();
+    await expect(proseCanvas.getByRole('heading', { level: 2, name: 'Secondary Heading' })).toBeInTheDocument();
+    await expect(proseCanvas.getByRole('heading', { level: 3, name: 'Tertiary Heading' })).toBeInTheDocument();
 
     // Visual snapshot
     await matchCanvasSnapshot(canvasElement, 'epic-content-headings');
@@ -129,12 +132,13 @@ export const Lists: Story = {
     />
   ),
   play: async ({ canvasElement }) => {
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]');
-    await expect(epicContent).not.toBeNull();
+    const canvas = within(canvasElement);
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
-    // Check lists are rendered
-    await expect(epicContent?.querySelector('ul')).toBeInTheDocument();
-    await expect(epicContent?.querySelector('ol')).toBeInTheDocument();
+    // Check lists are rendered using role queries
+    const lists = canvas.getAllByRole('list');
+    await expect(lists.length).toBeGreaterThanOrEqual(2); // At least ul and ol
 
     // Visual snapshot
     await matchCanvasSnapshot(canvasElement, 'epic-content-lists');
@@ -173,14 +177,15 @@ saga dashboard
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]');
-    await expect(epicContent).not.toBeNull();
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
     // Check inline code
     await expect(canvas.getByText('npm install')).toBeInTheDocument();
 
-    // Check code blocks
-    await expect(epicContent?.querySelectorAll('pre').length).toBeGreaterThanOrEqual(2);
+    // Check code blocks using role query
+    const codeBlocks = canvas.getAllByRole('code');
+    await expect(codeBlocks.length).toBeGreaterThanOrEqual(2);
 
     // Visual snapshot
     await matchCanvasSnapshot(canvasElement, 'epic-content-code-blocks');
@@ -205,11 +210,11 @@ export const Tables: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]');
-    await expect(epicContent).not.toBeNull();
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
-    // Check table is rendered
-    await expect(epicContent?.querySelector('table')).toBeInTheDocument();
+    // Check table is rendered using role query
+    await expect(canvas.getByRole('table')).toBeInTheDocument();
     await expect(canvas.getByText('Status')).toBeInTheDocument();
     await expect(canvas.getByText('in_progress')).toBeInTheDocument();
 
@@ -287,8 +292,8 @@ This content can be collapsed and expanded by clicking the header.
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]');
-    await expect(epicContent).not.toBeNull();
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
     // Initially expanded
     await expect(epicContent).toHaveAttribute('data-state', 'open');
@@ -369,17 +374,21 @@ See the [project board](https://github.com/example/saga/projects/1) for details.
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]');
-    await expect(epicContent).not.toBeNull();
+    const epicContent = canvas.getByTestId('epic-content');
+    await expect(epicContent).toBeInTheDocument();
 
-    // Check main heading
-    await expect(epicContent?.querySelector('h1')).toHaveTextContent('Dashboard Restructure Epic');
+    const proseContainer = canvas.getByTestId('epic-content-prose');
+    const proseCanvas = within(proseContainer);
 
-    // Check table
-    await expect(epicContent?.querySelector('table')).toBeInTheDocument();
+    // Check main heading using role query
+    await expect(proseCanvas.getByRole('heading', { level: 1, name: 'Dashboard Restructure Epic' })).toBeInTheDocument();
 
-    // Check code block
-    await expect(epicContent?.querySelector('pre')).toBeInTheDocument();
+    // Check table using role query
+    await expect(canvas.getByRole('table')).toBeInTheDocument();
+
+    // Check code blocks exist
+    const codeBlocks = canvas.getAllByRole('code');
+    await expect(codeBlocks.length).toBeGreaterThan(0);
 
     // Check strikethrough
     const deletedText = canvas.getByText('Phase 1 is complete.');

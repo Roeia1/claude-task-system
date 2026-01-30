@@ -31,7 +31,7 @@ function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
         data-testid="status-indicator-streaming"
         class="flex items-center gap-1.5 text-success text-sm"
       >
-        <Loader2 class="h-3.5 w-3.5 animate-spin" />
+        <Loader2 class="h-3.5 w-3.5 animate-spin" data-testid="status-icon-loader" />
         <span>Streaming</span>
       </div>
     );
@@ -42,7 +42,7 @@ function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
       data-testid="status-indicator-complete"
       class="flex items-center gap-1.5 text-text-muted text-sm"
     >
-      <CheckCircle class="h-3.5 w-3.5" />
+      <CheckCircle class="h-3.5 w-3.5" data-testid="status-icon-complete" />
       <span>Complete</span>
     </div>
   );
@@ -89,7 +89,11 @@ function LogViewerHeader({
         class="p-1.5 rounded-md bg-bg-light hover:bg-bg-lighter text-text-muted hover:text-text transition-colors"
         title={title}
       >
-        {autoScroll ? <ArrowDownToLine class="h-4 w-4" /> : <Pause class="h-4 w-4" />}
+        {autoScroll ? (
+          <ArrowDownToLine class="h-4 w-4" data-testid="autoscroll-icon-enabled" />
+        ) : (
+          <Pause class="h-4 w-4" data-testid="autoscroll-icon-disabled" />
+        )}
       </button>
     </div>
   );

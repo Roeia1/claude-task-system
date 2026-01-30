@@ -30,15 +30,16 @@ export function Breadcrumb() {
           <span key={item.label} className="flex items-center gap-2">
             {index > 0 && (
               <ChevronRight
-                className="h-4 w-4 text-text-muted lucide-chevron-right"
+                className="h-4 w-4 text-text-muted"
                 aria-hidden={true}
+                data-testid="breadcrumb-separator"
               />
             )}
             {item.href && !isLast ? (
               <Link to={item.href} className="text-text-muted hover:text-primary transition-colors">
                 {index === 0 ? (
                   <span className="flex items-center gap-1">
-                    <Home className="h-4 w-4 lucide-home" />
+                    <Home className="h-4 w-4" data-testid="breadcrumb-home-icon" />
                     {item.label}
                   </span>
                 ) : (
@@ -49,7 +50,7 @@ export function Breadcrumb() {
               <span className={isLast ? 'text-text font-medium' : 'text-text-muted'}>
                 {index === 0 ? (
                   <span className="flex items-center gap-1">
-                    <Home className="h-4 w-4 lucide-home" />
+                    <Home className="h-4 w-4" data-testid="breadcrumb-home-icon" />
                     {item.label}
                   </span>
                 ) : (

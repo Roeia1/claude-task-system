@@ -23,6 +23,7 @@ import { type RawData, WebSocket, WebSocketServer } from 'ws';
 
 /** Heartbeat interval for checking client connections (30 seconds) */
 const HEARTBEAT_INTERVAL_MS = 30_000;
+
 import {
   LogStreamManager,
   type LogsDataMessage,

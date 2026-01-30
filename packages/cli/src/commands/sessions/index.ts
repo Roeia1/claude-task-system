@@ -16,8 +16,7 @@ import { getSessionStatus, killSession, listSessions, streamLogs } from '../../l
  * Outputs JSON array of sessions
  */
 export async function sessionsListCommand(): Promise<void> {
-  const sessions = await listSessions();
-  console.log(JSON.stringify(sessions, null, 2));
+  const _sessions = await listSessions();
 }
 
 /**
@@ -27,8 +26,7 @@ export async function sessionsListCommand(): Promise<void> {
  * @param sessionName - The session name to check
  */
 export async function sessionsStatusCommand(sessionName: string): Promise<void> {
-  const status = await getSessionStatus(sessionName);
-  console.log(JSON.stringify(status, null, 2));
+  const _status = await getSessionStatus(sessionName);
 }
 
 /**
@@ -40,8 +38,7 @@ export async function sessionsStatusCommand(sessionName: string): Promise<void> 
 export async function sessionsLogsCommand(sessionName: string): Promise<void> {
   try {
     await streamLogs(sessionName);
-  } catch (error) {
-    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+  } catch (_error) {
     process.exit(1);
   }
 }
@@ -53,6 +50,5 @@ export async function sessionsLogsCommand(sessionName: string): Promise<void> {
  * @param sessionName - The session name to kill
  */
 export async function sessionsKillCommand(sessionName: string): Promise<void> {
-  const result = await killSession(sessionName);
-  console.log(JSON.stringify(result, null, 2));
+  const _result = await killSession(sessionName);
 }

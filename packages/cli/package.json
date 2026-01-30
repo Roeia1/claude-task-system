@@ -11,7 +11,7 @@
   "scripts": {
     "build:cli": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.cjs --format=cjs --banner:js='#!/usr/bin/env node' --external:express --external:ws --external:chokidar --external:gray-matter --external:fuse.js --external:commander",
     "build:client": "vite build --config src/client/vite.config.ts",
-    "build": "concurrently -g \"pnpm build:cli\" \"pnpm build:client\"",
+    "build": "pnpm lint && concurrently -g \"pnpm build:cli\" \"pnpm build:client\"",
     "test": "pnpm build && concurrently -g \"vitest run\" \"pnpm run test:integration\" \"pnpm run test:e2e\"",
     "test:watch": "vitest",
     "test:integration": "playwright test --config src/client/playwright.config.ts",

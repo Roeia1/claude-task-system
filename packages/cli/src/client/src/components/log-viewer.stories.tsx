@@ -17,7 +17,7 @@ const LOG_LEVEL_COUNT = 4;
 const LARGE_LOG_LINE_COUNT = 10_000;
 
 /** Maximum rendered lines for virtualization test */
-const MAX_RENDERED_LINES_THRESHOLD = 100;
+const _MAX_RENDERED_LINES_THRESHOLD = 100;
 
 // ============================================================================
 // Mock Data
@@ -255,7 +255,7 @@ export const Streaming: Story = {
     await expect(canvas.getByText('Streaming')).toBeInTheDocument();
 
     // Verify animated loader icon is present
-    const loader = canvasElement.querySelector('svg.animate-spin');
+    const loader = canvas.getByTestId('status-icon-loader');
     await expect(loader).toBeInTheDocument();
 
     // Verify auto-scroll is enabled for running session
@@ -292,7 +292,7 @@ export const Complete: Story = {
     await expect(canvas.getByText('Complete')).toBeInTheDocument();
 
     // Verify status indicator has check icon (no animation)
-    const statusIcon = statusIndicator.querySelector('svg');
+    const statusIcon = canvas.getByTestId('status-icon-complete');
     await expect(statusIcon).toBeInTheDocument();
     await expect(statusIcon).not.toHaveClass('animate-spin');
 
@@ -329,17 +329,13 @@ export const Unavailable: Story = {
     await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
 
     // Verify no status indicator (not shown when output unavailable)
-    const streamingIndicator = canvasElement.querySelector(
-      '[data-testid="status-indicator-streaming"]',
-    );
-    const completeIndicator = canvasElement.querySelector(
-      '[data-testid="status-indicator-complete"]',
-    );
+    const streamingIndicator = canvas.queryByTestId('status-indicator-streaming');
+    const completeIndicator = canvas.queryByTestId('status-indicator-complete');
     await expect(streamingIndicator).not.toBeInTheDocument();
     await expect(completeIndicator).not.toBeInTheDocument();
 
     // Verify no auto-scroll toggle (not shown when output unavailable)
-    const toggleButton = canvasElement.querySelector('[data-testid="auto-scroll-toggle"]');
+    const toggleButton = canvas.queryByTestId('auto-scroll-toggle');
     await expect(toggleButton).not.toBeInTheDocument();
 
     // Visual snapshot test
@@ -375,7 +371,7 @@ export const LargeLog: Story = {
 
     // Verify virtualization - should NOT render all 10,000 lines
     // Only a small number of visible lines should be in the DOM
-    const renderedLines = canvasElement.querySelectorAll('[data-testid="log-line"]');
+    const renderedLines = canvas.queryAllByTestId('log-line');
     // With overscan of 5 and typical viewport, should render < 100 lines
     await expect(renderedLines.length).toBeLessThan(100);
     await expect(renderedLines.length).toBeGreaterThan(0);
@@ -414,7 +410,7 @@ export const EmptyContent: Story = {
     await expect(logContent).toBeInTheDocument();
 
     // Verify no loading skeleton (initialContent provided, even if empty)
-    const skeleton = canvasElement.querySelector('[data-testid="log-viewer-skeleton"]');
+    const skeleton = canvas.queryByTestId('log-viewer-skeleton');
     await expect(skeleton).not.toBeInTheDocument();
 
     // Visual snapshot test
@@ -447,7 +443,7 @@ export const AutoScrollToggle: Story = {
     await expect(toggleButton).toHaveAttribute('title', 'Auto-scroll enabled (click to disable)');
 
     // Verify ArrowDownToLine icon is shown when enabled
-    const arrowIcon = canvasElement.querySelector('[data-testid="auto-scroll-toggle"] svg');
+    const arrowIcon = canvas.getByTestId('autoscroll-icon-enabled');
     await expect(arrowIcon).toBeInTheDocument();
   },
 };

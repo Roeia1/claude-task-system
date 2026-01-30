@@ -23,7 +23,9 @@ const mockGetCurrentSessions = getCurrentSessions as ReturnType<typeof vi.fn>;
 
 // Helper to build API paths with query parameters
 function sessionsPath(params?: Record<string, string>): string {
-  if (!params) return '/api/sessions';
+  if (!params) {
+    return '/api/sessions';
+  }
   const query = new URLSearchParams(params).toString();
   return `/api/sessions?${query}`;
 }

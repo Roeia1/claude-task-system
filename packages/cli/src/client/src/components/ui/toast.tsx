@@ -101,4 +101,4 @@ export const ToastDescription = React.forwardRef<
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 
-export type { ToastProps, ToastActionElement } from './toast-types';
+export type { ToastActionElement, ToastProps } from './toast-types.ts';

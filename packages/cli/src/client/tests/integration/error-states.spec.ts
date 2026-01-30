@@ -30,12 +30,7 @@ test.describe('Error States', () => {
       // Mock the API to return a 500 error
       // Note: The dashboard code only shows toast for network failures (thrown errors),
       // not for non-OK HTTP responses. A 500 response results in empty state.
-      await mockApiError(
-        page,
-        '**/api/epics',
-        HTTP_INTERNAL_SERVER_ERROR,
-        'Internal Server Error',
-      );
+      await mockApiError(page, '**/api/epics', HTTP_INTERNAL_SERVER_ERROR, 'Internal Server Error');
 
       await page.goto('/');
 
@@ -62,12 +57,7 @@ test.describe('Error States', () => {
 
     test('should display empty state after error when no cached data', async ({ page }) => {
       // Mock the API to return a 500 error
-      await mockApiError(
-        page,
-        '**/api/epics',
-        HTTP_INTERNAL_SERVER_ERROR,
-        'Internal Server Error',
-      );
+      await mockApiError(page, '**/api/epics', HTTP_INTERNAL_SERVER_ERROR, 'Internal Server Error');
 
       await page.goto('/');
 

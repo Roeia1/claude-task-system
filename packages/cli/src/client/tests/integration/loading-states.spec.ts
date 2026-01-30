@@ -212,11 +212,16 @@ test.describe('Loading States', () => {
         status: 'ready',
       });
 
-      await mockApiDelay(page, '**/api/stories/transition-epic/transition-story', DELAY_TRANSITION_MS, {
-        status: HTTP_OK,
-        contentType: 'application/json',
-        body: JSON.stringify(story),
-      });
+      await mockApiDelay(
+        page,
+        '**/api/stories/transition-epic/transition-story',
+        DELAY_TRANSITION_MS,
+        {
+          status: HTTP_OK,
+          contentType: 'application/json',
+          body: JSON.stringify(story),
+        },
+      );
 
       await page.goto('/epic/transition-epic/story/transition-story');
 

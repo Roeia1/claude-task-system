@@ -42,12 +42,11 @@ type HeaderSkeletonStory = StoryObj<typeof HeaderSkeleton>;
  */
 export const Skeleton: HeaderSkeletonStory = {
   play: async ({ canvasElement }) => {
-    // Verify animate-pulse class for loading animation
-    const pulseContainer = canvasElement.querySelector('.animate-pulse');
-    await expect(pulseContainer).toBeInTheDocument();
-    // Verify bg-bg-light placeholder elements
-    const placeholders = canvasElement.querySelectorAll('.bg-bg-light');
-    await expect(placeholders.length).toBeGreaterThanOrEqual(4);
+    const canvas = within(canvasElement);
+    // Verify header skeleton is present via testid
+    const skeleton = canvas.getByTestId('epic-header-skeleton');
+    await expect(skeleton).toBeInTheDocument();
+    await expect(skeleton).toHaveClass('animate-pulse');
   },
 };
 
@@ -79,12 +78,11 @@ type StoryCardSkeletonStory = StoryObj<typeof StoryCardSkeleton>;
 export const CardSkeleton: StoryCardSkeletonStory = {
   render: () => <StoryCardSkeleton />,
   play: async ({ canvasElement }) => {
-    // Verify animate-pulse class for loading animation
-    const pulseContainer = canvasElement.querySelector('.animate-pulse');
-    await expect(pulseContainer).toBeInTheDocument();
-    // Verify bg-bg-light placeholder elements
-    const placeholders = canvasElement.querySelectorAll('.bg-bg-light');
-    await expect(placeholders.length).toBeGreaterThanOrEqual(2);
+    const canvas = within(canvasElement);
+    // Verify story card skeleton is present via testid
+    const skeleton = canvas.getByTestId('story-card-skeleton');
+    await expect(skeleton).toBeInTheDocument();
+    await expect(skeleton).toHaveClass('animate-pulse');
   },
 };
 
@@ -101,12 +99,14 @@ export const CardSkeletonGrid: StoryCardSkeletonStory = {
     </div>
   ),
   play: async ({ canvasElement }) => {
-    // Verify grid layout
-    const grid = canvasElement.querySelector('.grid');
-    await expect(grid).toBeInTheDocument();
-    // Verify three skeleton cards
-    const skeletonCards = canvasElement.querySelectorAll('.animate-pulse');
+    const canvas = within(canvasElement);
+    // Verify three skeleton cards via testid
+    const skeletonCards = canvas.getAllByTestId('story-card-skeleton');
     await expect(skeletonCards.length).toBe(3);
+    // Verify all have animate-pulse
+    for (const card of skeletonCards) {
+      await expect(card).toHaveClass('animate-pulse');
+    }
   },
 };
 
@@ -515,9 +515,6 @@ export const CardGrid: StoryCardStory = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // Verify grid layout
-    const grid = canvasElement.querySelector('.grid');
-    await expect(grid).toBeInTheDocument();
     // Verify all four story cards by title
     await expect(canvas.getByText('API Integration (Blocked)')).toBeInTheDocument();
     await expect(canvas.getByText('Setup Testing')).toBeInTheDocument();
@@ -577,15 +574,14 @@ export const Loading: EpicDetailStory = {
     </div>
   ),
   play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
     // Verify header skeleton is present
-    const headerSkeleton = canvasElement.querySelector('.animate-pulse');
+    const headerSkeleton = canvas.getByTestId('epic-header-skeleton');
     await expect(headerSkeleton).toBeInTheDocument();
-    // Verify grid with story card skeletons
-    const grid = canvasElement.querySelector('.grid');
-    await expect(grid).toBeInTheDocument();
+    await expect(headerSkeleton).toHaveClass('animate-pulse');
     // Verify three story card skeletons
-    const skeletonCards = canvasElement.querySelectorAll('.animate-pulse');
-    await expect(skeletonCards.length).toBe(4); // 1 header + 3 cards
+    const storySkeletons = canvas.getAllByTestId('story-card-skeleton');
+    await expect(storySkeletons.length).toBe(3);
 
     // Visual snapshot test
     await matchCanvasSnapshot(canvasElement, 'epic-detail-loading');
@@ -836,13 +832,11 @@ export const Populated: EpicDetailStory = {
     await expect(canvas.getByTestId('epic-content')).toBeInTheDocument();
     await expect(canvas.getByText('Epic Documentation')).toBeInTheDocument();
     // Verify markdown content is rendered (heading inside prose)
-    const epicContent = canvasElement.querySelector('[data-testid="epic-content"]');
-    const proseContainer = epicContent?.querySelector('.prose');
-    await expect(proseContainer?.querySelector('h1')).toHaveTextContent(
-      'Dashboard Restructure Epic',
-    );
+    const proseContainer = canvas.getByTestId('epic-content-prose');
+    const proseCanvas = within(proseContainer);
+    await expect(proseCanvas.getByRole('heading', { level: 1, name: 'Dashboard Restructure Epic' })).toBeInTheDocument();
     // Verify table is rendered
-    await expect(epicContent?.querySelector('table')).toBeInTheDocument();
+    await expect(canvas.getByRole('table')).toBeInTheDocument();
     // Verify "Stories" section header
     await expect(canvas.getByText('Stories')).toBeInTheDocument();
     // Verify all story cards by title

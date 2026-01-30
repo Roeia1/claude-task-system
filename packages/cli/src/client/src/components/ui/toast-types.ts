@@ -15,7 +15,8 @@ type ToastVariants = VariantProps<{
   };
 }>;
 
-export type ToastProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & ToastVariants;
+export type ToastProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
+  ToastVariants;
 
 export type ToastActionElement = React.ReactElement<
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>

@@ -19,13 +19,13 @@ import {
   TaskStatusIcon,
 } from './StoryDetail.tsx';
 
-// Test selectors using data-testid attributes
-const CIRCLE_PENDING_SELECTOR = '[data-testid="icon-circle-pending"]';
-const CIRCLE_IN_PROGRESS_SELECTOR = '[data-testid="icon-circle-in-progress"]';
-const CHECK_CIRCLE_SELECTOR = '[data-testid="icon-check-circle"]';
-const ALERT_CIRCLE_SELECTOR = '[data-testid="icon-alert-circle"]';
-const CHEVRON_RIGHT_SELECTOR = '[data-testid="icon-chevron-right"]';
-const CHEVRON_DOWN_SELECTOR = '[data-testid="icon-chevron-down"]';
+// Test IDs for icon components
+const ICON_CIRCLE_PENDING = 'icon-circle-pending';
+const ICON_CIRCLE_IN_PROGRESS = 'icon-circle-in-progress';
+const ICON_CHECK_CIRCLE = 'icon-check-circle';
+const ICON_ALERT_CIRCLE = 'icon-alert-circle';
+const ICON_CHEVRON_RIGHT = 'icon-chevron-right';
+const ICON_CHEVRON_DOWN = 'icon-chevron-down';
 
 // ============================================================================
 // HeaderSkeleton Stories
@@ -166,7 +166,7 @@ export const IconPending: TaskStatusIconStory = {
     // Verify pending text is displayed
     await expect(canvas.getByText('Pending task')).toBeInTheDocument();
     // Verify circle icon with text-muted color
-    const icon = canvasElement.querySelector(CIRCLE_PENDING_SELECTOR);
+    const icon = canvas.getByTestId(ICON_CIRCLE_PENDING);
     await expect(icon).toBeInTheDocument();
     await expect(icon).toHaveClass('text-text-muted');
   },
@@ -187,7 +187,7 @@ export const IconInProgress: TaskStatusIconStory = {
     // Verify in progress text is displayed
     await expect(canvas.getByText('In progress task')).toBeInTheDocument();
     // Verify circle icon with primary color and fill
-    const icon = canvasElement.querySelector(CIRCLE_IN_PROGRESS_SELECTOR);
+    const icon = canvas.getByTestId(ICON_CIRCLE_IN_PROGRESS);
     await expect(icon).toBeInTheDocument();
     await expect(icon).toHaveClass('text-primary');
     await expect(icon).toHaveClass('fill-primary/20');
@@ -209,7 +209,7 @@ export const IconCompleted: TaskStatusIconStory = {
     // Verify completed text is displayed
     await expect(canvas.getByText('Completed task')).toBeInTheDocument();
     // Verify check-circle icon with success color
-    const icon = canvasElement.querySelector(CHECK_CIRCLE_SELECTOR);
+    const icon = canvas.getByTestId(ICON_CHECK_CIRCLE);
     await expect(icon).toBeInTheDocument();
     await expect(icon).toHaveClass('text-success');
   },
@@ -242,11 +242,11 @@ export const AllTaskIcons: TaskStatusIconStory = {
     await expect(canvas.getByText('In Progress')).toBeInTheDocument();
     await expect(canvas.getByText('Completed')).toBeInTheDocument();
     // Verify icons are present (1 pending + 1 in-progress + 1 check-circle)
-    const pendingIcon = canvasElement.querySelector(CIRCLE_PENDING_SELECTOR);
-    const inProgressIcon = canvasElement.querySelector(CIRCLE_IN_PROGRESS_SELECTOR);
+    const pendingIcon = canvas.getByTestId(ICON_CIRCLE_PENDING);
+    const inProgressIcon = canvas.getByTestId(ICON_CIRCLE_IN_PROGRESS);
     await expect(pendingIcon).toBeInTheDocument();
     await expect(inProgressIcon).toBeInTheDocument();
-    const checkIcon = canvasElement.querySelector(CHECK_CIRCLE_SELECTOR);
+    const checkIcon = canvas.getByTestId(ICON_CHECK_CIRCLE);
     await expect(checkIcon).toBeInTheDocument();
   },
 };
@@ -294,7 +294,7 @@ export const TaskPending: TaskItemStory = {
     await expect(badge).toBeInTheDocument();
     await expect(badge).toHaveClass('bg-text-muted/20');
     // Verify pending icon (circle)
-    const icon = canvasElement.querySelector(CIRCLE_PENDING_SELECTOR);
+    const icon = canvas.getByTestId(ICON_CIRCLE_PENDING);
     await expect(icon).toBeInTheDocument();
   },
 };
@@ -320,7 +320,7 @@ export const TaskInProgress: TaskItemStory = {
     await expect(badge).toBeInTheDocument();
     await expect(badge).toHaveClass('bg-primary/20');
     // Verify in_progress icon (circle with fill)
-    const icon = canvasElement.querySelector(CIRCLE_IN_PROGRESS_SELECTOR);
+    const icon = canvas.getByTestId(ICON_CIRCLE_IN_PROGRESS);
     await expect(icon).toBeInTheDocument();
     await expect(icon).toHaveClass('text-primary');
   },
@@ -350,7 +350,7 @@ export const TaskCompleted: TaskItemStory = {
     await expect(badge).toBeInTheDocument();
     await expect(badge).toHaveClass('bg-success/20');
     // Verify completed icon (check-circle)
-    const icon = canvasElement.querySelector(CHECK_CIRCLE_SELECTOR);
+    const icon = canvas.getByTestId(ICON_CHECK_CIRCLE);
     await expect(icon).toBeInTheDocument();
     await expect(icon).toHaveClass('text-success');
   },
@@ -431,11 +431,11 @@ export const AllTaskStatuses: TaskItemStory = {
     const pendingBadges = canvas.getAllByText('pending');
     await expect(pendingBadges.length).toBe(2);
     // Verify icons (1 check-circle, 1 in-progress, 2 pending)
-    const checkIcons = canvasElement.querySelectorAll(CHECK_CIRCLE_SELECTOR);
+    const checkIcons = canvas.getAllByTestId(ICON_CHECK_CIRCLE);
     await expect(checkIcons.length).toBe(1);
-    const inProgressIcons = canvasElement.querySelectorAll(CIRCLE_IN_PROGRESS_SELECTOR);
+    const inProgressIcons = canvas.getAllByTestId(ICON_CIRCLE_IN_PROGRESS);
     await expect(inProgressIcons.length).toBe(1);
-    const pendingIcons = canvasElement.querySelectorAll(CIRCLE_PENDING_SELECTOR);
+    const pendingIcons = canvas.getAllByTestId(ICON_CIRCLE_PENDING);
     await expect(pendingIcons.length).toBe(2);
   },
 };
@@ -495,7 +495,7 @@ export const EntrySession: JournalEntryStory = {
     const badge = canvas.getByText('session');
     await expect(badge).toBeInTheDocument();
     // Verify collapsed state (chevron-right visible, content hidden)
-    const chevronRight = canvasElement.querySelector(CHEVRON_RIGHT_SELECTOR);
+    const chevronRight = canvas.getByTestId(ICON_CHEVRON_RIGHT);
     await expect(chevronRight).toBeInTheDocument();
     // Verify bg-bg-light neutral styling for session type
     const card = canvasElement.querySelector('.bg-bg-light');
@@ -513,7 +513,7 @@ export const EntrySessionExpanded: JournalEntryStory = {
     // Verify entry title
     await expect(canvas.getByText('Session: 2026-01-28 01:00 UTC')).toBeInTheDocument();
     // Verify expanded state (chevron-down visible)
-    const chevronDown = canvasElement.querySelector(CHEVRON_DOWN_SELECTOR);
+    const chevronDown = canvas.getByTestId(ICON_CHEVRON_DOWN);
     await expect(chevronDown).toBeInTheDocument();
     // Verify content is visible (check for specific text from content)
     await expect(canvas.getByText(/What was done:/)).toBeInTheDocument();
@@ -555,7 +555,7 @@ export const EntryBlocker: JournalEntryStory = {
     await expect(badge).toBeInTheDocument();
     await expect(badge).toHaveClass('text-danger');
     // Verify alert icon for blocker
-    const alertIcon = canvasElement.querySelector(ALERT_CIRCLE_SELECTOR);
+    const alertIcon = canvas.getByTestId(ICON_ALERT_CIRCLE);
     await expect(alertIcon).toBeInTheDocument();
     // Verify blocker content is visible
     await expect(canvas.getByText(/Cannot access external API/)).toBeInTheDocument();
@@ -1356,7 +1356,7 @@ export const Completed: StoryDetailStory = {
     const completedBadges = canvas.getAllByText('completed');
     await expect(completedBadges.length).toBe(4);
     // Verify all tasks have check-circle icons
-    const checkIcons = canvasElement.querySelectorAll(CHECK_CIRCLE_SELECTOR);
+    const checkIcons = canvas.getAllByTestId(ICON_CHECK_CIRCLE);
     await expect(checkIcons.length).toBe(4);
   },
 };

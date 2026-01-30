@@ -190,7 +190,7 @@ test.describe('Story Detail', () => {
   });
 });
 
-test.describe.skip('WebSocket Real-time Updates', () => {
+test.describe('WebSocket Real-time Updates', () => {
   // Skip WebSocket tests for now - the dashboard doesn't auto-connect to WebSocket on load.
   // The WebSocket connection is only initiated when connect() is called, but no component
   // currently calls this on mount. This is a pre-existing gap in the dashboard implementation.

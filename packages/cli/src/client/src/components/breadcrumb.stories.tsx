@@ -4,6 +4,9 @@ import { expect, within } from 'storybook/test';
 import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
 import { Breadcrumb } from './Breadcrumb.tsx';
 
+/** Regex pattern for matching "Epics" link text (case insensitive) */
+const EPICS_LINK_PATTERN = /epics/i;
+
 /**
  * The Breadcrumb component displays navigation breadcrumbs based on the current route.
  * It uses React Router's `useParams` to determine the current location and builds
@@ -49,17 +52,15 @@ export const Root: Story = {
   ],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const nav = canvasElement.querySelector('nav[aria-label="Breadcrumb"]');
+    const nav = canvas.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(nav).toBeInTheDocument();
     // Verify "Epics" text is present
     await expect(canvas.getByText('Epics')).toBeInTheDocument();
-    // Verify home icon is present (SVG with lucide class)
-    // biome-ignore lint/security/noSecrets: CSS attribute selector, not a secret
-    const homeIcon = canvasElement.querySelector('svg.lucide-home');
+    // Verify home icon is present
+    const homeIcon = canvas.getByTestId('breadcrumb-home-icon');
     await expect(homeIcon).toBeInTheDocument();
-    // Verify no separators since this is the only item (chevron-right icons)
-    // biome-ignore lint/security/noSecrets: CSS attribute selector, not a secret
-    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right');
+    // Verify no separators since this is the only item
+    const separators = canvas.queryAllByTestId('breadcrumb-separator');
     await expect(separators.length).toBe(0);
 
     // Accessibility: Verify nav has proper aria-label for screen readers
@@ -89,12 +90,11 @@ export const EpicDetail: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // Verify Epics link is present with href to root
-    const epicsLink = canvas.getByRole('link', { name: /epics/i });
+    const epicsLink = canvas.getByRole('link', { name: EPICS_LINK_PATTERN });
     await expect(epicsLink).toBeInTheDocument();
     await expect(epicsLink).toHaveAttribute('href', '/');
     // Verify separator is present
-    // biome-ignore lint/security/noSecrets: CSS attribute selector, not a secret
-    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right');
+    const separators = canvas.getAllByTestId('breadcrumb-separator');
     await expect(separators.length).toBe(1);
     // Verify epic slug is displayed as current page (font-medium)
     const epicSlug = canvas.getByText('dashboard-restructure');
@@ -104,7 +104,7 @@ export const EpicDetail: Story = {
     // Accessibility: Verify links have accessible names
     await expect(epicsLink).toHaveAccessibleName();
     // Verify nav has proper aria-label
-    const nav = canvasElement.querySelector('nav[aria-label="Breadcrumb"]');
+    const nav = canvas.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(nav).toBeInTheDocument();
 
     // Visual snapshot test
@@ -133,7 +133,7 @@ export const StoryDetail: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // Verify Epics link with href to root
-    const epicsLink = canvas.getByRole('link', { name: /epics/i });
+    const epicsLink = canvas.getByRole('link', { name: EPICS_LINK_PATTERN });
     await expect(epicsLink).toBeInTheDocument();
     await expect(epicsLink).toHaveAttribute('href', '/');
     // Verify epic slug link with href to epic detail
@@ -143,8 +143,7 @@ export const StoryDetail: Story = {
     await expect(epicSlugLink).toBeInTheDocument();
     await expect(epicSlugLink).toHaveAttribute('href', '/epic/dashboard-restructure');
     // Verify two separators for the full hierarchy
-    // biome-ignore lint/security/noSecrets: CSS attribute selector, not a secret
-    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right');
+    const separators = canvas.getAllByTestId('breadcrumb-separator');
     await expect(separators.length).toBe(2);
     // Verify story slug is displayed as current page (font-medium)
     const storySlug = canvas.getByText('storybook-setup');
@@ -155,7 +154,7 @@ export const StoryDetail: Story = {
     await expect(epicsLink).toHaveAccessibleName();
     await expect(epicSlugLink).toHaveAccessibleName();
     // Verify nav has proper aria-label
-    const nav = canvasElement.querySelector('nav[aria-label="Breadcrumb"]');
+    const nav = canvas.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(nav).toBeInTheDocument();
 
     // Visual snapshot test
@@ -181,7 +180,7 @@ export const LongEpicSlug: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // Verify Epics link is present with href to root
-    const epicsLink = canvas.getByRole('link', { name: /epics/i });
+    const epicsLink = canvas.getByRole('link', { name: EPICS_LINK_PATTERN });
     await expect(epicsLink).toBeInTheDocument();
     await expect(epicsLink).toHaveAttribute('href', '/');
     // Verify long epic slug is displayed as current page
@@ -214,7 +213,7 @@ export const LongSlugs: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // Verify Epics link with href to root
-    const epicsLink = canvas.getByRole('link', { name: /epics/i });
+    const epicsLink = canvas.getByRole('link', { name: EPICS_LINK_PATTERN });
     await expect(epicsLink).toBeInTheDocument();
     await expect(epicsLink).toHaveAttribute('href', '/');
     // Verify long epic slug link with href to epic detail
