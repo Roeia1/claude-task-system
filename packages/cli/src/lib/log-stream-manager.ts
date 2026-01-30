@@ -315,6 +315,59 @@ export class LogStreamManager {
   }
 
   /**
+   * Notify that a session has completed
+   *
+   * Reads any remaining content from the file and sends it with isComplete=true
+   * to all subscribed clients, then cleans up the watcher regardless of
+   * subscription count. Called by session polling when it detects completion.
+   *
+   * @param sessionName - The session that has completed
+   */
+  async notifySessionCompleted(sessionName: string): Promise<void> {
+    const subs = this.subscriptions.get(sessionName);
+
+    // No subscribers - nothing to notify
+    if (!subs || subs.size === 0) {
+      return;
+    }
+
+    const outputFile = join(OUTPUT_DIR, `${sessionName}.out`);
+    let finalContent = '';
+
+    // Try to read any remaining content
+    try {
+      if (existsSync(outputFile)) {
+        const lastPosition = this.filePositions.get(sessionName) ?? 0;
+        const fileStat = await stat(outputFile);
+        const currentSize = fileStat.size;
+
+        if (currentSize > lastPosition) {
+          finalContent = await this.readFromPosition(outputFile, lastPosition, currentSize);
+        }
+      }
+    } catch {
+      // File might have been deleted or is inaccessible - that's okay
+      // We still need to send the completion message and clean up
+    }
+
+    // Send final message to all subscribed clients
+    const message: LogsDataMessage = {
+      type: 'logs:data',
+      sessionName,
+      data: finalContent,
+      isInitial: false,
+      isComplete: true,
+    };
+
+    for (const ws of subs) {
+      this.sendToClient(ws, message);
+    }
+
+    // Clean up watcher and all associated state
+    this.cleanupWatcher(sessionName);
+  }
+
+  /**
    * Clean up all watchers and subscriptions
    *
    * Call this when shutting down the server.

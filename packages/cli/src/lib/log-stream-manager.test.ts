@@ -543,4 +543,176 @@ describe('LogStreamManager', () => {
       expect(manager.getSubscriptionCount(testSessionName)).toBe(0);
     });
   });
+
+  describe('notifySessionCompleted (t7)', () => {
+    const testSessionName = 'test-completion-session';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
+    const testContent = 'Session completion test content\n';
+
+    beforeEach(() => {
+      // Ensure output directory exists
+      if (!existsSync(OUTPUT_DIR)) {
+        mkdirSync(OUTPUT_DIR, { recursive: true });
+      }
+    });
+
+    afterEach(() => {
+      // Clean up test file
+      if (existsSync(testOutputFile)) {
+        rmSync(testOutputFile);
+      }
+    });
+
+    it('should have notifySessionCompleted method', () => {
+      expect(typeof manager.notifySessionCompleted).toBe('function');
+    });
+
+    it('should return a promise from notifySessionCompleted', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+      await manager.subscribe(testSessionName, ws);
+
+      const result = manager.notifySessionCompleted(testSessionName);
+      expect(result).toBeInstanceOf(Promise);
+      await result;
+    });
+
+    it('should send final content with isComplete=true when session completes', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+      await manager.subscribe(testSessionName, ws);
+      broadcastFn.mockClear();
+
+      await manager.notifySessionCompleted(testSessionName);
+
+      expect(broadcastFn).toHaveBeenCalled();
+      const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
+      expect(message.type).toBe('logs:data');
+      expect(message.sessionName).toBe(testSessionName);
+      expect(message.isComplete).toBe(true);
+      expect(message.isInitial).toBe(false);
+    });
+
+    it('should send any remaining content that was appended after last read', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+      await manager.subscribe(testSessionName, ws);
+
+      // Append more content without triggering watcher (simulating race condition)
+      const appendedContent = 'Final line\n';
+      const { appendFileSync } = await import('node:fs');
+      appendFileSync(testOutputFile, appendedContent);
+
+      broadcastFn.mockClear();
+      await manager.notifySessionCompleted(testSessionName);
+
+      expect(broadcastFn).toHaveBeenCalled();
+      const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
+      expect(message.data).toBe(appendedContent);
+    });
+
+    it('should send empty data if no new content since last read', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+      await manager.subscribe(testSessionName, ws);
+      broadcastFn.mockClear();
+
+      // No new content appended
+      await manager.notifySessionCompleted(testSessionName);
+
+      expect(broadcastFn).toHaveBeenCalled();
+      const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
+      expect(message.data).toBe('');
+      expect(message.isComplete).toBe(true);
+    });
+
+    it('should close watcher after session completes', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+      await manager.subscribe(testSessionName, ws);
+      expect(manager.hasWatcher(testSessionName)).toBe(true);
+
+      await manager.notifySessionCompleted(testSessionName);
+
+      expect(manager.hasWatcher(testSessionName)).toBe(false);
+    });
+
+    it('should clean up file position after session completes', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+      await manager.subscribe(testSessionName, ws);
+      expect(manager.getFilePosition(testSessionName)).toBe(testContent.length);
+
+      await manager.notifySessionCompleted(testSessionName);
+
+      expect(manager.getFilePosition(testSessionName)).toBe(0);
+    });
+
+    it('should clean up subscriptions after session completes', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+      await manager.subscribe(testSessionName, ws);
+      expect(manager.getSubscriptionCount(testSessionName)).toBe(1);
+
+      await manager.notifySessionCompleted(testSessionName);
+
+      expect(manager.getSubscriptionCount(testSessionName)).toBe(0);
+    });
+
+    it('should send to all subscribed clients when session completes', async () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+      await manager.subscribe(testSessionName, ws1);
+      await manager.subscribe(testSessionName, ws2);
+      broadcastFn.mockClear();
+
+      await manager.notifySessionCompleted(testSessionName);
+
+      // Should send to both clients
+      expect(broadcastFn).toHaveBeenCalledTimes(2);
+
+      // Verify each client received the message
+      const clients = broadcastFn.mock.calls.map(call => call[0]);
+      expect(clients).toContain(ws1);
+      expect(clients).toContain(ws2);
+
+      // Verify message content for both
+      for (const call of broadcastFn.mock.calls) {
+        const message: LogsDataMessage = call[1];
+        expect(message.isComplete).toBe(true);
+      }
+    });
+
+    it('should not error when notifying completion for session with no subscribers', async () => {
+      writeFileSync(testOutputFile, testContent);
+
+      // No subscribers - should not throw
+      await expect(manager.notifySessionCompleted(testSessionName)).resolves.not.toThrow();
+      expect(broadcastFn).not.toHaveBeenCalled();
+    });
+
+    it('should not error when notifying completion for non-existent session', async () => {
+      // Session never existed - should not throw
+      await expect(manager.notifySessionCompleted('non-existent-session')).resolves.not.toThrow();
+      expect(broadcastFn).not.toHaveBeenCalled();
+    });
+
+    it('should handle file read error gracefully when file was deleted', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, testContent);
+      await manager.subscribe(testSessionName, ws);
+
+      // Delete the file before completion
+      rmSync(testOutputFile);
+      broadcastFn.mockClear();
+
+      // Should still send completion message (with empty data or error), and cleanup
+      await manager.notifySessionCompleted(testSessionName);
+
+      // Should clean up even if file is gone
+      expect(manager.hasWatcher(testSessionName)).toBe(false);
+      expect(manager.getSubscriptionCount(testSessionName)).toBe(0);
+    });
+  });
 });

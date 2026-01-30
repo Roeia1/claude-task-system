@@ -162,3 +162,44 @@
 
 **Next steps:**
 - t7: Integrate with session completion notifications
+
+## Session: 2026-01-30T02:16:00
+
+### Task: t7 - Integrate with session completion notifications
+
+**What was done:**
+- Added public `notifySessionCompleted(sessionName: string)` method to LogStreamManager
+- Method reads any remaining content from the session output file
+- Sends final `logs:data` message with `isComplete: true` to all subscribed clients
+- Cleans up watcher and all associated state (file position, subscriptions) after notification
+- Handles edge cases gracefully:
+  - No-op when session has no subscribers
+  - No-op when session never existed
+  - Gracefully handles file deleted before completion (still sends completion message and cleans up)
+
+**Tests added (12 new tests):**
+- `should have notifySessionCompleted method`
+- `should return a promise from notifySessionCompleted`
+- `should send final content with isComplete=true when session completes`
+- `should send any remaining content that was appended after last read`
+- `should send empty data if no new content since last read`
+- `should close watcher after session completes`
+- `should clean up file position after session completes`
+- `should clean up subscriptions after session completes`
+- `should send to all subscribed clients when session completes`
+- `should not error when notifying completion for session with no subscribers`
+- `should not error when notifying completion for non-existent session`
+- `should handle file read error gracefully when file was deleted`
+
+**Test results:**
+- 50 tests passing in log-stream-manager.test.ts (12 new tests added)
+- 163 tests passing in src/lib/ (1 unrelated test skipped)
+
+**Notes:**
+- The method is designed to be called by the session polling system (from another story) when it detects a session has completed
+- Uses the existing `cleanupWatcher()` helper to ensure consistent cleanup behavior
+- Final message always has `isInitial: false` since it's sent after the initial content
+
+**Story status:**
+- All 7 tasks (t1-t7) are now complete
+- LogStreamManager is fully implemented with all required functionality
