@@ -137,3 +137,43 @@
 
 **Next steps:**
 - Task t5: Implement SessionCard component to make tests pass
+
+## Session: 2026-01-30T03:42:00Z
+
+### Task: t5 - Implement SessionCard component
+
+**What was done:**
+- Implemented `SessionCard` component in `src/client/src/components/SessionCard.tsx`
+- Implemented `formatDuration` utility function for human-readable duration formatting
+- Component displays: story title, epic title, live duration counter, output preview
+- Duration updates every second via `setInterval` with proper cleanup
+- Output preview truncated to last 5 lines and max 500 characters
+- "Output unavailable" state shown when `outputAvailable: false`
+- Cards are clickable links to `/epic/:epicSlug/story/:storySlug?tab=sessions`
+
+**Implementation details:**
+- `formatDuration(seconds)` returns human-readable format:
+  - `0-59s`: "Xs"
+  - `1m-59m`: "Xm Ys"
+  - `1h+`: "Xh Ym"
+  - `1d+`: "Xd Yh"
+- `truncateOutput(output)` helper:
+  - Splits by newlines and takes last 5 lines
+  - Truncates to 500 characters maximum
+- Live duration via `useState` + `useEffect` with interval cleanup
+- Uses Card, CardHeader, CardContent from UI components
+- Uses Link from react-router-dom for navigation
+- Monospace font and dark background for output preview (`font-mono`, `bg-bg-dark`)
+
+**Tests passed:**
+- All 20 SessionCard tests pass
+- All 13 ActiveSessions tests still pass
+- formatDuration utility: 4 tests pass
+
+**References:**
+- EpicCard pattern from `EpicList.tsx`
+- Card components from `@/components/ui/card`
+- Task t5 guidance for styling requirements
+
+**Next steps:**
+- Task t6: Integrate ActiveSessions into EpicList page

@@ -18,7 +18,7 @@ tasks:
     status: completed
   - id: t5
     title: Implement SessionCard component
-    status: pending
+    status: completed
   - id: t6
     title: Integrate ActiveSessions into EpicList page
     status: pending
