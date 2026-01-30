@@ -177,3 +177,29 @@
 
 **Next steps:**
 - Task t6: Integrate ActiveSessions into EpicList page
+
+## Session: 2026-01-30T03:55:00Z
+
+### Task: t6 - Integrate ActiveSessions into EpicList page
+
+**What was done:**
+- Imported `ActiveSessions` component into `EpicList.tsx`
+- Added `<ActiveSessions />` at the top of the page content, above the "Epics" heading
+- The component renders inside the main `div` with `space-y-6` which provides consistent spacing
+
+**Implementation details:**
+- Import added: `import { ActiveSessions } from '@/components/ActiveSessions';`
+- Component placement: First child inside the main `<div className="space-y-6">` container
+- No coupling between session loading and epic loading - they fetch independently
+- When no running sessions exist, `ActiveSessions` returns `null` so no empty space is added
+
+**Tests passed:**
+- All 34 ActiveSessions and EpicList tests pass
+- All 20 SessionCard tests pass
+- Full test suite: 604 passed (1 pre-existing timeout unrelated to this work)
+
+**References:**
+- `packages/cli/src/client/src/pages/EpicList.tsx:7,136` - import and render location
+
+**Next steps:**
+- Task t7: Add Storybook stories for session components

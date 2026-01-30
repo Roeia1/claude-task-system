@@ -21,7 +21,7 @@ tasks:
     status: completed
   - id: t6
     title: Integrate ActiveSessions into EpicList page
-    status: pending
+    status: completed
   - id: t7
     title: Add Storybook stories for session components
     status: pending

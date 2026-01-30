@@ -4,6 +4,7 @@ import { useDashboard } from '@/context/DashboardContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { ActiveSessions } from '@/components/ActiveSessions';
 import { showApiErrorToast } from '@/lib/toast-utils';
 import type { EpicSummary, StoryStatus } from '@/types/dashboard';
 
@@ -132,6 +133,7 @@ export function EpicList() {
 
   return (
     <div className="space-y-6">
+      <ActiveSessions />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-text">Epics</h1>
         {hasArchivedEpics && (
