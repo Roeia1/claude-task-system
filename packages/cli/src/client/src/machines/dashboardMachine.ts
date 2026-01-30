@@ -1,4 +1,4 @@
-import { setup, assign, fromCallback } from 'xstate';
+import { setup, assign, fromCallback, sendTo } from 'xstate';
 import type { EpicSummary, Epic, StoryDetail, SessionInfo } from '@/types/dashboard';
 
 /** Maximum number of reconnection attempts */
@@ -69,7 +69,10 @@ export function getWebSocketSend(): WebSocketSendFn | null {
 }
 
 /** WebSocket actor logic with heartbeat and subscription support */
-const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
+const websocketActor = fromCallback<
+  DashboardEvent,
+  { wsUrl: string; subscribedStories: StorySubscription[] }
+>(
   ({ sendBack, input, receive }) => {
     let ws: WebSocket | null = null;
     let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -114,6 +117,15 @@ const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
           lastPong = Date.now();
           sendBack({ type: 'WS_CONNECTED' });
           startHeartbeat();
+
+          // Re-subscribe to all stories on (re)connect
+          for (const sub of input.subscribedStories) {
+            sendMessage({
+              type: 'subscribe:story',
+              epicSlug: sub.epicSlug,
+              storySlug: sub.storySlug,
+            });
+          }
         };
 
         ws.onclose = () => {
@@ -349,7 +361,10 @@ export const dashboardMachine = setup({
       invoke: {
         id: 'websocket',
         src: 'websocket',
-        input: ({ context }) => ({ wsUrl: context.wsUrl }),
+        input: ({ context }) => ({
+          wsUrl: context.wsUrl,
+          subscribedStories: context.subscribedStories,
+        }),
       },
       on: {
         WS_CONNECTED: {
@@ -374,7 +389,10 @@ export const dashboardMachine = setup({
       invoke: {
         id: 'websocket',
         src: 'websocket',
-        input: ({ context }) => ({ wsUrl: context.wsUrl }),
+        input: ({ context }) => ({
+          wsUrl: context.wsUrl,
+          subscribedStories: context.subscribedStories,
+        }),
       },
       on: {
         DISCONNECT: {
@@ -471,6 +489,7 @@ export const dashboardMachine = setup({
                 storySlug: event.storySlug,
               }),
             },
+            sendTo('websocket', ({ event }) => event),
           ],
         },
         UNSUBSCRIBE_STORY: {
@@ -482,6 +501,7 @@ export const dashboardMachine = setup({
                 storySlug: event.storySlug,
               }),
             },
+            sendTo('websocket', ({ event }) => event),
           ],
         },
       },
