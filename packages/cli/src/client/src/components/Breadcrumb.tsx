@@ -22,18 +22,23 @@ export function Breadcrumb() {
   }
 
   return (
-    <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-sm">
+    <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm">
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
 
         return (
-          <span key={item.label} class="flex items-center gap-2">
-            {index > 0 && <ChevronRight class="h-4 w-4 text-text-muted" aria-hidden={true} />}
+          <span key={item.label} className="flex items-center gap-2">
+            {index > 0 && (
+              <ChevronRight
+                className="h-4 w-4 text-text-muted lucide-chevron-right"
+                aria-hidden={true}
+              />
+            )}
             {item.href && !isLast ? (
-              <Link to={item.href} class="text-text-muted hover:text-primary transition-colors">
+              <Link to={item.href} className="text-text-muted hover:text-primary transition-colors">
                 {index === 0 ? (
-                  <span class="flex items-center gap-1">
-                    <Home class="h-4 w-4" />
+                  <span className="flex items-center gap-1">
+                    <Home className="h-4 w-4 lucide-home" />
                     {item.label}
                   </span>
                 ) : (
@@ -41,10 +46,10 @@ export function Breadcrumb() {
                 )}
               </Link>
             ) : (
-              <span class={isLast ? 'text-text font-medium' : 'text-text-muted'}>
+              <span className={isLast ? 'text-text font-medium' : 'text-text-muted'}>
                 {index === 0 ? (
-                  <span class="flex items-center gap-1">
-                    <Home class="h-4 w-4" />
+                  <span className="flex items-center gap-1">
+                    <Home className="h-4 w-4 lucide-home" />
                     {item.label}
                   </span>
                 ) : (

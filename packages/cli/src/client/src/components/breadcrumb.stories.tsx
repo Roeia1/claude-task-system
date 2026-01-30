@@ -55,11 +55,11 @@ export const Root: Story = {
     await expect(canvas.getByText('Epics')).toBeInTheDocument();
     // Verify home icon is present (SVG with lucide class)
     // biome-ignore lint/security/noSecrets: CSS attribute selector, not a secret
-    const homeIcon = canvasElement.querySelector('svg[class*="lucide"]');
+    const homeIcon = canvasElement.querySelector('svg.lucide-home');
     await expect(homeIcon).toBeInTheDocument();
     // Verify no separators since this is the only item (chevron-right icons)
     // biome-ignore lint/security/noSecrets: CSS attribute selector, not a secret
-    const separators = canvasElement.querySelectorAll('svg[class*="chevron"]');
+    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right');
     await expect(separators.length).toBe(0);
 
     // Accessibility: Verify nav has proper aria-label for screen readers
@@ -94,7 +94,7 @@ export const EpicDetail: Story = {
     await expect(epicsLink).toHaveAttribute('href', '/');
     // Verify separator is present
     // biome-ignore lint/security/noSecrets: CSS attribute selector, not a secret
-    const separators = canvasElement.querySelectorAll('svg[class*="chevron"]');
+    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right');
     await expect(separators.length).toBe(1);
     // Verify epic slug is displayed as current page (font-medium)
     const epicSlug = canvas.getByText('dashboard-restructure');
@@ -144,7 +144,7 @@ export const StoryDetail: Story = {
     await expect(epicSlugLink).toHaveAttribute('href', '/epic/dashboard-restructure');
     // Verify two separators for the full hierarchy
     // biome-ignore lint/security/noSecrets: CSS attribute selector, not a secret
-    const separators = canvasElement.querySelectorAll('svg[class*="chevron"]');
+    const separators = canvasElement.querySelectorAll('svg.lucide-chevron-right');
     await expect(separators.length).toBe(2);
     // Verify story slug is displayed as current page (font-medium)
     const storySlug = canvas.getByText('storybook-setup');

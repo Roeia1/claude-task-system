@@ -90,9 +90,10 @@ async function pollSessions(broadcast: (msg: SessionsUpdatedMessage) => void): P
         sessions,
       });
     }
-  } catch (_error) {
-    // Silently ignore errors - session discovery is best-effort
+  } catch (error) {
+    // Log errors but continue polling - session discovery is best-effort
     // Errors here are typically transient (e.g., tmux not available momentarily)
+    console.error('Session polling error:', error instanceof Error ? error.message : String(error));
   }
 }
 
@@ -114,10 +115,11 @@ async function discoverSessions(): Promise<DetailedSessionInfo[]> {
       if (detailed) {
         detailedSessions.push(detailed);
       }
-    } catch (_error) {
-    // Silently ignore errors - session discovery is best-effort
-    // Errors here are typically transient (e.g., tmux not available momentarily)
-  }
+    } catch (error) {
+      // Log errors but continue - session discovery is best-effort
+      // Errors here are typically transient (e.g., tmux not available momentarily)
+      console.error('Session info error:', error instanceof Error ? error.message : String(error));
+    }
   }
 
   // Sort by startTime descending (newest first)
