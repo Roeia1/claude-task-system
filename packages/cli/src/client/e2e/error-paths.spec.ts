@@ -10,6 +10,9 @@ import {
 /** Regex pattern for matching socket.io routes */
 const SOCKET_IO_ROUTE_PATTERN = /\/socket\.io\//;
 
+/** Regex pattern for matching /api/epics endpoint (exact match, not /api/epics/*) */
+const API_EPICS_ROUTE_PATTERN = /\/api\/epics$/;
+
 /**
  * Error path E2E tests for the SAGA dashboard.
  *
@@ -114,13 +117,20 @@ test.describe('Empty State Handling', () => {
 
 test.describe('API Error Handling', () => {
   test('handles network error gracefully on epic list', async ({ page }) => {
-    // Intercept the API request and abort it to simulate network error
-    // Use glob pattern to match full URL (http://localhost:PORT/api/epics)
-    await page.route('**/api/epics', (route) => {
+    // First delete all epics so there's no data even if a request slips through
+    // This handles the race condition with React StrictMode double-renders
+    await deleteAllEpics();
+
+    // Intercept ALL requests to /api/epics and abort them
+    // Use regex pattern to ensure exact match (not matching /api/epics/*)
+    await page.route(API_EPICS_ROUTE_PATTERN, (route) => {
       route.abort('failed');
     });
 
     await page.goto('/');
+
+    // Wait for network activity to settle
+    await page.waitForLoadState('networkidle');
 
     // The page should handle the error gracefully
     // Errors trigger a toast notification

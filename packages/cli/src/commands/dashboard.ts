@@ -26,7 +26,8 @@ export async function dashboardCommand(options: DashboardOptions): Promise<void>
   let projectPath: string;
   try {
     projectPath = resolveProjectPath(options.path);
-  } catch (_error) {
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : 'Failed to resolve SAGA project path');
     process.exit(1);
   }
 
@@ -35,6 +36,10 @@ export async function dashboardCommand(options: DashboardOptions): Promise<void>
       sagaRoot: projectPath,
       port: options.port,
     });
+
+    // Output server info
+    console.log(`SAGA Dashboard server running on http://localhost:${server.port}`);
+    console.log(`Project: ${projectPath}`);
 
     // Handle graceful shutdown
     process.on('SIGINT', async () => {
