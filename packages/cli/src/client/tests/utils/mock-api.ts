@@ -190,6 +190,44 @@ async function mockStoryDetail(page: Page, story: StoryDetail): Promise<void> {
 }
 
 /**
+ * Session data structure for mocking.
+ */
+interface MockSession {
+  name: string;
+  epicSlug: string;
+  storySlug: string;
+  status: 'running' | 'completed';
+  startTime: string;
+  outputPreview?: string;
+  outputAvailable?: boolean;
+}
+
+/**
+ * Mocks the GET /api/sessions endpoint to return session data.
+ * Handles query parameters like ?status=running.
+ */
+async function mockSessions(page: Page, sessions: MockSession[] = []): Promise<void> {
+  await page.route(
+    (url) => url.pathname === '/api/sessions' || url.pathname === '/api/sessions/',
+    async (route: Route) => {
+      const url = new URL(route.request().url());
+      const statusFilter = url.searchParams.get('status');
+
+      let filteredSessions = sessions;
+      if (statusFilter) {
+        filteredSessions = sessions.filter((s) => s.status === statusFilter);
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(filteredSessions),
+      });
+    },
+  );
+}
+
+/**
  * Mocks an API route to return an error response.
  *
  * @param page - Playwright page object
@@ -363,13 +401,17 @@ function createMockDashboardData(): { epics: EpicSummary[]; epicDetails: Record<
 
 /**
  * Sets up all API mocks for the given epic details.
+ * Also mocks the sessions endpoint with an empty array by default
+ * to prevent proxy errors during integration tests.
  */
 async function setupApiMocks(
   page: Page,
   epics: EpicSummary[],
   epicDetails: Record<string, Epic>,
+  sessions: MockSession[] = [],
 ): Promise<void> {
   await mockEpicList(page, epics);
+  await mockSessions(page, sessions);
 
   // Collect all mock promises
   const mockPromises: Promise<void>[] = [];
@@ -406,9 +448,10 @@ export {
   mockEpicList,
   mockEpicDetail,
   mockStoryDetail,
+  mockSessions,
   mockApiError,
   mockApiDelay,
   mockNetworkFailure,
   setupMockDashboard,
 };
-export type { FulfillOptions };
+export type { FulfillOptions, MockSession };
