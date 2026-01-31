@@ -23,11 +23,11 @@ const HTTP_NOT_FOUND = 404;
 /** Skeleton loading component for the story header */
 function HeaderSkeleton() {
   return (
-    <div class="animate-pulse space-y-4" data-testid="story-header-skeleton">
-      <div class="h-8 w-64 bg-bg-light rounded" />
-      <div class="flex items-center gap-4">
-        <div class="h-6 w-24 bg-bg-light rounded-full" />
-        <div class="h-4 w-32 bg-bg-light rounded" />
+    <div className="animate-pulse space-y-4" data-testid="story-header-skeleton">
+      <div className="h-8 w-64 bg-bg-light rounded" />
+      <div className="flex items-center gap-4">
+        <div className="h-6 w-24 bg-bg-light rounded-full" />
+        <div className="h-4 w-32 bg-bg-light rounded" />
       </div>
     </div>
   );
@@ -36,12 +36,12 @@ function HeaderSkeleton() {
 /** Skeleton loading component for content sections */
 function ContentSkeleton() {
   return (
-    <div class="animate-pulse space-y-4" data-testid="story-content-skeleton">
-      <div class="h-6 w-48 bg-bg-light rounded" />
-      <div class="space-y-2">
-        <div class="h-4 w-full bg-bg-light rounded" />
-        <div class="h-4 w-3/4 bg-bg-light rounded" />
-        <div class="h-4 w-5/6 bg-bg-light rounded" />
+    <div className="animate-pulse space-y-4" data-testid="story-content-skeleton">
+      <div className="h-6 w-48 bg-bg-light rounded" />
+      <div className="space-y-2">
+        <div className="h-4 w-full bg-bg-light rounded" />
+        <div className="h-4 w-3/4 bg-bg-light rounded" />
+        <div className="h-4 w-5/6 bg-bg-light rounded" />
       </div>
     </div>
   );
@@ -63,7 +63,7 @@ function StatusBadge({ status }: { status: StoryStatus }) {
     completed: 'Completed',
   };
 
-  return <Badge class={variants[status]}>{labels[status]}</Badge>;
+  return <Badge className={variants[status]}>{labels[status]}</Badge>;
 }
 
 /** Task status icon (visual only, not interactive) */
@@ -75,7 +75,7 @@ function TaskStatusIcon({ status }: { status: TaskStatus }) {
       return (
         <CheckCircle
           {...iconProps}
-          class={`${iconProps.className} text-success`}
+          className={`${iconProps.className} text-success`}
           data-testid="icon-check-circle"
         />
       );
@@ -83,7 +83,7 @@ function TaskStatusIcon({ status }: { status: TaskStatus }) {
       return (
         <Circle
           {...iconProps}
-          class={`${iconProps.className} text-primary fill-primary/20`}
+          className={`${iconProps.className} text-primary fill-primary/20`}
           data-testid="icon-circle-in-progress"
         />
       );
@@ -91,7 +91,7 @@ function TaskStatusIcon({ status }: { status: TaskStatus }) {
       return (
         <Circle
           {...iconProps}
-          class={`${iconProps.className} text-text-muted`}
+          className={`${iconProps.className} text-text-muted`}
           data-testid="icon-circle-pending"
         />
       );
@@ -122,12 +122,12 @@ function TaskItem({ task }: { task: StoryDetailType['tasks'][0] }) {
   const badgeClass = getTaskBadgeClass(task.status);
 
   return (
-    <div class="flex items-center gap-3 py-2 px-3 rounded-md hover:bg-bg-light/50">
+    <div className="flex items-center gap-3 py-2 px-3 rounded-md hover:bg-bg-light/50">
       <TaskStatusIcon status={task.status} />
-      <span class={task.status === 'completed' ? 'text-text-muted line-through' : 'text-text'}>
+      <span className={task.status === 'completed' ? 'text-text-muted line-through' : 'text-text'}>
         {task.title}
       </span>
-      <Badge class={`ml-auto text-xs ${badgeClass}`}>{taskStatusLabels[task.status]}</Badge>
+      <Badge className={`ml-auto text-xs ${badgeClass}`}>{taskStatusLabels[task.status]}</Badge>
     </div>
   );
 }
@@ -157,30 +157,38 @@ function JournalEntryItem({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card class={`${style.bg} border ${style.border}`}>
+      <Card className={`${style.bg} border ${style.border}`}>
         <CollapsibleTrigger asChild={true}>
-          <CardHeader class="cursor-pointer hover:bg-bg-light/50 transition-colors py-3">
-            <div class="flex items-center gap-3">
+          <CardHeader className="cursor-pointer hover:bg-bg-light/50 transition-colors py-3">
+            <div className="flex items-center gap-3">
               {isOpen ? (
-                <ChevronDown class="w-4 h-4 text-text-muted" data-testid="icon-chevron-down" />
+                <ChevronDown className="w-4 h-4 text-text-muted" data-testid="icon-chevron-down" />
               ) : (
-                <ChevronRight class="w-4 h-4 text-text-muted" data-testid="icon-chevron-right" />
+                <ChevronRight
+                  className="w-4 h-4 text-text-muted"
+                  data-testid="icon-chevron-right"
+                />
               )}
-              <Badge class={`${style.bg} ${style.text} border ${style.border}`}>{entry.type}</Badge>
-              <CardTitle class={`text-sm font-medium ${style.text}`}>{entry.title}</CardTitle>
+              <Badge className={`${style.bg} ${style.text} border ${style.border}`}>
+                {entry.type}
+              </Badge>
+              <CardTitle className={`text-sm font-medium ${style.text}`}>{entry.title}</CardTitle>
               {entry.type === 'blocker' && (
-                <AlertCircle class="w-4 h-4 text-danger ml-auto" data-testid="icon-alert-circle" />
+                <AlertCircle
+                  className="w-4 h-4 text-danger ml-auto"
+                  data-testid="icon-alert-circle"
+                />
               )}
               {entry.timestamp && (
-                <span class="text-xs text-text-muted ml-auto">{entry.timestamp}</span>
+                <span className="text-xs text-text-muted ml-auto">{entry.timestamp}</span>
               )}
             </div>
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <CardContent class="pt-0 pb-4">
-            <div class="prose prose-sm prose-invert max-w-none">
-              <pre class="whitespace-pre-wrap text-sm text-text-muted font-mono bg-bg-dark p-3 rounded-md overflow-x-auto">
+          <CardContent className="pt-0 pb-4">
+            <div className="prose prose-sm prose-invert max-w-none">
+              <pre className="whitespace-pre-wrap text-sm text-text-muted font-mono bg-bg-dark p-3 rounded-md overflow-x-auto">
                 {entry.content}
               </pre>
             </div>
@@ -214,12 +222,12 @@ function groupJournalEntries(journal: JournalEntry[]) {
 /** Story not found state */
 function StoryNotFoundState({ epicSlug, storySlug }: { epicSlug: string; storySlug: string }) {
   return (
-    <div class="text-center py-12">
-      <h1 class="text-2xl font-bold text-text mb-2">Story not found</h1>
-      <p class="text-text-muted mb-4">
+    <div className="text-center py-12">
+      <h1 className="text-2xl font-bold text-text mb-2">Story not found</h1>
+      <p className="text-text-muted mb-4">
         The story &quot;{storySlug}&quot; does not exist in epic &quot;{epicSlug}&quot;.
       </p>
-      <Link to={`/epic/${epicSlug}`} class="text-primary hover:underline">
+      <Link to={`/epic/${epicSlug}`} className="text-primary hover:underline">
         ← Back to epic
       </Link>
     </div>
@@ -229,10 +237,10 @@ function StoryNotFoundState({ epicSlug, storySlug }: { epicSlug: string; storySl
 /** Story error state */
 function StoryErrorState({ epicSlug, error }: { epicSlug: string; error: string }) {
   return (
-    <div class="text-center py-12">
-      <h1 class="text-2xl font-bold text-danger mb-2">Error</h1>
-      <p class="text-text-muted mb-4">{error}</p>
-      <Link to={`/epic/${epicSlug}`} class="text-primary hover:underline">
+    <div className="text-center py-12">
+      <h1 className="text-2xl font-bold text-danger mb-2">Error</h1>
+      <p className="text-text-muted mb-4">{error}</p>
+      <Link to={`/epic/${epicSlug}`} className="text-primary hover:underline">
         ← Back to epic
       </Link>
     </div>
@@ -242,7 +250,7 @@ function StoryErrorState({ epicSlug, error }: { epicSlug: string; error: string 
 /** Story loading state */
 function StoryLoadingState() {
   return (
-    <div class="space-y-6">
+    <div className="space-y-6">
       <HeaderSkeleton />
       <ContentSkeleton />
     </div>
@@ -262,18 +270,18 @@ function StoryHeader({
   const taskProgress = calculateTaskProgress(story);
 
   return (
-    <div class="space-y-4">
-      <div class="flex items-center gap-2 text-sm text-text-muted">
-        <Link to={`/epic/${epicSlug}`} class="hover:text-primary">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-sm text-text-muted">
+        <Link to={`/epic/${epicSlug}`} className="hover:text-primary">
           {epicSlug}
         </Link>
         <span>/</span>
-        <span class="text-text">{storySlug}</span>
+        <span className="text-text">{storySlug}</span>
       </div>
-      <h1 class="text-2xl font-bold text-text">{story.title}</h1>
-      <div class="flex items-center gap-4">
+      <h1 className="text-2xl font-bold text-text">{story.title}</h1>
+      <div className="flex items-center gap-4">
         <StatusBadge status={story.status} />
-        <span class="text-sm text-text-muted">
+        <span className="text-sm text-text-muted">
           {taskProgress.completed}/{taskProgress.total} tasks completed
         </span>
       </div>
@@ -286,13 +294,13 @@ function TasksTabContent({ tasks }: { tasks: StoryDetailType['tasks'] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle class="text-lg">Tasks</CardTitle>
+        <CardTitle className="text-lg">Tasks</CardTitle>
       </CardHeader>
       <CardContent>
         {tasks.length === 0 ? (
-          <p class="text-text-muted text-center py-4">No tasks defined for this story.</p>
+          <p className="text-text-muted text-center py-4">No tasks defined for this story.</p>
         ) : (
-          <div class="divide-y divide-border-muted">
+          <div className="divide-y divide-border-muted">
             {tasks.map((task) => (
               <TaskItem key={task.id} task={task} />
             ))}
@@ -308,15 +316,15 @@ function ContentTabContent({ content }: { content: string | undefined }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle class="text-lg">Story Content</CardTitle>
+        <CardTitle className="text-lg">Story Content</CardTitle>
       </CardHeader>
       <CardContent>
         {content ? (
-          <div class="prose prose-sm prose-invert max-w-none prose-headings:text-text prose-p:text-text-muted prose-strong:text-text prose-code:text-primary prose-code:bg-bg-dark prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-dark prose-pre:border prose-pre:border-border-muted prose-a:text-primary prose-a:no-underline prose-a:hover:underline prose-li:text-text-muted prose-table:border prose-table:border-border-muted prose-th:bg-bg-dark prose-th:px-3 prose-th:py-2 prose-th:text-text prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-border-muted">
+          <div className="prose prose-sm prose-invert max-w-none prose-headings:text-text prose-p:text-text-muted prose-strong:text-text prose-code:text-primary prose-code:bg-bg-dark prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-dark prose-pre:border prose-pre:border-border-muted prose-a:text-primary prose-a:no-underline prose-a:hover:underline prose-li:text-text-muted prose-table:border prose-table:border-border-muted prose-th:bg-bg-dark prose-th:px-3 prose-th:py-2 prose-th:text-text prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-border-muted">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
           </div>
         ) : (
-          <p class="text-text-muted text-center py-4">No story content available.</p>
+          <p className="text-text-muted text-center py-4">No story content available.</p>
         )}
       </CardContent>
     </Card>
@@ -351,9 +359,9 @@ function JournalSection({
   const colorClass = getJournalSectionColor(type);
 
   return (
-    <div class="space-y-3">
-      <h3 class={`text-sm font-semibold ${colorClass} flex items-center gap-2`}>
-        <Icon class="w-4 h-4" />
+    <div className="space-y-3">
+      <h3 className={`text-sm font-semibold ${colorClass} flex items-center gap-2`}>
+        <Icon className="w-4 h-4" />
         {type} ({entries.length})
       </h3>
       {entries.map((entry) => (
@@ -372,8 +380,8 @@ function JournalTabContent({ journal }: { journal: JournalEntry[] }) {
   if (journal.length === 0) {
     return (
       <Card>
-        <CardContent class="py-8">
-          <p class="text-text-muted text-center">No journal entries yet.</p>
+        <CardContent className="py-8">
+          <p className="text-text-muted text-center">No journal entries yet.</p>
         </CardContent>
       </Card>
     );
@@ -382,7 +390,7 @@ function JournalTabContent({ journal }: { journal: JournalEntry[] }) {
   const { blockers, sessions, resolutions } = groupJournalEntries(journal);
 
   return (
-    <div class="space-y-4">
+    <div className="space-y-4">
       <JournalSection entries={blockers} type="Blockers" icon={AlertCircle} />
       <JournalSection entries={resolutions} type="Resolutions" icon={CheckCircle} />
       <JournalSection entries={sessions} type="Sessions" icon={Circle} />
@@ -492,26 +500,26 @@ function StoryDetail() {
   const { blockers } = groupJournalEntries(currentStory.journal);
 
   return (
-    <div class="space-y-6">
+    <div className="space-y-6">
       <StoryHeader story={currentStory} epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />
-      <Tabs defaultValue="tasks" class="w-full">
-        <TabsList class="mb-4">
+      <Tabs defaultValue="tasks" className="w-full">
+        <TabsList className="mb-4">
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="content">Story Content</TabsTrigger>
           <TabsTrigger value="journal">
             Journal
             {blockers.length > 0 && (
-              <Badge class="ml-2 bg-danger/20 text-danger text-xs">{blockers.length}</Badge>
+              <Badge className="ml-2 bg-danger/20 text-danger text-xs">{blockers.length}</Badge>
             )}
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="tasks" class="space-y-4">
+        <TabsContent value="tasks" className="space-y-4">
           <TasksTabContent tasks={currentStory.tasks} />
         </TabsContent>
-        <TabsContent value="content" class="space-y-4">
+        <TabsContent value="content" className="space-y-4">
           <ContentTabContent content={currentStory.content} />
         </TabsContent>
-        <TabsContent value="journal" class="space-y-4">
+        <TabsContent value="journal" className="space-y-4">
           <JournalTabContent journal={currentStory.journal} />
         </TabsContent>
       </Tabs>

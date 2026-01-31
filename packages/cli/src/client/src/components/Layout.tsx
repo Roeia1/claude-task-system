@@ -20,20 +20,20 @@ export function Layout() {
   }, [connect]);
 
   return (
-    <div class="min-h-screen bg-bg" data-ws-connected={isConnected}>
-      <header class="border-b border-border-muted bg-bg-dark">
-        <div class="container mx-auto px-4 py-4">
-          <div class="flex items-center justify-between">
-            <h1 class="text-xl font-bold text-text">
-              <span class="text-primary">SAGA</span> Dashboard
+    <div className="min-h-screen bg-bg" data-ws-connected={isConnected}>
+      <header className="border-b border-border-muted bg-bg-dark">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-text">
+              <span className="text-primary">SAGA</span> Dashboard
             </h1>
           </div>
-          <div class="mt-2">
+          <div className="mt-2">
             <Breadcrumb />
           </div>
         </div>
       </header>
-      <main class="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6">
         <Outlet />
       </main>
       <Toaster />

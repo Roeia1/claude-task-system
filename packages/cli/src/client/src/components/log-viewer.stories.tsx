@@ -473,9 +473,9 @@ export const AutoScrollToggle: Story = {
  */
 export const StatusComparison: Story = {
   render: () => (
-    <div class="space-y-6">
+    <div className="space-y-6">
       <div>
-        <h3 class="text-sm font-medium text-text-muted mb-2">Running Session</h3>
+        <h3 className="text-sm font-medium text-text-muted mb-2">Running Session</h3>
         <LogViewer
           sessionName="running-session"
           status="running"
@@ -484,7 +484,7 @@ export const StatusComparison: Story = {
         />
       </div>
       <div>
-        <h3 class="text-sm font-medium text-text-muted mb-2">Completed Session</h3>
+        <h3 className="text-sm font-medium text-text-muted mb-2">Completed Session</h3>
         <LogViewer
           sessionName="completed-session"
           status="completed"
@@ -520,9 +520,9 @@ export const StatusComparison: Story = {
  */
 export const AllStates: Story = {
   render: () => (
-    <div class="space-y-6">
+    <div className="space-y-6">
       <div>
-        <h3 class="text-sm font-medium text-text-muted mb-2">Streaming (active session)</h3>
+        <h3 className="text-sm font-medium text-text-muted mb-2">Streaming (active session)</h3>
         <LogViewer
           sessionName="streaming-demo"
           status="running"
@@ -531,7 +531,7 @@ export const AllStates: Story = {
         />
       </div>
       <div>
-        <h3 class="text-sm font-medium text-text-muted mb-2">Complete (finished session)</h3>
+        <h3 className="text-sm font-medium text-text-muted mb-2">Complete (finished session)</h3>
         <LogViewer
           sessionName="complete-demo"
           status="completed"
@@ -540,7 +540,7 @@ export const AllStates: Story = {
         />
       </div>
       <div>
-        <h3 class="text-sm font-medium text-text-muted mb-2">Unavailable (no output file)</h3>
+        <h3 className="text-sm font-medium text-text-muted mb-2">Unavailable (no output file)</h3>
         <LogViewer sessionName="unavailable-demo" status="running" outputAvailable={false} />
       </div>
     </div>

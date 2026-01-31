@@ -77,9 +77,9 @@ describe('EpicContent', () => {
 
     it('renders tables correctly (GFM)', () => {
       const content = '| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1 | Cell 2 |';
-      const { container } = render(<EpicContent content={content} />);
+      render(<EpicContent content={content} />);
 
-      expect(container.querySelector('table')).toBeInTheDocument();
+      expect(screen.getByRole('table')).toBeInTheDocument();
       expect(screen.getByText('Header 1')).toBeInTheDocument();
       expect(screen.getByText('Cell 1')).toBeInTheDocument();
     });
@@ -124,7 +124,7 @@ describe('EpicContent', () => {
 
     it('toggles content visibility when button is clicked', () => {
       const content = '# Toggle Test';
-      const { container } = render(<EpicContent content={content} />);
+      render(<EpicContent content={content} />);
 
       // Find the trigger button (contains "Epic Documentation")
       const trigger = screen.getByText('Epic Documentation').closest('button');
@@ -133,7 +133,7 @@ describe('EpicContent', () => {
         throw new Error('Trigger button not found');
       }
 
-      const collapsible = container.querySelector('[data-testid="epic-content"]');
+      const collapsible = screen.getByTestId('epic-content');
 
       // Initially expanded
       expect(collapsible).toHaveAttribute('data-state', 'open');

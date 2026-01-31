@@ -124,7 +124,7 @@ const ContentLoading: ContentSkeletonStory = {
  */
 const ContentLoadingStacked: ContentSkeletonStory = {
   render: () => (
-    <div class="space-y-6">
+    <div className="space-y-6">
       <ContentSkeleton />
       <ContentSkeleton />
     </div>
@@ -173,9 +173,9 @@ type TaskStatusIconStory = StoryObj<typeof TaskStatusIcon>;
  */
 const IconPending: TaskStatusIconStory = {
   render: () => (
-    <div class="flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <TaskStatusIcon status="pending" />
-      <span class="text-text-muted">Pending task</span>
+      <span className="text-text-muted">Pending task</span>
     </div>
   ),
   play: async ({ canvasElement }) => {
@@ -194,9 +194,9 @@ const IconPending: TaskStatusIconStory = {
  */
 const IconInProgress: TaskStatusIconStory = {
   render: () => (
-    <div class="flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <TaskStatusIcon status="inProgress" />
-      <span class="text-primary">In progress task</span>
+      <span className="text-primary">In progress task</span>
     </div>
   ),
   play: async ({ canvasElement }) => {
@@ -216,9 +216,9 @@ const IconInProgress: TaskStatusIconStory = {
  */
 const IconCompleted: TaskStatusIconStory = {
   render: () => (
-    <div class="flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <TaskStatusIcon status="completed" />
-      <span class="text-success">Completed task</span>
+      <span className="text-success">Completed task</span>
     </div>
   ),
   play: async ({ canvasElement }) => {
@@ -237,18 +237,18 @@ const IconCompleted: TaskStatusIconStory = {
  */
 const AllTaskIcons: TaskStatusIconStory = {
   render: () => (
-    <div class="space-y-3">
-      <div class="flex items-center gap-2">
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
         <TaskStatusIcon status="pending" />
-        <span class="text-text-muted">Pending</span>
+        <span className="text-text-muted">Pending</span>
       </div>
-      <div class="flex items-center gap-2">
+      <div className="flex items-center gap-2">
         <TaskStatusIcon status="inProgress" />
-        <span class="text-primary">In Progress</span>
+        <span className="text-primary">In Progress</span>
       </div>
-      <div class="flex items-center gap-2">
+      <div className="flex items-center gap-2">
         <TaskStatusIcon status="completed" />
-        <span class="text-success">Completed</span>
+        <span className="text-success">Completed</span>
       </div>
     </div>
   ),
@@ -404,7 +404,7 @@ const TaskLongTitle: TaskItemStory = {
  */
 const AllTaskStatuses: TaskItemStory = {
   render: () => (
-    <div class="divide-y divide-border-muted">
+    <div className="divide-y divide-border-muted">
       <TaskItem
         task={createTask({
           id: 't1',
@@ -626,10 +626,10 @@ const EntryResolution: JournalEntryStory = {
  */
 const AllEntryTypes: JournalEntryStory = {
   render: () => (
-    <div class="space-y-4">
-      <div class="space-y-3">
-        <h3 class="text-sm font-semibold text-danger flex items-center gap-2">
-          <AlertCircle class="w-4 h-4" />
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-danger flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" />
           Blockers (1)
         </h3>
         <JournalEntryItem
@@ -641,9 +641,9 @@ const AllEntryTypes: JournalEntryStory = {
           defaultOpen={true}
         />
       </div>
-      <div class="space-y-3">
-        <h3 class="text-sm font-semibold text-success flex items-center gap-2">
-          <CheckCircle class="w-4 h-4" />
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-success flex items-center gap-2">
+          <CheckCircle className="w-4 h-4" />
           Resolutions (1)
         </h3>
         <JournalEntryItem
@@ -654,8 +654,8 @@ const AllEntryTypes: JournalEntryStory = {
           })}
         />
       </div>
-      <div class="space-y-3">
-        <h3 class="text-sm font-semibold text-text">Sessions (2)</h3>
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-text">Sessions (2)</h3>
         <JournalEntryItem
           entry={createJournalEntry({
             title: 'Session: 2026-01-28 09:00 UTC',
@@ -783,7 +783,7 @@ const BadgeCompleted: StatusBadgeStory = {
  */
 const AllBadges: StatusBadgeStory = {
   render: () => (
-    <div class="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2">
       <StatusBadge status="ready" />
       <StatusBadge status="inProgress" />
       <StatusBadge status="blocked" />
@@ -828,7 +828,7 @@ type StoryDetailStory = StoryObj<typeof StoryDetail>;
  */
 const Loading: StoryDetailStory = {
   render: () => (
-    <div class="space-y-6">
+    <div className="space-y-6">
       <HeaderSkeleton />
       <ContentSkeleton />
     </div>
@@ -852,13 +852,13 @@ const Loading: StoryDetailStory = {
 const NotFound: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
-      <div class="text-center py-12">
-        <h1 class="text-2xl font-bold text-text mb-2">Story not found</h1>
-        <p class="text-text-muted mb-4">
+      <div className="text-center py-12">
+        <h1 className="text-2xl font-bold text-text mb-2">Story not found</h1>
+        <p className="text-text-muted mb-4">
           The story &quot;non-existent-story&quot; does not exist in epic
           &quot;dashboard-restructure&quot;.
         </p>
-        <Link to="/epic/dashboard-restructure" class="text-primary hover:underline">
+        <Link to="/epic/dashboard-restructure" className="text-primary hover:underline">
           ← Back to epic
         </Link>
       </div>
@@ -896,10 +896,10 @@ const NotFound: StoryDetailStory = {
 const ErrorState: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
-      <div class="text-center py-12">
-        <h1 class="text-2xl font-bold text-danger mb-2">Error</h1>
-        <p class="text-text-muted mb-4">Failed to load story</p>
-        <Link to="/epic/dashboard-restructure" class="text-primary hover:underline">
+      <div className="text-center py-12">
+        <h1 className="text-2xl font-bold text-danger mb-2">Error</h1>
+        <p className="text-text-muted mb-4">Failed to load story</p>
+        <Link to="/epic/dashboard-restructure" className="text-primary hover:underline">
           ← Back to epic
         </Link>
       </div>
@@ -987,20 +987,20 @@ The SAGA Dashboard needs Storybook for component development and documentation.
 const Populated: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
-      <div class="space-y-6">
+      <div className="space-y-6">
         {/* Story header */}
-        <div class="space-y-4">
-          <div class="flex items-center gap-2 text-sm text-text-muted">
-            <Link to="/epic/dashboard-restructure" class="hover:text-primary">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-text-muted">
+            <Link to="/epic/dashboard-restructure" className="hover:text-primary">
               dashboard-restructure
             </Link>
             <span>/</span>
-            <span class="text-text">storybook-setup-component-stories</span>
+            <span className="text-text">storybook-setup-component-stories</span>
           </div>
-          <h1 class="text-2xl font-bold text-text">{sampleStory.title}</h1>
-          <div class="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-text">{sampleStory.title}</h1>
+          <div className="flex items-center gap-4">
             <StatusBadge status={sampleStory.status} />
-            <span class="text-sm text-text-muted">
+            <span className="text-sm text-text-muted">
               {sampleStory.tasks.filter((t) => t.status === 'completed').length}/
               {sampleStory.tasks.length} tasks completed
             </span>
@@ -1008,8 +1008,8 @@ const Populated: StoryDetailStory = {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="tasks" class="w-full">
-          <TabsList class="mb-4">
+        <Tabs defaultValue="tasks" className="w-full">
+          <TabsList className="mb-4">
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="content">Story Content</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
@@ -1018,10 +1018,10 @@ const Populated: StoryDetailStory = {
           <TabsContent value="tasks">
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Tasks</CardTitle>
+                <CardTitle className="text-lg">Tasks</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="divide-y divide-border-muted">
+                <div className="divide-y divide-border-muted">
                   {sampleStory.tasks.map((task) => (
                     <TaskItem key={task.id} task={task} />
                   ))}
@@ -1082,24 +1082,24 @@ const Populated: StoryDetailStory = {
 const EmptyTasks: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
-      <div class="space-y-6">
-        <div class="space-y-4">
-          <div class="flex items-center gap-2 text-sm text-text-muted">
-            <Link to="/epic/dashboard-restructure" class="hover:text-primary">
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-text-muted">
+            <Link to="/epic/dashboard-restructure" className="hover:text-primary">
               dashboard-restructure
             </Link>
             <span>/</span>
-            <span class="text-text">new-story</span>
+            <span className="text-text">new-story</span>
           </div>
-          <h1 class="text-2xl font-bold text-text">New Story</h1>
-          <div class="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-text">New Story</h1>
+          <div className="flex items-center gap-4">
             <StatusBadge status="ready" />
-            <span class="text-sm text-text-muted">0/0 tasks completed</span>
+            <span className="text-sm text-text-muted">0/0 tasks completed</span>
           </div>
         </div>
 
-        <Tabs defaultValue="tasks" class="w-full">
-          <TabsList class="mb-4">
+        <Tabs defaultValue="tasks" className="w-full">
+          <TabsList className="mb-4">
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="content">Story Content</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
@@ -1108,10 +1108,10 @@ const EmptyTasks: StoryDetailStory = {
           <TabsContent value="tasks">
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Tasks</CardTitle>
+                <CardTitle className="text-lg">Tasks</CardTitle>
               </CardHeader>
               <CardContent>
-                <p class="text-text-muted text-center py-4">No tasks defined for this story.</p>
+                <p className="text-text-muted text-center py-4">No tasks defined for this story.</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1187,46 +1187,46 @@ const storyWithBlocker: StoryDetailType = {
 const WithBlocker: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
-      <div class="space-y-6">
-        <div class="space-y-4">
-          <div class="flex items-center gap-2 text-sm text-text-muted">
-            <Link to="/epic/dashboard-restructure" class="hover:text-primary">
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-text-muted">
+            <Link to="/epic/dashboard-restructure" className="hover:text-primary">
               dashboard-restructure
             </Link>
             <span>/</span>
-            <span class="text-text">api-integration</span>
+            <span className="text-text">api-integration</span>
           </div>
-          <h1 class="text-2xl font-bold text-text">{storyWithBlocker.title}</h1>
-          <div class="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-text">{storyWithBlocker.title}</h1>
+          <div className="flex items-center gap-4">
             <StatusBadge status={storyWithBlocker.status} />
-            <span class="text-sm text-text-muted">
+            <span className="text-sm text-text-muted">
               {storyWithBlocker.tasks.filter((t) => t.status === 'completed').length}/
               {storyWithBlocker.tasks.length} tasks completed
             </span>
           </div>
         </div>
 
-        <Tabs defaultValue="journal" class="w-full">
-          <TabsList class="mb-4">
+        <Tabs defaultValue="journal" className="w-full">
+          <TabsList className="mb-4">
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="content">Story Content</TabsTrigger>
             <TabsTrigger value="journal">
               Journal
-              <Badge class="ml-2 bg-danger/20 text-danger text-xs">1</Badge>
+              <Badge className="ml-2 bg-danger/20 text-danger text-xs">1</Badge>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="journal">
-            <div class="space-y-4">
-              <div class="space-y-3">
-                <h3 class="text-sm font-semibold text-danger flex items-center gap-2">
-                  <AlertCircle class="w-4 h-4" />
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-danger flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
                   Blockers (1)
                 </h3>
                 <JournalEntryItem entry={blockerEntry} defaultOpen={true} />
               </div>
-              <div class="space-y-3">
-                <h3 class="text-sm font-semibold text-text">Sessions (1)</h3>
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-text">Sessions (1)</h3>
                 <JournalEntryItem entry={sessionEntry} />
               </div>
             </div>
@@ -1307,26 +1307,26 @@ const completedStory: StoryDetailType = {
 const Completed: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
-      <div class="space-y-6">
-        <div class="space-y-4">
-          <div class="flex items-center gap-2 text-sm text-text-muted">
-            <Link to="/epic/dashboard-restructure" class="hover:text-primary">
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-text-muted">
+            <Link to="/epic/dashboard-restructure" className="hover:text-primary">
               dashboard-restructure
             </Link>
             <span>/</span>
-            <span class="text-text">setup-project</span>
+            <span className="text-text">setup-project</span>
           </div>
-          <h1 class="text-2xl font-bold text-text">{completedStory.title}</h1>
-          <div class="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-text">{completedStory.title}</h1>
+          <div className="flex items-center gap-4">
             <StatusBadge status={completedStory.status} />
-            <span class="text-sm text-text-muted">
+            <span className="text-sm text-text-muted">
               {completedStory.tasks.length}/{completedStory.tasks.length} tasks completed
             </span>
           </div>
         </div>
 
-        <Tabs defaultValue="tasks" class="w-full">
-          <TabsList class="mb-4">
+        <Tabs defaultValue="tasks" className="w-full">
+          <TabsList className="mb-4">
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="content">Story Content</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
@@ -1335,10 +1335,10 @@ const Completed: StoryDetailStory = {
           <TabsContent value="tasks">
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Tasks</CardTitle>
+                <CardTitle className="text-lg">Tasks</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="divide-y divide-border-muted">
+                <div className="divide-y divide-border-muted">
                   {completedStory.tasks.map((task) => (
                     <TaskItem key={task.id} task={task} />
                   ))}
@@ -1380,27 +1380,27 @@ const Completed: StoryDetailStory = {
 const WithContent: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
-      <div class="space-y-6">
-        <div class="space-y-4">
-          <div class="flex items-center gap-2 text-sm text-text-muted">
-            <Link to="/epic/dashboard-restructure" class="hover:text-primary">
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-text-muted">
+            <Link to="/epic/dashboard-restructure" className="hover:text-primary">
               dashboard-restructure
             </Link>
             <span>/</span>
-            <span class="text-text">storybook-setup-component-stories</span>
+            <span className="text-text">storybook-setup-component-stories</span>
           </div>
-          <h1 class="text-2xl font-bold text-text">{sampleStory.title}</h1>
-          <div class="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-text">{sampleStory.title}</h1>
+          <div className="flex items-center gap-4">
             <StatusBadge status={sampleStory.status} />
-            <span class="text-sm text-text-muted">
+            <span className="text-sm text-text-muted">
               {sampleStory.tasks.filter((t) => t.status === 'completed').length}/
               {sampleStory.tasks.length} tasks completed
             </span>
           </div>
         </div>
 
-        <Tabs defaultValue="content" class="w-full">
-          <TabsList class="mb-4">
+        <Tabs defaultValue="content" className="w-full">
+          <TabsList className="mb-4">
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="content">Story Content</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
@@ -1409,10 +1409,10 @@ const WithContent: StoryDetailStory = {
           <TabsContent value="content">
             <Card>
               <CardHeader>
-                <CardTitle class="text-lg">Story Content</CardTitle>
+                <CardTitle className="text-lg">Story Content</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="prose prose-sm prose-invert max-w-none prose-headings:text-text prose-p:text-text-muted prose-strong:text-text prose-code:text-primary prose-code:bg-bg-dark prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-dark prose-pre:border prose-pre:border-border-muted prose-a:text-primary prose-a:no-underline prose-a:hover:underline prose-li:text-text-muted prose-table:border prose-table:border-border-muted prose-th:bg-bg-dark prose-th:px-3 prose-th:py-2 prose-th:text-text prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-border-muted">
+                <div className="prose prose-sm prose-invert max-w-none prose-headings:text-text prose-p:text-text-muted prose-strong:text-text prose-code:text-primary prose-code:bg-bg-dark prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-dark prose-pre:border prose-pre:border-border-muted prose-a:text-primary prose-a:no-underline prose-a:hover:underline prose-li:text-text-muted prose-table:border prose-table:border-border-muted prose-th:bg-bg-dark prose-th:px-3 prose-th:py-2 prose-th:text-text prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-border-muted">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{sampleStory.content}</ReactMarkdown>
                 </div>
               </CardContent>
@@ -1447,24 +1447,24 @@ const WithContent: StoryDetailStory = {
 const EmptyJournal: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
-      <div class="space-y-6">
-        <div class="space-y-4">
-          <div class="flex items-center gap-2 text-sm text-text-muted">
-            <Link to="/epic/dashboard-restructure" class="hover:text-primary">
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-text-muted">
+            <Link to="/epic/dashboard-restructure" className="hover:text-primary">
               dashboard-restructure
             </Link>
             <span>/</span>
-            <span class="text-text">new-story</span>
+            <span className="text-text">new-story</span>
           </div>
-          <h1 class="text-2xl font-bold text-text">New Story</h1>
-          <div class="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-text">New Story</h1>
+          <div className="flex items-center gap-4">
             <StatusBadge status="ready" />
-            <span class="text-sm text-text-muted">0/3 tasks completed</span>
+            <span className="text-sm text-text-muted">0/3 tasks completed</span>
           </div>
         </div>
 
-        <Tabs defaultValue="journal" class="w-full">
-          <TabsList class="mb-4">
+        <Tabs defaultValue="journal" className="w-full">
+          <TabsList className="mb-4">
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="content">Story Content</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
@@ -1472,8 +1472,8 @@ const EmptyJournal: StoryDetailStory = {
 
           <TabsContent value="journal">
             <Card>
-              <CardContent class="py-8">
-                <p class="text-text-muted text-center">No journal entries yet.</p>
+              <CardContent className="py-8">
+                <p className="text-text-muted text-center">No journal entries yet.</p>
               </CardContent>
             </Card>
           </TabsContent>

@@ -68,7 +68,7 @@ const Skeleton: SkeletonStory = {
  */
 const SkeletonGrid: SkeletonStory = {
   render: () => (
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <EpicCardSkeleton />
       <EpicCardSkeleton />
       <EpicCardSkeleton />
@@ -171,7 +171,7 @@ const StatusCompleted: StatusBadgeStory = {
  */
 const AllStatuses: StatusBadgeStory = {
   render: () => (
-    <div class="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2">
       <StatusBadge status="ready" count={5} />
       <StatusBadge status="inProgress" count={3} />
       <StatusBadge status="blocked" count={1} />
@@ -441,7 +441,7 @@ const CardGrid: EpicCardStory = {
     ),
   ],
   render: () => (
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <EpicCard epic={sampleEpic} />
       <EpicCard
         epic={{
@@ -553,11 +553,11 @@ type EpicListStory = StoryObj<typeof EpicList>;
  */
 const Loading: EpicListStory = {
   render: () => (
-    <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-text">Epics</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-text">Epics</h1>
       </div>
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <EpicCardSkeleton />
         <EpicCardSkeleton />
         <EpicCardSkeleton />
@@ -585,14 +585,14 @@ const Loading: EpicListStory = {
  */
 const Empty: EpicListStory = {
   render: () => (
-    <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-text">Epics</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-text">Epics</h1>
       </div>
-      <div class="text-center py-12">
-        <p class="text-text-muted text-lg">No epics found.</p>
-        <p class="text-text-muted">
-          Run <code class="text-primary">/create-epic</code> to get started.
+      <div className="text-center py-12">
+        <p className="text-text-muted text-lg">No epics found.</p>
+        <p className="text-text-muted">
+          Run <code className="text-primary">/create-epic</code> to get started.
         </p>
       </div>
     </div>
@@ -660,11 +660,11 @@ const Populated: EpicListStory = {
     ),
   ],
   render: () => (
-    <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-text">Epics</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-text">Epics</h1>
       </div>
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {sampleEpics.map((epic) => (
           <EpicCard key={epic.slug} epic={epic} />
         ))}
@@ -733,15 +733,15 @@ const WithArchivedEpics: EpicListStory = {
     ),
   ],
   render: () => (
-    <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-text">Epics</h1>
-        <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
-          <input type="checkbox" class="rounded border-border" />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-text">Epics</h1>
+        <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
+          <input type="checkbox" className="rounded border-border" />
           Show archived
         </label>
       </div>
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {sampleEpics.map((epic) => (
           <EpicCard key={epic.slug} epic={epic} />
         ))}
@@ -785,15 +785,15 @@ const WithArchivedVisible: EpicListStory = {
     ),
   ],
   render: () => (
-    <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-text">Epics</h1>
-        <label class="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
-          <input type="checkbox" checked={true} readOnly={true} class="rounded border-border" />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-text">Epics</h1>
+        <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
+          <input type="checkbox" checked={true} readOnly={true} className="rounded border-border" />
           Show archived
         </label>
       </div>
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {epicsWithArchived.map((epic) => (
           <EpicCard key={epic.slug} epic={epic} />
         ))}

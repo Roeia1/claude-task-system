@@ -12,11 +12,11 @@ const Progress = forwardRef<
 >(({ className, value, ...props }, ref) => (
   <ProgressRoot
     ref={ref}
-    class={cn('relative h-4 w-full overflow-hidden rounded-full bg-secondary', className)}
+    className={cn('relative h-4 w-full overflow-hidden rounded-full bg-secondary', className)}
     {...props}
   >
     <ProgressIndicator
-      class="h-full w-full flex-1 bg-primary transition-all"
+      className="h-full w-full flex-1 bg-primary transition-all"
       style={{ transform: `translateX(-${FULL_PROGRESS_PERCENTAGE - (value || 0)}%)` }}
     />
   </ProgressRoot>

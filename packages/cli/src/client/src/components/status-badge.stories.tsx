@@ -30,7 +30,7 @@ const statusLabels: Record<StoryStatus, string> = {
  */
 function StatusBadgeWithCount({ status, count }: { status: StoryStatus; count: number }) {
   return (
-    <Badge class={statusVariants[status]}>
+    <Badge className={statusVariants[status]}>
       {statusLabels[status]}: {count}
     </Badge>
   );
@@ -42,7 +42,7 @@ function StatusBadgeWithCount({ status, count }: { status: StoryStatus; count: n
  * Exported for use as component reference in Storybook meta.
  */
 function StatusBadge({ status }: { status: StoryStatus }) {
-  return <Badge class={statusVariants[status]}>{statusLabels[status]}</Badge>;
+  return <Badge className={statusVariants[status]}>{statusLabels[status]}</Badge>;
 }
 
 // ============================================================================
@@ -153,7 +153,7 @@ const Completed: Story = {
  */
 const AllVariants: Story = {
   render: () => (
-    <div class="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2">
       <StatusBadge status="ready" />
       <StatusBadge status="inProgress" />
       <StatusBadge status="blocked" />
@@ -263,7 +263,7 @@ const CompletedWithCount: WithCountStory = {
  */
 const AllVariantsWithCount: WithCountStory = {
   render: () => (
-    <div class="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2">
       <StatusBadgeWithCount status="ready" count={5} />
       <StatusBadgeWithCount status="inProgress" count={3} />
       <StatusBadgeWithCount status="blocked" count={1} />
@@ -293,12 +293,12 @@ const AllVariantsWithCount: WithCountStory = {
  */
 const BadgeComparison: Story = {
   render: () => (
-    <div class="space-y-6">
+    <div className="space-y-6">
       <div>
-        <h3 class="text-sm font-medium text-text-muted mb-2">
+        <h3 className="text-sm font-medium text-text-muted mb-2">
           Without Count (EpicDetail/StoryDetail)
         </h3>
-        <div class="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           <StatusBadge status="ready" />
           <StatusBadge status="inProgress" />
           <StatusBadge status="blocked" />
@@ -307,8 +307,8 @@ const BadgeComparison: Story = {
       </div>
 
       <div>
-        <h3 class="text-sm font-medium text-text-muted mb-2">With Count (EpicList)</h3>
-        <div class="flex flex-wrap gap-2">
+        <h3 className="text-sm font-medium text-text-muted mb-2">With Count (EpicList)</h3>
+        <div className="flex flex-wrap gap-2">
           <StatusBadgeWithCount status="ready" count={5} />
           <StatusBadgeWithCount status="inProgress" count={3} />
           <StatusBadgeWithCount status="blocked" count={1} />
@@ -343,26 +343,26 @@ const BadgeComparison: Story = {
  */
 const EdgeCases: Story = {
   render: () => (
-    <div class="space-y-4">
+    <div className="space-y-4">
       <div>
-        <h3 class="text-sm font-medium text-text-muted mb-2">Zero Counts</h3>
-        <div class="flex flex-wrap gap-2">
+        <h3 className="text-sm font-medium text-text-muted mb-2">Zero Counts</h3>
+        <div className="flex flex-wrap gap-2">
           <StatusBadgeWithCount status="ready" count={0} />
           <StatusBadgeWithCount status="blocked" count={0} />
         </div>
       </div>
 
       <div>
-        <h3 class="text-sm font-medium text-text-muted mb-2">Large Counts</h3>
-        <div class="flex flex-wrap gap-2">
+        <h3 className="text-sm font-medium text-text-muted mb-2">Large Counts</h3>
+        <div className="flex flex-wrap gap-2">
           <StatusBadgeWithCount status="ready" count={42} />
           <StatusBadgeWithCount status="completed" count={100} />
         </div>
       </div>
 
       <div>
-        <h3 class="text-sm font-medium text-text-muted mb-2">Single Story Count</h3>
-        <div class="flex flex-wrap gap-2">
+        <h3 className="text-sm font-medium text-text-muted mb-2">Single Story Count</h3>
+        <div className="flex flex-wrap gap-2">
           <StatusBadgeWithCount status="blocked" count={1} />
           <StatusBadgeWithCount status="inProgress" count={1} />
         </div>

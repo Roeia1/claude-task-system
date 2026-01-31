@@ -29,9 +29,9 @@ function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
     return (
       <div
         data-testid="status-indicator-streaming"
-        class="flex items-center gap-1.5 text-success text-sm"
+        className="flex items-center gap-1.5 text-success text-sm"
       >
-        <Loader2 class="h-3.5 w-3.5 animate-spin" data-testid="status-icon-loader" />
+        <Loader2 className="h-3.5 w-3.5 animate-spin" data-testid="status-icon-loader" />
         <span>Streaming</span>
       </div>
     );
@@ -40,9 +40,9 @@ function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
   return (
     <div
       data-testid="status-indicator-complete"
-      class="flex items-center gap-1.5 text-text-muted text-sm"
+      className="flex items-center gap-1.5 text-text-muted text-sm"
     >
-      <CheckCircle class="h-3.5 w-3.5" data-testid="status-icon-complete" />
+      <CheckCircle className="h-3.5 w-3.5" data-testid="status-icon-complete" />
       <span>Complete</span>
     </div>
   );
@@ -53,11 +53,11 @@ function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
  */
 function LogViewerSkeleton() {
   return (
-    <div data-testid="log-viewer-skeleton" class="p-4 space-y-2">
-      <div class="h-4 bg-bg-light rounded animate-pulse w-3/4" />
-      <div class="h-4 bg-bg-light rounded animate-pulse w-1/2" />
-      <div class="h-4 bg-bg-light rounded animate-pulse w-5/6" />
-      <div class="h-4 bg-bg-light rounded animate-pulse w-2/3" />
+    <div data-testid="log-viewer-skeleton" className="p-4 space-y-2">
+      <div className="h-4 bg-bg-light rounded animate-pulse w-3/4" />
+      <div className="h-4 bg-bg-light rounded animate-pulse w-1/2" />
+      <div className="h-4 bg-bg-light rounded animate-pulse w-5/6" />
+      <div className="h-4 bg-bg-light rounded animate-pulse w-2/3" />
     </div>
   );
 }
@@ -79,20 +79,20 @@ function LogViewerHeader({
     : 'Auto-scroll disabled (click to enable)';
 
   return (
-    <div class="flex items-center justify-between px-4 py-2 border-b border-bg-light">
+    <div className="flex items-center justify-between px-4 py-2 border-b border-bg-light">
       <StatusIndicator status={status} />
       <button
         type="button"
         data-testid="auto-scroll-toggle"
         onClick={onToggleAutoScroll}
         aria-pressed={autoScroll}
-        class="p-1.5 rounded-md bg-bg-light hover:bg-bg-lighter text-text-muted hover:text-text transition-colors"
+        className="p-1.5 rounded-md bg-bg-light hover:bg-bg-lighter text-text-muted hover:text-text transition-colors"
         title={title}
       >
         {autoScroll ? (
-          <ArrowDownToLine class="h-4 w-4" data-testid="autoscroll-icon-enabled" />
+          <ArrowDownToLine className="h-4 w-4" data-testid="autoscroll-icon-enabled" />
         ) : (
-          <Pause class="h-4 w-4" data-testid="autoscroll-icon-disabled" />
+          <Pause className="h-4 w-4" data-testid="autoscroll-icon-disabled" />
         )}
       </button>
     </div>
@@ -113,12 +113,12 @@ function VirtualizedLogContent({
 }) {
   return (
     <div
-      class="relative w-full"
+      className="relative w-full"
       style={{ height: `${virtualizer.getTotalSize()}px` }}
       data-testid="log-height-container"
     >
       <div
-        class="absolute top-0 left-0 w-full px-4"
+        className="absolute top-0 left-0 w-full px-4"
         style={{ transform: `translateY(${virtualItems[0]?.start ?? 0}px)` }}
       >
         {virtualItems.map((virtualItem) => (
@@ -126,7 +126,7 @@ function VirtualizedLogContent({
             key={virtualItem.key}
             data-testid="log-line"
             data-index={virtualItem.index}
-            class="text-text leading-relaxed"
+            className="text-text leading-relaxed"
             style={{ height: `${ESTIMATED_LINE_HEIGHT}px` }}
           >
             {lines[virtualItem.index] || '\u00A0'}
@@ -144,9 +144,9 @@ function LogViewerUnavailable() {
   return (
     <div
       data-testid="log-viewer"
-      class="h-96 bg-bg-dark rounded-md font-mono flex items-center justify-center"
+      className="h-96 bg-bg-dark rounded-md font-mono flex items-center justify-center"
     >
-      <span class="text-text-muted">Output unavailable</span>
+      <span className="text-text-muted">Output unavailable</span>
     </div>
   );
 }
@@ -288,7 +288,7 @@ export function LogViewer({
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div data-testid="log-viewer" class="flex flex-col bg-bg-dark rounded-md">
+    <div data-testid="log-viewer" className="flex flex-col bg-bg-dark rounded-md">
       <LogViewerHeader
         status={status}
         autoScroll={autoScroll}
@@ -298,7 +298,7 @@ export function LogViewer({
         data-testid="log-content"
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        class="h-96 font-mono overflow-auto"
+        className="h-96 font-mono overflow-auto"
       >
         {showLoading ? (
           <LogViewerSkeleton />

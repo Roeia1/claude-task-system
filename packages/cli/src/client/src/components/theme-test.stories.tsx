@@ -7,45 +7,47 @@ import { expect, within } from 'storybook/test';
  * Exported for use as component reference in Storybook meta.
  */
 const ThemeTest = () => (
-  <div class="space-y-6">
+  <div className="space-y-6">
     <section>
-      <h2 class="text-lg font-semibold mb-3">Background Colors</h2>
-      <div class="flex gap-4">
-        <div class="w-20 h-20 bg-bg-dark rounded flex items-center justify-center text-xs">
+      <h2 className="text-lg font-semibold mb-3">Background Colors</h2>
+      <div className="flex gap-4">
+        <div className="w-20 h-20 bg-bg-dark rounded flex items-center justify-center text-xs">
           bg-dark
         </div>
-        <div class="w-20 h-20 bg-bg rounded flex items-center justify-center text-xs">bg</div>
-        <div class="w-20 h-20 bg-bg-light rounded flex items-center justify-center text-xs">
+        <div className="w-20 h-20 bg-bg rounded flex items-center justify-center text-xs">bg</div>
+        <div className="w-20 h-20 bg-bg-light rounded flex items-center justify-center text-xs">
           bg-light
         </div>
       </div>
     </section>
 
     <section>
-      <h2 class="text-lg font-semibold mb-3">Text Colors</h2>
-      <p class="text-text">Default text color</p>
-      <p class="text-text-muted">Muted text color</p>
+      <h2 className="text-lg font-semibold mb-3">Text Colors</h2>
+      <p className="text-text">Default text color</p>
+      <p className="text-text-muted">Muted text color</p>
     </section>
 
     <section>
-      <h2 class="text-lg font-semibold mb-3">Status Colors</h2>
-      <div class="flex gap-4">
-        <span class="px-3 py-1 bg-muted text-muted-foreground rounded-full text-sm">
+      <h2 className="text-lg font-semibold mb-3">Status Colors</h2>
+      <div className="flex gap-4">
+        <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full text-sm">
           Ready (Gray)
         </span>
-        <span class="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">
+        <span className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">
           In Progress (Primary)
         </span>
-        <span class="px-3 py-1 bg-danger text-text rounded-full text-sm">Blocked (Danger)</span>
-        <span class="px-3 py-1 bg-success text-text rounded-full text-sm">Completed (Success)</span>
+        <span className="px-3 py-1 bg-danger text-text rounded-full text-sm">Blocked (Danger)</span>
+        <span className="px-3 py-1 bg-success text-text rounded-full text-sm">
+          Completed (Success)
+        </span>
       </div>
     </section>
 
     <section>
-      <h2 class="text-lg font-semibold mb-3">Card Component</h2>
-      <div class="bg-card text-card-foreground p-4 rounded-lg border border-border">
-        <h3 class="font-medium">Card Title</h3>
-        <p class="text-muted-foreground text-sm">Card content with muted text</p>
+      <h2 className="text-lg font-semibold mb-3">Card Component</h2>
+      <div className="bg-card text-card-foreground p-4 rounded-lg border border-border">
+        <h3 className="font-medium">Card Title</h3>
+        <p className="text-muted-foreground text-sm">Card content with muted text</p>
       </div>
     </section>
   </div>

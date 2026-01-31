@@ -56,14 +56,14 @@ describe('ActiveSessions', () => {
         json: async () => [],
       });
 
-      const { container } = renderWithProviders(<ActiveSessions />);
+      renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.queryByTestId('active-sessions-skeleton')).not.toBeInTheDocument();
       });
 
       // Entire section should be hidden
-      expect(container.querySelector('[data-testid="active-sessions"]')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('active-sessions')).not.toBeInTheDocument();
     });
 
     it('renders nothing when API returns only completed sessions', async () => {
@@ -83,13 +83,13 @@ describe('ActiveSessions', () => {
         ],
       });
 
-      const { container } = renderWithProviders(<ActiveSessions />);
+      renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.queryByTestId('active-sessions-skeleton')).not.toBeInTheDocument();
       });
 
-      expect(container.querySelector('[data-testid="active-sessions"]')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('active-sessions')).not.toBeInTheDocument();
     });
   });
 
@@ -242,25 +242,25 @@ describe('ActiveSessions', () => {
         status: 500,
       });
 
-      const { container } = renderWithProviders(<ActiveSessions />);
+      renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.queryByTestId('active-sessions-skeleton')).not.toBeInTheDocument();
       });
 
-      expect(container.querySelector('[data-testid="active-sessions"]')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('active-sessions')).not.toBeInTheDocument();
     });
 
     it('hides section when fetch throws error', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      const { container } = renderWithProviders(<ActiveSessions />);
+      renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.queryByTestId('active-sessions-skeleton')).not.toBeInTheDocument();
       });
 
-      expect(container.querySelector('[data-testid="active-sessions"]')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('active-sessions')).not.toBeInTheDocument();
     });
   });
 
