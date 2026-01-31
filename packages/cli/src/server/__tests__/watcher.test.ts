@@ -2,6 +2,10 @@
  * Tests for File Watcher Module
  *
  * Tests file watching with chokidar for .saga/ directory changes.
+ *
+ * Note: These tests involve real file system watching with debouncing (100ms).
+ * Tests take 400-430ms each due to: watcher setup + debounce delay + FS events.
+ * This is expected behavior for integration tests of file watching functionality.
  */
 
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
