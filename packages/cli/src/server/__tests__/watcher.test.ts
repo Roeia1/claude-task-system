@@ -4,7 +4,7 @@
  * Tests file watching with chokidar for .saga/ directory changes.
  *
  * Note: These tests involve real file system watching with debouncing (100ms).
- * Tests take 400-430ms each due to: watcher setup + debounce delay + FS events.
+ * Tests take 350-360ms each due to: watcher setup + debounce delay + FS events.
  * This is expected behavior for integration tests of file watching functionality.
  */
 
@@ -18,7 +18,7 @@ import { createSagaWatcher, type WatcherEvent } from '../watcher.ts';
 const WATCHER_READY_DELAY_MS = 100;
 
 /** Delay in ms to wait for debounced events (100ms debounce + buffer) */
-const DEBOUNCE_WAIT_MS = 300;
+const DEBOUNCE_WAIT_MS = 250;
 
 describe('watcher', () => {
   let tempDir: string;
