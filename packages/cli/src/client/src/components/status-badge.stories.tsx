@@ -389,8 +389,6 @@ const EdgeCases: Story = {
 
 export default meta;
 export {
-  StatusBadgeWithCount,
-  StatusBadge,
   statusBadgeWithCountMeta,
   AllVariants,
   Completed,
