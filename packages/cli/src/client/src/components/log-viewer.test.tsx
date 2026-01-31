@@ -1,5 +1,15 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
 import { getWebSocketSend } from '@/machines/dashboardMachine';
 import { LogViewer } from './LogViewer.tsx';
 
@@ -15,6 +25,16 @@ const OUTPUT_UNAVAILABLE_REGEX = /output unavailable/i;
 const LARGE_CONTENT_LINE_COUNT = 1000;
 const MAX_VIRTUALIZED_LINES = 1000;
 const EXPECTED_MULTILINE_COUNT = 3;
+
+// Use fake timers to control @tanstack/react-virtual's debounced updates
+// This prevents "window is not defined" errors from timer callbacks after cleanup
+beforeAll(() => {
+  vi.useFakeTimers();
+});
+
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 // Mock scrollTo on Element prototype and set up element dimensions for virtualization
 beforeEach(() => {
@@ -52,6 +72,11 @@ beforeEach(() => {
 
 describe('LogViewer', () => {
   afterEach(() => {
+    // Flush all pending timers from @tanstack/react-virtual's debounced updates
+    // before cleanup to prevent "window is not defined" errors
+    act(() => {
+      vi.runAllTimers();
+    });
     cleanup();
   });
 
@@ -474,7 +499,7 @@ Line 5`;
       expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('scrolls to bottom when new content arrives and auto-scroll is enabled', async () => {
+    it('scrolls to bottom when new content arrives and auto-scroll is enabled', () => {
       const mockScrollTo = vi.fn();
       Element.prototype.scrollTo = mockScrollTo;
 
@@ -502,7 +527,7 @@ Line 3`;
       mockScrollTo.mockClear();
 
       // Simulate new content arriving by re-rendering with more content
-      await act(() => {
+      act(() => {
         rerender(
           <LogViewer
             sessionName="test-session"
@@ -511,12 +536,12 @@ Line 3`;
             initialContent={moreLines}
           />,
         );
+        // Advance timers to flush any pending virtualizer updates
+        vi.runAllTimers();
       });
 
       // Should scroll to bottom when auto-scroll is enabled
-      await waitFor(() => {
-        expect(mockScrollTo).toHaveBeenCalled();
-      });
+      expect(mockScrollTo).toHaveBeenCalled();
     });
 
     it('does not scroll to bottom when auto-scroll is disabled', () => {
