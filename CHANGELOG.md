@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.15.0] - 2026-01-31
+
+### Added
+
+- **dashboard**: Active sessions display on home page with real-time WebSocket updates
+- **dashboard**: SessionCard and ActiveSessions components for session monitoring
+- **dashboard**: Storybook stories for session components
+- **scope-validator**: Error message output for scope violations
+
+### Changed
+
+- **cli**: Upgraded to React 19 and React Router v7
+- **cli**: Upgraded to Tailwind v4 with Biome linter
+- **cli**: Upgraded vite, vitest, esbuild, and related packages
+- **cli**: Improved test patterns with model-based testing using xstate/graph
+- **build**: Split vendor chunks to reduce main bundle size
+
+### Fixed
+
+- **cli**: WebSocket session broadcast and ping/pong reliability
+- **cli**: WebSocket reconnection and subscription restoration
+- **cli**: Sequential ports in WebSocket tests to prevent EADDRINUSE
+- **cli**: Biome lint errors across codebase (300+ fixes)
+- **storybook**: Removed component exports and unused MDX patterns
+- **lint**: Resolved barrel file and magic number warnings
+
 ## [2.14.0] - 2026-01-30
 
 ### Added
