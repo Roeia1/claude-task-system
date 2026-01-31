@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useDashboard } from '@/context/dashboard-context';
 import type { SessionInfo } from '@/types/dashboard';
@@ -41,7 +41,8 @@ export function ActiveSessions() {
           setSessions(data);
         }
       } catch {
-        // On error, set empty sessions
+        // Gracefully handle fetch errors by showing empty state
+        // Error logging not available due to project linting rules (no console)
         setSessions([]);
       } finally {
         setIsLoading(false);
@@ -52,7 +53,10 @@ export function ActiveSessions() {
   }, [setSessions]);
 
   // Filter to only show running sessions
-  const runningSessions = contextSessions.filter((s) => s.status === 'running');
+  const runningSessions = useMemo(
+    () => contextSessions.filter((s) => s.status === 'running'),
+    [contextSessions],
+  );
 
   // Show loading skeleton
   if (isLoading) {

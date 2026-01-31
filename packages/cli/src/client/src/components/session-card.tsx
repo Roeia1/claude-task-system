@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { SessionInfo } from '@/types/dashboard';
@@ -33,17 +33,25 @@ function truncateOutput(output: string | undefined): string {
 }
 
 /**
- * Renders the output preview section
+ * Renders the output preview section with auto-scroll to bottom
  */
 function OutputPreview({
-  outputRef,
   truncatedOutput,
   outputAvailable,
 }: {
-  outputRef: React.RefObject<HTMLPreElement | null>;
   truncatedOutput: string;
   outputAvailable: boolean;
 }) {
+  const outputRef = useRef<HTMLPreElement>(null);
+
+  // Auto-scroll output to bottom when content changes
+  useLayoutEffect(() => {
+    // Only scroll when there's content to scroll to
+    if (truncatedOutput && outputRef.current) {
+      outputRef.current.scrollTop = outputRef.current.scrollHeight;
+    }
+  }, [truncatedOutput]);
+
   if (!outputAvailable) {
     return <div className="text-text-muted text-sm italic">Output unavailable</div>;
   }
@@ -74,7 +82,8 @@ export function SessionCard({ session }: { session: SessionInfo }) {
     const now = Date.now();
     return Math.floor((now - startTime) / MS_PER_SECOND);
   });
-  const outputRef = useRef<HTMLPreElement>(null);
+
+  const truncatedOutput = truncateOutput(session.outputPreview);
 
   // Update duration every second
   useEffect(() => {
@@ -86,15 +95,6 @@ export function SessionCard({ session }: { session: SessionInfo }) {
 
     return () => clearInterval(interval);
   }, [session.startTime]);
-
-  // Auto-scroll output to bottom when content changes
-  useEffect(() => {
-    if (outputRef.current) {
-      outputRef.current.scrollTop = outputRef.current.scrollHeight;
-    }
-  });
-
-  const truncatedOutput = truncateOutput(session.outputPreview);
 
   return (
     <Link
@@ -109,7 +109,6 @@ export function SessionCard({ session }: { session: SessionInfo }) {
         <CardContent className="space-y-2">
           <div className="text-sm text-text-muted">{formatDuration(duration)}</div>
           <OutputPreview
-            outputRef={outputRef}
             truncatedOutput={truncatedOutput}
             outputAvailable={session.outputAvailable}
           />
