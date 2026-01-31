@@ -17,8 +17,7 @@ import { type ServerInstance, startServer } from '../index.ts';
 // Constants for test configuration
 const RANDOM_STRING_SLICE_START = 2;
 const RANDOM_STRING_RADIX = 36;
-const PORT_RANGE = 20_000;
-const PORT_BASE = 30_000;
+const PORT_BASE = 40_000;
 const WS_CONNECTION_TIMEOUT_MS = 5000;
 const DEFAULT_MESSAGE_TIMEOUT_MS = 5000;
 const SHORT_WAIT_MS = 50;
@@ -30,6 +29,9 @@ const MESSAGE_TIMEOUT_MS = 3000;
 const FILE_WATCH_TIMEOUT_MS = 5000;
 const LONG_TEST_TIMEOUT_MS = 10_000;
 const VERY_LONG_TEST_TIMEOUT_MS = 15_000;
+
+// Counter for unique port allocation per test
+let portCounter = 0;
 
 // Helper to create a temporary saga directory
 async function createTempSagaDir(): Promise<string> {
@@ -78,9 +80,10 @@ async function cleanupTempDir(tempDir: string): Promise<void> {
   }
 }
 
-// Helper to get a random port in a safe range
+// Helper to get a unique port for each test (avoids EADDRINUSE race conditions)
 function getRandomPort(): number {
-  return Math.floor(Math.random() * PORT_RANGE) + PORT_BASE; // 30000-50000
+  portCounter++;
+  return PORT_BASE + portCounter;
 }
 
 // Helper to create a WebSocket client and wait for connection
