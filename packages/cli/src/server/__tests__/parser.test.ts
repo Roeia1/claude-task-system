@@ -70,7 +70,7 @@ This is the story context.
 
       expect(result.slug).toBe('test-story');
       expect(result.title).toBe('Test Story Title');
-      expect(result.status).toBe('in_progress');
+      expect(result.status).toBe('inProgress'); // API returns camelCase
       expect(result.epicSlug).toBe('test-epic');
       expect(result.tasks).toHaveLength(2);
       expect(result.tasks[0]).toEqual({ id: 't1', title: 'First Task', status: 'completed' });

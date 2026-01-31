@@ -4,6 +4,18 @@ import type { Epic, EpicSummary, StoryDetail } from '@/types/dashboard';
 /** Maximum number of reconnection attempts */
 const MAX_RETRIES = 5;
 
+/**
+ * Get WebSocket URL based on current page location.
+ * Uses the same host and port as the HTTP server.
+ */
+function getWebSocketUrl(): string {
+  if (typeof window === 'undefined') {
+    return 'ws://localhost:3847'; // Default for SSR/testing
+  }
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}`;
+}
+
 /** Base delay for exponential backoff (ms) */
 const BASE_DELAY = 1000;
 
@@ -70,19 +82,21 @@ function getWebSocketSend(): WebSocketSendFn | null {
 
 /** Helper to handle WebSocket messages */
 function handleWebSocketMessage(
-  event: MessageEvent,
+  wsEvent: MessageEvent,
   lastPongRef: { value: number },
   sendBack: (event: DashboardEvent) => void,
 ): void {
   try {
-    const message = JSON.parse(event.data);
-    if (message.type === 'pong') {
+    const message = JSON.parse(wsEvent.data);
+    // Server sends messages with 'event' property (e.g., { event: 'epics:updated', data: ... })
+    const messageType = message.event || message.type;
+    if (messageType === 'pong') {
       lastPongRef.value = Date.now();
       return;
     }
-    if (message.type === 'epics:updated' && message.data) {
+    if (messageType === 'epics:updated' && message.data) {
       sendBack({ type: 'EPICS_UPDATED', epics: message.data });
-    } else if (message.type === 'story:updated' && message.data) {
+    } else if (messageType === 'story:updated' && message.data) {
       sendBack({ type: 'STORY_UPDATED', story: message.data });
     }
   } catch {
@@ -253,7 +267,7 @@ const dashboardMachine = setup({
     currentStory: null,
     error: null,
     retryCount: 0,
-    wsUrl: 'ws://localhost:3847',
+    wsUrl: getWebSocketUrl(),
     subscribedStories: [],
   },
   states: {

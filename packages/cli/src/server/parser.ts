@@ -16,28 +16,46 @@ const STORY_MD_SUFFIX_PATTERN = /\/story\.md$/;
 const TITLE_HEADING_PATTERN = /^#\s+(.+)$/m;
 const JOURNAL_SECTION_PATTERN = /^##\s+/m;
 
-// Type definitions for internal use (non-exported)
-type StoryStatus = 'ready' | 'in_progress' | 'blocked' | 'completed';
-type TaskStatus = 'pending' | 'in_progress' | 'completed';
+// Type definitions for internal use (snake_case from YAML files)
+type InternalStoryStatus = 'ready' | 'in_progress' | 'blocked' | 'completed';
+type InternalTaskStatus = 'pending' | 'in_progress' | 'completed';
+
+// Type definitions for API responses (camelCase for frontend)
+type ApiStoryStatus = 'ready' | 'inProgress' | 'blocked' | 'completed';
+type ApiTaskStatus = 'pending' | 'inProgress' | 'completed';
 
 /**
- * Validate and normalize story status
+ * Convert snake_case status to camelCase for API response
  */
-function validateStatus(status: unknown): StoryStatus {
+function toApiStoryStatus(status: InternalStoryStatus): ApiStoryStatus {
+  return status === 'in_progress' ? 'inProgress' : status;
+}
+
+/**
+ * Convert snake_case task status to camelCase for API response
+ */
+function toApiTaskStatus(status: InternalTaskStatus): ApiTaskStatus {
+  return status === 'in_progress' ? 'inProgress' : status;
+}
+
+/**
+ * Validate and normalize story status from YAML
+ */
+function validateStatus(status: unknown): InternalStoryStatus {
   const validStatuses = ['ready', 'in_progress', 'blocked', 'completed'];
   if (typeof status === 'string' && validStatuses.includes(status)) {
-    return status as StoryStatus;
+    return status as InternalStoryStatus;
   }
   return 'ready'; // default
 }
 
 /**
- * Validate and normalize task status
+ * Validate and normalize task status from YAML
  */
-function validateTaskStatus(status: unknown): TaskStatus {
+function validateTaskStatus(status: unknown): InternalTaskStatus {
   const validStatuses = ['pending', 'in_progress', 'completed'];
   if (typeof status === 'string' && validStatuses.includes(status)) {
-    return status as TaskStatus;
+    return status as InternalTaskStatus;
   }
   return 'pending'; // default
 }
@@ -45,7 +63,7 @@ function validateTaskStatus(status: unknown): TaskStatus {
 /**
  * Parse tasks array from frontmatter
  */
-function parseTasks(tasks: unknown): Array<{ id: string; title: string; status: TaskStatus }> {
+function parseTasks(tasks: unknown): Array<{ id: string; title: string; status: ApiTaskStatus }> {
   if (!Array.isArray(tasks)) {
     return [];
   }
@@ -55,7 +73,7 @@ function parseTasks(tasks: unknown): Array<{ id: string; title: string; status: 
     .map((t) => ({
       id: typeof t.id === 'string' ? t.id : 'unknown',
       title: typeof t.title === 'string' ? t.title : 'Unknown Task',
-      status: validateTaskStatus(t.status),
+      status: toApiTaskStatus(validateTaskStatus(t.status)),
     }));
 }
 
@@ -78,7 +96,7 @@ async function toStoryDetail(story: ScannedStory, sagaRoot: string): Promise<Sto
     slug: story.slug,
     epicSlug: story.epicSlug,
     title: story.title,
-    status: validateStatus(story.status),
+    status: toApiStoryStatus(validateStatus(story.status)),
     tasks,
     archived: story.archived,
     paths: {
@@ -100,11 +118,11 @@ async function buildEpic(
   // Convert scanned stories to StoryDetail with tasks
   const stories = await Promise.all(epicStories.map((s) => toStoryDetail(s, sagaRoot)));
 
-  // Calculate story counts
+  // Calculate story counts (status is now camelCase from API conversion)
   const storyCounts: StoryCounts = {
     total: stories.length,
     ready: stories.filter((s) => s.status === 'ready').length,
-    inProgress: stories.filter((s) => s.status === 'in_progress').length,
+    inProgress: stories.filter((s) => s.status === 'inProgress').length,
     blocked: stories.filter((s) => s.status === 'blocked').length,
     completed: stories.filter((s) => s.status === 'completed').length,
   };
@@ -141,7 +159,7 @@ export interface StoryCounts {
 export interface Task {
   id: string;
   title: string;
-  status: 'pending' | 'in_progress' | 'completed';
+  status: 'pending' | 'inProgress' | 'completed';
 }
 
 /**
@@ -160,7 +178,7 @@ export interface StoryDetail {
   slug: string;
   epicSlug: string;
   title: string;
-  status: 'ready' | 'in_progress' | 'blocked' | 'completed';
+  status: 'ready' | 'inProgress' | 'blocked' | 'completed';
   tasks: Task[];
   journal?: JournalEntry[];
   archived?: boolean;
@@ -225,7 +243,7 @@ export async function parseStory(storyPath: string, epicSlug: string): Promise<S
   // Extract values with defaults
   const slug = (frontmatter.id as string) || (frontmatter.slug as string) || dirName;
   const title = (frontmatter.title as string) || dirName;
-  const status = validateStatus(frontmatter.status);
+  const status = toApiStoryStatus(validateStatus(frontmatter.status));
   const tasks = parseTasks(frontmatter.tasks);
 
   // Check for journal.md

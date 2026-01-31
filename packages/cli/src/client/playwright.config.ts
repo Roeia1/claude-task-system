@@ -26,6 +26,9 @@ export default defineConfig({
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
 
+  // Stop on first failure to fail fast
+  maxFailures: 1,
+
   // Reporter configuration
   reporter: process.env.CI ? 'github' : 'html',
 

@@ -63,6 +63,9 @@ export default defineConfig({
   // Use single worker since tests share filesystem state
   workers: 1,
 
+  // Stop on first failure to fail fast
+  maxFailures: 1,
+
   // Reporter configuration
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'html',
 

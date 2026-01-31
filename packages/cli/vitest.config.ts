@@ -32,6 +32,8 @@ const browserConfig = {
 
 const config = defineConfig({
   test: {
+    // Stop on first failure to fail fast
+    bail: 1,
     projects: [
       // Unit tests project - runs in Node environment from package root
       {
