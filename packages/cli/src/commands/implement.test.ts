@@ -262,10 +262,10 @@ Test story for implement command testing.
       mkdirSync(skillDir, { recursive: true });
       writeFileSync(join(skillDir, 'worker-prompt.md'), '# Worker Prompt\nTest prompt content');
 
-      // Use a shorter timeout since we just want to see if it starts correctly
+      // Use a short timeout since we just need to capture initial output
       const result = runCli(['implement', 'test-story', '--path', testDir], {
         env: { SAGA_PLUGIN_ROOT: pluginDir, SAGA_INTERNAL_SESSION: '1' },
-        timeout: 2000, // Short timeout - we just want to see the initial output
+        timeout: 500, // 500ms is enough to capture initial startup message
       });
 
       // Internal session mode should print "Starting story implementation..." followed by story info
