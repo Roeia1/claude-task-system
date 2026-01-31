@@ -85,6 +85,12 @@ function useDashboard() {
   const actorRef = useDashboardActorRef();
   const state = useDashboardSelector((snapshot) => snapshot.value);
   const context = useDashboardSelector((snapshot) => snapshot.context);
+  // Use matches() for hierarchical state checks
+  const isIdle = useDashboardSelector((snapshot) => snapshot.matches('idle'));
+  const isLoading = useDashboardSelector((snapshot) => snapshot.matches({ active: 'loading' }));
+  const isConnected = useDashboardSelector((snapshot) => snapshot.matches({ active: 'connected' }));
+  const isReconnecting = useDashboardSelector((snapshot) => snapshot.matches('reconnecting'));
+  const isError = useDashboardSelector((snapshot) => snapshot.matches('error'));
 
   const connectionActions = useConnectionActions(actorRef);
   const dataActions = useDataActions(actorRef);
@@ -93,11 +99,11 @@ function useDashboard() {
   return useMemo(
     () => ({
       state,
-      isIdle: state === 'idle',
-      isLoading: state === 'loading',
-      isConnected: state === 'connected',
-      isReconnecting: state === 'reconnecting',
-      isError: state === 'error',
+      isIdle,
+      isLoading,
+      isConnected,
+      isReconnecting,
+      isError,
       epics: context.epics,
       currentEpic: context.currentEpic,
       currentStory: context.currentStory,
@@ -109,7 +115,19 @@ function useDashboard() {
       ...subscriptionActions,
       actorRef,
     }),
-    [state, context, connectionActions, dataActions, subscriptionActions, actorRef],
+    [
+      state,
+      isIdle,
+      isLoading,
+      isConnected,
+      isReconnecting,
+      isError,
+      context,
+      connectionActions,
+      dataActions,
+      subscriptionActions,
+      actorRef,
+    ],
   );
 }
 

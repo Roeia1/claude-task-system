@@ -115,15 +115,19 @@ test.describe('Empty State Handling', () => {
 test.describe('API Error Handling', () => {
   test('handles network error gracefully on epic list', async ({ page }) => {
     // Intercept the API request and abort it to simulate network error
-    await page.route('/api/epics', (route) => {
+    // Use glob pattern to match full URL (http://localhost:PORT/api/epics)
+    await page.route('**/api/epics', (route) => {
       route.abort('failed');
     });
 
     await page.goto('/');
 
     // The page should handle the error gracefully
-    // Based on EpicList.tsx, errors trigger a toast but don't show an error state
-    // Should show empty state since fetch failed silently (toast is shown)
+    // Errors trigger a toast notification
+    const toast = page.getByText('API Error', { exact: true }).first();
+    await expect(toast).toBeVisible({ timeout: 5000 });
+
+    // Should show empty state since fetch failed (no data loaded)
     await expect(page.getByText('No epics found.')).toBeVisible();
   });
 

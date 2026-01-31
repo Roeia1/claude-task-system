@@ -216,6 +216,40 @@ const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
   },
 );
 
+/** Common data event handlers used across multiple states */
+const dataEventHandlers = {
+  EPICS_LOADED: {
+    actions: [
+      {
+        type: 'setEpics' as const,
+        params: ({ event }: { event: { epics: EpicSummary[] } }) => ({ epics: event.epics }),
+      },
+    ],
+  },
+  EPIC_LOADED: {
+    actions: [
+      {
+        type: 'setCurrentEpic' as const,
+        params: ({ event }: { event: { epic: Epic } }) => ({ epic: event.epic }),
+      },
+    ],
+  },
+  STORY_LOADED: {
+    actions: [
+      {
+        type: 'setCurrentStory' as const,
+        params: ({ event }: { event: { story: StoryDetail } }) => ({ story: event.story }),
+      },
+    ],
+  },
+  CLEAR_EPIC: {
+    actions: ['clearCurrentEpic' as const],
+  },
+  CLEAR_STORY: {
+    actions: ['clearCurrentStory' as const],
+  },
+};
+
 /** Dashboard state machine using XState v5 setup */
 const dashboardMachine = setup({
   types: {
@@ -310,163 +344,31 @@ const dashboardMachine = setup({
     idle: {
       on: {
         CONNECT: {
-          target: 'loading',
+          target: 'active',
           actions: ['clearError', 'resetRetryCount'],
         },
         // Allow data events in idle state so REST API fetching works
         // without requiring WebSocket connection
-        EPICS_LOADED: {
-          actions: [
-            {
-              type: 'setEpics',
-              params: ({ event }) => ({ epics: event.epics }),
-            },
-          ],
-        },
-        EPIC_LOADED: {
-          actions: [
-            {
-              type: 'setCurrentEpic',
-              params: ({ event }) => ({ epic: event.epic }),
-            },
-          ],
-        },
-        STORY_LOADED: {
-          actions: [
-            {
-              type: 'setCurrentStory',
-              params: ({ event }) => ({ story: event.story }),
-            },
-          ],
-        },
-        CLEAR_EPIC: {
-          actions: ['clearCurrentEpic'],
-        },
-        CLEAR_STORY: {
-          actions: ['clearCurrentStory'],
-        },
+        ...dataEventHandlers,
       },
     },
-    loading: {
-      entry: ['clearError'],
+    // Parent state that holds the WebSocket connection
+    // Child states (loading/connected) share the same websocket actor instance
+    active: {
+      initial: 'loading',
       invoke: {
         id: 'websocket',
         src: 'websocket',
         input: ({ context }) => ({ wsUrl: context.wsUrl }),
       },
       on: {
-        WS_CONNECTED: {
-          target: 'connected',
-          actions: ['resetRetryCount'],
-        },
-        WS_ERROR: {
-          target: 'error',
-          actions: [
-            {
-              type: 'setError',
-              params: ({ event }) => ({ error: event.error }),
-            },
-          ],
-        },
-        WS_DISCONNECTED: {
-          target: 'reconnecting',
-        },
-        // Handle data events while WebSocket is connecting
-        EPICS_LOADED: {
-          actions: [
-            {
-              type: 'setEpics',
-              params: ({ event }) => ({ epics: event.epics }),
-            },
-          ],
-        },
-        EPIC_LOADED: {
-          actions: [
-            {
-              type: 'setCurrentEpic',
-              params: ({ event }) => ({ epic: event.epic }),
-            },
-          ],
-        },
-        STORY_LOADED: {
-          actions: [
-            {
-              type: 'setCurrentStory',
-              params: ({ event }) => ({ story: event.story }),
-            },
-          ],
-        },
-        CLEAR_EPIC: {
-          actions: ['clearCurrentEpic'],
-        },
-        CLEAR_STORY: {
-          actions: ['clearCurrentStory'],
-        },
-        // Track subscriptions while WebSocket is connecting (will be sent once connected)
-        SUBSCRIBE_STORY: {
-          actions: [
-            {
-              type: 'addSubscription',
-              params: ({ event }) => ({
-                epicSlug: event.epicSlug,
-                storySlug: event.storySlug,
-              }),
-            },
-          ],
-        },
-        UNSUBSCRIBE_STORY: {
-          actions: [
-            {
-              type: 'removeSubscription',
-              params: ({ event }) => ({
-                epicSlug: event.epicSlug,
-                storySlug: event.storySlug,
-              }),
-            },
-          ],
-        },
-      },
-    },
-    connected: {
-      invoke: {
-        id: 'websocket',
-        src: 'websocket',
-        input: ({ context }) => ({ wsUrl: context.wsUrl }),
-      },
-      on: {
+        // Handle disconnect from any active child state
         DISCONNECT: {
           target: 'idle',
         },
-        EPICS_LOADED: {
-          actions: [
-            {
-              type: 'setEpics',
-              params: ({ event }) => ({ epics: event.epics }),
-            },
-          ],
-        },
-        EPIC_LOADED: {
-          actions: [
-            {
-              type: 'setCurrentEpic',
-              params: ({ event }) => ({ epic: event.epic }),
-            },
-          ],
-        },
-        STORY_LOADED: {
-          actions: [
-            {
-              type: 'setCurrentStory',
-              params: ({ event }) => ({ story: event.story }),
-            },
-          ],
-        },
-        CLEAR_EPIC: {
-          actions: ['clearCurrentEpic'],
-        },
-        CLEAR_STORY: {
-          actions: ['clearCurrentStory'],
-        },
+        // Handle data events in active state (available to all children)
+        ...dataEventHandlers,
+        // Handle real-time updates from WebSocket
         EPICS_UPDATED: {
           actions: [
             {
@@ -483,26 +385,7 @@ const dashboardMachine = setup({
             },
           ],
         },
-        WS_DISCONNECTED: {
-          target: 'reconnecting',
-        },
-        WS_ERROR: {
-          target: 'reconnecting',
-          actions: [
-            {
-              type: 'setError',
-              params: ({ event }) => ({ error: event.error }),
-            },
-          ],
-        },
-        ERROR: {
-          actions: [
-            {
-              type: 'setError',
-              params: ({ event }) => ({ error: event.error }),
-            },
-          ],
-        },
+        // Track subscriptions (will be sent to websocket actor)
         SUBSCRIBE_STORY: {
           actions: [
             {
@@ -528,13 +411,71 @@ const dashboardMachine = setup({
           ],
         },
       },
+      states: {
+        loading: {
+          entry: ['clearError'],
+          on: {
+            WS_CONNECTED: {
+              target: 'connected',
+              actions: ['resetRetryCount'],
+            },
+            WS_ERROR: {
+              target: '#dashboard.reconnecting',
+              actions: [
+                {
+                  type: 'setError',
+                  params: ({ event }) => ({ error: event.error }),
+                },
+              ],
+            },
+            WS_DISCONNECTED: {
+              target: '#dashboard.reconnecting',
+            },
+          },
+        },
+        connected: {
+          on: {
+            WS_DISCONNECTED: {
+              target: '#dashboard.reconnecting',
+            },
+            WS_ERROR: {
+              target: '#dashboard.reconnecting',
+              actions: [
+                {
+                  type: 'setError',
+                  params: ({ event }) => ({ error: event.error }),
+                },
+              ],
+            },
+            ERROR: {
+              actions: [
+                {
+                  type: 'setError',
+                  params: ({ event }) => ({ error: event.error }),
+                },
+              ],
+            },
+          },
+        },
+      },
     },
     reconnecting: {
       entry: ['incrementRetryCount'],
+      on: {
+        RETRY: {
+          target: 'active',
+          actions: ['resetRetryCount'],
+        },
+        DISCONNECT: {
+          target: 'idle',
+        },
+        // Handle data events while reconnecting
+        ...dataEventHandlers,
+      },
       after: {
         backoffDelay: [
           {
-            target: 'loading',
+            target: 'active',
             guard: 'canRetry',
           },
           {
@@ -551,91 +492,22 @@ const dashboardMachine = setup({
           },
         ],
       },
-      on: {
-        RETRY: {
-          target: 'loading',
-          actions: ['resetRetryCount'],
-        },
-        DISCONNECT: {
-          target: 'idle',
-        },
-        // Handle data events while reconnecting
-        EPICS_LOADED: {
-          actions: [
-            {
-              type: 'setEpics',
-              params: ({ event }) => ({ epics: event.epics }),
-            },
-          ],
-        },
-        EPIC_LOADED: {
-          actions: [
-            {
-              type: 'setCurrentEpic',
-              params: ({ event }) => ({ epic: event.epic }),
-            },
-          ],
-        },
-        STORY_LOADED: {
-          actions: [
-            {
-              type: 'setCurrentStory',
-              params: ({ event }) => ({ story: event.story }),
-            },
-          ],
-        },
-        CLEAR_EPIC: {
-          actions: ['clearCurrentEpic'],
-        },
-        CLEAR_STORY: {
-          actions: ['clearCurrentStory'],
-        },
-      },
     },
     error: {
       on: {
         RETRY: {
-          target: 'loading',
+          target: 'active',
           actions: ['clearError', 'resetRetryCount'],
         },
         DISCONNECT: {
           target: 'idle',
         },
         CONNECT: {
-          target: 'loading',
+          target: 'active',
           actions: ['clearError', 'resetRetryCount'],
         },
         // Handle data events while in error state
-        EPICS_LOADED: {
-          actions: [
-            {
-              type: 'setEpics',
-              params: ({ event }) => ({ epics: event.epics }),
-            },
-          ],
-        },
-        EPIC_LOADED: {
-          actions: [
-            {
-              type: 'setCurrentEpic',
-              params: ({ event }) => ({ epic: event.epic }),
-            },
-          ],
-        },
-        STORY_LOADED: {
-          actions: [
-            {
-              type: 'setCurrentStory',
-              params: ({ event }) => ({ story: event.story }),
-            },
-          ],
-        },
-        CLEAR_EPIC: {
-          actions: ['clearCurrentEpic'],
-        },
-        CLEAR_STORY: {
-          actions: ['clearCurrentStory'],
-        },
+        ...dataEventHandlers,
       },
     },
   },
