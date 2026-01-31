@@ -27,8 +27,7 @@ import { resolveProjectPath } from '../utils/project-discovery.ts';
 /**
  * Options for the worktree command
  */
-// biome-ignore lint/style/useExportsLast: Interface exported for type safety at point of definition
-export interface WorktreeOptions {
+interface WorktreeOptions {
   path?: string;
 }
 
@@ -158,11 +157,7 @@ function createWorktree(projectPath: string, epicSlug: string, storySlug: string
 /**
  * Execute the worktree command
  */
-export function worktreeCommand(
-  epicSlug: string,
-  storySlug: string,
-  options: WorktreeOptions,
-): void {
+function worktreeCommand(epicSlug: string, storySlug: string, options: WorktreeOptions): void {
   // Resolve project path
   let projectPath: string;
   try {
@@ -183,3 +178,6 @@ export function worktreeCommand(
     process.exit(1);
   }
 }
+
+export { worktreeCommand };
+export type { WorktreeOptions };

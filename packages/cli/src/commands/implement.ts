@@ -391,8 +391,8 @@ function buildScopeSettings(): Record<string, unknown> {
 
   return {
     hooks: {
-      // biome-ignore lint/style/useNamingConvention: Claude Code hook API uses PascalCase
-      PreToolUse: [
+      // Claude Code hook API uses PascalCase for hook names
+      ['PreToolUse']: [
         {
           matcher: SCOPE_VALIDATED_TOOLS.join('|'),
           hooks: [hookCommand],
@@ -686,7 +686,78 @@ interface LoopState {
 }
 
 /**
- * Execute the worker spawning loop
+ * Worker loop configuration
+ */
+interface WorkerLoopConfig {
+  workerPrompt: string;
+  model: string;
+  settings: Record<string, unknown>;
+  worktree: string;
+  maxCycles: number;
+  maxTimeMs: number;
+  startTime: number;
+  epicSlug: string;
+  storySlug: string;
+}
+
+/**
+ * Execute a single worker cycle and return the result
+ */
+async function executeWorkerCycle(
+  config: WorkerLoopConfig,
+  state: LoopState,
+): Promise<{ continue: boolean; result?: LoopResult }> {
+  // Check timeout
+  if (Date.now() - config.startTime >= config.maxTimeMs) {
+    state.finalStatus = 'TIMEOUT';
+    return { continue: false };
+  }
+
+  // Check max cycles
+  if (state.cycles >= config.maxCycles) {
+    return { continue: false };
+  }
+
+  state.cycles += 1;
+
+  try {
+    const parsed = await spawnWorkerAsync(
+      config.workerPrompt,
+      config.model,
+      config.settings,
+      config.worktree,
+    );
+
+    state.summaries.push(parsed.summary);
+
+    if (parsed.status === 'FINISH') {
+      state.finalStatus = 'FINISH';
+      return { continue: false };
+    }
+    if (parsed.status === 'BLOCKED') {
+      state.finalStatus = 'BLOCKED';
+      state.lastBlocker = parsed.blocker || null;
+      return { continue: false };
+    }
+
+    return { continue: true };
+  } catch (e) {
+    const elapsed = (Date.now() - config.startTime) / MS_PER_MINUTE;
+    return {
+      continue: false,
+      result: createErrorResult(
+        config.epicSlug,
+        config.storySlug,
+        e instanceof Error ? e.message : String(e),
+        state.cycles,
+        elapsed,
+      ),
+    };
+  }
+}
+
+/**
+ * Execute the worker spawning loop using recursion
  */
 async function executeWorkerLoop(
   workerPrompt: string,
@@ -699,44 +770,35 @@ async function executeWorkerLoop(
   epicSlug: string,
   storySlug: string,
 ): Promise<LoopState | LoopResult> {
+  const config: WorkerLoopConfig = {
+    workerPrompt,
+    model,
+    settings,
+    worktree,
+    maxCycles,
+    maxTimeMs,
+    startTime,
+    epicSlug,
+    storySlug,
+  };
   const state: LoopState = { summaries: [], cycles: 0, lastBlocker: null, finalStatus: null };
 
-  while (state.cycles < maxCycles) {
-    if (Date.now() - startTime >= maxTimeMs) {
-      state.finalStatus = 'TIMEOUT';
-      break;
+  // Use recursive function to avoid await in loop
+  const runNextCycle = async (): Promise<LoopState | LoopResult> => {
+    const cycleResult = await executeWorkerCycle(config, state);
+
+    if (cycleResult.result) {
+      return cycleResult.result;
     }
 
-    state.cycles += 1;
-    let parsed: WorkerOutput;
-    try {
-      // biome-ignore lint/performance/noAwaitInLoops: Sequential worker spawning is intentional
-      parsed = await spawnWorkerAsync(workerPrompt, model, settings, worktree);
-    } catch (e) {
-      const elapsed = (Date.now() - startTime) / MS_PER_MINUTE;
-      return createErrorResult(
-        epicSlug,
-        storySlug,
-        e instanceof Error ? e.message : String(e),
-        state.cycles,
-        elapsed,
-      );
+    if (cycleResult.continue) {
+      return runNextCycle();
     }
 
-    state.summaries.push(parsed.summary);
+    return state;
+  };
 
-    if (parsed.status === 'FINISH') {
-      state.finalStatus = 'FINISH';
-      break;
-    }
-    if (parsed.status === 'BLOCKED') {
-      state.finalStatus = 'BLOCKED';
-      state.lastBlocker = parsed.blocker || null;
-      break;
-    }
-  }
-
-  return state;
+  return runNextCycle();
 }
 
 /**

@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router';
 import { expect, within } from 'storybook/test';
 import { createActor } from 'xstate';
 import { DashboardProvider } from '@/context/dashboard-context';
-import { dashboardMachine } from '@/machines';
+import { dashboardMachine } from '@/machines/dashboardMachine';
 import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
 import type { EpicSummary } from '@/types/dashboard';
 import { EpicCard, EpicCardSkeleton, EpicList, StatusBadge } from './EpicList.tsx';

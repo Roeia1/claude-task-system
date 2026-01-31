@@ -6,7 +6,8 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { extractContext, findEpic, findStory, parseFrontmatter } from './finder.ts';
+import { extractContext, findEpic, findStory } from './finder.ts';
+import { parseFrontmatter } from './saga-scanner.ts';
 
 // ============================================================================
 // Test Constants

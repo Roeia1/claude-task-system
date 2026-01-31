@@ -1,8 +1,7 @@
 import { createActorContext } from '@xstate/react';
 import { useCallback, useMemo } from 'react';
 import type { ActorRefFrom } from 'xstate';
-import type { dashboardMachine } from '@/machines';
-import { dashboardMachine as machine } from '@/machines';
+import { dashboardMachine } from '@/machines/dashboardMachine';
 import type { Epic, EpicSummary, StoryDetail } from '@/types/dashboard';
 
 type DashboardActorRef = ActorRefFrom<typeof dashboardMachine>;
@@ -11,7 +10,7 @@ type DashboardActorRef = ActorRefFrom<typeof dashboardMachine>;
  * Dashboard context using XState's createActorContext
  * Provides access to the dashboard state machine throughout the app
  */
-const DashboardContext = createActorContext(machine);
+const DashboardContext = createActorContext(dashboardMachine);
 
 /**
  * Provider component that wraps the app with dashboard state

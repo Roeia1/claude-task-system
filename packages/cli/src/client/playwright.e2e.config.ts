@@ -68,8 +68,7 @@ export default defineConfig({
 
   // Shared settings for all projects
   use: {
-    // Base URL for navigation - connects to the real backend server
-    // biome-ignore lint/style/useNamingConvention: Playwright API uses baseURL
+    // Base URL for navigation - connects to the real backend server (Playwright API uses baseURL)
     baseURL: `http://localhost:${E2E_PORT}`,
 
     // Collect trace on first retry for debugging

@@ -4,10 +4,10 @@
  */
 
 /** Task status values */
-export type TaskStatus = 'pending' | 'in_progress' | 'completed';
+export type TaskStatus = 'pending' | 'inProgress' | 'completed';
 
 /** Story status values */
-export type StoryStatus = 'ready' | 'in_progress' | 'blocked' | 'completed';
+export type StoryStatus = 'ready' | 'inProgress' | 'blocked' | 'completed';
 
 /** Journal entry types */
 export type JournalEntryType = 'session' | 'blocker' | 'resolution';

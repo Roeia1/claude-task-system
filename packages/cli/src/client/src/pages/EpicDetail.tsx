@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useDashboard } from '@/context/dashboard-context';
 import { showApiErrorToast } from '@/lib/toast-utils';
-import type { StoryStatus } from '@/types/dashboard';
+import type { StoryDetail, StoryStatus } from '@/types/dashboard';
 
 /** HTTP 404 Not Found status code */
 const HTTP_NOT_FOUND = 404;
@@ -17,8 +17,7 @@ const PERCENTAGE_MULTIPLIER = 100;
 /** Status priority for sorting (lower = higher priority) */
 const statusPriority: Record<StoryStatus, number> = {
   blocked: 0,
-  // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
-  in_progress: 1,
+  inProgress: 1,
   ready: 2,
   completed: 3,
 };
@@ -58,16 +57,14 @@ function StoryCardSkeleton() {
 function StatusBadge({ status }: { status: StoryStatus }) {
   const variants: Record<StoryStatus, string> = {
     ready: 'bg-text-muted/20 text-text-muted',
-    // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
-    in_progress: 'bg-primary/20 text-primary',
+    inProgress: 'bg-primary/20 text-primary',
     blocked: 'bg-danger/20 text-danger',
     completed: 'bg-success/20 text-success',
   };
 
   const labels: Record<StoryStatus, string> = {
     ready: 'Ready',
-    // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
-    in_progress: 'In Progress',
+    inProgress: 'In Progress',
     blocked: 'Blocked',
     completed: 'Completed',
   };
@@ -142,31 +139,79 @@ function LoadingState() {
   );
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: React component with complex render logic
-function EpicDetail() {
-  const { slug } = useParams<{ slug: string }>();
+/** Epic header with title and progress */
+function EpicHeader({
+  title,
+  completed,
+  total,
+}: {
+  title: string;
+  completed: number;
+  total: number;
+}) {
+  const completionPercentage =
+    total > 0 ? Math.round((completed / total) * PERCENTAGE_MULTIPLIER) : 0;
+
+  return (
+    <div class="space-y-4">
+      <h1 class="text-2xl font-bold text-text">{title}</h1>
+      <div class="space-y-2">
+        <div class="flex justify-between text-sm">
+          <span class="text-text-muted">Progress</span>
+          <span class="text-text-muted">
+            {completed}/{total} stories completed
+          </span>
+        </div>
+        <Progress value={completionPercentage} />
+      </div>
+    </div>
+  );
+}
+
+/** Empty stories state */
+function EmptyStoriesState() {
+  return (
+    <div class="text-center py-12">
+      <p class="text-text-muted text-lg">No stories in this epic.</p>
+      <p class="text-text-muted">
+        Run <code class="text-primary">/generate-stories</code> to create stories.
+      </p>
+    </div>
+  );
+}
+
+/** Stories list grid */
+function StoriesList({ stories, epicSlug }: { stories: StoryDetail[]; epicSlug: string }) {
+  const sortedStories = [...stories].sort(
+    (a, b) => statusPriority[a.status] - statusPriority[b.status],
+  );
+
+  if (sortedStories.length === 0) {
+    return <EmptyStoriesState />;
+  }
+
+  return (
+    <div class="space-y-4">
+      <h2 class="text-lg font-semibold text-text">Stories</h2>
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {sortedStories.map((story) => (
+          <StoryCard key={story.slug} story={story} epicSlug={epicSlug} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Custom hook for fetching epic data */
+function useEpicFetch(slug: string | undefined) {
   const { currentEpic, setCurrentEpic, clearCurrentEpic, isLoading } = useDashboard();
   const [isFetching, setIsFetching] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleResponse = async (response: Response) => {
-      if (response.status === HTTP_NOT_FOUND) {
-        setNotFound(true);
-        return null;
-      }
-      if (!response.ok) {
-        setError('Failed to load epic');
-        return null;
-      }
-      return await response.json();
-    };
-
     const fetchEpic = async () => {
-      if (!slug) {
-        return;
-      }
+      if (!slug) return;
 
       setIsFetching(true);
       setNotFound(false);
@@ -174,94 +219,50 @@ function EpicDetail() {
 
       try {
         const response = await fetch(`/api/epics/${slug}`);
-        const data = await handleResponse(response);
-        if (data) {
-          setCurrentEpic(data);
+        if (response.status === HTTP_NOT_FOUND) {
+          setNotFound(true);
+          return;
         }
+        if (!response.ok) {
+          setError('Failed to load epic');
+          return;
+        }
+        setCurrentEpic(await response.json());
       } catch (err) {
         setError('Failed to load epic');
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        showApiErrorToast(`/api/epics/${slug}`, message);
+        showApiErrorToast(
+          `/api/epics/${slug}`,
+          err instanceof Error ? err.message : 'Unknown error',
+        );
       } finally {
         setIsFetching(false);
       }
     };
 
     fetchEpic();
-
-    return () => {
-      clearCurrentEpic();
-    };
+    return () => clearCurrentEpic();
   }, [slug, setCurrentEpic, clearCurrentEpic]);
 
-  const loading = isLoading || isFetching;
+  return { currentEpic, loading: isLoading || isFetching, notFound, error };
+}
 
-  // Calculate completion percentage
-  const completionPercentage =
-    currentEpic && currentEpic.storyCounts.total > 0
-      ? Math.round(
-          (currentEpic.storyCounts.completed / currentEpic.storyCounts.total) *
-            PERCENTAGE_MULTIPLIER,
-        )
-      : 0;
+function EpicDetail() {
+  const { slug } = useParams<{ slug: string }>();
+  const { currentEpic, loading, notFound, error } = useEpicFetch(slug);
 
-  // Sort stories by status priority: blocked first, then in_progress, then ready, then completed
-  const sortedStories = currentEpic
-    ? [...currentEpic.stories].sort((a, b) => statusPriority[a.status] - statusPriority[b.status])
-    : [];
-
-  // 404 state
-  if (notFound) {
-    return <NotFoundState slug={slug} />;
-  }
-
-  // Error state
-  if (error && !loading) {
-    return <ErrorState error={error} />;
-  }
-
-  // Loading state
-  if (loading || !currentEpic) {
-    return <LoadingState />;
-  }
+  if (notFound) return <NotFoundState slug={slug} />;
+  if (error && !loading) return <ErrorState error={error} />;
+  if (loading || !currentEpic) return <LoadingState />;
 
   return (
     <div class="space-y-6">
-      {/* Epic header */}
-      <div class="space-y-4">
-        <h1 class="text-2xl font-bold text-text">{currentEpic.title}</h1>
-        <div class="space-y-2">
-          <div class="flex justify-between text-sm">
-            <span class="text-text-muted">Progress</span>
-            <span class="text-text-muted">
-              {currentEpic.storyCounts.completed}/{currentEpic.storyCounts.total} stories completed
-            </span>
-          </div>
-          <Progress value={completionPercentage} />
-        </div>
-      </div>
-
-      {/* Epic content (markdown from epic.md) */}
+      <EpicHeader
+        title={currentEpic.title}
+        completed={currentEpic.storyCounts.completed}
+        total={currentEpic.storyCounts.total}
+      />
       <EpicContent content={currentEpic.content} />
-
-      {/* Stories list */}
-      {sortedStories.length === 0 ? (
-        <div class="text-center py-12">
-          <p class="text-text-muted text-lg">No stories in this epic.</p>
-          <p class="text-text-muted">
-            Run <code class="text-primary">/generate-stories</code> to create stories.
-          </p>
-        </div>
-      ) : (
-        <div class="space-y-4">
-          <h2 class="text-lg font-semibold text-text">Stories</h2>
-          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {sortedStories.map((story) => (
-              <StoryCard key={story.slug} story={story} epicSlug={slug ?? ''} />
-            ))}
-          </div>
-        </div>
-      )}
+      <StoriesList stories={currentEpic.stories} epicSlug={slug ?? ''} />
     </div>
   );
 }

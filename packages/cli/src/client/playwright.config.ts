@@ -31,8 +31,7 @@ export default defineConfig({
 
   // Shared settings for all projects
   use: {
-    // Base URL for navigation
-    // biome-ignore lint/style/useNamingConvention: Playwright API uses baseURL
+    // Base URL for navigation (Playwright API uses baseURL)
     baseURL: 'http://localhost:5173',
 
     // Collect trace on first retry

@@ -57,16 +57,22 @@ function sleep(ms: number): Promise<void> {
 // Constants for polling
 const POLL_INTERVAL_MS = 50;
 
-// Helper to wait for a file to exist with polling
+// Helper to wait for a file to exist with polling (using recursion)
 async function waitForFile(filePath: string, maxWaitMs = DEFAULT_WAIT_MS): Promise<boolean> {
   const pollInterval = POLL_INTERVAL_MS;
-  let waited = 0;
-  while (!existsSync(filePath) && waited < maxWaitMs) {
-    // biome-ignore lint/performance/noAwaitInLoops: polling requires sequential waits
+
+  const poll = async (waited: number): Promise<boolean> => {
+    if (existsSync(filePath)) {
+      return true;
+    }
+    if (waited >= maxWaitMs) {
+      return false;
+    }
     await sleep(pollInterval);
-    waited += pollInterval;
-  }
-  return existsSync(filePath);
+    return poll(waited + pollInterval);
+  };
+
+  return poll(0);
 }
 
 describe.skipIf(!hasTmux)('sessions integration', () => {

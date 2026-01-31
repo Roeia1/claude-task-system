@@ -11,8 +11,7 @@ import type { StoryStatus } from '@/types/dashboard';
 /** Color variants for each status type */
 const statusVariants: Record<StoryStatus, string> = {
   ready: 'bg-text-muted/20 text-text-muted',
-  // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
-  in_progress: 'bg-primary/20 text-primary',
+  inProgress: 'bg-primary/20 text-primary',
   blocked: 'bg-danger/20 text-danger',
   completed: 'bg-success/20 text-success',
 };
@@ -20,8 +19,7 @@ const statusVariants: Record<StoryStatus, string> = {
 /** Human-readable labels for each status type */
 const statusLabels: Record<StoryStatus, string> = {
   ready: 'Ready',
-  // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
-  in_progress: 'In Progress',
+  inProgress: 'In Progress',
   blocked: 'Blocked',
   completed: 'Completed',
 };
@@ -61,7 +59,7 @@ const meta: Meta<typeof StatusBadge> = {
   argTypes: {
     status: {
       control: 'select',
-      options: ['ready', 'in_progress', 'blocked', 'completed'],
+      options: ['ready', 'inProgress', 'blocked', 'completed'],
       description: 'The status type determining badge color and label',
     },
   },
@@ -93,7 +91,7 @@ type Story = StoryObj<typeof StatusBadge>;
  * Ready status - gray color indicating items that haven't started.
  * Used for stories/tasks that are defined but not yet in progress.
  */
-export const Ready: Story = {
+const Ready: Story = {
   render: () => <StatusBadge status="ready" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -108,8 +106,8 @@ export const Ready: Story = {
  * In Progress status - primary blue color for active work.
  * Used for stories/tasks currently being worked on.
  */
-export const InProgress: Story = {
-  render: () => <StatusBadge status="in_progress" />,
+const InProgress: Story = {
+  render: () => <StatusBadge status="inProgress" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const badge = canvas.getByText('In Progress');
@@ -123,7 +121,7 @@ export const InProgress: Story = {
  * Blocked status - danger red color indicating impediments.
  * Used for stories/tasks that cannot proceed due to blockers.
  */
-export const Blocked: Story = {
+const Blocked: Story = {
   render: () => <StatusBadge status="blocked" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -138,8 +136,7 @@ export const Blocked: Story = {
  * Completed status - success green color for finished items.
  * Used for stories/tasks that have been completed successfully.
  */
-// biome-ignore lint/style/useExportsLast: Storybook stories are conventionally exported inline
-export const Completed: Story = {
+const Completed: Story = {
   render: () => <StatusBadge status="completed" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -158,7 +155,7 @@ const AllVariants: Story = {
   render: () => (
     <div class="flex flex-wrap gap-2">
       <StatusBadge status="ready" />
-      <StatusBadge status="in_progress" />
+      <StatusBadge status="inProgress" />
       <StatusBadge status="blocked" />
       <StatusBadge status="completed" />
     </div>
@@ -189,7 +186,7 @@ const statusBadgeWithCountMeta: Meta<typeof StatusBadgeWithCount> = {
   argTypes: {
     status: {
       control: 'select',
-      options: ['ready', 'in_progress', 'blocked', 'completed'],
+      options: ['ready', 'inProgress', 'blocked', 'completed'],
       description: 'The status type determining badge color',
     },
     count: {
@@ -212,7 +209,7 @@ type WithCountStory = StoryObj<typeof StatusBadgeWithCount>;
 /**
  * Ready status with count - shows number of stories ready to start.
  */
-export const ReadyWithCount: WithCountStory = {
+const ReadyWithCount: WithCountStory = {
   render: () => <StatusBadgeWithCount status="ready" count={5} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -225,8 +222,8 @@ export const ReadyWithCount: WithCountStory = {
 /**
  * In Progress status with count - shows number of active stories.
  */
-export const InProgressWithCount: WithCountStory = {
-  render: () => <StatusBadgeWithCount status="in_progress" count={3} />,
+const InProgressWithCount: WithCountStory = {
+  render: () => <StatusBadgeWithCount status="inProgress" count={3} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const badge = canvas.getByText('In Progress: 3');
@@ -238,7 +235,7 @@ export const InProgressWithCount: WithCountStory = {
 /**
  * Blocked status with count - shows number of blocked stories.
  */
-export const BlockedWithCount: WithCountStory = {
+const BlockedWithCount: WithCountStory = {
   render: () => <StatusBadgeWithCount status="blocked" count={1} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -251,7 +248,7 @@ export const BlockedWithCount: WithCountStory = {
 /**
  * Completed status with count - shows number of completed stories.
  */
-export const CompletedWithCount: WithCountStory = {
+const CompletedWithCount: WithCountStory = {
   render: () => <StatusBadgeWithCount status="completed" count={8} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -264,11 +261,11 @@ export const CompletedWithCount: WithCountStory = {
 /**
  * All status variants with counts displayed together.
  */
-export const AllVariantsWithCount: WithCountStory = {
+const AllVariantsWithCount: WithCountStory = {
   render: () => (
     <div class="flex flex-wrap gap-2">
       <StatusBadgeWithCount status="ready" count={5} />
-      <StatusBadgeWithCount status="in_progress" count={3} />
+      <StatusBadgeWithCount status="inProgress" count={3} />
       <StatusBadgeWithCount status="blocked" count={1} />
       <StatusBadgeWithCount status="completed" count={8} />
     </div>
@@ -294,7 +291,7 @@ export const AllVariantsWithCount: WithCountStory = {
  * Side-by-side comparison of both badge variants to show the difference
  * between EpicList (with count) and EpicDetail/StoryDetail (without count) usage.
  */
-export const BadgeComparison: Story = {
+const BadgeComparison: Story = {
   render: () => (
     <div class="space-y-6">
       <div>
@@ -303,7 +300,7 @@ export const BadgeComparison: Story = {
         </h3>
         <div class="flex flex-wrap gap-2">
           <StatusBadge status="ready" />
-          <StatusBadge status="in_progress" />
+          <StatusBadge status="inProgress" />
           <StatusBadge status="blocked" />
           <StatusBadge status="completed" />
         </div>
@@ -313,7 +310,7 @@ export const BadgeComparison: Story = {
         <h3 class="text-sm font-medium text-text-muted mb-2">With Count (EpicList)</h3>
         <div class="flex flex-wrap gap-2">
           <StatusBadgeWithCount status="ready" count={5} />
-          <StatusBadgeWithCount status="in_progress" count={3} />
+          <StatusBadgeWithCount status="inProgress" count={3} />
           <StatusBadgeWithCount status="blocked" count={1} />
           <StatusBadgeWithCount status="completed" count={8} />
         </div>
@@ -344,7 +341,7 @@ export const BadgeComparison: Story = {
 /**
  * Edge cases: badges with various count values including zero and large numbers.
  */
-export const EdgeCases: Story = {
+const EdgeCases: Story = {
   render: () => (
     <div class="space-y-4">
       <div>
@@ -367,7 +364,7 @@ export const EdgeCases: Story = {
         <h3 class="text-sm font-medium text-text-muted mb-2">Single Story Count</h3>
         <div class="flex flex-wrap gap-2">
           <StatusBadgeWithCount status="blocked" count={1} />
-          <StatusBadgeWithCount status="in_progress" count={1} />
+          <StatusBadgeWithCount status="inProgress" count={1} />
         </div>
       </div>
     </div>
@@ -391,4 +388,20 @@ export const EdgeCases: Story = {
 };
 
 export default meta;
-export { StatusBadgeWithCount, StatusBadge, statusBadgeWithCountMeta, AllVariants };
+export {
+  StatusBadgeWithCount,
+  StatusBadge,
+  statusBadgeWithCountMeta,
+  AllVariants,
+  Completed,
+  Ready,
+  InProgress,
+  Blocked,
+  ReadyWithCount,
+  InProgressWithCount,
+  BlockedWithCount,
+  CompletedWithCount,
+  AllVariantsWithCount,
+  BadgeComparison,
+  EdgeCases,
+};

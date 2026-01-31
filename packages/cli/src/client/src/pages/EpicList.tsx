@@ -33,16 +33,14 @@ export function EpicCardSkeleton() {
 export function StatusBadge({ status, count }: { status: StoryStatus; count: number }) {
   const variants: Record<StoryStatus, string> = {
     ready: 'bg-text-muted/20 text-text-muted',
-    // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
-    in_progress: 'bg-primary/20 text-primary',
+    inProgress: 'bg-primary/20 text-primary',
     blocked: 'bg-danger/20 text-danger',
     completed: 'bg-success/20 text-success',
   };
 
   const labels: Record<StoryStatus, string> = {
     ready: 'Ready',
-    // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
-    in_progress: 'In Progress',
+    inProgress: 'In Progress',
     blocked: 'Blocked',
     completed: 'Completed',
   };
@@ -81,7 +79,7 @@ export function EpicCard({ epic }: { epic: EpicSummary }) {
           <div class="flex flex-wrap gap-2">
             {storyCounts.ready > 0 && <StatusBadge status="ready" count={storyCounts.ready} />}
             {storyCounts.inProgress > 0 && (
-              <StatusBadge status="in_progress" count={storyCounts.inProgress} />
+              <StatusBadge status="inProgress" count={storyCounts.inProgress} />
             )}
             {storyCounts.blocked > 0 && (
               <StatusBadge status="blocked" count={storyCounts.blocked} />

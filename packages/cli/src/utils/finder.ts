@@ -367,7 +367,5 @@ async function findStory(
 // Exports
 // ============================================================================
 
-// biome-ignore lint/performance/noBarrelFile: re-export for backward compatibility
-export { parseFrontmatter } from './saga-scanner.ts';
 export { extractContext, findEpic, findStory };
 export type { EpicInfo, FindResult, FindStoryOptions, StoryInfo };
