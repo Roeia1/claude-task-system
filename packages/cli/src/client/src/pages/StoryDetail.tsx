@@ -416,7 +416,6 @@ function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefin
     currentStory,
     setCurrentStory,
     clearCurrentStory,
-    isLoading,
     subscribeToStory,
     unsubscribeFromStory,
   } = useDashboard();
@@ -470,7 +469,7 @@ function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefin
     unsubscribeFromStory,
   ]);
 
-  return { currentStory, loading: isLoading || isFetching, notFound, error };
+  return { currentStory, loading: isFetching, notFound, error };
 }
 
 function StoryDetail() {

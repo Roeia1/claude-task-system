@@ -163,15 +163,19 @@ function worktreeCommand(epicSlug: string, storySlug: string, options: WorktreeO
   try {
     projectPath = resolveProjectPath(options.path);
   } catch (error) {
-    const _result: WorktreeResult = {
+    const result: WorktreeResult = {
       success: false,
       error: error instanceof Error ? error.message : String(error),
     };
+    console.log(JSON.stringify(result, null, 2));
     process.exit(1);
   }
 
   // Create the worktree
   const result = createWorktree(projectPath, epicSlug, storySlug);
+
+  // Output JSON result
+  console.log(JSON.stringify(result, null, 2));
 
   // Exit with appropriate code
   if (!result.success) {

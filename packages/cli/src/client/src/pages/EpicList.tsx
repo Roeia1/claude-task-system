@@ -95,7 +95,7 @@ export function EpicCard({ epic }: { epic: EpicSummary }) {
 }
 
 export function EpicList() {
-  const { epics, setEpics, isLoading } = useDashboard();
+  const { epics, setEpics } = useDashboard();
   const [showArchived, setShowArchived] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
@@ -118,7 +118,7 @@ export function EpicList() {
     fetchEpics();
   }, [setEpics]);
 
-  const loading = isLoading || isFetching;
+  const loading = isFetching;
 
   // Filter epics based on archived toggle
   const filteredEpics = epics.filter((epic) => {

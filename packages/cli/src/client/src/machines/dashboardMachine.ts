@@ -335,6 +335,37 @@ const dashboardMachine = setup({
         WS_DISCONNECTED: {
           target: 'reconnecting',
         },
+        // Handle data events while WebSocket is connecting
+        EPICS_LOADED: {
+          actions: [
+            {
+              type: 'setEpics',
+              params: ({ event }) => ({ epics: event.epics }),
+            },
+          ],
+        },
+        EPIC_LOADED: {
+          actions: [
+            {
+              type: 'setCurrentEpic',
+              params: ({ event }) => ({ epic: event.epic }),
+            },
+          ],
+        },
+        STORY_LOADED: {
+          actions: [
+            {
+              type: 'setCurrentStory',
+              params: ({ event }) => ({ story: event.story }),
+            },
+          ],
+        },
+        CLEAR_EPIC: {
+          actions: ['clearCurrentEpic'],
+        },
+        CLEAR_STORY: {
+          actions: ['clearCurrentStory'],
+        },
       },
     },
     connected: {
@@ -467,6 +498,37 @@ const dashboardMachine = setup({
         DISCONNECT: {
           target: 'idle',
         },
+        // Handle data events while reconnecting
+        EPICS_LOADED: {
+          actions: [
+            {
+              type: 'setEpics',
+              params: ({ event }) => ({ epics: event.epics }),
+            },
+          ],
+        },
+        EPIC_LOADED: {
+          actions: [
+            {
+              type: 'setCurrentEpic',
+              params: ({ event }) => ({ epic: event.epic }),
+            },
+          ],
+        },
+        STORY_LOADED: {
+          actions: [
+            {
+              type: 'setCurrentStory',
+              params: ({ event }) => ({ story: event.story }),
+            },
+          ],
+        },
+        CLEAR_EPIC: {
+          actions: ['clearCurrentEpic'],
+        },
+        CLEAR_STORY: {
+          actions: ['clearCurrentStory'],
+        },
       },
     },
     error: {
@@ -481,6 +543,37 @@ const dashboardMachine = setup({
         CONNECT: {
           target: 'loading',
           actions: ['clearError', 'resetRetryCount'],
+        },
+        // Handle data events while in error state
+        EPICS_LOADED: {
+          actions: [
+            {
+              type: 'setEpics',
+              params: ({ event }) => ({ epics: event.epics }),
+            },
+          ],
+        },
+        EPIC_LOADED: {
+          actions: [
+            {
+              type: 'setCurrentEpic',
+              params: ({ event }) => ({ epic: event.epic }),
+            },
+          ],
+        },
+        STORY_LOADED: {
+          actions: [
+            {
+              type: 'setCurrentStory',
+              params: ({ event }) => ({ story: event.story }),
+            },
+          ],
+        },
+        CLEAR_EPIC: {
+          actions: ['clearCurrentEpic'],
+        },
+        CLEAR_STORY: {
+          actions: ['clearCurrentStory'],
         },
       },
     },

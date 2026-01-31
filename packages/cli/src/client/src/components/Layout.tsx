@@ -1,11 +1,23 @@
+import { useEffect, useRef } from 'react';
 import { Outlet } from 'react-router';
 import { Toaster } from '@/components/ui/toaster';
+import { useDashboard } from '@/context/dashboard-context';
 import { useDashboardToasts } from '@/hooks/use-dashboard-toasts';
 import { Breadcrumb } from './Breadcrumb.tsx';
 
 export function Layout() {
   // Set up toast notifications for dashboard state changes
   useDashboardToasts();
+
+  // Auto-connect to WebSocket on mount for real-time updates
+  const { connect } = useDashboard();
+  const hasConnected = useRef(false);
+  useEffect(() => {
+    if (!hasConnected.current) {
+      hasConnected.current = true;
+      connect();
+    }
+  }, [connect]);
 
   return (
     <div class="min-h-screen bg-bg">

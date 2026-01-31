@@ -224,7 +224,7 @@ function handleFetchError(url: string, err: unknown, setError: (e: string) => vo
 
 /** Custom hook for fetching epic data */
 function useEpicFetch(slug: string | undefined) {
-  const { currentEpic, setCurrentEpic, clearCurrentEpic, isLoading } = useDashboard();
+  const { currentEpic, setCurrentEpic, clearCurrentEpic } = useDashboard();
   const [isFetching, setIsFetching] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -261,7 +261,7 @@ function useEpicFetch(slug: string | undefined) {
     return clearCurrentEpic;
   }, [slug, setCurrentEpic, clearCurrentEpic]);
 
-  return { currentEpic, loading: isLoading || isFetching, notFound, error };
+  return { currentEpic, loading: isFetching, notFound, error };
 }
 
 function EpicDetail() {
