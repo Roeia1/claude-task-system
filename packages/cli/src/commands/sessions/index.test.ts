@@ -7,6 +7,12 @@
 import process from 'node:process';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getSessionStatus, killSession, listSessions, streamLogs } from '../../lib/sessions.ts';
+import {
+  sessionsKillCommand,
+  sessionsListCommand,
+  sessionsLogsCommand,
+  sessionsStatusCommand,
+} from './index.ts';
 
 // Mock the sessions library module
 vi.mock('../../lib/sessions.js', () => ({
@@ -37,8 +43,6 @@ describe('sessions CLI subcommands', () => {
       ];
       vi.mocked(listSessions).mockResolvedValue(mockSessions);
 
-      const { sessionsListCommand } = await import('./index.ts');
-
       // Capture console.log output
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
         // Suppress console output in tests
@@ -54,8 +58,6 @@ describe('sessions CLI subcommands', () => {
 
     it('should output empty array when no sessions exist', async () => {
       vi.mocked(listSessions).mockResolvedValue([]);
-
-      const { sessionsListCommand } = await import('./index.ts');
 
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
         // Suppress console output in tests
@@ -74,8 +76,6 @@ describe('sessions CLI subcommands', () => {
     it('should call getSessionStatus and output JSON', async () => {
       vi.mocked(getSessionStatus).mockResolvedValue({ running: true });
 
-      const { sessionsStatusCommand } = await import('./index.ts');
-
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
         // Suppress console output in tests
       });
@@ -90,8 +90,6 @@ describe('sessions CLI subcommands', () => {
 
     it('should output running: false for non-existent session', async () => {
       vi.mocked(getSessionStatus).mockResolvedValue({ running: false });
-
-      const { sessionsStatusCommand } = await import('./index.ts');
 
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
         // Suppress console output in tests
@@ -110,8 +108,6 @@ describe('sessions CLI subcommands', () => {
     it('should call streamLogs with session name', async () => {
       vi.mocked(streamLogs).mockResolvedValue(undefined);
 
-      const { sessionsLogsCommand } = await import('./index.ts');
-
       await sessionsLogsCommand('saga-epic-story-1234');
 
       expect(streamLogs).toHaveBeenCalledWith('saga-epic-story-1234');
@@ -119,8 +115,6 @@ describe('sessions CLI subcommands', () => {
 
     it('should handle errors from streamLogs gracefully', async () => {
       vi.mocked(streamLogs).mockRejectedValue(new Error('Output file not found'));
-
-      const { sessionsLogsCommand } = await import('./index.ts');
 
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
         // Suppress console error output in tests
@@ -145,8 +139,6 @@ describe('sessions CLI subcommands', () => {
     it('should call killSession and output JSON', async () => {
       vi.mocked(killSession).mockResolvedValue({ killed: true });
 
-      const { sessionsKillCommand } = await import('./index.ts');
-
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
         // Suppress console output in tests
       });
@@ -161,8 +153,6 @@ describe('sessions CLI subcommands', () => {
 
     it('should output killed: false for non-existent session', async () => {
       vi.mocked(killSession).mockResolvedValue({ killed: false });
-
-      const { sessionsKillCommand } = await import('./index.ts');
 
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
         // Suppress console output in tests
