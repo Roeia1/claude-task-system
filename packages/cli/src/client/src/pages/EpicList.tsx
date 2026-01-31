@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
+import { ActiveSessions } from '@/components/active-sessions';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -133,6 +134,7 @@ export function EpicList() {
 
   return (
     <div class="space-y-6">
+      <ActiveSessions />
       <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-text">Epics</h1>
         {hasArchivedEpics && (

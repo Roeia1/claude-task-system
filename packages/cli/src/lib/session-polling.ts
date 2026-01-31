@@ -28,13 +28,62 @@ const POLLING_INTERVAL_MS = 3000;
  */
 interface SessionsUpdatedMessage {
   type: 'sessions:updated';
-  sessions: DetailedSessionInfo[];
+  data: DetailedSessionInfo[];
 }
 
 // Module-level state
 let pollingInterval: ReturnType<typeof setInterval> | null = null;
 let currentSessions: DetailedSessionInfo[] = [];
 let isFirstPoll = true;
+
+/**
+ * Create a map of sessions by name for quick lookup
+ */
+function createSessionMap(sessions: DetailedSessionInfo[]): Map<string, DetailedSessionInfo> {
+  return new Map(sessions.map((s) => [s.name, s]));
+}
+
+/**
+ * Check if the set of session names has changed (added or removed sessions)
+ */
+function hasSessionSetChanged(
+  newMap: Map<string, DetailedSessionInfo>,
+  currentMap: Map<string, DetailedSessionInfo>,
+): boolean {
+  for (const name of newMap.keys()) {
+    if (!currentMap.has(name)) {
+      return true;
+    }
+  }
+  for (const name of currentMap.keys()) {
+    if (!newMap.has(name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Check if any session's status or output has changed
+ */
+function hasSessionPropertiesChanged(
+  newMap: Map<string, DetailedSessionInfo>,
+  currentMap: Map<string, DetailedSessionInfo>,
+): boolean {
+  for (const [name, newSession] of newMap) {
+    const currentSession = currentMap.get(name);
+    if (!currentSession) {
+      continue;
+    }
+    if (currentSession.status !== newSession.status) {
+      return true;
+    }
+    if (currentSession.outputPreview !== newSession.outputPreview) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Detect if there are any changes between current and new sessions
@@ -50,39 +99,16 @@ function detectChanges(newSessions: DetailedSessionInfo[]): boolean {
     return true;
   }
 
-  // Create maps for quick lookup
-  const newSessionMap = new Map<string, DetailedSessionInfo>();
-  for (const session of newSessions) {
-    newSessionMap.set(session.name, session);
+  const newSessionMap = createSessionMap(newSessions);
+  const currentSessionMap = createSessionMap(currentSessions);
+
+  // Check for session set changes (added/removed)
+  if (hasSessionSetChanged(newSessionMap, currentSessionMap)) {
+    return true;
   }
 
-  const currentSessionMap = new Map<string, DetailedSessionInfo>();
-  for (const session of currentSessions) {
-    currentSessionMap.set(session.name, session);
-  }
-
-  // Check for new sessions or removed sessions
-  for (const name of newSessionMap.keys()) {
-    if (!currentSessionMap.has(name)) {
-      return true; // New session
-    }
-  }
-
-  for (const name of currentSessionMap.keys()) {
-    if (!newSessionMap.has(name)) {
-      return true; // Removed session
-    }
-  }
-
-  // Check for status changes
-  for (const [name, newSession] of newSessionMap) {
-    const currentSession = currentSessionMap.get(name);
-    if (currentSession && currentSession.status !== newSession.status) {
-      return true; // Status changed
-    }
-  }
-
-  return false;
+  // Check for property changes (status/output)
+  return hasSessionPropertiesChanged(newSessionMap, currentSessionMap);
 }
 
 /**
@@ -135,7 +161,7 @@ async function pollSessions(broadcast: (msg: SessionsUpdatedMessage) => void): P
       isFirstPoll = false;
       broadcast({
         type: 'sessions:updated',
-        sessions,
+        data: sessions,
       });
     }
   } catch {

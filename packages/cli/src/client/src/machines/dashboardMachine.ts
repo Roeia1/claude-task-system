@@ -1,5 +1,5 @@
 import { assign, fromCallback, sendTo, setup } from 'xstate';
-import type { Epic, EpicSummary, StoryDetail } from '@/types/dashboard';
+import type { Epic, EpicSummary, SessionInfo, StoryDetail } from '@/types/dashboard';
 
 /** Maximum number of reconnection attempts */
 const MAX_RETRIES = 5;
@@ -41,6 +41,7 @@ interface DashboardContext {
   epics: EpicSummary[];
   currentEpic: Epic | null;
   currentStory: StoryDetail | null;
+  sessions: SessionInfo[];
   error: string | null;
   retryCount: number;
   wsUrl: string;
@@ -54,12 +55,14 @@ type DashboardEvent =
   | { type: 'EPICS_LOADED'; epics: EpicSummary[] }
   | { type: 'EPIC_LOADED'; epic: Epic }
   | { type: 'STORY_LOADED'; story: StoryDetail }
+  | { type: 'SESSIONS_LOADED'; sessions: SessionInfo[] }
   | { type: 'WS_CONNECTED' }
   | { type: 'WS_DISCONNECTED' }
   | { type: 'WS_ERROR'; error: string }
   | { type: 'RETRY' }
   | { type: 'EPICS_UPDATED'; epics: EpicSummary[] }
   | { type: 'STORY_UPDATED'; story: StoryDetail }
+  | { type: 'SESSIONS_UPDATED'; sessions: SessionInfo[] }
   | { type: 'LOAD_EPICS' }
   | { type: 'LOAD_EPIC'; slug: string }
   | { type: 'LOAD_STORY'; epicSlug: string; storySlug: string }
@@ -98,6 +101,8 @@ function handleWebSocketMessage(
       sendBack({ type: 'EPICS_UPDATED', epics: message.data });
     } else if (messageType === 'story:updated' && message.data) {
       sendBack({ type: 'STORY_UPDATED', story: message.data });
+    } else if (messageType === 'sessions:updated' && message.data) {
+      sendBack({ type: 'SESSIONS_UPDATED', sessions: message.data });
     }
   } catch {
     // Ignore malformed messages
@@ -179,42 +184,51 @@ function createHeartbeat(
 }
 
 /** WebSocket actor logic with heartbeat and subscription support */
-const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
-  ({ sendBack, input, receive }) => {
-    let ws: WebSocket | null = null;
-    const lastPongRef = { value: Date.now() };
-    const messageQueue = createMessageQueue(() => ws);
-    const heartbeat = createHeartbeat(() => ws, messageQueue.send, lastPongRef, sendBack);
+const websocketActor = fromCallback<
+  DashboardEvent,
+  { wsUrl: string; subscribedStories: StorySubscription[] }
+>(({ sendBack, input, receive }) => {
+  let ws: WebSocket | null = null;
+  const lastPongRef = { value: Date.now() };
+  const messageQueue = createMessageQueue(() => ws);
+  const heartbeat = createHeartbeat(() => ws, messageQueue.send, lastPongRef, sendBack);
 
-    wsSendFn = messageQueue.send;
+  wsSendFn = messageQueue.send;
 
-    const connect = () => {
-      try {
-        ws = new WebSocket(input.wsUrl);
-        ws.onopen = () => {
-          lastPongRef.value = Date.now();
-          messageQueue.flush();
-          sendBack({ type: 'WS_CONNECTED' });
-          heartbeat.start();
-        };
-        ws.onclose = () => sendBack({ type: 'WS_DISCONNECTED' });
-        ws.onerror = () => sendBack({ type: 'WS_ERROR', error: 'WebSocket connection error' });
-        ws.onmessage = (event) => handleWebSocketMessage(event, lastPongRef, sendBack);
-      } catch {
-        sendBack({ type: 'WS_ERROR', error: 'Failed to create WebSocket' });
-      }
-    };
+  const connect = () => {
+    try {
+      ws = new WebSocket(input.wsUrl);
+      ws.onopen = () => {
+        lastPongRef.value = Date.now();
+        messageQueue.flush();
+        sendBack({ type: 'WS_CONNECTED' });
+        heartbeat.start();
 
-    receive((event) => handleReceivedEvent(event, messageQueue.send));
-    connect();
+        // Re-subscribe to all stories on (re)connect
+        for (const sub of input.subscribedStories) {
+          messageQueue.send({
+            event: 'subscribe:story',
+            data: { epicSlug: sub.epicSlug, storySlug: sub.storySlug },
+          });
+        }
+      };
+      ws.onclose = () => sendBack({ type: 'WS_DISCONNECTED' });
+      ws.onerror = () => sendBack({ type: 'WS_ERROR', error: 'WebSocket connection error' });
+      ws.onmessage = (event) => handleWebSocketMessage(event, lastPongRef, sendBack);
+    } catch {
+      sendBack({ type: 'WS_ERROR', error: 'Failed to create WebSocket' });
+    }
+  };
 
-    return () => {
-      wsSendFn = null;
-      heartbeat.stop();
-      ws?.close();
-    };
-  },
-);
+  receive((event) => handleReceivedEvent(event, messageQueue.send));
+  connect();
+
+  return () => {
+    wsSendFn = null;
+    heartbeat.stop();
+    ws?.close();
+  };
+});
 
 /** Common data event handlers used across multiple states */
 const dataEventHandlers = {
@@ -239,6 +253,16 @@ const dataEventHandlers = {
       {
         type: 'setCurrentStory' as const,
         params: ({ event }: { event: { story: StoryDetail } }) => ({ story: event.story }),
+      },
+    ],
+  },
+  SESSIONS_LOADED: {
+    actions: [
+      {
+        type: 'setSessions' as const,
+        params: ({ event }: { event: { sessions: SessionInfo[] } }) => ({
+          sessions: event.sessions,
+        }),
       },
     ],
   },
@@ -268,6 +292,12 @@ const dashboardMachine = setup({
     }),
     setCurrentStory: assign({
       currentStory: (_, params: { story: StoryDetail }) => params.story,
+    }),
+    setSessions: assign({
+      sessions: (_, params: { sessions: SessionInfo[] }) => params.sessions,
+    }),
+    updateSessions: assign({
+      sessions: (_, params: { sessions: SessionInfo[] }) => params.sessions,
     }),
     clearCurrentEpic: assign({
       currentEpic: () => null,
@@ -335,6 +365,7 @@ const dashboardMachine = setup({
     epics: [],
     currentEpic: null,
     currentStory: null,
+    sessions: [],
     error: null,
     retryCount: 0,
     wsUrl: getWebSocketUrl(),
@@ -359,7 +390,10 @@ const dashboardMachine = setup({
       invoke: {
         id: 'websocket',
         src: 'websocket',
-        input: ({ context }) => ({ wsUrl: context.wsUrl }),
+        input: ({ context }) => ({
+          wsUrl: context.wsUrl,
+          subscribedStories: context.subscribedStories,
+        }),
       },
       on: {
         // Handle disconnect from any active child state
@@ -382,6 +416,14 @@ const dashboardMachine = setup({
             {
               type: 'updateStory',
               params: ({ event }) => ({ story: event.story }),
+            },
+          ],
+        },
+        SESSIONS_UPDATED: {
+          actions: [
+            {
+              type: 'updateSessions',
+              params: ({ event }) => ({ sessions: event.sessions }),
             },
           ],
         },
