@@ -17,6 +17,22 @@ const config = defineConfig({
   build: {
     outDir: '../../dist/client',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router'],
+          'vendor-markdown': ['react-markdown', 'remark-gfm'],
+          'vendor-xstate': ['xstate', '@xstate/react'],
+          'vendor-radix': [
+            '@radix-ui/react-collapsible',
+            '@radix-ui/react-progress',
+            '@radix-ui/react-slot',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast',
+          ],
+        },
+      },
+    },
   },
   server: {
     proxy: {
