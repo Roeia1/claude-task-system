@@ -311,3 +311,111 @@
 - Duration timer updates every second
 - Output preview updates in real-time via WebSocket (3-second polling on backend)
 - Output auto-scrolls to show latest lines
+
+## Session: 2026-01-30T05:00:00Z
+
+### Fix: WebSocket subscription restoration after reconnect
+
+**Issue:**
+- Story subscriptions were lost after WebSocket reconnect
+- Users had to refresh the page to restore real-time updates
+
+**Fix applied (`1d9772b`):**
+- Pass `subscribedStories` to websocket actor input for re-subscription on connect
+- Forward `SUBSCRIBE_STORY`/`UNSUBSCRIBE_STORY` events to websocket actor via `sendTo`
+- Add behavioral tests for subscription management using XState best practices
+- Remove static analysis tests that only checked for code patterns
+
+## Session: 2026-01-30T05:30:00Z
+
+### Testing: Model-based testing for dashboardMachine
+
+**What was done:**
+
+1. **Rewrite dashboardMachine tests (`becde5d`)**
+   - Replaced static code inspection tests with behavior-focused tests
+   - Used `xstate/graph` utilities for model-based testing
+   - Tests now use the production machine with mocked websocket actor
+
+2. **Improve test fixtures (`aa34e02`)**
+   - Import and use proper types (`EpicSummary`, `Epic`, `StoryDetail`, `SessionInfo`) for test sample data
+   - Replaced inline object literals with typed fixtures
+
+3. **Enhanced model-based testing (`156a23a`)**
+   - Use `getShortestPaths` to auto-generate path tests via `it.each`
+   - Add state invariant tests verified across all reachable paths
+   - Add graph analysis tests for state reachability and path lengths
+   - Simplify mock actor with configurable `connectBehavior`
+
+## Session: 2026-01-30T06:00:00Z
+
+### Refactor: Code quality and lint fixes
+
+**What was done:**
+
+1. **Biome lint fixes and file refactoring (`a9903c9`)**
+   - Rename component files to kebab-case (`ActiveSessions` → `active-sessions`, etc.)
+   - Extract `formatDuration` utility to separate file
+   - Extract magic numbers to constants in test files
+   - Fix non-null assertions with proper default context
+   - Add default case to switch statements
+   - Fix empty block statements with comments
+   - Use proper types instead of `any`
+
+2. **Additional lint and test fixes (`210c162`)**
+   - Refactor `detectChanges` in `session-polling.ts` to reduce cognitive complexity
+   - Fix `DashboardContext` import path in `active-sessions.tsx`
+   - Add `DashboardProvider` wrapper to active-sessions tests
+   - Update dashboardMachine tests to handle nested XState states
+
+3. **Dashboard machine session handling (`ddfaa5a`)**
+   - Add `SESSIONS_LOADED` to shared `dataEventHandlers` to eliminate duplication
+   - Use consistent `message.data` payload format for `sessions:updated` WebSocket messages
+   - Remove redundant inline session handlers from idle and active states
+   - Sessions events now work correctly in reconnecting and error states
+
+## Session: 2026-01-30T06:30:00Z
+
+### Fixes: React effects and flaky tests
+
+**What was done:**
+
+1. **Remove redundant test (`1523e5d`)**
+   - The "tmux not available" scenario was already tested with mocking
+   - Integration test was redundant and always skipped since tmux is a project requirement
+
+2. **Fix useEffect and memoize session filter (`c148bf9`)**
+   - Move auto-scroll logic to `OutputPreview` component
+   - Use `useLayoutEffect` for synchronous scroll after DOM mutations
+   - Add proper dependency on `truncatedOutput`
+   - Memoize `runningSessions` filter to avoid recalculating on every render
+
+3. **Fix flaky WebSocket e2e tests (`53c36d5`)**
+   - Add `data-ws-connected` attribute to Layout for test synchronization
+   - Wait for WebSocket connection before modifying files in tests
+   - Add small delay after file writes for watcher propagation
+   - Update Layout component snapshots
+
+4. **Fix WebSocket session broadcast (`600f723`)**
+   - Fix session broadcast using `msg.data` instead of `msg.sessions`
+   - Add ping/pong handling so server responds to client heartbeat
+
+## Story Completion
+
+**PR #50 merged to master**
+
+All tasks completed:
+- t1: Define SessionInfo type ✓
+- t2: Write ActiveSessions tests ✓
+- t3: Implement ActiveSessions component ✓
+- t4: Write SessionCard tests ✓
+- t5: Implement SessionCard component ✓
+- t6: Integrate into EpicList page ✓
+- t7: Add Storybook stories ✓
+
+Post-completion fixes:
+- WebSocket real-time updates
+- Subscription restoration after reconnect
+- Model-based testing for dashboardMachine
+- Code quality improvements (kebab-case, lint fixes)
+- Flaky test fixes
