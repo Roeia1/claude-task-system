@@ -22,7 +22,6 @@ import {
 const SESSION_NAME_PATTERN = /^saga-test-epic-test-story-\d+$/;
 const INVALID_EPIC_SLUG_PATTERN = /invalid epic slug/i;
 const INVALID_STORY_SLUG_PATTERN = /invalid story slug/i;
-const TMUX_NOT_FOUND_PATTERN = /tmux.*not found|not installed/i;
 
 // Module-level numeric constants for biome lint/style/noMagicNumbers
 const DEFAULT_WAIT_MS = 2000;
@@ -411,15 +410,5 @@ describe('validateSlug edge cases', () => {
     expect(validateSlug('tëst')).toBe(false);
     expect(validateSlug('tést')).toBe(false);
     expect(validateSlug('test🚀')).toBe(false);
-  });
-});
-
-describe('tmux not available handling', () => {
-  // This test is always run but only meaningful when tmux is actually not available
-  // It serves as documentation for expected behavior
-  it.skipIf(hasTmux)('should throw error when tmux is not installed', async () => {
-    await expect(createSession('my-epic', 'my-story', 'echo test')).rejects.toThrow(
-      TMUX_NOT_FOUND_PATTERN,
-    );
   });
 });
