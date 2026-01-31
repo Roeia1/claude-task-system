@@ -94,7 +94,7 @@ describe('session-polling', () => {
 
       expect(broadcast).toHaveBeenCalledWith({
         type: 'sessions:updated',
-        sessions: [mockSession],
+        data: [mockSession],
       });
     });
 
@@ -130,13 +130,13 @@ describe('session-polling', () => {
 
       expect(broadcast).toHaveBeenCalledWith({
         type: 'sessions:updated',
-        sessions: expect.arrayContaining([
+        data: expect.arrayContaining([
           expect.objectContaining({ name: 'saga__my-epic__my-story__12345' }),
         ]),
       });
       expect(broadcast).toHaveBeenCalledTimes(1);
       // Should only have one session (the SAGA one)
-      expect(broadcast.mock.calls[0][0].sessions).toHaveLength(1);
+      expect(broadcast.mock.calls[0][0].data).toHaveLength(1);
     });
 
     it('should poll at the configured interval', async () => {
@@ -201,7 +201,7 @@ describe('session-polling', () => {
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
       expect(broadcast).toHaveBeenCalledTimes(1);
-      expect(broadcast.mock.calls[0][0].sessions).toHaveLength(0);
+      expect(broadcast.mock.calls[0][0].data).toHaveLength(0);
 
       // New session appears
       const newSession: DetailedSessionInfo = {
@@ -226,7 +226,7 @@ describe('session-polling', () => {
 
       await vi.advanceTimersByTimeAsync(POLLING_INTERVAL_MS);
       expect(broadcast).toHaveBeenCalledTimes(2);
-      expect(broadcast.mock.calls[1][0].sessions).toHaveLength(1);
+      expect(broadcast.mock.calls[1][0].data).toHaveLength(1);
     });
 
     it('should broadcast when a session status changes from running to completed', async () => {
@@ -258,7 +258,7 @@ describe('session-polling', () => {
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
       expect(broadcast).toHaveBeenCalledTimes(1);
-      expect(broadcast.mock.calls[0][0].sessions[0].status).toBe('running');
+      expect(broadcast.mock.calls[0][0].data[0].status).toBe('running');
 
       // Session completes (tmux session no longer running, but we still have the output file)
       const completedSession: DetailedSessionInfo = {
@@ -271,7 +271,7 @@ describe('session-polling', () => {
 
       await vi.advanceTimersByTimeAsync(POLLING_INTERVAL_MS);
       expect(broadcast).toHaveBeenCalledTimes(2);
-      expect(broadcast.mock.calls[1][0].sessions[0].status).toBe('completed');
+      expect(broadcast.mock.calls[1][0].data[0].status).toBe('completed');
     });
 
     it('should broadcast when a session is removed', async () => {
@@ -299,14 +299,14 @@ describe('session-polling', () => {
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
       expect(broadcast).toHaveBeenCalledTimes(1);
-      expect(broadcast.mock.calls[0][0].sessions).toHaveLength(1);
+      expect(broadcast.mock.calls[0][0].data).toHaveLength(1);
 
       // Session removed
       mockListSessions.mockReturnValue([]);
 
       await vi.advanceTimersByTimeAsync(POLLING_INTERVAL_MS);
       expect(broadcast).toHaveBeenCalledTimes(2);
-      expect(broadcast.mock.calls[1][0].sessions).toHaveLength(0);
+      expect(broadcast.mock.calls[1][0].data).toHaveLength(0);
     });
 
     it('should not start multiple polling intervals if called multiple times', async () => {
@@ -542,7 +542,7 @@ describe('session-polling', () => {
       // Second poll should succeed and broadcast
       expect(broadcast).toHaveBeenCalledWith({
         type: 'sessions:updated',
-        sessions: [],
+        data: [],
       });
     });
 
@@ -565,7 +565,7 @@ describe('session-polling', () => {
       // Should broadcast with empty sessions when buildSessionInfo fails (silently handled)
       expect(broadcast).toHaveBeenCalledWith({
         type: 'sessions:updated',
-        sessions: [],
+        data: [],
       });
     });
   });

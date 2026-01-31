@@ -101,8 +101,8 @@ function handleWebSocketMessage(
       sendBack({ type: 'EPICS_UPDATED', epics: message.data });
     } else if (messageType === 'story:updated' && message.data) {
       sendBack({ type: 'STORY_UPDATED', story: message.data });
-    } else if (messageType === 'sessions:updated' && message.sessions) {
-      sendBack({ type: 'SESSIONS_UPDATED', sessions: message.sessions });
+    } else if (messageType === 'sessions:updated' && message.data) {
+      sendBack({ type: 'SESSIONS_UPDATED', sessions: message.data });
     }
   } catch {
     // Ignore malformed messages
@@ -256,6 +256,16 @@ const dataEventHandlers = {
       },
     ],
   },
+  SESSIONS_LOADED: {
+    actions: [
+      {
+        type: 'setSessions' as const,
+        params: ({ event }: { event: { sessions: SessionInfo[] } }) => ({
+          sessions: event.sessions,
+        }),
+      },
+    ],
+  },
   CLEAR_EPIC: {
     actions: ['clearCurrentEpic' as const],
   },
@@ -371,22 +381,6 @@ const dashboardMachine = setup({
         // Allow data events in idle state so REST API fetching works
         // without requiring WebSocket connection
         ...dataEventHandlers,
-        SESSIONS_LOADED: {
-          actions: [
-            {
-              type: 'setSessions',
-              params: ({ event }) => ({ sessions: event.sessions }),
-            },
-          ],
-        },
-        SESSIONS_UPDATED: {
-          actions: [
-            {
-              type: 'updateSessions',
-              params: ({ event }) => ({ sessions: event.sessions }),
-            },
-          ],
-        },
       },
     },
     // Parent state that holds the WebSocket connection
@@ -422,14 +416,6 @@ const dashboardMachine = setup({
             {
               type: 'updateStory',
               params: ({ event }) => ({ story: event.story }),
-            },
-          ],
-        },
-        SESSIONS_LOADED: {
-          actions: [
-            {
-              type: 'setSessions',
-              params: ({ event }) => ({ sessions: event.sessions }),
             },
           ],
         },

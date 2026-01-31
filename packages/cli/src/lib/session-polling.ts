@@ -28,7 +28,7 @@ const POLLING_INTERVAL_MS = 3000;
  */
 interface SessionsUpdatedMessage {
   type: 'sessions:updated';
-  sessions: DetailedSessionInfo[];
+  data: DetailedSessionInfo[];
 }
 
 // Module-level state
@@ -161,7 +161,7 @@ async function pollSessions(broadcast: (msg: SessionsUpdatedMessage) => void): P
       isFirstPoll = false;
       broadcast({
         type: 'sessions:updated',
-        sessions,
+        data: sessions,
       });
     }
   } catch {
