@@ -1,4 +1,4 @@
-import { assign, fromCallback, setup } from 'xstate';
+import { assign, fromCallback, sendTo, setup } from 'xstate';
 import type { Epic, EpicSummary, StoryDetail } from '@/types/dashboard';
 
 /** Maximum number of reconnection attempts */
@@ -107,52 +107,95 @@ function handleWebSocketMessage(
 /** Helper to handle incoming events from the machine */
 function handleReceivedEvent(event: DashboardEvent, sendMessage: (msg: object) => void): void {
   if (event.type === 'SUBSCRIBE_STORY') {
-    sendMessage({ type: 'subscribe:story', epicSlug: event.epicSlug, storySlug: event.storySlug });
+    // Server expects: { event: 'subscribe:story', data: { epicSlug, storySlug } }
+    sendMessage({
+      event: 'subscribe:story',
+      data: { epicSlug: event.epicSlug, storySlug: event.storySlug },
+    });
   } else if (event.type === 'UNSUBSCRIBE_STORY') {
     sendMessage({
-      type: 'unsubscribe:story',
-      epicSlug: event.epicSlug,
-      storySlug: event.storySlug,
+      event: 'unsubscribe:story',
+      data: { epicSlug: event.epicSlug, storySlug: event.storySlug },
     });
   }
+}
+
+/** Create a message queue that buffers messages until WebSocket is ready */
+function createMessageQueue(getWs: () => WebSocket | null) {
+  const pendingMessages: object[] = [];
+
+  const send = (message: object) => {
+    const ws = getWs();
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+    } else {
+      pendingMessages.push(message);
+    }
+  };
+
+  const flush = () => {
+    const ws = getWs();
+    while (pendingMessages.length > 0 && ws?.readyState === WebSocket.OPEN) {
+      const message = pendingMessages.shift();
+      if (message) {
+        ws.send(JSON.stringify(message));
+      }
+    }
+  };
+
+  return { send, flush };
+}
+
+/** Create heartbeat interval for WebSocket connection */
+function createHeartbeat(
+  getWs: () => WebSocket | null,
+  sendMessage: (msg: object) => void,
+  lastPongRef: { value: number },
+  sendBack: (event: DashboardEvent) => void,
+) {
+  let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+
+  const start = () => {
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+    }
+    heartbeatInterval = setInterval(() => {
+      if (getWs()?.readyState === WebSocket.OPEN) {
+        sendMessage({ type: 'ping' });
+        if (Date.now() - lastPongRef.value > HEARTBEAT_INTERVAL * 2) {
+          sendBack({ type: 'WS_ERROR', error: 'Heartbeat timeout' });
+        }
+      }
+    }, HEARTBEAT_INTERVAL);
+  };
+
+  const stop = () => {
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+    }
+  };
+
+  return { start, stop };
 }
 
 /** WebSocket actor logic with heartbeat and subscription support */
 const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
   ({ sendBack, input, receive }) => {
     let ws: WebSocket | null = null;
-    const reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-    let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
     const lastPongRef = { value: Date.now() };
+    const messageQueue = createMessageQueue(() => ws);
+    const heartbeat = createHeartbeat(() => ws, messageQueue.send, lastPongRef, sendBack);
 
-    const sendMessage = (message: object) => {
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
-      }
-    };
-    wsSendFn = sendMessage;
-
-    const startHeartbeat = () => {
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-      }
-      heartbeatInterval = setInterval(() => {
-        if (ws?.readyState === WebSocket.OPEN) {
-          sendMessage({ type: 'ping' });
-          if (Date.now() - lastPongRef.value > HEARTBEAT_INTERVAL * 2) {
-            sendBack({ type: 'WS_ERROR', error: 'Heartbeat timeout' });
-          }
-        }
-      }, HEARTBEAT_INTERVAL);
-    };
+    wsSendFn = messageQueue.send;
 
     const connect = () => {
       try {
         ws = new WebSocket(input.wsUrl);
         ws.onopen = () => {
           lastPongRef.value = Date.now();
+          messageQueue.flush();
           sendBack({ type: 'WS_CONNECTED' });
-          startHeartbeat();
+          heartbeat.start();
         };
         ws.onclose = () => sendBack({ type: 'WS_DISCONNECTED' });
         ws.onerror = () => sendBack({ type: 'WS_ERROR', error: 'WebSocket connection error' });
@@ -162,20 +205,13 @@ const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
       }
     };
 
-    receive((event) => handleReceivedEvent(event, sendMessage));
+    receive((event) => handleReceivedEvent(event, messageQueue.send));
     connect();
 
     return () => {
       wsSendFn = null;
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-      }
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-      if (ws) {
-        ws.close();
-      }
+      heartbeat.stop();
+      ws?.close();
     };
   },
 );
@@ -366,6 +402,29 @@ const dashboardMachine = setup({
         CLEAR_STORY: {
           actions: ['clearCurrentStory'],
         },
+        // Track subscriptions while WebSocket is connecting (will be sent once connected)
+        SUBSCRIBE_STORY: {
+          actions: [
+            {
+              type: 'addSubscription',
+              params: ({ event }) => ({
+                epicSlug: event.epicSlug,
+                storySlug: event.storySlug,
+              }),
+            },
+          ],
+        },
+        UNSUBSCRIBE_STORY: {
+          actions: [
+            {
+              type: 'removeSubscription',
+              params: ({ event }) => ({
+                epicSlug: event.epicSlug,
+                storySlug: event.storySlug,
+              }),
+            },
+          ],
+        },
       },
     },
     connected: {
@@ -453,6 +512,7 @@ const dashboardMachine = setup({
                 storySlug: event.storySlug,
               }),
             },
+            sendTo('websocket', ({ event }) => event),
           ],
         },
         UNSUBSCRIBE_STORY: {
@@ -464,6 +524,7 @@ const dashboardMachine = setup({
                 storySlug: event.storySlug,
               }),
             },
+            sendTo('websocket', ({ event }) => event),
           ],
         },
       },

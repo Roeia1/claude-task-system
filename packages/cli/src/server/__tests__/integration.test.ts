@@ -167,7 +167,7 @@ describe('integration', () => {
       // Record start time
       const startTime = Date.now();
 
-      // Modify the story file
+      // Modify the story file (YAML uses snake_case, API returns camelCase)
       await writeFile(
         join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
         `---
@@ -199,7 +199,7 @@ Updated content.
       expect(elapsed).toBeLessThan(EVENT_TIMEOUT_MS);
       expect(msg.event).toBe('story:updated');
       expect(msg.data).toHaveProperty('title', 'Updated Story Title');
-      expect(msg.data).toHaveProperty('status', 'in_progress');
+      expect(msg.data).toHaveProperty('status', 'inProgress');
 
       ws.close();
     });
@@ -408,7 +408,7 @@ tasks: []
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
 
-      // Modify story
+      // Modify story (YAML uses snake_case)
       await writeFile(
         join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
         `---

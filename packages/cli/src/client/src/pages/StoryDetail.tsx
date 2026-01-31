@@ -418,12 +418,14 @@ function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefin
     clearCurrentStory,
     subscribeToStory,
     unsubscribeFromStory,
+    isConnected,
   } = useDashboard();
   const [isFetching, setIsFetching] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasSlugs = Boolean(epicSlug && storySlug);
 
+  // Fetch story data on mount
   useEffect(() => {
     if (!hasSlugs) {
       return clearCurrentStory;
@@ -453,21 +455,22 @@ function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefin
     };
 
     fetchStory();
+
+    return clearCurrentStory;
+  }, [epicSlug, storySlug, hasSlugs, setCurrentStory, clearCurrentStory]);
+
+  // Subscribe to story updates when WebSocket is connected
+  useEffect(() => {
+    if (!(hasSlugs && isConnected)) {
+      return;
+    }
+
     subscribeToStory(epicSlug as string, storySlug as string);
 
     return () => {
-      clearCurrentStory();
       unsubscribeFromStory(epicSlug as string, storySlug as string);
     };
-  }, [
-    epicSlug,
-    storySlug,
-    hasSlugs,
-    setCurrentStory,
-    clearCurrentStory,
-    subscribeToStory,
-    unsubscribeFromStory,
-  ]);
+  }, [epicSlug, storySlug, hasSlugs, isConnected, subscribeToStory, unsubscribeFromStory]);
 
   return { currentStory, loading: isFetching, notFound, error };
 }
