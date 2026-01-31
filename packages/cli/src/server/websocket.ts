@@ -321,7 +321,12 @@ function handleClientMessage(
   logStreamManager: LogStreamManager,
 ): void {
   try {
-    const message = JSON.parse(data.toString()) as ClientMessage;
+    const message = JSON.parse(data.toString()) as ClientMessage & { type?: string };
+    // Handle ping/pong heartbeat (client sends { type: 'ping' })
+    if (message.type === 'ping') {
+      sendToClient(state.ws, { event: 'pong', data: null });
+      return;
+    }
     if (message.event) {
       processClientMessage(message, state, logStreamManager);
     }
@@ -430,10 +435,10 @@ function setupSessionPolling(
   let previousSessionStates = new Map<string, 'running' | 'completed'>();
 
   startSessionPolling((msg: SessionsUpdatedMessage) => {
-    broadcast({ event: msg.type, data: msg.sessions });
+    broadcast({ event: msg.type, data: msg.data });
 
     const currentStates = new Map<string, 'running' | 'completed'>();
-    for (const session of msg.sessions) {
+    for (const session of msg.data) {
       currentStates.set(session.name, session.status);
 
       const previousStatus = previousSessionStates.get(session.name);
