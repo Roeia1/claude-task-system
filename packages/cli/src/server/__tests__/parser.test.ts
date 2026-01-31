@@ -8,6 +8,13 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { parseEpic, parseJournal, parseStory, scanSagaDirectory } from '../parser.ts';
 
+// ============================================================================
+// Test Constants
+// ============================================================================
+
+/** Expected number of journal entries in mixed entry types test */
+const EXPECTED_MIXED_JOURNAL_ENTRIES = 4;
+
 /** Helper to assert a value is not null/undefined and return it typed */
 function assertDefined<T>(
   value: T | null | undefined,
@@ -296,7 +303,7 @@ Implemented GitHub OAuth.
 
       const entries = await parseJournal(join(storyPath, 'journal.md'));
 
-      expect(entries).toHaveLength(4);
+      expect(entries).toHaveLength(EXPECTED_MIXED_JOURNAL_ENTRIES);
       expect(entries[0].type).toBe('session');
       expect(entries[1].type).toBe('blocker');
       expect(entries[2].type).toBe('resolution');

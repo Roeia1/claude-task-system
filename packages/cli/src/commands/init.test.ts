@@ -3,10 +3,21 @@
  */
 
 import { execSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+// Top-level regex for reuse in tests
+const EXISTS_SKIP_REGEX = /exists.*skip/i;
 
 describe('init command', () => {
   let testDir: string;
@@ -53,9 +64,9 @@ describe('init command', () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('.saga');
-      expect(require('node:fs').existsSync(epicsDir)).toBe(true);
-      expect(require('node:fs').existsSync(archiveDir)).toBe(true);
-      expect(require('node:fs').existsSync(worktreesDir)).toBe(true);
+      expect(existsSync(epicsDir)).toBe(true);
+      expect(existsSync(archiveDir)).toBe(true);
+      expect(existsSync(worktreesDir)).toBe(true);
     });
 
     it('should update .gitignore with worktrees pattern', () => {
@@ -105,7 +116,7 @@ describe('init command', () => {
       const result = runCli(['init']);
 
       expect(result.exitCode).toBe(0);
-      expect(require('node:fs').existsSync(join(testDir, '.saga', 'epics'))).toBe(true);
+      expect(existsSync(join(testDir, '.saga', 'epics'))).toBe(true);
     });
 
     it('should initialize from subdirectory when no .saga/ exists yet', () => {
@@ -123,7 +134,7 @@ describe('init command', () => {
           stdio: ['pipe', 'pipe', 'pipe'],
         });
         // It should initialize at the subDir since no parent .saga exists
-        expect(require('node:fs').existsSync(join(subDir, '.saga', 'epics'))).toBe(true);
+        expect(existsSync(join(subDir, '.saga', 'epics'))).toBe(true);
       } catch (error) {
         // If it fails, check why
         const execError = error as { status?: number };
@@ -183,7 +194,7 @@ describe('init command', () => {
 
       expect(result.exitCode).toBe(0);
       // Directories should NOT exist
-      expect(require('node:fs').existsSync(join(testDir, '.saga'))).toBe(false);
+      expect(existsSync(join(testDir, '.saga'))).toBe(false);
     });
 
     it('should show what directories would be created', () => {
@@ -202,7 +213,7 @@ describe('init command', () => {
       const result = runCli(['init', '--dry-run', '--path', testDir]);
 
       expect(result.stdout).toContain('epics');
-      expect(result.stdout).toMatch(/exists.*skip/i);
+      expect(result.stdout).toMatch(EXISTS_SKIP_REGEX);
     });
 
     it('should show gitignore action', () => {

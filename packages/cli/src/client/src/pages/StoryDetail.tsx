@@ -206,6 +206,7 @@ function groupJournalEntries(story: StoryDetailType | null) {
   };
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: React component with complex render logic
 function StoryDetail() {
   const { epicSlug, storySlug } = useParams<{
     epicSlug: string;

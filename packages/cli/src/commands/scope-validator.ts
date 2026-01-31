@@ -102,9 +102,16 @@ function checkStoryAccess(path: string, allowedEpic: string, allowedStory: strin
 
   const pathEpic = parts[epicsIdx + 1];
 
+  // Path indices for story folder structure: .saga/epics/{epicSlug}/stories/{storySlug}
+  const storiesFolderIndex = 2;
+  const storySlugIndex = 3;
+
   // Check if this is in stories folder
-  if (parts.length > epicsIdx + 3 && parts[epicsIdx + 2] === 'stories') {
-    const pathStory = parts[epicsIdx + 3];
+  if (
+    parts.length > epicsIdx + storySlugIndex &&
+    parts[epicsIdx + storiesFolderIndex] === 'stories'
+  ) {
+    const pathStory = parts[epicsIdx + storySlugIndex];
     // Allow if matches current epic and story
     return pathEpic === allowedEpic && pathStory === allowedStory;
   }
@@ -130,6 +137,7 @@ function printScopeViolation(
  * Execute the scope-validator command
  * Reads tool input from stdin and validates file path against story scope
  */
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Command function with sequential validation steps
 export async function scopeValidatorCommand(): Promise<void> {
   // Get environment variables (set by SessionStart hook via CLAUDE_ENV_FILE)
   const worktreePath = process.env.SAGA_PROJECT_DIR || '';

@@ -14,11 +14,28 @@ import { WebSocket } from 'ws';
 import { OUTPUT_DIR } from '../../lib/sessions.ts';
 import { type ServerInstance, startServer } from '../index.ts';
 
+// Constants for test configuration
+const RANDOM_STRING_SLICE_START = 2;
+const RANDOM_STRING_RADIX = 36;
+const PORT_RANGE = 20_000;
+const PORT_BASE = 30_000;
+const WS_CONNECTION_TIMEOUT_MS = 5000;
+const DEFAULT_MESSAGE_TIMEOUT_MS = 5000;
+const SHORT_WAIT_MS = 50;
+const MEDIUM_WAIT_MS = 100;
+const LONG_WAIT_MS = 200;
+const SHORT_MESSAGE_TIMEOUT_MS = 500;
+const PONG_TIMEOUT_MS = 2000;
+const MESSAGE_TIMEOUT_MS = 3000;
+const FILE_WATCH_TIMEOUT_MS = 5000;
+const LONG_TEST_TIMEOUT_MS = 10_000;
+const VERY_LONG_TEST_TIMEOUT_MS = 15_000;
+
 // Helper to create a temporary saga directory
 async function createTempSagaDir(): Promise<string> {
   const tempDir = join(
     tmpdir(),
-    `saga-ws-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    `saga-ws-test-${Date.now()}-${Math.random().toString(RANDOM_STRING_RADIX).slice(RANDOM_STRING_SLICE_START)}`,
   );
   await mkdir(join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story'), {
     recursive: true,
@@ -63,16 +80,16 @@ async function cleanupTempDir(tempDir: string): Promise<void> {
 
 // Helper to get a random port in a safe range
 function getRandomPort(): number {
-  return Math.floor(Math.random() * 20_000) + 30_000; // 30000-50000
+  return Math.floor(Math.random() * PORT_RANGE) + PORT_BASE; // 30000-50000
 }
 
 // Helper to create a WebSocket client and wait for connection
-async function createWsClient(port: number): Promise<WebSocket> {
+function createWsClient(port: number): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`ws://localhost:${port}`);
     const timeout = setTimeout(() => {
       reject(new Error('WebSocket connection timeout'));
-    }, 5000);
+    }, WS_CONNECTION_TIMEOUT_MS);
 
     ws.on('open', () => {
       clearTimeout(timeout);
@@ -87,9 +104,9 @@ async function createWsClient(port: number): Promise<WebSocket> {
 }
 
 // Helper to wait for a message from WebSocket
-async function waitForMessage(
+function waitForMessage(
   ws: WebSocket,
-  timeoutMs = 5000,
+  timeoutMs = DEFAULT_MESSAGE_TIMEOUT_MS,
 ): Promise<{ event: string; data: unknown }> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -159,7 +176,7 @@ describe('websocket', () => {
       ws.close();
 
       // Wait a bit for cleanup
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Create a new connection to verify server is still accepting
       const ws2 = await createWsClient(port);
@@ -176,7 +193,7 @@ describe('websocket', () => {
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
 
       // Wait a bit to ensure message was processed
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       ws.close();
     });
@@ -192,7 +209,7 @@ describe('websocket', () => {
       sendMessage(ws2, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'another-story' });
 
       // Wait for subscriptions to be processed
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       ws1.close();
       ws2.close();
@@ -205,10 +222,10 @@ describe('websocket', () => {
 
       // Subscribe then unsubscribe
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, SHORT_WAIT_MS));
 
       sendMessage(ws, 'unsubscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, SHORT_WAIT_MS));
 
       ws.close();
     });
@@ -220,7 +237,7 @@ describe('websocket', () => {
       const ws2 = await createWsClient(port);
 
       // Wait for connections to stabilize
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Trigger an epic update by modifying epic.md
       await writeFile(
@@ -230,8 +247,8 @@ describe('websocket', () => {
 
       // Both clients should receive epics:updated
       const [msg1, msg2] = await Promise.all([
-        waitForMessage(ws1, 3000),
-        waitForMessage(ws2, 3000),
+        waitForMessage(ws1, MESSAGE_TIMEOUT_MS),
+        waitForMessage(ws2, MESSAGE_TIMEOUT_MS),
       ]);
 
       expect(msg1.event).toBe('epics:updated');
@@ -245,7 +262,7 @@ describe('websocket', () => {
 
     it('should broadcast epics:updated when a new epic is added', async () => {
       const ws = await createWsClient(port);
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Create a new epic
       await mkdir(join(tempDir, '.saga', 'epics', 'new-epic'), { recursive: true });
@@ -254,7 +271,7 @@ describe('websocket', () => {
         '# New Epic\n\nA brand new epic.',
       );
 
-      const msg = await waitForMessage(ws, 3000);
+      const msg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
       expect(msg.event).toBe('epics:updated');
 
       ws.close();
@@ -267,7 +284,7 @@ describe('websocket', () => {
 
       // Subscribe to test-story
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Modify the story
       await writeFile(
@@ -288,7 +305,7 @@ Updated story content.
 `,
       );
 
-      const msg = await waitForMessage(ws, 3000);
+      const msg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
       expect(msg.event).toBe('story:updated');
       expect(msg.data).toHaveProperty('slug', 'test-story');
       expect(msg.data).toHaveProperty('epicSlug', 'test-epic');
@@ -305,7 +322,7 @@ Updated story content.
         epicSlug: 'test-epic',
         storySlug: 'test-story',
       });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Modify the story
       await writeFile(
@@ -322,13 +339,13 @@ Modified.
       );
 
       // subscribedWs should receive story:updated
-      const msg = await waitForMessage(subscribedWs, 3000);
+      const msg = await waitForMessage(subscribedWs, MESSAGE_TIMEOUT_MS);
       expect(msg.event).toBe('story:updated');
 
       // unsubscribedWs should NOT receive story:updated (should timeout or receive epics:updated)
       // We'll try to get a message with a short timeout - it should be epics:updated if anything
       try {
-        const unsubscribedMsg = await waitForMessage(unsubscribedWs, 500);
+        const unsubscribedMsg = await waitForMessage(unsubscribedWs, SHORT_MESSAGE_TIMEOUT_MS);
         // If we get a message, it should be epics:updated, not story:updated
         expect(unsubscribedMsg.event).not.toBe('story:updated');
       } catch {
@@ -344,7 +361,7 @@ Modified.
 
       // Subscribe to test-story
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Create a journal.md file
       await writeFile(
@@ -360,7 +377,7 @@ Modified.
 `,
       );
 
-      const msg = await waitForMessage(ws, 3000);
+      const msg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
       expect(msg.event).toBe('story:updated');
 
       ws.close();
@@ -370,7 +387,7 @@ Modified.
       const ws = await createWsClient(port);
 
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Modify the story
       await writeFile(
@@ -392,7 +409,7 @@ Story content.
 `,
       );
 
-      const msg = await waitForMessage(ws, 3000);
+      const msg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
       expect(msg.event).toBe('story:updated');
       expect(msg.data).toHaveProperty('slug');
       expect(msg.data).toHaveProperty('title');
@@ -413,7 +430,7 @@ Story content.
 
       // Should receive pong
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Pong timeout')), 2000);
+        const timeout = setTimeout(() => reject(new Error('Pong timeout')), PONG_TIMEOUT_MS);
         ws.once('pong', () => {
           clearTimeout(timeout);
           resolve();
@@ -432,7 +449,7 @@ Story content.
       ws.send('not valid json');
 
       // Wait a bit - server should not crash
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Server should still accept new connections
       const ws2 = await createWsClient(port);
@@ -451,7 +468,7 @@ Story content.
       ws.send(JSON.stringify({ event: 'subscribe:story', data: {} })); // missing slugs
 
       // Wait a bit - server should not crash
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Server should still work
       const ws2 = await createWsClient(port);
@@ -468,7 +485,7 @@ Story content.
       const ws2 = await createWsClient(port);
 
       // Wait for connections to stabilize
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Wait for a potential sessions:updated message (from initial poll)
       // Note: This may or may not come depending on whether there are any SAGA sessions
@@ -489,7 +506,7 @@ Story content.
       // Wait for initial poll which always broadcasts
       // Note: In a real test with tmux mocking we would verify the full flow
       // For now we just verify the connection is stable after session polling starts
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, LONG_WAIT_MS));
 
       expect(ws.readyState).toBe(WebSocket.OPEN);
 
@@ -526,7 +543,7 @@ Story content.
       sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
 
       // Should receive logs:data with initial content
-      const msg = await waitForMessage(ws, 3000);
+      const msg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
       expect(msg.event).toBe('logs:data');
       expect(msg.data).toHaveProperty('sessionName', testSessionName);
       expect(msg.data).toHaveProperty('data', testLogContent);
@@ -543,7 +560,7 @@ Story content.
       sendMessage(ws, 'subscribe:logs', { sessionName: 'non-existent-session' });
 
       // Should receive logs:error
-      const msg = await waitForMessage(ws, 3000);
+      const msg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
       expect(msg.event).toBe('logs:error');
       expect(msg.data).toHaveProperty('sessionName', 'non-existent-session');
       expect(msg.data).toHaveProperty('error');
@@ -551,33 +568,37 @@ Story content.
       ws.close();
     });
 
-    it('should send incremental updates when log file is appended', async () => {
-      // Create initial log file
-      await writeFile(testOutputFile, testLogContent);
+    it(
+      'should send incremental updates when log file is appended',
+      async () => {
+        // Create initial log file
+        await writeFile(testOutputFile, testLogContent);
 
-      const ws = await createWsClient(port);
+        const ws = await createWsClient(port);
 
-      // Subscribe to logs
-      sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
+        // Subscribe to logs
+        sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
 
-      // Wait for initial content
-      const initialMsg = await waitForMessage(ws, 3000);
-      expect(initialMsg.event).toBe('logs:data');
-      expect((initialMsg.data as { isInitial: boolean }).isInitial).toBe(true);
+        // Wait for initial content
+        const initialMsg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
+        expect(initialMsg.event).toBe('logs:data');
+        expect((initialMsg.data as { isInitial: boolean }).isInitial).toBe(true);
 
-      // Append new content
-      const newContent = 'New log line 4\n';
-      await appendFile(testOutputFile, newContent);
+        // Append new content
+        const newContent = 'New log line 4\n';
+        await appendFile(testOutputFile, newContent);
 
-      // Wait for incremental update
-      const incrementalMsg = await waitForMessage(ws, 5000);
-      expect(incrementalMsg.event).toBe('logs:data');
-      expect(incrementalMsg.data).toHaveProperty('data', newContent);
-      expect(incrementalMsg.data).toHaveProperty('isInitial', false);
-      expect(incrementalMsg.data).toHaveProperty('isComplete', false);
+        // Wait for incremental update
+        const incrementalMsg = await waitForMessage(ws, FILE_WATCH_TIMEOUT_MS);
+        expect(incrementalMsg.event).toBe('logs:data');
+        expect(incrementalMsg.data).toHaveProperty('data', newContent);
+        expect(incrementalMsg.data).toHaveProperty('isInitial', false);
+        expect(incrementalMsg.data).toHaveProperty('isComplete', false);
 
-      ws.close();
-    }, 10_000);
+        ws.close();
+      },
+      LONG_TEST_TIMEOUT_MS,
+    );
 
     it('should stop receiving updates after unsubscribing from logs', async () => {
       // Create log file
@@ -589,19 +610,19 @@ Story content.
       sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
 
       // Wait for initial content
-      const initialMsg = await waitForMessage(ws, 3000);
+      const initialMsg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
       expect(initialMsg.event).toBe('logs:data');
 
       // Unsubscribe
       sendMessage(ws, 'unsubscribe:logs', { sessionName: testSessionName });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Append new content
       await appendFile(testOutputFile, 'Should not receive this\n');
 
       // Should NOT receive any more messages (timeout expected)
       try {
-        await waitForMessage(ws, 500);
+        await waitForMessage(ws, SHORT_MESSAGE_TIMEOUT_MS);
         // If we get here, we received a message - check it's not logs:data for our session
         // (could be sessions:updated from polling)
       } catch {
@@ -611,46 +632,50 @@ Story content.
       ws.close();
     });
 
-    it('should handle multiple clients subscribing to the same log', async () => {
-      // Create log file
-      await writeFile(testOutputFile, testLogContent);
+    it(
+      'should handle multiple clients subscribing to the same log',
+      async () => {
+        // Create log file
+        await writeFile(testOutputFile, testLogContent);
 
-      const ws1 = await createWsClient(port);
-      const ws2 = await createWsClient(port);
+        const ws1 = await createWsClient(port);
+        const ws2 = await createWsClient(port);
 
-      // Both clients subscribe
-      sendMessage(ws1, 'subscribe:logs', { sessionName: testSessionName });
-      sendMessage(ws2, 'subscribe:logs', { sessionName: testSessionName });
+        // Both clients subscribe
+        sendMessage(ws1, 'subscribe:logs', { sessionName: testSessionName });
+        sendMessage(ws2, 'subscribe:logs', { sessionName: testSessionName });
 
-      // Both should receive initial content
-      const [msg1, msg2] = await Promise.all([
-        waitForMessage(ws1, 3000),
-        waitForMessage(ws2, 3000),
-      ]);
+        // Both should receive initial content
+        const [msg1, msg2] = await Promise.all([
+          waitForMessage(ws1, MESSAGE_TIMEOUT_MS),
+          waitForMessage(ws2, MESSAGE_TIMEOUT_MS),
+        ]);
 
-      expect(msg1.event).toBe('logs:data');
-      expect(msg2.event).toBe('logs:data');
-      expect((msg1.data as { isInitial: boolean }).isInitial).toBe(true);
-      expect((msg2.data as { isInitial: boolean }).isInitial).toBe(true);
+        expect(msg1.event).toBe('logs:data');
+        expect(msg2.event).toBe('logs:data');
+        expect((msg1.data as { isInitial: boolean }).isInitial).toBe(true);
+        expect((msg2.data as { isInitial: boolean }).isInitial).toBe(true);
 
-      // Append new content
-      const newContent = 'Broadcast to both clients\n';
-      await appendFile(testOutputFile, newContent);
+        // Append new content
+        const newContent = 'Broadcast to both clients\n';
+        await appendFile(testOutputFile, newContent);
 
-      // Both should receive incremental update
-      const [update1, update2] = await Promise.all([
-        waitForMessage(ws1, 5000),
-        waitForMessage(ws2, 5000),
-      ]);
+        // Both should receive incremental update
+        const [update1, update2] = await Promise.all([
+          waitForMessage(ws1, FILE_WATCH_TIMEOUT_MS),
+          waitForMessage(ws2, FILE_WATCH_TIMEOUT_MS),
+        ]);
 
-      expect(update1.event).toBe('logs:data');
-      expect(update2.event).toBe('logs:data');
-      expect((update1.data as { data: string }).data).toBe(newContent);
-      expect((update2.data as { data: string }).data).toBe(newContent);
+        expect(update1.event).toBe('logs:data');
+        expect(update2.event).toBe('logs:data');
+        expect((update1.data as { data: string }).data).toBe(newContent);
+        expect((update2.data as { data: string }).data).toBe(newContent);
 
-      ws1.close();
-      ws2.close();
-    }, 15_000);
+        ws1.close();
+        ws2.close();
+      },
+      VERY_LONG_TEST_TIMEOUT_MS,
+    );
 
     it('should clean up log subscription when client disconnects', async () => {
       // Create log file
@@ -662,13 +687,13 @@ Story content.
       sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
 
       // Wait for initial content
-      await waitForMessage(ws, 3000);
+      await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
 
       // Close connection
       ws.close();
 
       // Wait for cleanup
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, LONG_WAIT_MS));
 
       // Server should still be accepting new connections (didn't crash)
       const ws2 = await createWsClient(port);
@@ -703,7 +728,7 @@ Story content.
       sendMessage(ws, 'subscribe:logs', {});
 
       // Wait a bit - server should not crash
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Server should still work
       expect(ws.readyState).toBe(WebSocket.OPEN);
@@ -717,7 +742,7 @@ Story content.
       sendMessage(ws, 'unsubscribe:logs', { sessionName: 'never-subscribed' });
 
       // Wait a bit - server should not crash
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Server should still work
       expect(ws.readyState).toBe(WebSocket.OPEN);
@@ -735,7 +760,7 @@ Story content.
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
 
       // Should receive logs:data for the log subscription
-      const logMsg = await waitForMessage(ws, 3000);
+      const logMsg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
       expect(logMsg.event).toBe('logs:data');
 
       // Can still receive story updates if story changes
@@ -745,35 +770,42 @@ Story content.
       ws.close();
     });
 
-    it('should continue log streaming for other clients when one unsubscribes', async () => {
-      // Create log file
-      await writeFile(testOutputFile, testLogContent);
+    it(
+      'should continue log streaming for other clients when one unsubscribes',
+      async () => {
+        // Create log file
+        await writeFile(testOutputFile, testLogContent);
 
-      const ws1 = await createWsClient(port);
-      const ws2 = await createWsClient(port);
+        const ws1 = await createWsClient(port);
+        const ws2 = await createWsClient(port);
 
-      // Both subscribe
-      sendMessage(ws1, 'subscribe:logs', { sessionName: testSessionName });
-      sendMessage(ws2, 'subscribe:logs', { sessionName: testSessionName });
+        // Both subscribe
+        sendMessage(ws1, 'subscribe:logs', { sessionName: testSessionName });
+        sendMessage(ws2, 'subscribe:logs', { sessionName: testSessionName });
 
-      // Wait for initial content on both
-      await Promise.all([waitForMessage(ws1, 3000), waitForMessage(ws2, 3000)]);
+        // Wait for initial content on both
+        await Promise.all([
+          waitForMessage(ws1, MESSAGE_TIMEOUT_MS),
+          waitForMessage(ws2, MESSAGE_TIMEOUT_MS),
+        ]);
 
-      // ws1 unsubscribes
-      sendMessage(ws1, 'unsubscribe:logs', { sessionName: testSessionName });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+        // ws1 unsubscribes
+        sendMessage(ws1, 'unsubscribe:logs', { sessionName: testSessionName });
+        await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
-      // Append new content
-      const newContent = 'Only ws2 should receive this\n';
-      await appendFile(testOutputFile, newContent);
+        // Append new content
+        const newContent = 'Only ws2 should receive this\n';
+        await appendFile(testOutputFile, newContent);
 
-      // ws2 should still receive updates
-      const update = await waitForMessage(ws2, 5000);
-      expect(update.event).toBe('logs:data');
-      expect((update.data as { data: string }).data).toBe(newContent);
+        // ws2 should still receive updates
+        const update = await waitForMessage(ws2, FILE_WATCH_TIMEOUT_MS);
+        expect(update.event).toBe('logs:data');
+        expect((update.data as { data: string }).data).toBe(newContent);
 
-      ws1.close();
-      ws2.close();
-    }, 10_000);
+        ws1.close();
+        ws2.close();
+      },
+      LONG_TEST_TIMEOUT_MS,
+    );
   });
 });

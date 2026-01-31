@@ -12,10 +12,14 @@ import express, { type Express, type Request, type Response } from 'express';
 import { createApiRouter } from './routes.ts';
 import { createWebSocketServer, type WebSocketInstance } from './websocket.ts';
 
+// ============================================================================
+// Types
+// ============================================================================
+
 /**
  * Configuration for starting the server
  */
-export interface ServerConfig {
+interface ServerConfig {
   /** Path to the project root with .saga/ directory */
   sagaRoot: string;
   /** Server port (default: 3847) */
@@ -25,7 +29,7 @@ export interface ServerConfig {
 /**
  * Server instance returned by startServer
  */
-export interface ServerInstance {
+interface ServerInstance {
   /** The Express app instance */
   app: Express;
   /** The HTTP server instance */
@@ -38,8 +42,16 @@ export interface ServerInstance {
   close: () => Promise<void>;
 }
 
+// ============================================================================
+// Constants
+// ============================================================================
+
 /** Default port for the dashboard server */
 const DEFAULT_PORT = 3847;
+
+// ============================================================================
+// App Factory
+// ============================================================================
 
 /**
  * Create and configure the Express app
@@ -80,13 +92,17 @@ function createApp(sagaRoot: string): Express {
   return app;
 }
 
+// ============================================================================
+// Server Factory
+// ============================================================================
+
 /**
  * Start the SAGA Dashboard server
  *
  * @param config - Server configuration
  * @returns Promise resolving to the server instance
  */
-export async function startServer(config: ServerConfig): Promise<ServerInstance> {
+async function startServer(config: ServerConfig): Promise<ServerInstance> {
   const port = config.port ?? DEFAULT_PORT;
   const app = createApp(config.sagaRoot);
   const httpServer = createServer(app);
@@ -122,3 +138,10 @@ export async function startServer(config: ServerConfig): Promise<ServerInstance>
     });
   });
 }
+
+// ============================================================================
+// Exports
+// ============================================================================
+
+export { startServer };
+export type { ServerConfig, ServerInstance };

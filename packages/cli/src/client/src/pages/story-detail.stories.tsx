@@ -27,6 +27,24 @@ const ICON_ALERT_CIRCLE = 'icon-alert-circle';
 const ICON_CHEVRON_RIGHT = 'icon-chevron-right';
 const ICON_CHEVRON_DOWN = 'icon-chevron-down';
 
+// Magic number constants for test assertions
+const MIN_PLACEHOLDER_COUNT = 3;
+const MIN_SKELETON_PLACEHOLDER_COUNT = 5;
+const EXPECTED_SKELETON_COUNT = 2;
+const EXPECTED_COMPLETED_TASK_COUNT = 4;
+
+// Regex patterns for text matching (must be top-level for performance)
+const REGEX_WHAT_WAS_DONE = /What was done:/;
+const REGEX_VITE_DECISION = /Used Vite for faster development builds/;
+const REGEX_CANNOT_ACCESS_API = /Cannot access external API/;
+const REGEX_WHAT_I_NEED = /What I need/;
+const REGEX_BLOCKER_RESOLVED = /Blocker resolved/;
+const REGEX_ACTION_TAKEN = /Action taken/;
+const REGEX_NON_EXISTENT_STORY = /The story "non-existent-story" does not exist/;
+const REGEX_DASHBOARD_RESTRUCTURE = /dashboard-restructure/;
+const REGEX_BACK_TO_EPIC = /back to epic/i;
+const REGEX_SAGA_DASHBOARD_NEEDS_STORYBOOK = /The SAGA Dashboard needs Storybook/;
+
 // ============================================================================
 // HeaderSkeleton Stories
 // ============================================================================
@@ -48,20 +66,19 @@ const headerSkeletonMeta: Meta<typeof HeaderSkeleton> = {
   },
 };
 
-export default headerSkeletonMeta;
 type HeaderSkeletonStory = StoryObj<typeof HeaderSkeleton>;
 
 /**
  * Default header skeleton showing the animated loading state.
  */
-export const Skeleton: HeaderSkeletonStory = {
+const Skeleton: HeaderSkeletonStory = {
   play: async ({ canvasElement }) => {
     // Verify animate-pulse class for loading animation
     const pulseContainer = canvasElement.querySelector('.animate-pulse');
     await expect(pulseContainer).toBeInTheDocument();
     // Verify bg-bg-light placeholder elements
     const placeholders = canvasElement.querySelectorAll('.bg-bg-light');
-    await expect(placeholders.length).toBeGreaterThanOrEqual(3);
+    await expect(placeholders.length).toBeGreaterThanOrEqual(MIN_PLACEHOLDER_COUNT);
   },
 };
 
@@ -72,7 +89,7 @@ export const Skeleton: HeaderSkeletonStory = {
 /**
  * Skeleton loading component for content sections (tasks, story content, journal).
  */
-export const contentSkeletonMeta: Meta<typeof ContentSkeleton> = {
+const contentSkeletonMeta: Meta<typeof ContentSkeleton> = {
   title: 'Pages/StoryDetail/ContentSkeleton',
   component: ContentSkeleton,
   parameters: {
@@ -90,7 +107,7 @@ type ContentSkeletonStory = StoryObj<typeof ContentSkeleton>;
 /**
  * Default content skeleton showing the animated loading state.
  */
-export const ContentLoading: ContentSkeletonStory = {
+const ContentLoading: ContentSkeletonStory = {
   render: () => <ContentSkeleton />,
   play: async ({ canvasElement }) => {
     // Verify animate-pulse class for loading animation
@@ -98,14 +115,14 @@ export const ContentLoading: ContentSkeletonStory = {
     await expect(pulseContainer).toBeInTheDocument();
     // Verify bg-bg-light placeholder elements
     const placeholders = canvasElement.querySelectorAll('.bg-bg-light');
-    await expect(placeholders.length).toBeGreaterThanOrEqual(3);
+    await expect(placeholders.length).toBeGreaterThanOrEqual(MIN_PLACEHOLDER_COUNT);
   },
 };
 
 /**
  * Multiple content skeletons stacked, simulating loading state for multiple sections.
  */
-export const ContentLoadingStacked: ContentSkeletonStory = {
+const ContentLoadingStacked: ContentSkeletonStory = {
   render: () => (
     <div class="space-y-6">
       <ContentSkeleton />
@@ -129,7 +146,7 @@ export const ContentLoadingStacked: ContentSkeletonStory = {
 /**
  * Task status icon showing visual state of task completion.
  */
-export const taskStatusIconMeta: Meta<typeof TaskStatusIcon> = {
+const taskStatusIconMeta: Meta<typeof TaskStatusIcon> = {
   title: 'Pages/StoryDetail/TaskStatusIcon',
   component: TaskStatusIcon,
   argTypes: {
@@ -154,7 +171,7 @@ type TaskStatusIconStory = StoryObj<typeof TaskStatusIcon>;
 /**
  * Pending status - muted circle icon for tasks not yet started.
  */
-export const IconPending: TaskStatusIconStory = {
+const IconPending: TaskStatusIconStory = {
   render: () => (
     <div class="flex items-center gap-2">
       <TaskStatusIcon status="pending" />
@@ -175,7 +192,7 @@ export const IconPending: TaskStatusIconStory = {
 /**
  * In Progress status - primary blue filled circle for active tasks.
  */
-export const IconInProgress: TaskStatusIconStory = {
+const IconInProgress: TaskStatusIconStory = {
   render: () => (
     <div class="flex items-center gap-2">
       <TaskStatusIcon status="in_progress" />
@@ -197,7 +214,7 @@ export const IconInProgress: TaskStatusIconStory = {
 /**
  * Completed status - success green checkmark for finished tasks.
  */
-export const IconCompleted: TaskStatusIconStory = {
+const IconCompleted: TaskStatusIconStory = {
   render: () => (
     <div class="flex items-center gap-2">
       <TaskStatusIcon status="completed" />
@@ -218,7 +235,7 @@ export const IconCompleted: TaskStatusIconStory = {
 /**
  * All task status icons displayed together for comparison.
  */
-export const AllTaskIcons: TaskStatusIconStory = {
+const AllTaskIcons: TaskStatusIconStory = {
   render: () => (
     <div class="space-y-3">
       <div class="flex items-center gap-2">
@@ -258,7 +275,7 @@ export const AllTaskIcons: TaskStatusIconStory = {
 /**
  * Single task item component showing task title and status.
  */
-export const taskItemMeta: Meta<typeof TaskItem> = {
+const taskItemMeta: Meta<typeof TaskItem> = {
   title: 'Pages/StoryDetail/TaskItem',
   component: TaskItem,
   parameters: {
@@ -283,7 +300,7 @@ const createTask = (overrides: Partial<Task> = {}): Task => ({
 /**
  * Pending task - not yet started.
  */
-export const TaskPending: TaskItemStory = {
+const TaskPending: TaskItemStory = {
   render: () => <TaskItem task={createTask({ status: 'pending' })} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -302,7 +319,7 @@ export const TaskPending: TaskItemStory = {
 /**
  * In progress task - currently being worked on.
  */
-export const TaskInProgress: TaskItemStory = {
+const TaskInProgress: TaskItemStory = {
   render: () => (
     <TaskItem
       task={createTask({
@@ -329,7 +346,7 @@ export const TaskInProgress: TaskItemStory = {
 /**
  * Completed task - shows strikethrough text.
  */
-export const TaskCompleted: TaskItemStory = {
+const TaskCompleted: TaskItemStory = {
   render: () => (
     <TaskItem
       task={createTask({
@@ -359,7 +376,7 @@ export const TaskCompleted: TaskItemStory = {
 /**
  * Task with long title demonstrating text handling.
  */
-export const TaskLongTitle: TaskItemStory = {
+const TaskLongTitle: TaskItemStory = {
   render: () => (
     <TaskItem
       task={createTask({
@@ -385,7 +402,7 @@ export const TaskLongTitle: TaskItemStory = {
 /**
  * Multiple tasks showing all status types.
  */
-export const AllTaskStatuses: TaskItemStory = {
+const AllTaskStatuses: TaskItemStory = {
   render: () => (
     <div class="divide-y divide-border-muted">
       <TaskItem
@@ -447,7 +464,7 @@ export const AllTaskStatuses: TaskItemStory = {
 /**
  * Collapsible journal entry component for session logs, blockers, and resolutions.
  */
-export const journalEntryMeta: Meta<typeof JournalEntryItem> = {
+const journalEntryMeta: Meta<typeof JournalEntryItem> = {
   title: 'Pages/StoryDetail/JournalEntryItem',
   component: JournalEntryItem,
   parameters: {
@@ -485,7 +502,7 @@ const createJournalEntry = (overrides: Partial<JournalEntry> = {}): JournalEntry
 /**
  * Session entry - neutral color, collapsed by default.
  */
-export const EntrySession: JournalEntryStory = {
+const EntrySession: JournalEntryStory = {
   render: () => <JournalEntryItem entry={createJournalEntry()} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -506,7 +523,7 @@ export const EntrySession: JournalEntryStory = {
 /**
  * Session entry - expanded to show content.
  */
-export const EntrySessionExpanded: JournalEntryStory = {
+const EntrySessionExpanded: JournalEntryStory = {
   render: () => <JournalEntryItem entry={createJournalEntry()} defaultOpen={true} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -516,15 +533,15 @@ export const EntrySessionExpanded: JournalEntryStory = {
     const chevronDown = canvas.getByTestId(ICON_CHEVRON_DOWN);
     await expect(chevronDown).toBeInTheDocument();
     // Verify content is visible (check for specific text from content)
-    await expect(canvas.getByText(/What was done:/)).toBeInTheDocument();
-    await expect(canvas.getByText(/Used Vite for faster development builds/)).toBeInTheDocument();
+    await expect(canvas.getByText(REGEX_WHAT_WAS_DONE)).toBeInTheDocument();
+    await expect(canvas.getByText(REGEX_VITE_DECISION)).toBeInTheDocument();
   },
 };
 
 /**
  * Blocker entry - red color, indicates impediment.
  */
-export const EntryBlocker: JournalEntryStory = {
+const EntryBlocker: JournalEntryStory = {
   render: () => (
     <JournalEntryItem
       entry={createJournalEntry({
@@ -558,8 +575,8 @@ export const EntryBlocker: JournalEntryStory = {
     const alertIcon = canvas.getByTestId(ICON_ALERT_CIRCLE);
     await expect(alertIcon).toBeInTheDocument();
     // Verify blocker content is visible
-    await expect(canvas.getByText(/Cannot access external API/)).toBeInTheDocument();
-    await expect(canvas.getByText(/What I need/)).toBeInTheDocument();
+    await expect(canvas.getByText(REGEX_CANNOT_ACCESS_API)).toBeInTheDocument();
+    await expect(canvas.getByText(REGEX_WHAT_I_NEED)).toBeInTheDocument();
     // Verify bg-danger/10 styling for blocker type
     const card = canvasElement.querySelector('[class*="bg-danger"]');
     await expect(card).toBeInTheDocument();
@@ -569,7 +586,7 @@ export const EntryBlocker: JournalEntryStory = {
 /**
  * Resolution entry - green color, shows how a blocker was resolved.
  */
-export const EntryResolution: JournalEntryStory = {
+const EntryResolution: JournalEntryStory = {
   render: () => (
     <JournalEntryItem
       entry={createJournalEntry({
@@ -596,8 +613,8 @@ export const EntryResolution: JournalEntryStory = {
     await expect(badge).toBeInTheDocument();
     await expect(badge).toHaveClass('text-success');
     // Verify resolution content is visible
-    await expect(canvas.getByText(/Blocker resolved/)).toBeInTheDocument();
-    await expect(canvas.getByText(/Action taken/)).toBeInTheDocument();
+    await expect(canvas.getByText(REGEX_BLOCKER_RESOLVED)).toBeInTheDocument();
+    await expect(canvas.getByText(REGEX_ACTION_TAKEN)).toBeInTheDocument();
     // Verify bg-success/10 styling for resolution type
     const card = canvasElement.querySelector('[class*="bg-success"]');
     await expect(card).toBeInTheDocument();
@@ -607,7 +624,7 @@ export const EntryResolution: JournalEntryStory = {
 /**
  * All journal entry types displayed together.
  */
-export const AllEntryTypes: JournalEntryStory = {
+const AllEntryTypes: JournalEntryStory = {
   render: () => (
     <div class="space-y-4">
       <div class="space-y-3">
@@ -683,7 +700,7 @@ export const AllEntryTypes: JournalEntryStory = {
 /**
  * Status badge component for story status (same as EpicDetail variant).
  */
-export const statusBadgeMeta: Meta<typeof StatusBadge> = {
+const statusBadgeMeta: Meta<typeof StatusBadge> = {
   title: 'Pages/StoryDetail/StatusBadge',
   component: StatusBadge,
   argTypes: {
@@ -708,7 +725,7 @@ type StatusBadgeStory = StoryObj<typeof StatusBadge>;
 /**
  * Ready status - gray badge.
  */
-export const BadgeReady: StatusBadgeStory = {
+const BadgeReady: StatusBadgeStory = {
   render: () => <StatusBadge status="ready" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -722,7 +739,7 @@ export const BadgeReady: StatusBadgeStory = {
 /**
  * In Progress status - primary blue badge.
  */
-export const BadgeInProgress: StatusBadgeStory = {
+const BadgeInProgress: StatusBadgeStory = {
   render: () => <StatusBadge status="in_progress" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -736,7 +753,7 @@ export const BadgeInProgress: StatusBadgeStory = {
 /**
  * Blocked status - danger red badge.
  */
-export const BadgeBlocked: StatusBadgeStory = {
+const BadgeBlocked: StatusBadgeStory = {
   render: () => <StatusBadge status="blocked" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -750,7 +767,7 @@ export const BadgeBlocked: StatusBadgeStory = {
 /**
  * Completed status - success green badge.
  */
-export const BadgeCompleted: StatusBadgeStory = {
+const BadgeCompleted: StatusBadgeStory = {
   render: () => <StatusBadge status="completed" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -764,7 +781,7 @@ export const BadgeCompleted: StatusBadgeStory = {
 /**
  * All status badges together.
  */
-export const AllBadges: StatusBadgeStory = {
+const AllBadges: StatusBadgeStory = {
   render: () => (
     <div class="flex flex-wrap gap-2">
       <StatusBadge status="ready" />
@@ -790,7 +807,7 @@ export const AllBadges: StatusBadgeStory = {
 /**
  * Full StoryDetail page component showing story tasks and journal.
  */
-export const storyDetailMeta: Meta<typeof StoryDetail> = {
+const storyDetailMeta: Meta<typeof StoryDetail> = {
   title: 'Pages/StoryDetail',
   component: StoryDetail,
   parameters: {
@@ -809,7 +826,7 @@ type StoryDetailStory = StoryObj<typeof StoryDetail>;
 /**
  * Loading state showing header and content skeletons.
  */
-export const Loading: StoryDetailStory = {
+const Loading: StoryDetailStory = {
   render: () => (
     <div class="space-y-6">
       <HeaderSkeleton />
@@ -819,10 +836,10 @@ export const Loading: StoryDetailStory = {
   play: async ({ canvasElement }) => {
     // Verify header and content skeletons are present
     const skeletons = canvasElement.querySelectorAll('.animate-pulse');
-    await expect(skeletons.length).toBe(2); // 1 header + 1 content
+    await expect(skeletons.length).toBe(EXPECTED_SKELETON_COUNT); // 1 header + 1 content
     // Verify bg-bg-light placeholder elements
     const placeholders = canvasElement.querySelectorAll('.bg-bg-light');
-    await expect(placeholders.length).toBeGreaterThanOrEqual(5);
+    await expect(placeholders.length).toBeGreaterThanOrEqual(MIN_SKELETON_PLACEHOLDER_COUNT);
 
     // Visual snapshot test
     await matchCanvasSnapshot(canvasElement, 'story-detail-loading');
@@ -832,7 +849,7 @@ export const Loading: StoryDetailStory = {
 /**
  * 404 state when story is not found.
  */
-export const NotFound: StoryDetailStory = {
+const NotFound: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
       <div class="text-center py-12">
@@ -858,12 +875,10 @@ export const NotFound: StoryDetailStory = {
     // Verify error title
     await expect(canvas.getByText('Story not found')).toBeInTheDocument();
     // Verify error message with story and epic names
-    await expect(
-      canvas.getByText(/The story "non-existent-story" does not exist/),
-    ).toBeInTheDocument();
-    await expect(canvas.getByText(/dashboard-restructure/)).toBeInTheDocument();
+    await expect(canvas.getByText(REGEX_NON_EXISTENT_STORY)).toBeInTheDocument();
+    await expect(canvas.getByText(REGEX_DASHBOARD_RESTRUCTURE)).toBeInTheDocument();
     // Verify back link
-    const backLink = canvas.getByRole('link', { name: /back to epic/i });
+    const backLink = canvas.getByRole('link', { name: REGEX_BACK_TO_EPIC });
     await expect(backLink).toBeInTheDocument();
     await expect(backLink).toHaveAttribute('href', '/epic/dashboard-restructure');
 
@@ -878,7 +893,7 @@ export const NotFound: StoryDetailStory = {
 /**
  * Error state when fetching fails.
  */
-export const ErrorState: StoryDetailStory = {
+const ErrorState: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
       <div class="text-center py-12">
@@ -905,7 +920,7 @@ export const ErrorState: StoryDetailStory = {
     // Verify error message
     await expect(canvas.getByText('Failed to load story')).toBeInTheDocument();
     // Verify back link
-    const backLink = canvas.getByRole('link', { name: /back to epic/i });
+    const backLink = canvas.getByRole('link', { name: REGEX_BACK_TO_EPIC });
     await expect(backLink).toBeInTheDocument();
     await expect(backLink).toHaveAttribute('href', '/epic/dashboard-restructure');
 
@@ -969,7 +984,7 @@ The SAGA Dashboard needs Storybook for component development and documentation.
 /**
  * Populated story with tasks and journal (Tasks tab active).
  */
-export const Populated: StoryDetailStory = {
+const Populated: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
       <div class="space-y-6">
@@ -1054,9 +1069,7 @@ export const Populated: StoryDetailStory = {
     await expect(tabList).toBeInTheDocument();
     // Verify all tabs have accessible names
     const tabs = canvas.getAllByRole('tab');
-    for (const tab of tabs) {
-      await expect(tab).toHaveAccessibleName();
-    }
+    await Promise.all(tabs.map((tab) => expect(tab).toHaveAccessibleName()));
 
     // Visual snapshot test
     await matchCanvasSnapshot(canvasElement, 'story-detail-populated');
@@ -1066,7 +1079,7 @@ export const Populated: StoryDetailStory = {
 /**
  * Story with no tasks defined.
  */
-export const EmptyTasks: StoryDetailStory = {
+const EmptyTasks: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
       <div class="space-y-6">
@@ -1171,7 +1184,7 @@ const storyWithBlocker: StoryDetailType = {
 /**
  * Story with a blocker - Journal tab shows blocker prominently.
  */
-export const WithBlocker: StoryDetailStory = {
+const WithBlocker: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
       <div class="space-y-6">
@@ -1291,7 +1304,7 @@ const completedStory: StoryDetailType = {
 /**
  * Completed story - all tasks done.
  */
-export const Completed: StoryDetailStory = {
+const Completed: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
       <div class="space-y-6">
@@ -1354,17 +1367,17 @@ export const Completed: StoryDetailStory = {
     await expect(canvas.getByText('Add CI pipeline')).toBeInTheDocument();
     // Verify all task badges show "completed"
     const completedBadges = canvas.getAllByText('completed');
-    await expect(completedBadges.length).toBe(4);
+    await expect(completedBadges.length).toBe(EXPECTED_COMPLETED_TASK_COUNT);
     // Verify all tasks have check-circle icons
     const checkIcons = canvas.getAllByTestId(ICON_CHECK_CIRCLE);
-    await expect(checkIcons.length).toBe(4);
+    await expect(checkIcons.length).toBe(EXPECTED_COMPLETED_TASK_COUNT);
   },
 };
 
 /**
  * Story showing the Story Content tab with markdown content.
  */
-export const WithContent: StoryDetailStory = {
+const WithContent: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
       <div class="space-y-6">
@@ -1420,7 +1433,7 @@ export const WithContent: StoryDetailStory = {
     await expect(canvas.getByText('Story Content', { selector: '.text-lg' })).toBeInTheDocument();
     // Verify markdown content is rendered (check for headings and text)
     await expect(canvas.getByRole('heading', { name: 'Context' })).toBeInTheDocument();
-    await expect(canvas.getByText(/The SAGA Dashboard needs Storybook/)).toBeInTheDocument();
+    await expect(canvas.getByText(REGEX_SAGA_DASHBOARD_NEEDS_STORYBOOK)).toBeInTheDocument();
     await expect(canvas.getByRole('heading', { name: 'Acceptance Criteria' })).toBeInTheDocument();
     // Verify prose container is present
     const proseContainer = canvasElement.querySelector('.prose');
@@ -1431,7 +1444,7 @@ export const WithContent: StoryDetailStory = {
 /**
  * Story with empty journal - no entries yet.
  */
-export const EmptyJournal: StoryDetailStory = {
+const EmptyJournal: StoryDetailStory = {
   render: () => (
     <MemoryRouter>
       <div class="space-y-6">
@@ -1483,3 +1496,47 @@ export const EmptyJournal: StoryDetailStory = {
     await expect(canvas.getByText('No journal entries yet.')).toBeInTheDocument();
   },
 };
+
+// Exports must be at end of file per useExportsLast rule
+export {
+  // Stories
+  Skeleton,
+  ContentLoading,
+  ContentLoadingStacked,
+  IconPending,
+  IconInProgress,
+  IconCompleted,
+  AllTaskIcons,
+  TaskPending,
+  TaskInProgress,
+  TaskCompleted,
+  TaskLongTitle,
+  AllTaskStatuses,
+  EntrySession,
+  EntrySessionExpanded,
+  EntryBlocker,
+  EntryResolution,
+  AllEntryTypes,
+  BadgeReady,
+  BadgeInProgress,
+  BadgeBlocked,
+  BadgeCompleted,
+  AllBadges,
+  Loading,
+  NotFound,
+  ErrorState,
+  Populated,
+  EmptyTasks,
+  WithBlocker,
+  Completed,
+  WithContent,
+  EmptyJournal,
+  // Meta objects
+  contentSkeletonMeta,
+  taskStatusIconMeta,
+  taskItemMeta,
+  journalEntryMeta,
+  statusBadgeMeta,
+  storyDetailMeta,
+};
+export default headerSkeletonMeta;

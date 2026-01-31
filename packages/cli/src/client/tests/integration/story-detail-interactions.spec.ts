@@ -8,6 +8,10 @@ import {
   mockStoryDetail,
 } from '../utils/mock-api.ts';
 
+// Top-level regex patterns for tab names
+const REGEX_JOURNAL = /Journal/;
+const REGEX_SESSIONS = /Sessions/;
+
 /**
  * Story detail interaction tests for the dashboard.
  * Tests tab switching and collapsible journal entry behavior.
@@ -112,10 +116,10 @@ test.describe('Story Detail Interactions', () => {
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Click on Journal tab
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
 
       // Verify tab is active and journal entries are shown
-      await expect(page.getByRole('tab', { name: /Journal/ })).toHaveAttribute(
+      await expect(page.getByRole('tab', { name: REGEX_JOURNAL })).toHaveAttribute(
         'data-state',
         'active',
       );
@@ -148,7 +152,7 @@ test.describe('Story Detail Interactions', () => {
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Verify Journal tab shows blocker count
-      const journalTab = page.getByRole('tab', { name: /Journal/ });
+      const journalTab = page.getByRole('tab', { name: REGEX_JOURNAL });
       await expect(journalTab.getByText('2')).toBeVisible();
     });
 
@@ -179,9 +183,9 @@ test.describe('Story Detail Interactions', () => {
       await expect(page.getByText('Content text')).toBeVisible();
 
       // Switch to Journal
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
       // Look for the journal section heading indicating sessions exist
-      await expect(page.getByRole('heading', { name: /Sessions/ })).toBeVisible();
+      await expect(page.getByRole('heading', { name: REGEX_SESSIONS })).toBeVisible();
 
       // Switch back to Tasks
       await page.getByRole('tab', { name: 'Tasks' }).click();
@@ -218,7 +222,7 @@ test.describe('Story Detail Interactions', () => {
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Go to Journal tab
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
 
       // Session entries are collapsed by default
       await expect(page.getByText('Expandable Session')).toBeVisible();
@@ -260,7 +264,7 @@ test.describe('Story Detail Interactions', () => {
 
       await page.goto('/epic/toggle-epic/story/toggle-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
 
       // Expand
       await page.getByText('Toggle Session').click();
@@ -297,7 +301,7 @@ test.describe('Story Detail Interactions', () => {
 
       await page.goto('/epic/blocker-expand-epic/story/blocker-expand-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
 
       // Blocker entries should be expanded by default
       await expect(page.getByText('Critical Blocker')).toBeVisible();
@@ -329,7 +333,7 @@ test.describe('Story Detail Interactions', () => {
 
       await page.goto('/epic/multi-epic/story/multi-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
 
       // Both collapsed initially
       await expect(page.getByText('Content A')).not.toBeVisible();

@@ -25,6 +25,10 @@ const LOADING_TIMEOUT_MS = 10_000;
 // Expected counts
 const EXPECTED_SKELETON_CARDS = 3;
 
+// Regex patterns defined at module level for performance
+const EPIC_ONE_REGEX = /Epic One/i;
+const NAV_EPIC_1_REGEX = /Nav Epic 1/i;
+
 /**
  * Loading state tests for the dashboard.
  * These tests verify that skeleton loaders appear while waiting for API responses
@@ -59,7 +63,7 @@ test.describe('Loading States', () => {
 
       // Skeleton loaders should no longer be visible (or at least not the main loading ones)
       // After data loads, the page should show the actual epic cards
-      await expect(page.getByRole('link', { name: /Epic One/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: EPIC_ONE_REGEX })).toBeVisible();
     });
 
     test('should show multiple skeleton cards while loading', async ({ page }) => {
@@ -279,7 +283,7 @@ test.describe('Loading States', () => {
       await expect(page.getByText('Nav Epic 1')).toBeVisible();
 
       // Click to navigate to epic detail
-      await page.getByRole('link', { name: /Nav Epic 1/i }).click();
+      await page.getByRole('link', { name: NAV_EPIC_1_REGEX }).click();
       await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, {
         timeout: LOADING_TIMEOUT_MS,
       });

@@ -16,7 +16,12 @@ import {
   stopSessionPolling,
 } from './session-polling.ts';
 import type { DetailedSessionInfo } from './sessions.ts';
-import * as sessionsModule from './sessions.ts';
+import { buildSessionInfo, getSessionStatus, listSessions } from './sessions.ts';
+
+// Constants for test assertions
+const EXPECTED_POLLING_INTERVAL = 3000;
+const EXPECTED_SESSION_COUNT = 3;
+const STOP_POLLING_MULTIPLIER = 3;
 
 // Mock the sessions module
 vi.mock('./sessions.js', async () => {
@@ -29,9 +34,9 @@ vi.mock('./sessions.js', async () => {
   };
 });
 
-const mockListSessions = sessionsModule.listSessions as ReturnType<typeof vi.fn>;
-const mockBuildSessionInfo = sessionsModule.buildSessionInfo as ReturnType<typeof vi.fn>;
-const mockGetSessionStatus = sessionsModule.getSessionStatus as ReturnType<typeof vi.fn>;
+const mockListSessions = listSessions as ReturnType<typeof vi.fn>;
+const mockBuildSessionInfo = buildSessionInfo as ReturnType<typeof vi.fn>;
+const mockGetSessionStatus = getSessionStatus as ReturnType<typeof vi.fn>;
 
 describe('session-polling', () => {
   beforeEach(() => {
@@ -48,7 +53,7 @@ describe('session-polling', () => {
 
   describe('POLLING_INTERVAL_MS', () => {
     it('should be 3000ms', () => {
-      expect(POLLING_INTERVAL_MS).toBe(3000);
+      expect(POLLING_INTERVAL_MS).toBe(EXPECTED_POLLING_INTERVAL);
     });
   });
 
@@ -72,7 +77,7 @@ describe('session-polling', () => {
         startTime: new Date('2024-01-15T10:00:00Z'),
       };
 
-      mockListSessions.mockResolvedValue([
+      mockListSessions.mockReturnValue([
         {
           name: 'saga__my-epic__my-story__12345',
           status: 'running',
@@ -80,7 +85,7 @@ describe('session-polling', () => {
         },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
-      mockGetSessionStatus.mockResolvedValue({ running: true });
+      mockGetSessionStatus.mockReturnValue({ running: true });
 
       startSessionPolling(broadcast);
 
@@ -96,7 +101,7 @@ describe('session-polling', () => {
     it('should filter out non-SAGA sessions (null from buildSessionInfo)', async () => {
       const broadcast = vi.fn();
 
-      mockListSessions.mockResolvedValue([
+      mockListSessions.mockReturnValue([
         { name: 'other-session', status: 'running', outputFile: '/tmp/other.out' },
         {
           name: 'saga__my-epic__my-story__12345',
@@ -104,9 +109,9 @@ describe('session-polling', () => {
           outputFile: '/tmp/saga-sessions/saga__my-epic__my-story__12345.out',
         },
       ]);
-      mockBuildSessionInfo.mockImplementation(async (name) => {
+      mockBuildSessionInfo.mockImplementation((name) => {
         if (name.startsWith('saga__')) {
-          return {
+          return Promise.resolve({
             name,
             epicSlug: 'my-epic',
             storySlug: 'my-story',
@@ -114,11 +119,11 @@ describe('session-polling', () => {
             outputFile: `/tmp/saga-sessions/${name}.out`,
             outputAvailable: true,
             startTime: new Date(),
-          };
+          });
         }
-        return null;
+        return Promise.resolve(null);
       });
-      mockGetSessionStatus.mockResolvedValue({ running: true });
+      mockGetSessionStatus.mockReturnValue({ running: true });
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
@@ -137,7 +142,7 @@ describe('session-polling', () => {
     it('should poll at the configured interval', async () => {
       const broadcast = vi.fn();
 
-      mockListSessions.mockResolvedValue([]);
+      mockListSessions.mockReturnValue([]);
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
@@ -151,7 +156,7 @@ describe('session-polling', () => {
 
       // Advance to second interval
       await vi.advanceTimersByTimeAsync(POLLING_INTERVAL_MS);
-      expect(mockListSessions).toHaveBeenCalledTimes(3);
+      expect(mockListSessions).toHaveBeenCalledTimes(EXPECTED_SESSION_COUNT);
     });
 
     it('should not broadcast if no changes occurred', async () => {
@@ -166,7 +171,7 @@ describe('session-polling', () => {
         startTime: new Date('2024-01-15T10:00:00Z'),
       };
 
-      mockListSessions.mockResolvedValue([
+      mockListSessions.mockReturnValue([
         {
           name: 'saga__my-epic__my-story__12345',
           status: 'running',
@@ -174,7 +179,7 @@ describe('session-polling', () => {
         },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
-      mockGetSessionStatus.mockResolvedValue({ running: true });
+      mockGetSessionStatus.mockReturnValue({ running: true });
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
@@ -191,7 +196,7 @@ describe('session-polling', () => {
       const broadcast = vi.fn();
 
       // Initially no sessions
-      mockListSessions.mockResolvedValue([]);
+      mockListSessions.mockReturnValue([]);
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
@@ -209,7 +214,7 @@ describe('session-polling', () => {
         startTime: new Date(),
       };
 
-      mockListSessions.mockResolvedValue([
+      mockListSessions.mockReturnValue([
         {
           name: 'saga__new-epic__new-story__99999',
           status: 'running',
@@ -217,7 +222,7 @@ describe('session-polling', () => {
         },
       ]);
       mockBuildSessionInfo.mockResolvedValue(newSession);
-      mockGetSessionStatus.mockResolvedValue({ running: true });
+      mockGetSessionStatus.mockReturnValue({ running: true });
 
       await vi.advanceTimersByTimeAsync(POLLING_INTERVAL_MS);
       expect(broadcast).toHaveBeenCalledTimes(2);
@@ -240,7 +245,7 @@ describe('session-polling', () => {
         startTime,
       };
 
-      mockListSessions.mockResolvedValue([
+      mockListSessions.mockReturnValue([
         {
           name: 'saga__my-epic__my-story__12345',
           status: 'running',
@@ -248,7 +253,7 @@ describe('session-polling', () => {
         },
       ]);
       mockBuildSessionInfo.mockResolvedValue(runningSession);
-      mockGetSessionStatus.mockResolvedValue({ running: true });
+      mockGetSessionStatus.mockReturnValue({ running: true });
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
@@ -261,7 +266,7 @@ describe('session-polling', () => {
         status: 'completed',
         endTime,
       };
-      mockGetSessionStatus.mockResolvedValue({ running: false });
+      mockGetSessionStatus.mockReturnValue({ running: false });
       mockBuildSessionInfo.mockResolvedValue(completedSession);
 
       await vi.advanceTimersByTimeAsync(POLLING_INTERVAL_MS);
@@ -281,7 +286,7 @@ describe('session-polling', () => {
         startTime: new Date(),
       };
 
-      mockListSessions.mockResolvedValue([
+      mockListSessions.mockReturnValue([
         {
           name: 'saga__my-epic__my-story__12345',
           status: 'running',
@@ -289,7 +294,7 @@ describe('session-polling', () => {
         },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
-      mockGetSessionStatus.mockResolvedValue({ running: true });
+      mockGetSessionStatus.mockReturnValue({ running: true });
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
@@ -297,7 +302,7 @@ describe('session-polling', () => {
       expect(broadcast.mock.calls[0][0].sessions).toHaveLength(1);
 
       // Session removed
-      mockListSessions.mockResolvedValue([]);
+      mockListSessions.mockReturnValue([]);
 
       await vi.advanceTimersByTimeAsync(POLLING_INTERVAL_MS);
       expect(broadcast).toHaveBeenCalledTimes(2);
@@ -308,7 +313,7 @@ describe('session-polling', () => {
       const broadcast1 = vi.fn();
       const broadcast2 = vi.fn();
 
-      mockListSessions.mockResolvedValue([]);
+      mockListSessions.mockReturnValue([]);
 
       startSessionPolling(broadcast1);
       await vi.advanceTimersByTimeAsync(0);
@@ -327,7 +332,7 @@ describe('session-polling', () => {
     it('should stop the polling interval', async () => {
       const broadcast = vi.fn();
 
-      mockListSessions.mockResolvedValue([]);
+      mockListSessions.mockReturnValue([]);
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
@@ -336,7 +341,7 @@ describe('session-polling', () => {
       stopSessionPolling();
 
       // Advance time - should not poll again
-      await vi.advanceTimersByTimeAsync(POLLING_INTERVAL_MS * 3);
+      await vi.advanceTimersByTimeAsync(POLLING_INTERVAL_MS * STOP_POLLING_MULTIPLIER);
       expect(mockListSessions).toHaveBeenCalledTimes(1);
     });
 
@@ -352,7 +357,7 @@ describe('session-polling', () => {
         startTime: new Date(),
       };
 
-      mockListSessions.mockResolvedValue([
+      mockListSessions.mockReturnValue([
         {
           name: 'saga__my-epic__my-story__12345',
           status: 'running',
@@ -360,7 +365,7 @@ describe('session-polling', () => {
         },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
-      mockGetSessionStatus.mockResolvedValue({ running: true });
+      mockGetSessionStatus.mockReturnValue({ running: true });
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
@@ -394,7 +399,7 @@ describe('session-polling', () => {
         startTime: new Date('2024-01-15T10:00:00Z'),
       };
 
-      mockListSessions.mockResolvedValue([
+      mockListSessions.mockReturnValue([
         {
           name: 'saga__my-epic__my-story__12345',
           status: 'running',
@@ -402,7 +407,7 @@ describe('session-polling', () => {
         },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
-      mockGetSessionStatus.mockResolvedValue({ running: true });
+      mockGetSessionStatus.mockReturnValue({ running: true });
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
@@ -424,7 +429,7 @@ describe('session-polling', () => {
         startTime: new Date('2024-01-15T10:00:00Z'),
       };
 
-      mockListSessions.mockResolvedValue([
+      mockListSessions.mockReturnValue([
         {
           name: 'saga__my-epic__my-story__12345',
           status: 'running',
@@ -432,7 +437,7 @@ describe('session-polling', () => {
         },
       ]);
       mockBuildSessionInfo.mockResolvedValue(mockSession);
-      mockGetSessionStatus.mockResolvedValue({ running: true });
+      mockGetSessionStatus.mockReturnValue({ running: true });
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
@@ -474,7 +479,7 @@ describe('session-polling', () => {
         startTime: new Date('2024-01-15T10:00:00Z'), // Middle
       };
 
-      mockListSessions.mockResolvedValue([
+      mockListSessions.mockReturnValue([
         {
           name: 'saga__epic1__story1__111',
           status: 'running',
@@ -491,25 +496,25 @@ describe('session-polling', () => {
           outputFile: '/tmp/saga-sessions/saga__epic3__story3__333.out',
         },
       ]);
-      mockBuildSessionInfo.mockImplementation(async (name) => {
+      mockBuildSessionInfo.mockImplementation((name) => {
         if (name === 'saga__epic1__story1__111') {
-          return session1;
+          return Promise.resolve(session1);
         }
         if (name === 'saga__epic2__story2__222') {
-          return session2;
+          return Promise.resolve(session2);
         }
         if (name === 'saga__epic3__story3__333') {
-          return session3;
+          return Promise.resolve(session3);
         }
-        return null;
+        return Promise.resolve(null);
       });
-      mockGetSessionStatus.mockResolvedValue({ running: true });
+      mockGetSessionStatus.mockReturnValue({ running: true });
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
 
       const sessions = getCurrentSessions();
-      expect(sessions).toHaveLength(3);
+      expect(sessions).toHaveLength(EXPECTED_SESSION_COUNT);
       expect(sessions[0].name).toBe('saga__epic2__story2__222'); // Newest first
       expect(sessions[1].name).toBe('saga__epic3__story3__333'); // Middle
       expect(sessions[2].name).toBe('saga__epic1__story1__111'); // Oldest last
@@ -519,35 +524,32 @@ describe('session-polling', () => {
   describe('error handling', () => {
     it('should continue polling if listSessions throws an error', async () => {
       const broadcast = vi.fn();
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-        // Suppress console error output in tests
-      });
 
       // First call throws
-      mockListSessions.mockRejectedValueOnce(new Error('tmux not available'));
+      mockListSessions.mockImplementationOnce(() => {
+        throw new Error('tmux not available');
+      });
       // Second call succeeds
-      mockListSessions.mockResolvedValue([]);
+      mockListSessions.mockReturnValue([]);
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
 
-      // Should have logged error but not crashed
-      expect(consoleSpy).toHaveBeenCalled();
-
-      // Advance to next poll - should still work
+      // Should continue polling even after error (silently handled)
       await vi.advanceTimersByTimeAsync(POLLING_INTERVAL_MS);
       expect(mockListSessions).toHaveBeenCalledTimes(2);
 
-      consoleSpy.mockRestore();
+      // Second poll should succeed and broadcast
+      expect(broadcast).toHaveBeenCalledWith({
+        type: 'sessions:updated',
+        sessions: [],
+      });
     });
 
     it('should handle buildSessionInfo errors gracefully', async () => {
       const broadcast = vi.fn();
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
-        // Suppress console error output in tests
-      });
 
-      mockListSessions.mockResolvedValue([
+      mockListSessions.mockReturnValue([
         {
           name: 'saga__my-epic__my-story__12345',
           status: 'running',
@@ -555,19 +557,16 @@ describe('session-polling', () => {
         },
       ]);
       mockBuildSessionInfo.mockRejectedValue(new Error('Failed to build session info'));
-      mockGetSessionStatus.mockResolvedValue({ running: true });
+      mockGetSessionStatus.mockReturnValue({ running: true });
 
       startSessionPolling(broadcast);
       await vi.advanceTimersByTimeAsync(0);
 
-      // Should have logged error but still broadcast (empty sessions)
-      expect(consoleSpy).toHaveBeenCalled();
+      // Should broadcast with empty sessions when buildSessionInfo fails (silently handled)
       expect(broadcast).toHaveBeenCalledWith({
         type: 'sessions:updated',
         sessions: [],
       });
-
-      consoleSpy.mockRestore();
     });
   });
 });

@@ -12,6 +12,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DetailedSessionInfo } from '../../lib/sessions.ts';
 import { createSessionApiRouter } from '../session-routes.ts';
 
+// HTTP status code constants for biome lint/style/noMagicNumbers
+const HTTP_OK = 200;
+const HTTP_NOT_FOUND = 404;
+
+// Expected count constants for assertions
+const EXPECTED_COUNT_ONE = 1;
+const EXPECTED_COUNT_TWO = 2;
+const EXPECTED_COUNT_THREE = 3;
+
 // Mock the session-polling module
 vi.mock('../../lib/session-polling.js', () => ({
   getCurrentSessions: vi.fn(),
@@ -78,9 +87,9 @@ describe('session routes', () => {
 
       const res = await request(app).get('/api/sessions');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBe(2);
+      expect(res.body.length).toBe(EXPECTED_COUNT_TWO);
     });
 
     it('should return sessions with correct structure', async () => {
@@ -89,7 +98,7 @@ describe('session routes', () => {
 
       const res = await request(app).get('/api/sessions');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(res.body[0]).toMatchObject({
         name: mockSession.name,
         epicSlug: mockSession.epicSlug,
@@ -107,7 +116,7 @@ describe('session routes', () => {
 
       const res = await request(app).get('/api/sessions');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(res.body).toEqual([]);
     });
 
@@ -133,8 +142,8 @@ describe('session routes', () => {
 
       const res = await request(app).get('/api/sessions?epicSlug=epic1');
 
-      expect(res.status).toBe(200);
-      expect(res.body.length).toBe(2);
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.length).toBe(EXPECTED_COUNT_TWO);
       expect(res.body.every((s: DetailedSessionInfo) => s.epicSlug === 'epic1')).toBe(true);
     });
 
@@ -160,8 +169,8 @@ describe('session routes', () => {
 
       const res = await request(app).get(sessionsPath({ epicSlug: 'epic1', storySlug: 'story1' }));
 
-      expect(res.status).toBe(200);
-      expect(res.body.length).toBe(1);
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.length).toBe(EXPECTED_COUNT_ONE);
       expect(res.body[0].epicSlug).toBe('epic1');
       expect(res.body[0].storySlug).toBe('story1');
     });
@@ -176,8 +185,8 @@ describe('session routes', () => {
 
       const res = await request(app).get('/api/sessions?status=running');
 
-      expect(res.status).toBe(200);
-      expect(res.body.length).toBe(2);
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.length).toBe(EXPECTED_COUNT_TWO);
       expect(res.body.every((s: DetailedSessionInfo) => s.status === 'running')).toBe(true);
     });
 
@@ -190,8 +199,8 @@ describe('session routes', () => {
 
       const res = await request(app).get('/api/sessions?status=completed');
 
-      expect(res.status).toBe(200);
-      expect(res.body.length).toBe(1);
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.length).toBe(EXPECTED_COUNT_ONE);
       expect(res.body[0].status).toBe('completed');
     });
 
@@ -228,8 +237,8 @@ describe('session routes', () => {
         sessionsPath({ epicSlug: 'epic1', storySlug: 'story1', status: 'running' }),
       );
 
-      expect(res.status).toBe(200);
-      expect(res.body.length).toBe(1);
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.length).toBe(EXPECTED_COUNT_ONE);
       expect(res.body[0].name).toBe('saga__epic1__story1__111');
     });
 
@@ -257,8 +266,8 @@ describe('session routes', () => {
 
       const res = await request(app).get('/api/sessions');
 
-      expect(res.status).toBe(200);
-      expect(res.body.length).toBe(3);
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.length).toBe(EXPECTED_COUNT_THREE);
       // Results should maintain the sorted order
       expect(res.body[0].name).toBe('saga__epic1__story2__222');
       expect(res.body[2].name).toBe('saga__epic1__story3__333');
@@ -272,7 +281,7 @@ describe('session routes', () => {
 
       const res = await request(app).get('/api/sessions?epicSlug=nonexistent');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(res.body).toEqual([]);
     });
 
@@ -294,9 +303,9 @@ describe('session routes', () => {
       // storySlug without epicSlug should be ignored
       const res = await request(app).get('/api/sessions?storySlug=story1');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       // Should return all sessions since storySlug is ignored without epicSlug
-      expect(res.body.length).toBe(2);
+      expect(res.body.length).toBe(EXPECTED_COUNT_TWO);
     });
   });
 
@@ -309,7 +318,7 @@ describe('session routes', () => {
 
       const res = await request(app).get('/api/sessions/saga__test-epic__test-story__12345');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(res.body.name).toBe('saga__test-epic__test-story__12345');
     });
 
@@ -331,7 +340,7 @@ describe('session routes', () => {
 
       const res = await request(app).get('/api/sessions/saga__test-epic__test-story__12345');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(res.body).toMatchObject({
         name: 'saga__test-epic__test-story__12345',
         epicSlug: 'test-epic',
@@ -350,7 +359,7 @@ describe('session routes', () => {
 
       const res = await request(app).get('/api/sessions/nonexistent');
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(HTTP_NOT_FOUND);
       expect(res.body.error).toBe('Session not found');
     });
 
@@ -363,7 +372,7 @@ describe('session routes', () => {
       // Partial match should fail
       const res = await request(app).get('/api/sessions/saga__test-epic__test-story');
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(HTTP_NOT_FOUND);
       expect(res.body.error).toBe('Session not found');
     });
 
@@ -376,7 +385,7 @@ describe('session routes', () => {
       // URL encoding of saga__test-epic__test-story__12345
       const res = await request(app).get('/api/sessions/saga__test-epic__test-story__12345');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(res.body.name).toBe('saga__test-epic__test-story__12345');
     });
   });

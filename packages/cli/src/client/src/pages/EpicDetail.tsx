@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useDashboard } from '@/context/dashboard-context';
 import { showApiErrorToast } from '@/lib/toast-utils';
-import type { Epic, StoryStatus } from '@/types/dashboard';
+import type { StoryStatus } from '@/types/dashboard';
 
 /** HTTP 404 Not Found status code */
 const HTTP_NOT_FOUND = 404;
@@ -142,6 +142,7 @@ function LoadingState() {
   );
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: React component with complex render logic
 function EpicDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { currentEpic, setCurrentEpic, clearCurrentEpic, isLoading } = useDashboard();

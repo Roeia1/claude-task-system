@@ -101,6 +101,7 @@ export function createMockStoryDetail(overrides: Partial<StoryDetail> = {}): Sto
  * Creates a mock Epic with sensible defaults.
  * Used for epic detail view (/api/epics/:slug endpoint).
  */
+// biome-ignore lint/style/useExportsLast: Exports grouped by function category for readability
 export function createMockEpic(overrides: Partial<Epic> = {}): Epic {
   const slug = overrides.slug || `mock-epic-${Date.now()}`;
   const stories = overrides.stories || [];
@@ -133,6 +134,9 @@ export function createMockEpic(overrides: Partial<Epic> = {}): Epic {
 //   function matchers for precise URL matching and to avoid conflicts.
 // - General-purpose mocks (mockApiError, mockApiDelay, mockNetworkFailure)
 //   accept glob patterns from the caller for flexibility.
+
+/** Route pattern type - accepts glob strings, regex, or function matchers */
+type RoutePattern = string | RegExp | ((url: URL) => boolean);
 
 /**
  * Mocks the GET /api/epics endpoint to return a list of epic summaries.
@@ -185,9 +189,6 @@ export async function mockStoryDetail(page: Page, story: StoryDetail): Promise<v
     },
   );
 }
-
-/** Route pattern type - accepts glob strings, regex, or function matchers */
-type RoutePattern = string | RegExp | ((url: URL) => boolean);
 
 /**
  * Mocks an API route to return an error response.
@@ -264,13 +265,13 @@ export async function mockNetworkFailure(page: Page, routePattern: RoutePattern)
 // ============================================================================
 
 /**
- * Sets up a complete mock API environment with sample data.
- * Useful for quick test setup when you need a working dashboard.
+ * Creates standard mock data for the dashboard.
  */
-export async function setupMockDashboard(page: Page): Promise<{
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Data factory function with inline test fixtures
+function createMockDashboardData(): {
   epics: EpicSummary[];
   epicDetails: Record<string, Epic>;
-}> {
+} {
   const epics = [
     createMockEpicSummary({
       slug: 'epic-one',
@@ -342,14 +343,40 @@ export async function setupMockDashboard(page: Page): Promise<{
     }),
   };
 
-  // Set up all API mocks
+  return { epics, epicDetails };
+}
+
+/**
+ * Sets up all API mocks for the given epic details.
+ */
+async function setupApiMocks(
+  page: Page,
+  epics: EpicSummary[],
+  epicDetails: Record<string, Epic>,
+): Promise<void> {
   await mockEpicList(page, epics);
-  for (const [, epic] of Object.entries(epicDetails)) {
-    await mockEpicDetail(page, epic);
+
+  // Collect all mock promises
+  const mockPromises: Promise<void>[] = [];
+  for (const epic of Object.values(epicDetails)) {
+    mockPromises.push(mockEpicDetail(page, epic));
     for (const story of epic.stories) {
-      await mockStoryDetail(page, story);
+      mockPromises.push(mockStoryDetail(page, story));
     }
   }
 
+  await Promise.all(mockPromises);
+}
+
+/**
+ * Sets up a complete mock API environment with sample data.
+ * Useful for quick test setup when you need a working dashboard.
+ */
+export async function setupMockDashboard(page: Page): Promise<{
+  epics: EpicSummary[];
+  epicDetails: Record<string, Epic>;
+}> {
+  const { epics, epicDetails } = createMockDashboardData();
+  await setupApiMocks(page, epics, epicDetails);
   return { epics, epicDetails };
 }

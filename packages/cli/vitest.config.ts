@@ -70,4 +70,5 @@ const config = defineConfig({
   },
 });
 
+// biome-ignore lint/style/noDefaultExport: vitest config requires default export
 export { config as default };

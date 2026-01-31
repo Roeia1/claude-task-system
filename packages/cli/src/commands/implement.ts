@@ -32,7 +32,7 @@ import { resolveProjectPath } from '../utils/project-discovery.ts';
 /**
  * Options for the implement command
  */
-export interface ImplementOptions {
+interface ImplementOptions {
   path?: string;
   maxCycles?: number;
   maxTime?: number;
@@ -79,6 +79,14 @@ const DEFAULT_MAX_TIME = 60; // minutes
 const DEFAULT_MODEL = 'opus';
 const VALID_STATUSES = new Set(['ONGOING', 'FINISH', 'BLOCKED']);
 const WORKER_PROMPT_RELATIVE = 'worker-prompt.md';
+
+// Time conversion constants
+const MS_PER_SECOND = 1000;
+const MS_PER_MINUTE = 60_000;
+const SECONDS_PER_MINUTE = 60;
+
+// Rounding precision constant
+const ROUNDING_PRECISION = 100;
 
 // JSON schema for worker output validation
 const WORKER_OUTPUT_SCHEMA = {
@@ -214,6 +222,78 @@ interface DryRunResult {
 }
 
 /**
+ * Check SAGA_PLUGIN_ROOT environment variable
+ */
+function checkPluginRoot(pluginRoot: string | undefined): DryRunCheck {
+  if (pluginRoot) {
+    return { name: 'SAGA_PLUGIN_ROOT', path: pluginRoot, passed: true };
+  }
+  return { name: 'SAGA_PLUGIN_ROOT', passed: false, error: 'Environment variable not set' };
+}
+
+/**
+ * Check claude CLI availability
+ */
+function checkClaudeCli(): DryRunCheck {
+  const claudeCheck = checkCommandExists('claude');
+  return {
+    name: 'claude CLI',
+    path: claudeCheck.path,
+    passed: claudeCheck.exists,
+    error: claudeCheck.exists ? undefined : 'Command not found in PATH',
+  };
+}
+
+/**
+ * Check worker prompt file exists
+ */
+function checkWorkerPrompt(pluginRoot: string): DryRunCheck {
+  const skillRoot = getSkillRoot(pluginRoot);
+  const workerPromptPath = join(skillRoot, WORKER_PROMPT_RELATIVE);
+  const exists = existsSync(workerPromptPath);
+  return {
+    name: 'Worker prompt',
+    path: workerPromptPath,
+    passed: exists,
+    error: exists ? undefined : 'File not found',
+  };
+}
+
+/**
+ * Check worktree directory exists
+ */
+function checkWorktreeExists(worktreePath: string): DryRunCheck {
+  const exists = existsSync(worktreePath);
+  return {
+    name: 'Worktree exists',
+    path: worktreePath,
+    passed: exists,
+    error: exists ? undefined : 'Directory not found',
+  };
+}
+
+/**
+ * Check story.md file exists in worktree
+ */
+function checkStoryMdExists(storyInfo: StoryInfo): DryRunCheck | null {
+  if (!existsSync(storyInfo.worktreePath)) {
+    return null;
+  }
+  const storyMdPath = computeStoryPath(
+    storyInfo.worktreePath,
+    storyInfo.epicSlug,
+    storyInfo.storySlug,
+  );
+  const exists = existsSync(storyMdPath);
+  return {
+    name: 'story.md in worktree',
+    path: storyMdPath,
+    passed: exists,
+    error: exists ? undefined : 'File not found',
+  };
+}
+
+/**
  * Run dry-run validation to check all dependencies
  */
 function runDryRun(
@@ -222,55 +302,16 @@ function runDryRun(
   pluginRoot: string | undefined,
 ): DryRunResult {
   const checks: DryRunCheck[] = [];
-  let allPassed = true;
 
   // Check 1: SAGA_PLUGIN_ROOT environment variable
-  if (pluginRoot) {
-    checks.push({
-      name: 'SAGA_PLUGIN_ROOT',
-      path: pluginRoot,
-      passed: true,
-    });
-  } else {
-    checks.push({
-      name: 'SAGA_PLUGIN_ROOT',
-      passed: false,
-      error: 'Environment variable not set',
-    });
-    allPassed = false;
-  }
+  checks.push(checkPluginRoot(pluginRoot));
 
   // Check 2: claude CLI is available
-  const claudeCheck = checkCommandExists('claude');
-  checks.push({
-    name: 'claude CLI',
-    path: claudeCheck.path,
-    passed: claudeCheck.exists,
-    error: claudeCheck.exists ? undefined : 'Command not found in PATH',
-  });
-  if (!claudeCheck.exists) {
-    allPassed = false;
-  }
+  checks.push(checkClaudeCli());
 
   // Check 3: Worker prompt file
   if (pluginRoot) {
-    const skillRoot = getSkillRoot(pluginRoot);
-    const workerPromptPath = join(skillRoot, WORKER_PROMPT_RELATIVE);
-    if (existsSync(workerPromptPath)) {
-      checks.push({
-        name: 'Worker prompt',
-        path: workerPromptPath,
-        passed: true,
-      });
-    } else {
-      checks.push({
-        name: 'Worker prompt',
-        path: workerPromptPath,
-        passed: false,
-        error: 'File not found',
-      });
-      allPassed = false;
-    }
+    checks.push(checkWorkerPrompt(pluginRoot));
   }
 
   // Check 4: Story exists
@@ -281,45 +322,15 @@ function runDryRun(
   });
 
   // Check 5: Worktree exists
-  if (existsSync(storyInfo.worktreePath)) {
-    checks.push({
-      name: 'Worktree exists',
-      path: storyInfo.worktreePath,
-      passed: true,
-    });
-  } else {
-    checks.push({
-      name: 'Worktree exists',
-      path: storyInfo.worktreePath,
-      passed: false,
-      error: 'Directory not found',
-    });
-    allPassed = false;
-  }
+  checks.push(checkWorktreeExists(storyInfo.worktreePath));
 
   // Check 6: story.md in worktree
-  if (existsSync(storyInfo.worktreePath)) {
-    const storyMdPath = computeStoryPath(
-      storyInfo.worktreePath,
-      storyInfo.epicSlug,
-      storyInfo.storySlug,
-    );
-    if (existsSync(storyMdPath)) {
-      checks.push({
-        name: 'story.md in worktree',
-        path: storyMdPath,
-        passed: true,
-      });
-    } else {
-      checks.push({
-        name: 'story.md in worktree',
-        path: storyMdPath,
-        passed: false,
-        error: 'File not found',
-      });
-      allPassed = false;
-    }
+  const storyMdCheck = checkStoryMdExists(storyInfo);
+  if (storyMdCheck) {
+    checks.push(storyMdCheck);
   }
+
+  const allPassed = checks.every((check) => check.passed);
 
   return {
     success: allPassed,
@@ -392,6 +403,22 @@ function buildScopeSettings(): Record<string, unknown> {
 }
 
 /**
+ * Format assistant message content blocks
+ */
+function formatAssistantContent(content: unknown[]): string | null {
+  for (const block of content) {
+    const blockData = block as { type?: string; text?: string; name?: string };
+    if (blockData.type === 'text' && blockData.text) {
+      return blockData.text;
+    }
+    if (blockData.type === 'tool_use') {
+      return `[Tool: ${blockData.name}]`;
+    }
+  }
+  return null;
+}
+
+/**
  * Parse a stream-json line and extract displayable content
  * Returns the text to display, or null if nothing to display
  */
@@ -401,14 +428,7 @@ function formatStreamLine(line: string): string | null {
 
     // Assistant message with text content
     if (data.type === 'assistant' && data.message?.content) {
-      for (const block of data.message.content) {
-        if (block.type === 'text' && block.text) {
-          return block.text;
-        }
-        if (block.type === 'tool_use') {
-          return `[Tool: ${block.name}]`;
-        }
-      }
+      return formatAssistantContent(data.message.content);
     }
 
     // System init message
@@ -419,7 +439,7 @@ function formatStreamLine(line: string): string | null {
     // Result message (final)
     if (data.type === 'result') {
       const status = data.subtype === 'success' ? 'completed' : 'failed';
-      return `\n[Worker ${status} in ${Math.round(data.duration_ms / 1000)}s]`;
+      return `\n[Worker ${status} in ${Math.round(data.duration_ms / MS_PER_SECOND)}s]`;
     }
 
     return null;
@@ -453,6 +473,43 @@ function extractStructuredOutputFromToolCall(lines: string[]): Record<string, un
 }
 
 /**
+ * Validate and extract output from structured output data
+ */
+function validateAndExtractOutput(output: Record<string, unknown>): WorkerOutput {
+  if (!VALID_STATUSES.has(output.status as string)) {
+    throw new Error(`Invalid status: ${output.status}`);
+  }
+
+  return {
+    status: output.status as WorkerOutput['status'],
+    summary: (output.summary as string) || '',
+    blocker: (output.blocker as string | null) ?? null,
+  };
+}
+
+/**
+ * Process a single result line and extract WorkerOutput
+ */
+function processResultLine(data: Record<string, unknown>, lines: string[]): WorkerOutput {
+  if (data.is_error) {
+    throw new Error(`Worker failed: ${data.result || 'Unknown error'}`);
+  }
+
+  // Try to get structured_output from result, fall back to tool call
+  let output = data.structured_output as Record<string, unknown> | undefined;
+  if (!output) {
+    // Fallback: extract from StructuredOutput tool call
+    output = extractStructuredOutputFromToolCall(lines) ?? undefined;
+  }
+
+  if (!output) {
+    throw new Error('Worker result missing structured_output');
+  }
+
+  return validateAndExtractOutput(output);
+}
+
+/**
  * Parse the final result from stream-json output
  * Looks for the {"type":"result",...} line and extracts structured_output.
  * Falls back to extracting from StructuredOutput tool call if structured_output
@@ -466,32 +523,7 @@ function parseStreamingResult(buffer: string): WorkerOutput {
     try {
       const data = JSON.parse(lines[i]);
       if (data.type === 'result') {
-        if (data.is_error) {
-          throw new Error(`Worker failed: ${data.result || 'Unknown error'}`);
-        }
-
-        // Try to get structured_output from result, fall back to tool call
-        let output = data.structured_output;
-        if (!output) {
-          // Fallback: extract from StructuredOutput tool call
-          // This handles error_during_execution cases where structured_output
-          // is missing from the result but the tool was called successfully
-          output = extractStructuredOutputFromToolCall(lines);
-        }
-
-        if (!output) {
-          throw new Error('Worker result missing structured_output');
-        }
-
-        if (!VALID_STATUSES.has(output.status as string)) {
-          throw new Error(`Invalid status: ${output.status}`);
-        }
-
-        return {
-          status: output.status as WorkerOutput['status'],
-          summary: (output.summary as string) || '',
-          blocker: (output.blocker as string | null) ?? null,
-        };
+        return processResultLine(data, lines);
       }
     } catch (e) {
       // Not a valid JSON line or not a result, continue searching
@@ -577,6 +609,137 @@ function spawnWorkerAsync(
 }
 
 /**
+ * Create an error LoopResult
+ */
+function createErrorResult(
+  epicSlug: string,
+  storySlug: string,
+  summary: string,
+  cycles: number,
+  elapsedMinutes: number,
+): LoopResult {
+  return {
+    status: 'ERROR',
+    summary,
+    cycles,
+    elapsedMinutes,
+    blocker: null,
+    epicSlug,
+    storySlug,
+  };
+}
+
+/**
+ * Validate and load resources for the orchestration loop
+ */
+function validateLoopResources(
+  worktree: string,
+  epicSlug: string,
+  storySlug: string,
+  pluginRoot: string,
+): { valid: true; workerPrompt: string } | { valid: false; error: string } {
+  const validation = validateStoryFiles(worktree, epicSlug, storySlug);
+  if (!validation.valid) {
+    return { valid: false, error: validation.error || 'Story validation failed' };
+  }
+
+  try {
+    const workerPrompt = loadWorkerPrompt(pluginRoot);
+    return { valid: true, workerPrompt };
+  } catch (e) {
+    return { valid: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Build final LoopResult from loop state
+ */
+function buildLoopResult(
+  epicSlug: string,
+  storySlug: string,
+  finalStatus: LoopResult['status'],
+  summaries: string[],
+  cycles: number,
+  elapsedMinutes: number,
+  lastBlocker: string | null,
+): LoopResult {
+  const combinedSummary = summaries.length === 1 ? summaries[0] : summaries.join(' | ');
+  return {
+    status: finalStatus,
+    summary: combinedSummary,
+    cycles,
+    elapsedMinutes: Math.round(elapsedMinutes * ROUNDING_PRECISION) / ROUNDING_PRECISION,
+    blocker: lastBlocker,
+    epicSlug,
+    storySlug,
+  };
+}
+
+/**
+ * Loop state for worker orchestration
+ */
+interface LoopState {
+  summaries: string[];
+  cycles: number;
+  lastBlocker: string | null;
+  finalStatus: LoopResult['status'] | null;
+}
+
+/**
+ * Execute the worker spawning loop
+ */
+async function executeWorkerLoop(
+  workerPrompt: string,
+  model: string,
+  settings: Record<string, unknown>,
+  worktree: string,
+  maxCycles: number,
+  maxTimeMs: number,
+  startTime: number,
+  epicSlug: string,
+  storySlug: string,
+): Promise<LoopState | LoopResult> {
+  const state: LoopState = { summaries: [], cycles: 0, lastBlocker: null, finalStatus: null };
+
+  while (state.cycles < maxCycles) {
+    if (Date.now() - startTime >= maxTimeMs) {
+      state.finalStatus = 'TIMEOUT';
+      break;
+    }
+
+    state.cycles += 1;
+    let parsed: WorkerOutput;
+    try {
+      // biome-ignore lint/performance/noAwaitInLoops: Sequential worker spawning is intentional
+      parsed = await spawnWorkerAsync(workerPrompt, model, settings, worktree);
+    } catch (e) {
+      const elapsed = (Date.now() - startTime) / MS_PER_MINUTE;
+      return createErrorResult(
+        epicSlug,
+        storySlug,
+        e instanceof Error ? e.message : String(e),
+        state.cycles,
+        elapsed,
+      );
+    }
+
+    state.summaries.push(parsed.summary);
+
+    if (parsed.status === 'FINISH') {
+      state.finalStatus = 'FINISH';
+      break;
+    }
+    if (parsed.status === 'BLOCKED') {
+      state.finalStatus = 'BLOCKED';
+      state.lastBlocker = parsed.blocker || null;
+      break;
+    }
+  }
+
+  return state;
+}
+
+/**
  * Main orchestration loop that spawns workers until completion
  */
 async function runLoop(
@@ -588,111 +751,47 @@ async function runLoop(
   projectDir: string,
   pluginRoot: string,
 ): Promise<LoopResult> {
-  // Compute worktree path
   const worktree = join(projectDir, '.saga', 'worktrees', epicSlug, storySlug);
 
-  // Validate story files (this is the authoritative validation point)
-  const validation = validateStoryFiles(worktree, epicSlug, storySlug);
-  if (!validation.valid) {
-    return {
-      status: 'ERROR',
-      summary: validation.error || 'Story validation failed',
-      cycles: 0,
-      elapsedMinutes: 0,
-      blocker: null,
-      epicSlug,
-      storySlug,
-    };
+  const resources = validateLoopResources(worktree, epicSlug, storySlug, pluginRoot);
+  if (!resources.valid) {
+    return createErrorResult(epicSlug, storySlug, resources.error, 0, 0);
   }
 
-  // Load worker prompt
-  let workerPrompt: string;
-  try {
-    workerPrompt = loadWorkerPrompt(pluginRoot);
-  } catch (e) {
-    return {
-      status: 'ERROR',
-      summary: e instanceof Error ? e.message : String(e),
-      cycles: 0,
-      elapsedMinutes: 0,
-      blocker: null,
-      epicSlug,
-      storySlug,
-    };
-  }
-
-  // Build scope settings
   const settings = buildScopeSettings();
-
-  // Initialize loop state
   const startTime = Date.now();
-  let cycles = 0;
-  const summaries: string[] = [];
-  let lastBlocker: string | null = null;
-  let finalStatus: LoopResult['status'] | null = null;
+  const maxTimeMs = maxTime * SECONDS_PER_MINUTE * MS_PER_SECOND;
 
-  // Compute max time in milliseconds
-  const maxTimeMs = maxTime * 60 * 1000;
-
-  while (cycles < maxCycles) {
-    // Check time limit
-    const elapsedMs = Date.now() - startTime;
-    if (elapsedMs >= maxTimeMs) {
-      finalStatus = 'TIMEOUT';
-      break;
-    }
-
-    // Spawn worker
-    cycles += 1;
-    let parsed: WorkerOutput;
-    try {
-      parsed = await spawnWorkerAsync(workerPrompt, model, settings, worktree);
-    } catch (e) {
-      return {
-        status: 'ERROR',
-        summary: e instanceof Error ? e.message : String(e),
-        cycles,
-        elapsedMinutes: (Date.now() - startTime) / 60_000,
-        blocker: null,
-        epicSlug,
-        storySlug,
-      };
-    }
-
-    summaries.push(parsed.summary);
-
-    if (parsed.status === 'FINISH') {
-      finalStatus = 'FINISH';
-      break;
-    }
-    if (parsed.status === 'BLOCKED') {
-      finalStatus = 'BLOCKED';
-      lastBlocker = parsed.blocker || null;
-      break;
-    }
-    // ONGOING: continue loop
-  }
-
-  // Check if we hit max cycles
-  if (finalStatus === null) {
-    finalStatus = 'MAX_CYCLES';
-  }
-
-  // Calculate elapsed minutes
-  const elapsedMinutes = (Date.now() - startTime) / 60_000;
-
-  // Combine summaries
-  const combinedSummary = summaries.length === 1 ? summaries[0] : summaries.join(' | ');
-
-  return {
-    status: finalStatus,
-    summary: combinedSummary,
-    cycles,
-    elapsedMinutes: Math.round(elapsedMinutes * 100) / 100,
-    blocker: lastBlocker,
+  const result = await executeWorkerLoop(
+    resources.workerPrompt,
+    model,
+    settings,
+    worktree,
+    maxCycles,
+    maxTimeMs,
+    startTime,
     epicSlug,
     storySlug,
-  };
+  );
+
+  // If result is a LoopResult (error case), return it directly
+  if ('status' in result && result.status === 'ERROR') {
+    return result as LoopResult;
+  }
+
+  const state = result as LoopState;
+  const finalStatus = state.finalStatus ?? 'MAX_CYCLES';
+  const elapsedMinutes = (Date.now() - startTime) / MS_PER_MINUTE;
+
+  return buildLoopResult(
+    epicSlug,
+    storySlug,
+    finalStatus,
+    state.summaries,
+    state.cycles,
+    elapsedMinutes,
+    state.lastBlocker,
+  );
 }
 
 /**
@@ -731,13 +830,44 @@ function buildDetachedCommand(
 }
 
 /**
- * Execute the implement command
+ * Handle dry-run mode for implement command
  */
-export async function implementCommand(
+function handleDryRun(
+  storyInfo: StoryInfo,
+  projectPath: string,
+  pluginRoot: string | undefined,
+): never {
+  const dryRunResult = runDryRun(storyInfo, projectPath, pluginRoot);
+  printDryRunResults(dryRunResult);
+  process.exit(dryRunResult.success ? 0 : 1);
+}
+
+/**
+ * Handle detached mode - create tmux session
+ */
+async function handleDetachedMode(
   storySlug: string,
+  storyInfo: StoryInfo,
+  projectPath: string,
   options: ImplementOptions,
 ): Promise<void> {
-  // Resolve project path
+  const detachedCommand = buildDetachedCommand(storySlug, projectPath, {
+    maxCycles: options.maxCycles,
+    maxTime: options.maxTime,
+    model: options.model,
+  });
+
+  try {
+    await createSession(storyInfo.epicSlug, storyInfo.storySlug, detachedCommand);
+  } catch (_error) {
+    process.exit(1);
+  }
+}
+
+/**
+ * Execute the implement command
+ */
+async function implementCommand(storySlug: string, options: ImplementOptions): Promise<void> {
   let projectPath: string;
   try {
     projectPath = resolveProjectPath(options.path);
@@ -745,64 +875,31 @@ export async function implementCommand(
     process.exit(1);
   }
 
-  // Find the story
   const storyInfo = await findStory(projectPath, storySlug);
   if (!storyInfo) {
     process.exit(1);
   }
 
-  // Get plugin root (may be undefined for dry-run validation)
   const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
 
-  // Handle dry-run mode
   if (options.dryRun) {
-    const dryRunResult = runDryRun(storyInfo, projectPath, pluginRoot);
-    printDryRunResults(dryRunResult);
-    process.exit(dryRunResult.success ? 0 : 1);
+    handleDryRun(storyInfo, projectPath, pluginRoot);
   }
 
-  // Check if worktree exists
-  if (!existsSync(storyInfo.worktreePath)) {
+  if (!(existsSync(storyInfo.worktreePath) && pluginRoot)) {
     process.exit(1);
   }
 
-  // If SAGA_PLUGIN_ROOT is not set, provide a helpful error
-  if (!pluginRoot) {
-    process.exit(1);
-  }
-
-  // Get options with defaults
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTime = options.maxTime ?? DEFAULT_MAX_TIME;
   const model = options.model ?? DEFAULT_MODEL;
 
-  // Check if we're running inside a SAGA tmux session (set by wrapper script)
   const isInternalSession = process.env.SAGA_INTERNAL_SESSION === '1';
-
-  // Detached mode (default): create tmux session
   if (!isInternalSession) {
-    // Build the command to run inside the tmux session
-    const detachedCommand = buildDetachedCommand(storySlug, projectPath, {
-      maxCycles: options.maxCycles,
-      maxTime: options.maxTime,
-      model: options.model,
-    });
-
-    try {
-      const _sessionResult = await createSession(
-        storyInfo.epicSlug,
-        storyInfo.storySlug,
-        detachedCommand,
-      );
-
-      // Exit immediately - worker runs in background
-      return;
-    } catch (_error) {
-      process.exit(1);
-    }
+    await handleDetachedMode(storySlug, storyInfo, projectPath, options);
+    return;
   }
 
-  // Run the orchestration loop
   const result = await runLoop(
     storyInfo.epicSlug,
     storyInfo.storySlug,
@@ -813,8 +910,11 @@ export async function implementCommand(
     pluginRoot,
   );
 
-  // Exit with appropriate code
   if (result.status === 'ERROR') {
     process.exit(1);
   }
 }
+
+// Export types and functions at the end of the file
+export type { ImplementOptions };
+export { implementCommand };

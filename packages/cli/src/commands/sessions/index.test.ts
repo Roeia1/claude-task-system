@@ -6,7 +6,7 @@
 
 import process from 'node:process';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import * as sessions from '../../lib/sessions.ts';
+import { getSessionStatus, killSession, listSessions, streamLogs } from '../../lib/sessions.ts';
 
 // Mock the sessions library module
 vi.mock('../../lib/sessions.js', () => ({
@@ -35,7 +35,7 @@ describe('sessions CLI subcommands', () => {
           outputFile: '/tmp/saga-sessions/saga-epic2-story2-5678.out',
         },
       ];
-      vi.mocked(sessions.listSessions).mockResolvedValue(mockSessions);
+      vi.mocked(listSessions).mockResolvedValue(mockSessions);
 
       const { sessionsListCommand } = await import('./index.ts');
 
@@ -46,14 +46,14 @@ describe('sessions CLI subcommands', () => {
 
       await sessionsListCommand();
 
-      expect(sessions.listSessions).toHaveBeenCalled();
+      expect(listSessions).toHaveBeenCalled();
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify(mockSessions, null, 2));
 
       logSpy.mockRestore();
     });
 
     it('should output empty array when no sessions exist', async () => {
-      vi.mocked(sessions.listSessions).mockResolvedValue([]);
+      vi.mocked(listSessions).mockResolvedValue([]);
 
       const { sessionsListCommand } = await import('./index.ts');
 
@@ -63,7 +63,7 @@ describe('sessions CLI subcommands', () => {
 
       await sessionsListCommand();
 
-      expect(sessions.listSessions).toHaveBeenCalled();
+      expect(listSessions).toHaveBeenCalled();
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify([], null, 2));
 
       logSpy.mockRestore();
@@ -72,7 +72,7 @@ describe('sessions CLI subcommands', () => {
 
   describe('sessionsStatusCommand', () => {
     it('should call getSessionStatus and output JSON', async () => {
-      vi.mocked(sessions.getSessionStatus).mockResolvedValue({ running: true });
+      vi.mocked(getSessionStatus).mockResolvedValue({ running: true });
 
       const { sessionsStatusCommand } = await import('./index.ts');
 
@@ -82,14 +82,14 @@ describe('sessions CLI subcommands', () => {
 
       await sessionsStatusCommand('saga-epic-story-1234');
 
-      expect(sessions.getSessionStatus).toHaveBeenCalledWith('saga-epic-story-1234');
+      expect(getSessionStatus).toHaveBeenCalledWith('saga-epic-story-1234');
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ running: true }, null, 2));
 
       logSpy.mockRestore();
     });
 
     it('should output running: false for non-existent session', async () => {
-      vi.mocked(sessions.getSessionStatus).mockResolvedValue({ running: false });
+      vi.mocked(getSessionStatus).mockResolvedValue({ running: false });
 
       const { sessionsStatusCommand } = await import('./index.ts');
 
@@ -99,7 +99,7 @@ describe('sessions CLI subcommands', () => {
 
       await sessionsStatusCommand('saga-nonexistent-1234');
 
-      expect(sessions.getSessionStatus).toHaveBeenCalledWith('saga-nonexistent-1234');
+      expect(getSessionStatus).toHaveBeenCalledWith('saga-nonexistent-1234');
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ running: false }, null, 2));
 
       logSpy.mockRestore();
@@ -108,17 +108,17 @@ describe('sessions CLI subcommands', () => {
 
   describe('sessionsLogsCommand', () => {
     it('should call streamLogs with session name', async () => {
-      vi.mocked(sessions.streamLogs).mockResolvedValue(undefined);
+      vi.mocked(streamLogs).mockResolvedValue(undefined);
 
       const { sessionsLogsCommand } = await import('./index.ts');
 
       await sessionsLogsCommand('saga-epic-story-1234');
 
-      expect(sessions.streamLogs).toHaveBeenCalledWith('saga-epic-story-1234');
+      expect(streamLogs).toHaveBeenCalledWith('saga-epic-story-1234');
     });
 
     it('should handle errors from streamLogs gracefully', async () => {
-      vi.mocked(sessions.streamLogs).mockRejectedValue(new Error('Output file not found'));
+      vi.mocked(streamLogs).mockRejectedValue(new Error('Output file not found'));
 
       const { sessionsLogsCommand } = await import('./index.ts');
 
@@ -143,7 +143,7 @@ describe('sessions CLI subcommands', () => {
 
   describe('sessionsKillCommand', () => {
     it('should call killSession and output JSON', async () => {
-      vi.mocked(sessions.killSession).mockResolvedValue({ killed: true });
+      vi.mocked(killSession).mockResolvedValue({ killed: true });
 
       const { sessionsKillCommand } = await import('./index.ts');
 
@@ -153,14 +153,14 @@ describe('sessions CLI subcommands', () => {
 
       await sessionsKillCommand('saga-epic-story-1234');
 
-      expect(sessions.killSession).toHaveBeenCalledWith('saga-epic-story-1234');
+      expect(killSession).toHaveBeenCalledWith('saga-epic-story-1234');
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ killed: true }, null, 2));
 
       logSpy.mockRestore();
     });
 
     it('should output killed: false for non-existent session', async () => {
-      vi.mocked(sessions.killSession).mockResolvedValue({ killed: false });
+      vi.mocked(killSession).mockResolvedValue({ killed: false });
 
       const { sessionsKillCommand } = await import('./index.ts');
 
@@ -170,7 +170,7 @@ describe('sessions CLI subcommands', () => {
 
       await sessionsKillCommand('saga-nonexistent-1234');
 
-      expect(sessions.killSession).toHaveBeenCalledWith('saga-nonexistent-1234');
+      expect(killSession).toHaveBeenCalledWith('saga-nonexistent-1234');
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ killed: false }, null, 2));
 
       logSpy.mockRestore();

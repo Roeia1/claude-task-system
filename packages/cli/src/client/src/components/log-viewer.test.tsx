@@ -14,6 +14,7 @@ const OUTPUT_UNAVAILABLE_REGEX = /output unavailable/i;
 // Magic number constants
 const LARGE_CONTENT_LINE_COUNT = 1000;
 const MAX_VIRTUALIZED_LINES = 1000;
+const EXPECTED_MULTILINE_COUNT = 3;
 
 // Mock scrollTo on Element prototype and set up element dimensions for virtualization
 beforeEach(() => {
@@ -650,7 +651,7 @@ Line 3`;
       expect(() => unmount()).not.toThrow();
     });
 
-    it('scrolls to bottom when enabling auto-scroll from disabled state', async () => {
+    it('scrolls to bottom when enabling auto-scroll from disabled state', () => {
       const mockScrollTo = vi.fn();
       Element.prototype.scrollTo = mockScrollTo;
 
@@ -720,7 +721,7 @@ Line 3`;
       // Check that all lines are rendered including empty ones
       const logLines = screen.getAllByTestId('log-line');
       // Should have 3 lines (Line 1, empty, Line 3)
-      expect(logLines.length).toBeGreaterThanOrEqual(3);
+      expect(logLines.length).toBeGreaterThanOrEqual(EXPECTED_MULTILINE_COUNT);
     });
 
     it('shows loading skeleton without initial content when WebSocket available', () => {

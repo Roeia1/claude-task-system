@@ -24,7 +24,7 @@ import { findProjectRoot } from '../utils/project-discovery.ts';
 /**
  * Options for the init command
  */
-export interface InitOptions {
+interface InitOptions {
   path?: string;
   dryRun?: boolean;
 }
@@ -159,7 +159,7 @@ function updateGitignore(projectRoot: string): void {
 /**
  * Execute the init command
  */
-export async function initCommand(options: InitOptions): Promise<void> {
+function initCommand(options: InitOptions): void {
   // Validate explicit path exists and is a directory
   if (options.path) {
     if (!existsSync(options.path)) {
@@ -185,3 +185,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
   // Update .gitignore
   updateGitignore(targetPath);
 }
+
+// Export types and functions at the end of the file
+export type { InitOptions };
+export { initCommand };

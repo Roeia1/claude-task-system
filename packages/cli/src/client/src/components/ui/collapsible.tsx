@@ -1,7 +1,7 @@
 import {
+  Root as RadixCollapsible,
   CollapsibleContent as RadixCollapsibleContent,
   CollapsibleTrigger as RadixCollapsibleTrigger,
-  Root as RadixCollapsible,
 } from '@radix-ui/react-collapsible';
 
 // Re-export with simplified names

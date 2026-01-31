@@ -68,38 +68,64 @@ function getWebSocketSend(): WebSocketSendFn | null {
   return wsSendFn;
 }
 
+/** Helper to handle WebSocket messages */
+function handleWebSocketMessage(
+  event: MessageEvent,
+  lastPongRef: { value: number },
+  sendBack: (event: DashboardEvent) => void,
+): void {
+  try {
+    const message = JSON.parse(event.data);
+    if (message.type === 'pong') {
+      lastPongRef.value = Date.now();
+      return;
+    }
+    if (message.type === 'epics:updated' && message.data) {
+      sendBack({ type: 'EPICS_UPDATED', epics: message.data });
+    } else if (message.type === 'story:updated' && message.data) {
+      sendBack({ type: 'STORY_UPDATED', story: message.data });
+    }
+  } catch {
+    // Ignore malformed messages
+  }
+}
+
+/** Helper to handle incoming events from the machine */
+function handleReceivedEvent(event: DashboardEvent, sendMessage: (msg: object) => void): void {
+  if (event.type === 'SUBSCRIBE_STORY') {
+    sendMessage({ type: 'subscribe:story', epicSlug: event.epicSlug, storySlug: event.storySlug });
+  } else if (event.type === 'UNSUBSCRIBE_STORY') {
+    sendMessage({
+      type: 'unsubscribe:story',
+      epicSlug: event.epicSlug,
+      storySlug: event.storySlug,
+    });
+  }
+}
+
 /** WebSocket actor logic with heartbeat and subscription support */
 const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
   ({ sendBack, input, receive }) => {
     let ws: WebSocket | null = null;
     const reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
     let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
-    let lastPong = Date.now();
+    const lastPongRef = { value: Date.now() };
 
     const sendMessage = (message: object) => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
+      if (ws?.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(message));
       }
     };
-
-    // Expose send function globally
     wsSendFn = sendMessage;
 
     const startHeartbeat = () => {
-      // Clear any existing heartbeat
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
       }
-
       heartbeatInterval = setInterval(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          // Send ping message
+        if (ws?.readyState === WebSocket.OPEN) {
           sendMessage({ type: 'ping' });
-
-          // Check if we've received a pong recently (within 2 heartbeat intervals)
-          const now = Date.now();
-          if (now - lastPong > HEARTBEAT_INTERVAL * 2) {
-            // Connection is stale, trigger reconnection
+          if (Date.now() - lastPongRef.value > HEARTBEAT_INTERVAL * 2) {
             sendBack({ type: 'WS_ERROR', error: 'Heartbeat timeout' });
           }
         }
@@ -109,68 +135,24 @@ const websocketActor = fromCallback<DashboardEvent, { wsUrl: string }>(
     const connect = () => {
       try {
         ws = new WebSocket(input.wsUrl);
-
         ws.onopen = () => {
-          lastPong = Date.now();
+          lastPongRef.value = Date.now();
           sendBack({ type: 'WS_CONNECTED' });
           startHeartbeat();
         };
-
-        ws.onclose = () => {
-          sendBack({ type: 'WS_DISCONNECTED' });
-        };
-
-        ws.onerror = () => {
-          sendBack({ type: 'WS_ERROR', error: 'WebSocket connection error' });
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data);
-
-            // Handle pong response for heartbeat
-            if (message.type === 'pong') {
-              lastPong = Date.now();
-              return;
-            }
-
-            if (message.type === 'epics:updated' && message.data) {
-              sendBack({ type: 'EPICS_UPDATED', epics: message.data });
-            } else if (message.type === 'story:updated' && message.data) {
-              sendBack({ type: 'STORY_UPDATED', story: message.data });
-            }
-          } catch {
-            // Ignore malformed messages
-          }
-        };
+        ws.onclose = () => sendBack({ type: 'WS_DISCONNECTED' });
+        ws.onerror = () => sendBack({ type: 'WS_ERROR', error: 'WebSocket connection error' });
+        ws.onmessage = (event) => handleWebSocketMessage(event, lastPongRef, sendBack);
       } catch {
         sendBack({ type: 'WS_ERROR', error: 'Failed to create WebSocket' });
       }
     };
 
-    // Handle incoming events from the machine
-    receive((event) => {
-      if (event.type === 'SUBSCRIBE_STORY') {
-        sendMessage({
-          type: 'subscribe:story',
-          epicSlug: event.epicSlug,
-          storySlug: event.storySlug,
-        });
-      } else if (event.type === 'UNSUBSCRIBE_STORY') {
-        sendMessage({
-          type: 'unsubscribe:story',
-          epicSlug: event.epicSlug,
-          storySlug: event.storySlug,
-        });
-      }
-    });
-
+    receive((event) => handleReceivedEvent(event, sendMessage));
     connect();
 
     return () => {
-      // Cleanup global reference
       wsSendFn = null;
-
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
       }

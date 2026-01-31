@@ -1,12 +1,7 @@
-import {
-  dashboardMachine as dashboardMachineImpl,
+// biome-ignore lint/performance/noBarrelFile: This is an intentional barrel file for clean imports
+export {
   type DashboardContext,
   type DashboardEvent,
   type DashboardMachine,
+  dashboardMachine,
 } from './dashboardMachine.ts';
-
-// Re-export without barrel pattern
-const dashboardMachine = dashboardMachineImpl;
-
-export { dashboardMachine };
-export type { DashboardContext, DashboardEvent, DashboardMachine };

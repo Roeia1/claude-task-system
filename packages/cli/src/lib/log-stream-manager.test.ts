@@ -12,6 +12,12 @@ import type { WebSocket } from 'ws';
 import { LogStreamManager, type LogsDataMessage } from './log-stream-manager.ts';
 import { OUTPUT_DIR } from './sessions.ts';
 
+/** Delay for watcher initialization in ms */
+const WATCHER_INIT_DELAY_MS = 100;
+
+/** Test timeout for long-running tests in ms */
+const LONG_TEST_TIMEOUT_MS = 10_000;
+
 /**
  * Create a mock WebSocket instance for testing
  */
@@ -370,39 +376,42 @@ describe('LogStreamManager', () => {
       expect(watcherCreatedAfterSecond).toBe(true);
     });
 
-    it('should detect file changes via watcher', async () => {
-      const ws = createMockWebSocket();
-      writeFileSync(testOutputFile, testContent);
+    it(
+      'should detect file changes via watcher',
+      async () => {
+        const ws = createMockWebSocket();
+        writeFileSync(testOutputFile, testContent);
 
-      await manager.subscribe(testSessionName, ws);
+        await manager.subscribe(testSessionName, ws);
 
-      // Wait for watcher to fully initialize
-      await new Promise((resolve) => setTimeout(resolve, 100));
+        // Wait for watcher to fully initialize
+        await new Promise((resolve) => setTimeout(resolve, WATCHER_INIT_DELAY_MS));
 
-      // Clear the initial content message
-      broadcastFn.mockClear();
+        // Clear the initial content message
+        broadcastFn.mockClear();
 
-      // Write new content to file (simulate append)
-      const newContent = 'New appended line\n';
-      const { appendFileSync } = await import('node:fs');
-      appendFileSync(testOutputFile, newContent);
+        // Write new content to file (simulate append)
+        const newContent = 'New appended line\n';
+        const { appendFileSync } = await import('node:fs');
+        appendFileSync(testOutputFile, newContent);
 
-      // Wait for watcher to detect change and trigger callback
-      // Use polling to check for updates rather than fixed timeout
-      let attempts = 0;
-      const maxAttempts = 20;
-      while (attempts < maxAttempts && broadcastFn.mock.calls.length === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        attempts++;
-      }
+        // Wait for watcher to detect change and trigger callback using vi.waitFor
+        await vi.waitFor(
+          () => {
+            expect(broadcastFn.mock.calls.length).toBeGreaterThan(0);
+          },
+          { timeout: LONG_TEST_TIMEOUT_MS, interval: WATCHER_INIT_DELAY_MS },
+        );
 
-      // Should have received an incremental update
-      expect(broadcastFn).toHaveBeenCalled();
-      const calls = broadcastFn.mock.calls;
-      const lastMessage = calls.at(-1)[1] as LogsDataMessage;
-      expect(lastMessage.type).toBe('logs:data');
-      expect(lastMessage.isInitial).toBe(false);
-    }, 10_000); // Increase test timeout to 10 seconds
+        // Should have received an incremental update
+        expect(broadcastFn).toHaveBeenCalled();
+        const calls = broadcastFn.mock.calls;
+        const lastMessage = calls.at(-1)[1] as LogsDataMessage;
+        expect(lastMessage.type).toBe('logs:data');
+        expect(lastMessage.isInitial).toBe(false);
+      },
+      LONG_TEST_TIMEOUT_MS,
+    ); // Increase test timeout to 10 seconds
 
     it('should close watcher when dispose is called', async () => {
       const ws = createMockWebSocket();

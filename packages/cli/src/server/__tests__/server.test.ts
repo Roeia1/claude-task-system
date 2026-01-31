@@ -8,11 +8,24 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type ServerInstance, startServer } from '../index.ts';
 
+// ============================================================================
+// Test Constants
+// ============================================================================
+
+/** Base port for random port generation */
+const PORT_BASE = 30_000;
+
+/** Range for random port generation */
+const PORT_RANGE = 20_000;
+
+/** HTTP status code for successful response */
+const HTTP_OK = 200;
+
 /**
  * Generate a random port in the ephemeral range to avoid conflicts
  */
 function getRandomPort(): number {
-  return 30_000 + Math.floor(Math.random() * 20_000);
+  return PORT_BASE + Math.floor(Math.random() * PORT_RANGE);
 }
 
 describe('server', () => {
@@ -75,7 +88,7 @@ describe('server', () => {
       server = await startServer({ sagaRoot: testDir, port });
 
       const response = await fetch(`http://localhost:${port}/api/health`);
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(HTTP_OK);
 
       const data = await response.json();
       expect(data).toEqual({ status: 'ok' });
@@ -103,7 +116,7 @@ describe('server', () => {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(HTTP_OK);
     });
   });
 });

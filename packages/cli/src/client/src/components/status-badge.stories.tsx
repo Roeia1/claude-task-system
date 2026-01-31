@@ -138,6 +138,7 @@ export const Blocked: Story = {
  * Completed status - success green color for finished items.
  * Used for stories/tasks that have been completed successfully.
  */
+// biome-ignore lint/style/useExportsLast: Storybook stories are conventionally exported inline
 export const Completed: Story = {
   render: () => <StatusBadge status="completed" />,
   play: async ({ canvasElement }) => {
@@ -390,9 +391,4 @@ export const EdgeCases: Story = {
 };
 
 export default meta;
-export {
-  StatusBadgeWithCount,
-  StatusBadge,
-  statusBadgeWithCountMeta,
-  AllVariants,
-};
+export { StatusBadgeWithCount, StatusBadge, statusBadgeWithCountMeta, AllVariants };
