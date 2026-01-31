@@ -134,7 +134,7 @@ const StatusReady: StatusBadgeStory = {
  * In Progress status - primary blue color for active work.
  */
 const StatusInProgress: StatusBadgeStory = {
-  render: () => <StatusBadge status="in_progress" count={3} />,
+  render: () => <StatusBadge status="inProgress" count={3} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const badge = canvas.getByText('In Progress: 3');
@@ -173,7 +173,7 @@ const AllStatuses: StatusBadgeStory = {
   render: () => (
     <div class="flex flex-wrap gap-2">
       <StatusBadge status="ready" count={5} />
-      <StatusBadge status="in_progress" count={3} />
+      <StatusBadge status="inProgress" count={3} />
       <StatusBadge status="blocked" count={1} />
       <StatusBadge status="completed" count={8} />
     </div>

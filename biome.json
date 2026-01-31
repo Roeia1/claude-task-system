@@ -74,6 +74,9 @@
         "rules": {
           "correctness": {
             "noNodejsModules": "off"
+          },
+          "suspicious": {
+            "noConsole": "off"
           }
         }
       }

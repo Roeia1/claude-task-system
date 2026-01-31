@@ -195,7 +195,7 @@ const IconPending: TaskStatusIconStory = {
 const IconInProgress: TaskStatusIconStory = {
   render: () => (
     <div class="flex items-center gap-2">
-      <TaskStatusIcon status="in_progress" />
+      <TaskStatusIcon status="inProgress" />
       <span class="text-primary">In progress task</span>
     </div>
   ),
@@ -243,7 +243,7 @@ const AllTaskIcons: TaskStatusIconStory = {
         <span class="text-text-muted">Pending</span>
       </div>
       <div class="flex items-center gap-2">
-        <TaskStatusIcon status="in_progress" />
+        <TaskStatusIcon status="inProgress" />
         <span class="text-primary">In Progress</span>
       </div>
       <div class="flex items-center gap-2">
@@ -324,7 +324,7 @@ const TaskInProgress: TaskItemStory = {
     <TaskItem
       task={createTask({
         title: 'Implement authentication flow',
-        status: 'in_progress',
+        status: 'inProgress',
       })}
     />
   ),
@@ -382,7 +382,7 @@ const TaskLongTitle: TaskItemStory = {
       task={createTask({
         title:
           'This is a very long task title that demonstrates how text wrapping works in the task item component when the content exceeds normal length',
-        status: 'in_progress',
+        status: 'inProgress',
       })}
     />
   ),
@@ -416,7 +416,7 @@ const AllTaskStatuses: TaskItemStory = {
         task={createTask({
           id: 't2',
           title: 'Implement core functionality',
-          status: 'in_progress',
+          status: 'inProgress',
         })}
       />
       <TaskItem
@@ -740,7 +740,7 @@ const BadgeReady: StatusBadgeStory = {
  * In Progress status - primary blue badge.
  */
 const BadgeInProgress: StatusBadgeStory = {
-  render: () => <StatusBadge status="in_progress" />,
+  render: () => <StatusBadge status="inProgress" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const badge = canvas.getByText('In Progress');
@@ -785,7 +785,7 @@ const AllBadges: StatusBadgeStory = {
   render: () => (
     <div class="flex flex-wrap gap-2">
       <StatusBadge status="ready" />
-      <StatusBadge status="in_progress" />
+      <StatusBadge status="inProgress" />
       <StatusBadge status="blocked" />
       <StatusBadge status="completed" />
     </div>
@@ -932,7 +932,7 @@ const ErrorState: StoryDetailStory = {
 const sampleStory: StoryDetailType = {
   slug: 'storybook-setup-component-stories',
   title: 'Storybook Setup and Component Stories',
-  status: 'in_progress',
+  status: 'inProgress',
   epicSlug: 'dashboard-restructure',
   tasks: [
     { id: 't1', title: 'Install and configure Storybook 10.x', status: 'completed' },
@@ -941,7 +941,7 @@ const sampleStory: StoryDetailType = {
     { id: 't4', title: 'Create stories for Breadcrumb component', status: 'completed' },
     { id: 't5', title: 'Create stories for EpicList page', status: 'completed' },
     { id: 't6', title: 'Create stories for EpicDetail page', status: 'completed' },
-    { id: 't7', title: 'Create stories for StoryDetail page', status: 'in_progress' },
+    { id: 't7', title: 'Create stories for StoryDetail page', status: 'inProgress' },
     { id: 't8', title: 'Create stories for status badges', status: 'pending' },
     { id: 't9', title: 'Add Storybook scripts and verify build', status: 'pending' },
   ],
@@ -1174,7 +1174,7 @@ const storyWithBlocker: StoryDetailType = {
   epicSlug: 'dashboard-restructure',
   tasks: [
     { id: 't1', title: 'Define API schema', status: 'completed' },
-    { id: 't2', title: 'Implement endpoints', status: 'in_progress' },
+    { id: 't2', title: 'Implement endpoints', status: 'inProgress' },
     { id: 't3', title: 'Add authentication', status: 'pending' },
     { id: 't4', title: 'Write integration tests', status: 'pending' },
   ],

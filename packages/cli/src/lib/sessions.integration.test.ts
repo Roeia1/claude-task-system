@@ -131,58 +131,56 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
       expect(output).toContain(testMessage);
     });
 
-    it('should reject invalid epic slug', async () => {
-      await expect(createSession('Invalid_Epic', testStory, 'echo test')).rejects.toThrow(
+    it('should reject invalid epic slug', () => {
+      expect(() => createSession('Invalid_Epic', testStory, 'echo test')).toThrow(
         INVALID_EPIC_SLUG_PATTERN,
       );
     });
 
-    it('should reject invalid story slug', async () => {
-      await expect(createSession(testEpic, 'Invalid_Story', 'echo test')).rejects.toThrow(
+    it('should reject invalid story slug', () => {
+      expect(() => createSession(testEpic, 'Invalid_Story', 'echo test')).toThrow(
         INVALID_STORY_SLUG_PATTERN,
       );
     });
 
-    it('should reject slug with uppercase letters', async () => {
-      await expect(createSession('MyEpic', testStory, 'echo test')).rejects.toThrow(
+    it('should reject slug with uppercase letters', () => {
+      expect(() => createSession('MyEpic', testStory, 'echo test')).toThrow(
         INVALID_EPIC_SLUG_PATTERN,
       );
     });
 
-    it('should reject slug with underscores', async () => {
-      await expect(createSession('my_epic', testStory, 'echo test')).rejects.toThrow(
+    it('should reject slug with underscores', () => {
+      expect(() => createSession('my_epic', testStory, 'echo test')).toThrow(
         INVALID_EPIC_SLUG_PATTERN,
       );
     });
 
-    it('should reject slug with special characters', async () => {
-      await expect(createSession('my@epic', testStory, 'echo test')).rejects.toThrow(
+    it('should reject slug with special characters', () => {
+      expect(() => createSession('my@epic', testStory, 'echo test')).toThrow(
         INVALID_EPIC_SLUG_PATTERN,
       );
     });
 
-    it('should reject slug with spaces', async () => {
-      await expect(createSession('my epic', testStory, 'echo test')).rejects.toThrow(
+    it('should reject slug with spaces', () => {
+      expect(() => createSession('my epic', testStory, 'echo test')).toThrow(
         INVALID_EPIC_SLUG_PATTERN,
       );
     });
 
-    it('should reject slug starting with hyphen', async () => {
-      await expect(createSession('-my-epic', testStory, 'echo test')).rejects.toThrow(
+    it('should reject slug starting with hyphen', () => {
+      expect(() => createSession('-my-epic', testStory, 'echo test')).toThrow(
         INVALID_EPIC_SLUG_PATTERN,
       );
     });
 
-    it('should reject slug ending with hyphen', async () => {
-      await expect(createSession('my-epic-', testStory, 'echo test')).rejects.toThrow(
+    it('should reject slug ending with hyphen', () => {
+      expect(() => createSession('my-epic-', testStory, 'echo test')).toThrow(
         INVALID_EPIC_SLUG_PATTERN,
       );
     });
 
-    it('should reject empty slug', async () => {
-      await expect(createSession('', testStory, 'echo test')).rejects.toThrow(
-        INVALID_EPIC_SLUG_PATTERN,
-      );
+    it('should reject empty slug', () => {
+      expect(() => createSession('', testStory, 'echo test')).toThrow(INVALID_EPIC_SLUG_PATTERN);
     });
   });
 

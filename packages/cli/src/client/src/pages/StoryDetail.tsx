@@ -98,15 +98,23 @@ function TaskStatusIcon({ status }: { status: TaskStatus }) {
   }
 }
 
+/** Task status badge styles */
+const taskBadgeStyles: Record<TaskStatus, string> = {
+  pending: 'bg-text-muted/20 text-text-muted',
+  inProgress: 'bg-primary/20 text-primary',
+  completed: 'bg-success/20 text-success',
+};
+
+/** Task status labels */
+const taskStatusLabels: Record<TaskStatus, string> = {
+  pending: 'pending',
+  inProgress: 'in progress',
+  completed: 'completed',
+};
+
 /** Get badge class based on task status */
 function getTaskBadgeClass(status: TaskStatus): string {
-  if (status === 'completed') {
-    return 'bg-success/20 text-success';
-  }
-  if (status === 'in_progress') {
-    return 'bg-primary/20 text-primary';
-  }
-  return 'bg-text-muted/20 text-text-muted';
+  return taskBadgeStyles[status] || taskBadgeStyles.pending;
 }
 
 /** Single task item display */
@@ -119,7 +127,7 @@ function TaskItem({ task }: { task: StoryDetailType['tasks'][0] }) {
       <span class={task.status === 'completed' ? 'text-text-muted line-through' : 'text-text'}>
         {task.title}
       </span>
-      <Badge class={`ml-auto text-xs ${badgeClass}`}>{task.status.replace('_', ' ')}</Badge>
+      <Badge class={`ml-auto text-xs ${badgeClass}`}>{taskStatusLabels[task.status]}</Badge>
     </div>
   );
 }

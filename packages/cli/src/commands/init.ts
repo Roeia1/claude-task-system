@@ -92,10 +92,19 @@ function runInitDryRun(targetPath: string): InitDryRunResult {
  * Print dry run results for init command
  */
 function printInitDryRunResults(result: InitDryRunResult): void {
+  console.log('Dry Run: SAGA Initialization');
+  console.log(`Target: ${result.targetPath}`);
+  console.log('');
+  console.log('Directories:');
   for (const dir of result.directories) {
-    const _icon = dir.exists ? '-' : '+';
-    // TODO: Implement output for directory status (e.g., console.log with icon and path)
+    const icon = dir.exists ? '-' : '+';
+    console.log(`  ${icon} ${dir.path}: ${dir.action}`);
   }
+  console.log('');
+  console.log('.gitignore:');
+  console.log(`  ${result.gitignore.action}`);
+  console.log('');
+  console.log('No changes made.');
 }
 
 /**
@@ -163,9 +172,11 @@ function initCommand(options: InitOptions): void {
   // Validate explicit path exists and is a directory
   if (options.path) {
     if (!existsSync(options.path)) {
+      console.error(`Error: Path does not exist: ${options.path}`);
       process.exit(1);
     }
     if (!statSync(options.path).isDirectory()) {
+      console.error(`Error: Path is not a directory: ${options.path}`);
       process.exit(1);
     }
   }
@@ -184,6 +195,9 @@ function initCommand(options: InitOptions): void {
 
   // Update .gitignore
   updateGitignore(targetPath);
+
+  // Report success
+  console.log(`Created .saga/ at ${targetPath}`);
 }
 
 // Export types and functions at the end of the file

@@ -344,24 +344,43 @@ function runDryRun(
 }
 
 /**
+ * Format a single check result for display
+ */
+function formatCheckResult(check: DryRunCheck): string[] {
+  const icon = check.passed ? '\u2713' : '\u2717';
+  const status = check.passed ? 'OK' : 'FAILED';
+  const lines: string[] = [];
+
+  if (check.passed) {
+    const pathSuffix = check.path ? ` (${check.path})` : '';
+    lines.push(`  ${icon} ${check.name}: ${status}${pathSuffix}`);
+  } else {
+    const errorSuffix = check.error ? ` - ${check.error}` : '';
+    lines.push(`  ${icon} ${check.name}: ${status}${errorSuffix}`);
+    if (check.path) {
+      lines.push(`      Path: ${check.path}`);
+    }
+  }
+  return lines;
+}
+
+/**
  * Print dry run results to console
  */
 function printDryRunResults(result: DryRunResult): void {
+  console.log('Dry Run: Implement Story Validation');
+  console.log('');
+  console.log('Checks:');
   for (const check of result.checks) {
-    const _icon = check.passed ? '\u2713' : '\u2717';
-    const _status = check.passed ? 'OK' : 'FAILED';
-
-    if (check.passed) {
-      // TODO: Implement output for passed checks (e.g., console.log with green checkmark)
-    } else if (check.path) {
-      // TODO: Implement output for failed checks with path (e.g., console.error with path info)
+    for (const line of formatCheckResult(check)) {
+      console.log(line);
     }
   }
-  if (result.success) {
-    // TODO: Implement success message output
-  } else {
-    // TODO: Implement failure message output
-  }
+  console.log('');
+  const summary = result.success
+    ? 'All checks passed. Ready to implement.'
+    : 'Some checks failed. Please resolve the issues above.';
+  console.log(summary);
 }
 
 /**
@@ -922,47 +941,38 @@ async function handleDetachedMode(
   });
 
   try {
-    await createSession(storyInfo.epicSlug, storyInfo.storySlug, detachedCommand);
-  } catch (_error) {
+    const sessionInfo = await createSession(
+      storyInfo.epicSlug,
+      storyInfo.storySlug,
+      detachedCommand,
+    );
+    // Output session info as JSON for programmatic use
+    console.log(JSON.stringify(sessionInfo, null, 2));
+  } catch (error) {
+    console.error(
+      `Error creating session: ${error instanceof Error ? error.message : String(error)}`,
+    );
     process.exit(1);
   }
 }
 
 /**
- * Execute the implement command
+ * Handle internal session mode - run the orchestration loop
  */
-async function implementCommand(storySlug: string, options: ImplementOptions): Promise<void> {
-  let projectPath: string;
-  try {
-    projectPath = resolveProjectPath(options.path);
-  } catch (_error) {
-    process.exit(1);
-  }
-
-  const storyInfo = await findStory(projectPath, storySlug);
-  if (!storyInfo) {
-    process.exit(1);
-  }
-
-  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
-
-  if (options.dryRun) {
-    handleDryRun(storyInfo, projectPath, pluginRoot);
-  }
-
-  if (!(existsSync(storyInfo.worktreePath) && pluginRoot)) {
-    process.exit(1);
-  }
-
+async function handleInternalSession(
+  storyInfo: StoryInfo,
+  projectPath: string,
+  pluginRoot: string,
+  options: ImplementOptions,
+): Promise<void> {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTime = options.maxTime ?? DEFAULT_MAX_TIME;
   const model = options.model ?? DEFAULT_MODEL;
 
-  const isInternalSession = process.env.SAGA_INTERNAL_SESSION === '1';
-  if (!isInternalSession) {
-    await handleDetachedMode(storySlug, storyInfo, projectPath, options);
-    return;
-  }
+  console.log('Starting story implementation...');
+  console.log(`Story: ${storyInfo.storySlug} (epic: ${storyInfo.epicSlug})`);
+  console.log(`Max cycles: ${maxCycles}, Max time: ${maxTime}min, Model: ${model}`);
+  console.log('');
 
   const result = await runLoop(
     storyInfo.epicSlug,
@@ -975,7 +985,54 @@ async function implementCommand(storySlug: string, options: ImplementOptions): P
   );
 
   if (result.status === 'ERROR') {
+    console.error(`Error: ${result.summary}`);
     process.exit(1);
+  }
+
+  console.log(`\nImplementation ${result.status}: ${result.summary}`);
+}
+
+/**
+ * Execute the implement command
+ */
+async function implementCommand(storySlug: string, options: ImplementOptions): Promise<void> {
+  let projectPath: string;
+  try {
+    projectPath = resolveProjectPath(options.path);
+  } catch (_error) {
+    console.error('Error: SAGA project not found. Run saga init first or use --path option.');
+    process.exit(1);
+  }
+
+  const storyInfo = await findStory(projectPath, storySlug);
+  if (!storyInfo) {
+    console.error(`Error: Story '${storySlug}' not found in project.`);
+    console.error('Use /generate-stories to create stories for an epic first.');
+    process.exit(1);
+  }
+
+  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
+
+  if (options.dryRun) {
+    handleDryRun(storyInfo, projectPath, pluginRoot);
+  }
+
+  if (!pluginRoot) {
+    console.error('Error: SAGA_PLUGIN_ROOT environment variable is not set.');
+    console.error('This is required to find the worker prompt template.');
+    process.exit(1);
+  }
+
+  if (!existsSync(storyInfo.worktreePath)) {
+    console.error(`Error: Worktree not found at ${storyInfo.worktreePath}`);
+    process.exit(1);
+  }
+
+  const isInternalSession = process.env.SAGA_INTERNAL_SESSION === '1';
+  if (isInternalSession) {
+    await handleInternalSession(storyInfo, projectPath, pluginRoot, options);
+  } else {
+    await handleDetachedMode(storySlug, storyInfo, projectPath, options);
   }
 }
 
