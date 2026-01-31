@@ -61,7 +61,14 @@ function useDataActions(actorRef: DashboardActorRef) {
   );
   const clearCurrentEpic = useCallback(() => actorRef.send({ type: 'CLEAR_EPIC' }), [actorRef]);
   const clearCurrentStory = useCallback(() => actorRef.send({ type: 'CLEAR_STORY' }), [actorRef]);
-  return { setEpics, setCurrentEpic, setCurrentStory, setSessions, clearCurrentEpic, clearCurrentStory };
+  return {
+    setEpics,
+    setCurrentEpic,
+    setCurrentStory,
+    setSessions,
+    clearCurrentEpic,
+    clearCurrentStory,
+  };
 }
 
 /**

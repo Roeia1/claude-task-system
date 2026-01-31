@@ -1,9 +1,49 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { MemoryRouter } from 'react-router';
 import { expect, within } from 'storybook/test';
-import { MemoryRouter } from 'react-router-dom';
-import { ActiveSessions, ActiveSessionsSkeleton } from './ActiveSessions';
-import { SessionCard } from './SessionCard';
 import type { SessionInfo } from '@/types/dashboard';
+import { ActiveSessionsSkeleton } from './active-sessions.tsx';
+import { SessionCard } from './session-card.tsx';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+// Time constants in milliseconds
+const MS_TWO_AND_HALF_MINUTES = 150_000;
+const MS_FIVE_MINUTES = 300_000;
+const MS_TEN_MINUTES = 600_000;
+const MS_ONE_HOUR_TWO_MINUTES = 3_720_000;
+
+// Count constants
+const SKELETON_CARD_COUNT = 3;
+const MULTIPLE_SESSION_COUNT = 4;
+
+// Regex patterns for tests
+const RETURNS_NULL_PATTERN = /returns null/;
+const LINE_1_PATTERN = /Line 1:/;
+const LINE_20_PATTERN = /Line 20:/;
+const TESTS_RUNNING_PATTERN = /Tests running/;
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+// Helper to create mock session data
+function createMockSession(overrides: Partial<SessionInfo> = {}): SessionInfo {
+  const startTime = new Date(Date.now() - MS_TWO_AND_HALF_MINUTES);
+  return {
+    name: 'saga__epic-slug__story-slug__12345',
+    epicSlug: 'epic-slug',
+    storySlug: 'story-slug',
+    status: 'running',
+    outputFile: '/tmp/saga/sessions/output.log',
+    outputAvailable: true,
+    startTime: startTime.toISOString(),
+    outputPreview: '> Running...\n> Processing...\n> 50% complete',
+    ...overrides,
+  };
+}
 
 // ============================================================================
 // ActiveSessionsSkeleton Stories
@@ -26,14 +66,13 @@ const skeletonMeta: Meta<typeof ActiveSessionsSkeleton> = {
   },
 };
 
-export default skeletonMeta;
 type SkeletonStory = StoryObj<typeof ActiveSessionsSkeleton>;
 
 /**
  * Default skeleton showing the loading state with heading and three
  * placeholder cards with animated pulse effect.
  */
-export const Skeleton: SkeletonStory = {
+const Skeleton: SkeletonStory = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // Verify heading is present
@@ -43,10 +82,10 @@ export const Skeleton: SkeletonStory = {
     await expect(skeleton).toBeInTheDocument();
     // Verify three skeleton cards
     const skeletonCards = canvas.getAllByTestId('session-card-skeleton');
-    await expect(skeletonCards.length).toBe(3);
+    await expect(skeletonCards.length).toBe(SKELETON_CARD_COUNT);
     // Verify cards have animate-pulse class
     const pulsingElements = canvasElement.querySelectorAll('.animate-pulse');
-    await expect(pulsingElements.length).toBe(3);
+    await expect(pulsingElements.length).toBe(SKELETON_CARD_COUNT);
   },
 };
 
@@ -58,7 +97,7 @@ export const Skeleton: SkeletonStory = {
  * Since ActiveSessions fetches data from an API, we create manual stories
  * that render the expected UI states directly.
  */
-export const compositeSessionsMeta: Meta = {
+const compositeSessionsMeta: Meta = {
   title: 'Components/ActiveSessions',
   parameters: {
     docs: {
@@ -70,28 +109,12 @@ export const compositeSessionsMeta: Meta = {
   },
 };
 
-// Helper to create mock session data
-function createMockSession(overrides: Partial<SessionInfo> = {}): SessionInfo {
-  const startTime = new Date(Date.now() - 150000); // 2m 30s ago
-  return {
-    name: 'saga__epic-slug__story-slug__12345',
-    epicSlug: 'epic-slug',
-    storySlug: 'story-slug',
-    status: 'running',
-    outputFile: '/tmp/saga/sessions/output.log',
-    outputAvailable: true,
-    startTime: startTime.toISOString(),
-    outputPreview: '> Running...\n> Processing...\n> 50% complete',
-    ...overrides,
-  };
-}
-
 type CompositeStory = StoryObj;
 
 /**
  * Loading state showing skeleton placeholders while fetching session data.
  */
-export const Loading: CompositeStory = {
+const Loading: CompositeStory = {
   render: () => <ActiveSessionsSkeleton />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -105,7 +128,7 @@ export const Loading: CompositeStory = {
  * Empty state - section is completely hidden when no running sessions.
  * This story demonstrates that nothing renders when sessions array is empty.
  */
-export const Empty: CompositeStory = {
+const Empty: CompositeStory = {
   render: () => (
     <div className="p-4 border-2 border-dashed border-border rounded">
       <p className="text-text-muted text-center italic">
@@ -118,14 +141,14 @@ export const Empty: CompositeStory = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // Verify explanatory text is present
-    await expect(canvas.getByText(/returns null/)).toBeInTheDocument();
+    await expect(canvas.getByText(RETURNS_NULL_PATTERN)).toBeInTheDocument();
   },
 };
 
 /**
  * Single session - shows one running session card.
  */
-export const SingleSession: CompositeStory = {
+const SingleSession: CompositeStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -160,7 +183,7 @@ export const SingleSession: CompositeStory = {
     const link = canvas.getByRole('link');
     await expect(link).toHaveAttribute(
       'href',
-      '/epic/tmux-session-dashboard/story/home-page-active-sessions?tab=sessions'
+      '/epic/tmux-session-dashboard/story/home-page-active-sessions?tab=sessions',
     );
   },
 };
@@ -169,7 +192,7 @@ export const SingleSession: CompositeStory = {
  * Multiple sessions - shows several running sessions in a horizontal layout.
  * Demonstrates the scrollable behavior when there are more than 3 sessions.
  */
-export const MultipleSessions: CompositeStory = {
+const MultipleSessions: CompositeStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -195,8 +218,9 @@ export const MultipleSessions: CompositeStory = {
             session={createMockSession({
               epicSlug: 'tmux-session-dashboard',
               storySlug: 'session-api-discovery',
-              startTime: new Date(Date.now() - 300000).toISOString(), // 5m ago
-              outputPreview: '> Discovering sessions...\n> Found 3 active sessions\n> Polling tmux...',
+              startTime: new Date(Date.now() - MS_FIVE_MINUTES).toISOString(),
+              outputPreview:
+                '> Discovering sessions...\n> Found 3 active sessions\n> Polling tmux...',
             })}
           />
         </div>
@@ -205,8 +229,9 @@ export const MultipleSessions: CompositeStory = {
             session={createMockSession({
               epicSlug: 'auth-system',
               storySlug: 'oauth-integration',
-              startTime: new Date(Date.now() - 600000).toISOString(), // 10m ago
-              outputPreview: '> Configuring OAuth...\n> Validating tokens...\n> Integration tests running',
+              startTime: new Date(Date.now() - MS_TEN_MINUTES).toISOString(),
+              outputPreview:
+                '> Configuring OAuth...\n> Validating tokens...\n> Integration tests running',
             })}
           />
         </div>
@@ -215,7 +240,7 @@ export const MultipleSessions: CompositeStory = {
             session={createMockSession({
               epicSlug: 'performance-optimization',
               storySlug: 'query-caching',
-              startTime: new Date(Date.now() - 3720000).toISOString(), // 1h 2m ago
+              startTime: new Date(Date.now() - MS_ONE_HOUR_TWO_MINUTES).toISOString(),
               outputPreview: '> Cache warming...\n> Running benchmarks...',
             })}
           />
@@ -234,14 +259,14 @@ export const MultipleSessions: CompositeStory = {
     await expect(canvas.getByText('query-caching')).toBeInTheDocument();
     // Verify four links
     const links = canvas.getAllByRole('link');
-    await expect(links.length).toBe(4);
+    await expect(links.length).toBe(MULTIPLE_SESSION_COUNT);
   },
 };
 
 /**
  * Session with output unavailable - demonstrates the dimmed state.
  */
-export const OutputUnavailable: CompositeStory = {
+const OutputUnavailable: CompositeStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -277,7 +302,7 @@ export const OutputUnavailable: CompositeStory = {
  * Session with long output preview - demonstrates truncation behavior.
  * Output is truncated to last 5 lines and max 500 characters.
  */
-export const LongOutputPreview: CompositeStory = {
+const LongOutputPreview: CompositeStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -288,7 +313,8 @@ export const LongOutputPreview: CompositeStory = {
   render: () => {
     const longOutput = Array.from(
       { length: 20 },
-      (_, i) => `Line ${i + 1}: This is a detailed log entry with timestamp and context information`
+      (_, i) =>
+        `Line ${i + 1}: This is a detailed log entry with timestamp and context information`,
     ).join('\n');
     return (
       <section data-testid="active-sessions" className="space-y-4">
@@ -313,9 +339,9 @@ export const LongOutputPreview: CompositeStory = {
     const preElement = canvasElement.querySelector('pre');
     await expect(preElement).toBeInTheDocument();
     // Should not contain early lines (truncated to last 5)
-    await expect(canvas.queryByText(/Line 1:/)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(LINE_1_PATTERN)).not.toBeInTheDocument();
     // Should contain later lines
-    await expect(canvas.getByText(/Line 20:/)).toBeInTheDocument();
+    await expect(canvas.getByText(LINE_20_PATTERN)).toBeInTheDocument();
   },
 };
 
@@ -323,7 +349,7 @@ export const LongOutputPreview: CompositeStory = {
  * Mixed session states - shows sessions with different characteristics.
  * Includes sessions with output, without output, and with unavailable output.
  */
-export const MixedSessionStates: CompositeStory = {
+const MixedSessionStates: CompositeStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -376,6 +402,23 @@ export const MixedSessionStates: CompositeStory = {
     // Verify "Output unavailable" appears once
     await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
     // Verify output preview appears once
-    await expect(canvas.getByText(/Tests running/)).toBeInTheDocument();
+    await expect(canvas.getByText(TESTS_RUNNING_PATTERN)).toBeInTheDocument();
   },
+};
+
+// ============================================================================
+// Exports - All exports at the end
+// ============================================================================
+
+export default skeletonMeta;
+export { compositeSessionsMeta };
+export {
+  Skeleton,
+  Loading,
+  Empty,
+  SingleSession,
+  MultipleSessions,
+  OutputUnavailable,
+  LongOutputPreview,
+  MixedSessionStates,
 };

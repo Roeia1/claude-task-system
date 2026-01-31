@@ -1,34 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { SessionCard } from './SessionCard';
 import { useDashboard } from '@/context/DashboardContext';
 import type { SessionInfo } from '@/types/dashboard';
-
-/**
- * Skeleton loading component for the ActiveSessions section
- */
-export function ActiveSessionsSkeleton() {
-  return (
-    <section data-testid="active-sessions-skeleton" className="space-y-4">
-      <h2 className="text-xl font-semibold text-text">Active Sessions</h2>
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        <SessionCardSkeleton />
-        <SessionCardSkeleton />
-        <SessionCardSkeleton />
-      </div>
-    </section>
-  );
-}
+import { SessionCard } from './session-card.tsx';
 
 /**
  * Skeleton for a single session card
  */
 function SessionCardSkeleton() {
   return (
-    <Card
-      className="animate-pulse min-w-[300px] flex-shrink-0"
-      data-testid="session-card-skeleton"
-    >
+    <Card className="animate-pulse min-w-[300px] flex-shrink-0" data-testid="session-card-skeleton">
       <CardHeader className="pb-2">
         <div className="h-5 w-32 bg-bg-light rounded" />
         <div className="h-4 w-20 bg-bg-light rounded mt-1" />
@@ -92,6 +73,22 @@ export function ActiveSessions() {
             <SessionCard session={session} />
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Skeleton loading component for the ActiveSessions section
+ */
+export function ActiveSessionsSkeleton() {
+  return (
+    <section data-testid="active-sessions-skeleton" className="space-y-4">
+      <h2 className="text-xl font-semibold text-text">Active Sessions</h2>
+      <div className="flex gap-4 overflow-x-auto pb-2">
+        <SessionCardSkeleton />
+        <SessionCardSkeleton />
+        <SessionCardSkeleton />
       </div>
     </section>
   );

@@ -1,8 +1,12 @@
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
-import { describe, it, expect, afterEach, vi, beforeEach } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
-import { ActiveSessions, ActiveSessionsSkeleton } from './ActiveSessions';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionInfo } from '@/types/dashboard';
+import { ActiveSessions, ActiveSessionsSkeleton } from './active-sessions.tsx';
+
+// Regex patterns for output preview matching
+const BUILDING_COMPONENTS_PATTERN = /Building components/;
+const IMPLEMENTING_LOGIN_PATTERN = /Implementing login/;
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -20,12 +24,17 @@ describe('ActiveSessions', () => {
   describe('loading state', () => {
     it('shows skeleton while fetching sessions', () => {
       // Never resolve the fetch to keep loading state
-      mockFetch.mockImplementation(() => new Promise(() => {}));
+      mockFetch.mockImplementation(
+        () =>
+          new Promise(() => {
+            // Intentionally never resolves to test loading state
+          }),
+      );
 
       render(
         <MemoryRouter>
           <ActiveSessions />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       expect(screen.getByTestId('active-sessions-skeleton')).toBeInTheDocument();
@@ -42,7 +51,7 @@ describe('ActiveSessions', () => {
       const { container } = render(
         <MemoryRouter>
           <ActiveSessions />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       await waitFor(() => {
@@ -73,7 +82,7 @@ describe('ActiveSessions', () => {
       const { container } = render(
         <MemoryRouter>
           <ActiveSessions />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       await waitFor(() => {
@@ -117,7 +126,7 @@ describe('ActiveSessions', () => {
       render(
         <MemoryRouter>
           <ActiveSessions />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       await waitFor(() => {
@@ -136,7 +145,7 @@ describe('ActiveSessions', () => {
       render(
         <MemoryRouter>
           <ActiveSessions />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       await waitFor(() => {
@@ -158,12 +167,12 @@ describe('ActiveSessions', () => {
       render(
         <MemoryRouter>
           <ActiveSessions />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/Building components/)).toBeInTheDocument();
-        expect(screen.getByText(/Implementing login/)).toBeInTheDocument();
+        expect(screen.getByText(BUILDING_COMPONENTS_PATTERN)).toBeInTheDocument();
+        expect(screen.getByText(IMPLEMENTING_LOGIN_PATTERN)).toBeInTheDocument();
       });
     });
 
@@ -199,7 +208,7 @@ describe('ActiveSessions', () => {
       render(
         <MemoryRouter>
           <ActiveSessions />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       await waitFor(() => {
@@ -233,7 +242,7 @@ describe('ActiveSessions', () => {
       render(
         <MemoryRouter>
           <ActiveSessions />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       await waitFor(() => {
@@ -256,7 +265,7 @@ describe('ActiveSessions', () => {
       const { container } = render(
         <MemoryRouter>
           <ActiveSessions />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       await waitFor(() => {
@@ -272,7 +281,7 @@ describe('ActiveSessions', () => {
       const { container } = render(
         <MemoryRouter>
           <ActiveSessions />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       await waitFor(() => {
@@ -293,7 +302,7 @@ describe('ActiveSessions', () => {
       render(
         <MemoryRouter>
           <ActiveSessions />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       await waitFor(() => {

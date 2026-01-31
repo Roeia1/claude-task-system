@@ -1,8 +1,65 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { MemoryRouter } from 'react-router';
 import { expect, within } from 'storybook/test';
-import { MemoryRouter } from 'react-router-dom';
-import { SessionCard, formatDuration } from './SessionCard';
 import type { SessionInfo } from '@/types/dashboard';
+import { formatDuration } from '@/utils/formatDuration';
+import { SessionCard } from './session-card.tsx';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+// Time constants in milliseconds
+const MS_FIFTEEN_SECONDS = 15_000;
+const MS_TWO_AND_HALF_MINUTES = 150_000;
+const MS_ONE_HOUR_TWO_MINUTES = 3_720_000;
+
+// Duration test constants in seconds
+const DURATION_0_SECONDS = 0;
+const DURATION_30_SECONDS = 30;
+const DURATION_59_SECONDS = 59;
+const DURATION_1_MINUTE = 60;
+const DURATION_2M_34S = 154;
+const DURATION_1_HOUR = 3600;
+const DURATION_1H_15M = 4500;
+const DURATION_1_DAY = 86_400;
+const DURATION_2D_3H = 183_600;
+
+// Count constants
+const MULTIPLE_CARDS_COUNT = 3;
+
+// Regex patterns for tests
+const DURATION_PATTERN = /\d+[smhd]/;
+const SECONDS_PATTERN = /\d+s/;
+const HOURS_MINUTES_PATTERN = /\d+h \d+m/;
+const STARTING_SESSION_PATTERN = /Starting session/;
+const LINE_1_PATTERN = /Line 1:/;
+const LINE_20_PATTERN = /Line 20:/;
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+// Create a session with a start time that's a certain number of seconds in the past
+function createSession(overrides: Partial<SessionInfo> = {}): SessionInfo {
+  const startTime = new Date(Date.now() - MS_TWO_AND_HALF_MINUTES);
+  return {
+    name: 'saga__tmux-session-dashboard__home-page-active-sessions__12345',
+    epicSlug: 'tmux-session-dashboard',
+    storySlug: 'home-page-active-sessions',
+    status: 'running',
+    outputFile: '/tmp/saga/sessions/output.log',
+    outputAvailable: true,
+    startTime: startTime.toISOString(),
+    outputPreview:
+      '> Starting session...\n> Running tests...\n> Tests passed\n> Building...\n> Build complete',
+    ...overrides,
+  };
+}
+
+// ============================================================================
+// Meta Configuration
+// ============================================================================
 
 /**
  * SessionCard displays a single running session with live duration updates,
@@ -30,30 +87,17 @@ const meta: Meta<typeof SessionCard> = {
   },
 };
 
-export default meta;
 type Story = StoryObj<typeof SessionCard>;
 
-// Create a session with a start time that's a certain number of seconds in the past
-function createSession(overrides: Partial<SessionInfo> = {}): SessionInfo {
-  const startTime = new Date(Date.now() - 150000); // 2m 30s ago
-  return {
-    name: 'saga__tmux-session-dashboard__home-page-active-sessions__12345',
-    epicSlug: 'tmux-session-dashboard',
-    storySlug: 'home-page-active-sessions',
-    status: 'running',
-    outputFile: '/tmp/saga/sessions/output.log',
-    outputAvailable: true,
-    startTime: startTime.toISOString(),
-    outputPreview: '> Starting session...\n> Running tests...\n> Tests passed\n> Building...\n> Build complete',
-    ...overrides,
-  };
-}
+// ============================================================================
+// Stories
+// ============================================================================
 
 /**
  * Default session card showing all elements: story title, epic title,
  * duration counter, and output preview.
  */
-export const Default: Story = {
+const Default: Story = {
   render: () => <SessionCard session={createSession()} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -62,15 +106,15 @@ export const Default: Story = {
     // Verify epic title
     await expect(canvas.getByText('tmux-session-dashboard')).toBeInTheDocument();
     // Verify duration is displayed (format varies based on elapsed time)
-    const durationElement = canvas.getByText(/\d+[smhd]/);
+    const durationElement = canvas.getByText(DURATION_PATTERN);
     await expect(durationElement).toBeInTheDocument();
     // Verify output preview
-    await expect(canvas.getByText(/Starting session/)).toBeInTheDocument();
+    await expect(canvas.getByText(STARTING_SESSION_PATTERN)).toBeInTheDocument();
     // Verify link points to correct URL
     const link = canvas.getByRole('link');
     await expect(link).toHaveAttribute(
       'href',
-      '/epic/tmux-session-dashboard/story/home-page-active-sessions?tab=sessions'
+      '/epic/tmux-session-dashboard/story/home-page-active-sessions?tab=sessions',
     );
   },
 };
@@ -79,7 +123,7 @@ export const Default: Story = {
  * Session with no output preview (outputPreview is undefined/empty).
  * The output section should not render.
  */
-export const NoOutputPreview: Story = {
+const NoOutputPreview: Story = {
   render: () => <SessionCard session={createSession({ outputPreview: undefined })} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -98,7 +142,7 @@ export const NoOutputPreview: Story = {
  * Session with output unavailable (outputAvailable: false).
  * Shows a dimmed "Output unavailable" message.
  */
-export const OutputUnavailable: Story = {
+const OutputUnavailable: Story = {
   render: () => (
     <SessionCard
       session={createSession({
@@ -121,10 +165,13 @@ export const OutputUnavailable: Story = {
  * Session with a very long output preview to demonstrate truncation.
  * Output is truncated to last 5 lines and max 500 characters.
  */
-export const LongOutputPreview: Story = {
+const LongOutputPreview: Story = {
   render: () => {
-    const longOutput = Array.from({ length: 20 }, (_, i) => `Line ${i + 1}: This is a log line with some content that demonstrates truncation behavior`)
-      .join('\n');
+    const longOutput = Array.from(
+      { length: 20 },
+      (_, i) =>
+        `Line ${i + 1}: This is a log line with some content that demonstrates truncation behavior`,
+    ).join('\n');
     return <SessionCard session={createSession({ outputPreview: longOutput })} />;
   },
   play: async ({ canvasElement }) => {
@@ -133,9 +180,9 @@ export const LongOutputPreview: Story = {
     const preElement = canvasElement.querySelector('pre');
     await expect(preElement).toBeInTheDocument();
     // The content should be truncated (won't have Line 1)
-    await expect(canvas.queryByText(/Line 1:/)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(LINE_1_PATTERN)).not.toBeInTheDocument();
     // But should have later lines (last 5 lines)
-    await expect(canvas.getByText(/Line 20:/)).toBeInTheDocument();
+    await expect(canvas.getByText(LINE_20_PATTERN)).toBeInTheDocument();
   },
 };
 
@@ -143,9 +190,9 @@ export const LongOutputPreview: Story = {
  * Session that just started (a few seconds ago).
  * Duration shows in seconds format.
  */
-export const JustStarted: Story = {
+const JustStarted: Story = {
   render: () => {
-    const recentStart = new Date(Date.now() - 15000); // 15 seconds ago
+    const recentStart = new Date(Date.now() - MS_FIFTEEN_SECONDS);
     return (
       <SessionCard
         session={createSession({
@@ -158,7 +205,7 @@ export const JustStarted: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // Duration should show seconds format (approximately 15s)
-    const durationElement = canvas.getByText(/\d+s/);
+    const durationElement = canvas.getByText(SECONDS_PATTERN);
     await expect(durationElement).toBeInTheDocument();
   },
 };
@@ -167,15 +214,16 @@ export const JustStarted: Story = {
  * Session running for over an hour.
  * Duration shows in hours/minutes format.
  */
-export const LongRunning: Story = {
+const LongRunning: Story = {
   render: () => {
-    const hourAgo = new Date(Date.now() - 3720000); // 1h 2m ago
+    const hourAgo = new Date(Date.now() - MS_ONE_HOUR_TWO_MINUTES);
     return (
       <SessionCard
         session={createSession({
           storySlug: 'complex-implementation',
           startTime: hourAgo.toISOString(),
-          outputPreview: '> Long running task...\n> Still processing...\n> 50% complete...\n> 75% complete...\n> Almost done...',
+          outputPreview:
+            '> Long running task...\n> Still processing...\n> 50% complete...\n> 75% complete...\n> Almost done...',
         })}
       />
     );
@@ -183,7 +231,7 @@ export const LongRunning: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // Duration should show hours format
-    const durationElement = canvas.getByText(/\d+h \d+m/);
+    const durationElement = canvas.getByText(HOURS_MINUTES_PATTERN);
     await expect(durationElement).toBeInTheDocument();
   },
 };
@@ -193,7 +241,7 @@ export const LongRunning: Story = {
  * Demonstrates how cards look in a horizontal layout.
  * Note: Uses the meta decorator's MemoryRouter, only customizes the layout wrapper.
  */
-export const MultipleCards: Story = {
+const MultipleCards: Story = {
   decorators: [
     (Story) => (
       <div className="flex gap-4 overflow-x-auto w-[900px]">
@@ -240,40 +288,36 @@ export const MultipleCards: Story = {
     await expect(canvas.getByText('story-three')).toBeInTheDocument();
     // Verify all three links are present
     const links = canvas.getAllByRole('link');
-    await expect(links.length).toBe(3);
+    await expect(links.length).toBe(MULTIPLE_CARDS_COUNT);
   },
 };
-
-// ============================================================================
-// formatDuration utility stories
-// ============================================================================
 
 /**
  * Stories demonstrating the formatDuration utility function.
  */
-export const FormatDurationExamples: Story = {
+const FormatDurationExamples: Story = {
   render: () => (
     <div className="space-y-2 p-4 bg-bg-dark rounded">
       <h3 className="text-lg font-semibold text-text mb-4">formatDuration Examples</h3>
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div className="text-text-muted">0 seconds:</div>
-        <div className="text-text font-mono">{formatDuration(0)}</div>
+        <div className="text-text font-mono">{formatDuration(DURATION_0_SECONDS)}</div>
         <div className="text-text-muted">30 seconds:</div>
-        <div className="text-text font-mono">{formatDuration(30)}</div>
+        <div className="text-text font-mono">{formatDuration(DURATION_30_SECONDS)}</div>
         <div className="text-text-muted">59 seconds:</div>
-        <div className="text-text font-mono">{formatDuration(59)}</div>
+        <div className="text-text font-mono">{formatDuration(DURATION_59_SECONDS)}</div>
         <div className="text-text-muted">1 minute:</div>
-        <div className="text-text font-mono">{formatDuration(60)}</div>
+        <div className="text-text font-mono">{formatDuration(DURATION_1_MINUTE)}</div>
         <div className="text-text-muted">2m 34s:</div>
-        <div className="text-text font-mono">{formatDuration(154)}</div>
+        <div className="text-text font-mono">{formatDuration(DURATION_2M_34S)}</div>
         <div className="text-text-muted">1 hour:</div>
-        <div className="text-text font-mono">{formatDuration(3600)}</div>
+        <div className="text-text font-mono">{formatDuration(DURATION_1_HOUR)}</div>
         <div className="text-text-muted">1h 15m:</div>
-        <div className="text-text font-mono">{formatDuration(4500)}</div>
+        <div className="text-text font-mono">{formatDuration(DURATION_1H_15M)}</div>
         <div className="text-text-muted">1 day:</div>
-        <div className="text-text font-mono">{formatDuration(86400)}</div>
+        <div className="text-text font-mono">{formatDuration(DURATION_1_DAY)}</div>
         <div className="text-text-muted">2d 3h:</div>
-        <div className="text-text font-mono">{formatDuration(183600)}</div>
+        <div className="text-text font-mono">{formatDuration(DURATION_2D_3H)}</div>
       </div>
     </div>
   ),
@@ -290,4 +334,20 @@ export const FormatDurationExamples: Story = {
     await expect(canvas.getByText('1d 0h')).toBeInTheDocument();
     await expect(canvas.getByText('2d 3h')).toBeInTheDocument();
   },
+};
+
+// ============================================================================
+// Exports - All exports at the end
+// ============================================================================
+
+export default meta;
+export {
+  Default,
+  NoOutputPreview,
+  OutputUnavailable,
+  LongOutputPreview,
+  JustStarted,
+  LongRunning,
+  MultipleCards,
+  FormatDurationExamples,
 };

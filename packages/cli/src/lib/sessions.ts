@@ -21,7 +21,8 @@ const PREVIEW_MAX_LENGTH = 500;
 
 // Top-level regex patterns
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
-const SESSION_NAME_PATTERN = /^(saga-[a-z0-9]+(?:-[a-z0-9]+)*-\d+):/;
+// Matches both new format (saga__epic__story__pid) and legacy format (saga-epic-story-pid)
+const SESSION_NAME_PATTERN = /^(saga[-_][-_]?[a-z0-9_-]+):/;
 
 /**
  * Directory where session output files are stored
@@ -341,7 +342,7 @@ export function listSessions(): SessionInfo[] {
     // - New format: saga__<epic>__<story>__<pid> (double underscore delimiter)
     // - Legacy format: saga-<epic>-<story>-<pid> (single hyphen delimiter)
     // Only new format sessions will appear in the dashboard (parseSessionName requires saga__)
-    const match = line.match(/^(saga[-_][-_]?[a-z0-9_-]+):/);
+    const match = line.match(SESSION_NAME_PATTERN);
     if (match) {
       const name = match[1];
       sessions.push({

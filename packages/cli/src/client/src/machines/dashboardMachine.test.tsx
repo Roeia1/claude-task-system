@@ -1,13 +1,35 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createActor, waitFor, fromCallback } from 'xstate';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { createActor, fromCallback, waitFor } from 'xstate';
 import { getShortestPaths, getSimplePaths } from 'xstate/graph';
+import type { Epic, EpicSummary, SessionInfo, StoryDetail } from '@/types/dashboard';
 import {
-  dashboardMachine,
   type DashboardContext,
   type DashboardEvent,
+  dashboardMachine,
   type StorySubscription,
-} from './dashboardMachine';
-import type { EpicSummary, Epic, StoryDetail, SessionInfo } from '@/types/dashboard';
+} from './dashboardMachine.ts';
+
+// Test constants
+const EXPECTED_REACHABLE_STATES_COUNT = 5;
+
+// Message type for subscription capture
+interface SubscriptionMessage {
+  type: string;
+  epicSlug: string;
+  storySlug: string;
+}
+
+// Default context for machine initialization
+const defaultMachineContext: DashboardContext = {
+  epics: [],
+  currentEpic: null,
+  currentStory: null,
+  sessions: [],
+  error: null,
+  retryCount: 0,
+  wsUrl: '',
+  subscribedStories: [],
+};
 
 /**
  * Model-based tests for dashboardMachine.
@@ -32,7 +54,12 @@ const sampleStoryCounts = {
 
 const sampleEpics: EpicSummary[] = [
   { slug: 'epic-1', title: 'Epic One', storyCounts: sampleStoryCounts },
-  { slug: 'epic-2', title: 'Epic Two', storyCounts: { ...sampleStoryCounts, total: 4 }, isArchived: true },
+  {
+    slug: 'epic-2',
+    title: 'Epic Two',
+    storyCounts: { ...sampleStoryCounts, total: 4 },
+    isArchived: true,
+  },
 ];
 
 const sampleEpic: Epic = {
@@ -122,15 +149,22 @@ const createMockWebsocketActor = (options: {
             case 'disconnect':
               sendBack({ type: 'WS_DISCONNECTED' });
               break;
+            default:
+              // No action needed for other behaviors
+              break;
           }
         }, 0);
       }
 
-      return () => {};
-    }
+      return () => {
+        // Cleanup function - nothing to clean up in mock
+      };
+    },
   );
 
-function createTestableMachine(wsActorOptions: Parameters<typeof createMockWebsocketActor>[0] = {}) {
+function createTestableMachine(
+  wsActorOptions: Parameters<typeof createMockWebsocketActor>[0] = {},
+) {
   return dashboardMachine.provide({
     actors: {
       websocket: createMockWebsocketActor(wsActorOptions),
@@ -169,7 +203,7 @@ describe('dashboardMachine', () => {
       expect(reachableStates).toContain('connected');
       expect(reachableStates).toContain('reconnecting');
       expect(reachableStates).toContain('error');
-      expect(reachableStates.size).toBe(5);
+      expect(reachableStates.size).toBe(EXPECTED_REACHABLE_STATES_COUNT);
     });
 
     it('should find shortest paths to each state', () => {
@@ -232,7 +266,7 @@ describe('dashboardMachine', () => {
         targetState: path.state.value as string,
         steps: path.steps,
         pathDescription: path.steps.map((s) => s.event.type).join(' -> ') || '(initial)',
-      }))
+      })),
     )('should reach "$targetState" via: $pathDescription', ({ targetState, steps }) => {
       const machine = createTestableMachine({ connectBehavior: 'none' });
       const actor = createActor(machine);
@@ -270,7 +304,7 @@ describe('dashboardMachine', () => {
       paths.map((path) => ({
         targetState: path.state.value as string,
         steps: path.steps,
-      }))
+      })),
     )('invariant: retryCount >= 0 in "$targetState"', ({ steps }) => {
       const machine = createTestableMachine({ connectBehavior: 'none' });
       const actor = createActor(machine);
@@ -289,7 +323,7 @@ describe('dashboardMachine', () => {
       paths.map((path) => ({
         targetState: path.state.value as string,
         steps: path.steps,
-      }))
+      })),
     )('invariant: arrays never null in "$targetState"', ({ steps }) => {
       const machine = createTestableMachine({ connectBehavior: 'none' });
       const actor = createActor(machine);
@@ -374,7 +408,7 @@ describe('dashboardMachine', () => {
       const actor = createActor(machine, {
         snapshot: dashboardMachine.resolveState({
           value: 'idle',
-          context: { ...dashboardMachine.config.context!, retryCount: 4 },
+          context: { ...defaultMachineContext, retryCount: 4 },
         }),
       });
       actor.start();
@@ -725,11 +759,11 @@ describe('dashboardMachine', () => {
       await waitFor(actor, (s) => s.value === 'reconnecting', { timeout: 1000 });
       await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
 
-      const story1Messages = subscriptionCapture.messages.filter(
-        (m: any) => m.type === 'subscribe:story' && m.storySlug === 'story-1'
+      const story1Messages = (subscriptionCapture.messages as SubscriptionMessage[]).filter(
+        (m) => m.type === 'subscribe:story' && m.storySlug === 'story-1',
       );
-      const story2Messages = subscriptionCapture.messages.filter(
-        (m: any) => m.type === 'subscribe:story' && m.storySlug === 'story-2'
+      const story2Messages = (subscriptionCapture.messages as SubscriptionMessage[]).filter(
+        (m) => m.type === 'subscribe:story' && m.storySlug === 'story-2',
       );
 
       expect(story1Messages).toHaveLength(0);
@@ -761,12 +795,12 @@ describe('dashboardMachine', () => {
       actor.stop();
     });
 
-    it('resetRetryCount sets retryCount to 0 on RETRY', async () => {
+    it('resetRetryCount sets retryCount to 0 on RETRY', () => {
       const machine = createTestableMachine({ connectBehavior: 'success' });
       const actor = createActor(machine, {
         snapshot: dashboardMachine.resolveState({
           value: 'error',
-          context: { ...dashboardMachine.config.context!, retryCount: 3, error: 'test' },
+          context: { ...defaultMachineContext, retryCount: 3, error: 'test' },
         }),
       });
       actor.start();
@@ -783,7 +817,7 @@ describe('dashboardMachine', () => {
       const actor = createActor(machine, {
         snapshot: dashboardMachine.resolveState({
           value: 'idle',
-          context: { ...dashboardMachine.config.context!, error: 'previous error' },
+          context: { ...defaultMachineContext, error: 'previous error' },
         }),
       });
       actor.start();

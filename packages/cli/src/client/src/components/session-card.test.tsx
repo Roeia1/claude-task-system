@@ -1,8 +1,40 @@
-import { render, screen, cleanup, act } from '@testing-library/react';
-import { describe, it, expect, afterEach, vi, beforeEach } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
-import { SessionCard, formatDuration } from './SessionCard';
+import { act, cleanup, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionInfo } from '@/types/dashboard';
+import { formatDuration } from '@/utils/formatDuration';
+import { SessionCard } from './session-card.tsx';
+
+// Time constants
+const MS_FIVE_SECONDS = 5000;
+
+// Length constants
+const LONG_LINE_LENGTH = 600;
+const MAX_OUTPUT_LENGTH = 500;
+
+// Regex patterns for tests
+const INSTALLING_DEPENDENCIES_PATTERN = /Installing dependencies/;
+const COMPILING_TYPESCRIPT_PATTERN = /Compiling TypeScript/;
+const LINE_1_PATTERN = /Line 1: First line/;
+const LINE_2_PATTERN = /Line 2: Second line/;
+const LINE_3_PATTERN = /Line 3: Third line/;
+const LINE_7_PATTERN = /Line 7: Seventh line/;
+
+// Duration test constants (in seconds)
+const DURATION_0S = 0;
+const DURATION_30S = 30;
+const DURATION_59S = 59;
+const DURATION_1M = 60;
+const DURATION_1M_30S = 90;
+const DURATION_2M_34S = 154;
+const DURATION_59M_59S = 3599;
+const DURATION_1H = 3600;
+const DURATION_1H_15M = 4500;
+const DURATION_2H = 7200;
+const DURATION_2H_2M = 7325;
+const DURATION_1D = 86_400;
+const DURATION_1D_1H = 90_000;
+const DURATION_2D = 172_800;
 
 describe('SessionCard', () => {
   afterEach(() => {
@@ -29,7 +61,7 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       expect(screen.getByText('api-implementation')).toBeInTheDocument();
@@ -41,7 +73,7 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       expect(screen.getByText('dashboard-epic')).toBeInTheDocument();
@@ -55,11 +87,11 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
-      expect(screen.getByText(/Installing dependencies/)).toBeInTheDocument();
-      expect(screen.getByText(/Compiling TypeScript/)).toBeInTheDocument();
+      expect(screen.getByText(INSTALLING_DEPENDENCIES_PATTERN)).toBeInTheDocument();
+      expect(screen.getByText(COMPILING_TYPESCRIPT_PATTERN)).toBeInTheDocument();
     });
 
     it('displays output preview in monospace font with dark background', () => {
@@ -70,7 +102,7 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       const preElement = screen.getByText('Test output').closest('pre');
@@ -96,7 +128,7 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       expect(screen.getByText('30s')).toBeInTheDocument();
@@ -114,7 +146,7 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       expect(screen.getByText('2m 34s')).toBeInTheDocument();
@@ -132,7 +164,7 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       expect(screen.getByText('1h 15m')).toBeInTheDocument();
@@ -149,14 +181,14 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       expect(screen.getByText('10s')).toBeInTheDocument();
 
       // Advance time by 5 seconds
       act(() => {
-        vi.advanceTimersByTime(5000);
+        vi.advanceTimersByTime(MS_FIVE_SECONDS);
       });
 
       expect(screen.getByText('15s')).toBeInTheDocument();
@@ -182,21 +214,21 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       // Should show last 5 lines
-      expect(screen.getByText(/Line 3: Third line/)).toBeInTheDocument();
-      expect(screen.getByText(/Line 7: Seventh line/)).toBeInTheDocument();
+      expect(screen.getByText(LINE_3_PATTERN)).toBeInTheDocument();
+      expect(screen.getByText(LINE_7_PATTERN)).toBeInTheDocument();
 
       // Should not show first 2 lines
-      expect(screen.queryByText(/Line 1: First line/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Line 2: Second line/)).not.toBeInTheDocument();
+      expect(screen.queryByText(LINE_1_PATTERN)).not.toBeInTheDocument();
+      expect(screen.queryByText(LINE_2_PATTERN)).not.toBeInTheDocument();
     });
 
     it('truncates output to max 500 characters', () => {
       // Create a string longer than 500 characters
-      const longLine = 'A'.repeat(600);
+      const longLine = 'A'.repeat(LONG_LINE_LENGTH);
 
       const session = createSession({
         outputPreview: longLine,
@@ -205,11 +237,11 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       const preElement = screen.getByRole('presentation');
-      expect(preElement.textContent!.length).toBeLessThanOrEqual(500);
+      expect(preElement.textContent?.length).toBeLessThanOrEqual(MAX_OUTPUT_LENGTH);
     });
   });
 
@@ -223,7 +255,7 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       const link = screen.getByRole('link');
@@ -236,11 +268,14 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
-      const card = screen.getByRole('link').querySelector('[class*="hover"]');
-      expect(card).toBeInTheDocument();
+      // Check that the card has hover transition styling
+      const link = screen.getByRole('link');
+      const card = link.firstElementChild;
+      expect(card).toHaveClass('transition-colors');
+      expect(card).toHaveClass('cursor-pointer');
     });
   });
 
@@ -254,7 +289,7 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       expect(screen.getByText('Output unavailable')).toBeInTheDocument();
@@ -268,7 +303,7 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       const unavailableText = screen.getByText('Output unavailable');
@@ -286,7 +321,7 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       // Should render without crashing
@@ -302,7 +337,7 @@ describe('SessionCard', () => {
       render(
         <MemoryRouter>
           <SessionCard session={session} />
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       // Should render without crashing
@@ -313,28 +348,28 @@ describe('SessionCard', () => {
 
 describe('formatDuration', () => {
   it('formats seconds only', () => {
-    expect(formatDuration(0)).toBe('0s');
-    expect(formatDuration(30)).toBe('30s');
-    expect(formatDuration(59)).toBe('59s');
+    expect(formatDuration(DURATION_0S)).toBe('0s');
+    expect(formatDuration(DURATION_30S)).toBe('30s');
+    expect(formatDuration(DURATION_59S)).toBe('59s');
   });
 
   it('formats minutes and seconds', () => {
-    expect(formatDuration(60)).toBe('1m 0s');
-    expect(formatDuration(90)).toBe('1m 30s');
-    expect(formatDuration(154)).toBe('2m 34s');
-    expect(formatDuration(3599)).toBe('59m 59s');
+    expect(formatDuration(DURATION_1M)).toBe('1m 0s');
+    expect(formatDuration(DURATION_1M_30S)).toBe('1m 30s');
+    expect(formatDuration(DURATION_2M_34S)).toBe('2m 34s');
+    expect(formatDuration(DURATION_59M_59S)).toBe('59m 59s');
   });
 
   it('formats hours and minutes', () => {
-    expect(formatDuration(3600)).toBe('1h 0m');
-    expect(formatDuration(4500)).toBe('1h 15m');
-    expect(formatDuration(7200)).toBe('2h 0m');
-    expect(formatDuration(7325)).toBe('2h 2m');
+    expect(formatDuration(DURATION_1H)).toBe('1h 0m');
+    expect(formatDuration(DURATION_1H_15M)).toBe('1h 15m');
+    expect(formatDuration(DURATION_2H)).toBe('2h 0m');
+    expect(formatDuration(DURATION_2H_2M)).toBe('2h 2m');
   });
 
   it('formats days, hours, and minutes for very long sessions', () => {
-    expect(formatDuration(86400)).toBe('1d 0h');
-    expect(formatDuration(90000)).toBe('1d 1h');
-    expect(formatDuration(172800)).toBe('2d 0h');
+    expect(formatDuration(DURATION_1D)).toBe('1d 0h');
+    expect(formatDuration(DURATION_1D_1H)).toBe('1d 1h');
+    expect(formatDuration(DURATION_2D)).toBe('2d 0h');
   });
 });

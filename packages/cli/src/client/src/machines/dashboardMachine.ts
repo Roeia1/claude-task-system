@@ -187,50 +187,48 @@ function createHeartbeat(
 const websocketActor = fromCallback<
   DashboardEvent,
   { wsUrl: string; subscribedStories: StorySubscription[] }
->(
-  ({ sendBack, input, receive }) => {
-    let ws: WebSocket | null = null;
-    const lastPongRef = { value: Date.now() };
-    const messageQueue = createMessageQueue(() => ws);
-    const heartbeat = createHeartbeat(() => ws, messageQueue.send, lastPongRef, sendBack);
+>(({ sendBack, input, receive }) => {
+  let ws: WebSocket | null = null;
+  const lastPongRef = { value: Date.now() };
+  const messageQueue = createMessageQueue(() => ws);
+  const heartbeat = createHeartbeat(() => ws, messageQueue.send, lastPongRef, sendBack);
 
-    wsSendFn = messageQueue.send;
+  wsSendFn = messageQueue.send;
 
-    const connect = () => {
-      try {
-        ws = new WebSocket(input.wsUrl);
-        ws.onopen = () => {
-          lastPongRef.value = Date.now();
-          messageQueue.flush();
-          sendBack({ type: 'WS_CONNECTED' });
-          heartbeat.start();
+  const connect = () => {
+    try {
+      ws = new WebSocket(input.wsUrl);
+      ws.onopen = () => {
+        lastPongRef.value = Date.now();
+        messageQueue.flush();
+        sendBack({ type: 'WS_CONNECTED' });
+        heartbeat.start();
 
-          // Re-subscribe to all stories on (re)connect
-          for (const sub of input.subscribedStories) {
-            messageQueue.send({
-              event: 'subscribe:story',
-              data: { epicSlug: sub.epicSlug, storySlug: sub.storySlug },
-            });
-          }
-        };
-        ws.onclose = () => sendBack({ type: 'WS_DISCONNECTED' });
-        ws.onerror = () => sendBack({ type: 'WS_ERROR', error: 'WebSocket connection error' });
-        ws.onmessage = (event) => handleWebSocketMessage(event, lastPongRef, sendBack);
-      } catch {
-        sendBack({ type: 'WS_ERROR', error: 'Failed to create WebSocket' });
-      }
-    };
+        // Re-subscribe to all stories on (re)connect
+        for (const sub of input.subscribedStories) {
+          messageQueue.send({
+            event: 'subscribe:story',
+            data: { epicSlug: sub.epicSlug, storySlug: sub.storySlug },
+          });
+        }
+      };
+      ws.onclose = () => sendBack({ type: 'WS_DISCONNECTED' });
+      ws.onerror = () => sendBack({ type: 'WS_ERROR', error: 'WebSocket connection error' });
+      ws.onmessage = (event) => handleWebSocketMessage(event, lastPongRef, sendBack);
+    } catch {
+      sendBack({ type: 'WS_ERROR', error: 'Failed to create WebSocket' });
+    }
+  };
 
-    receive((event) => handleReceivedEvent(event, messageQueue.send));
-    connect();
+  receive((event) => handleReceivedEvent(event, messageQueue.send));
+  connect();
 
-    return () => {
-      wsSendFn = null;
-      heartbeat.stop();
-      ws?.close();
-    };
-  },
-);
+  return () => {
+    wsSendFn = null;
+    heartbeat.stop();
+    ws?.close();
+  };
+});
 
 /** Common data event handlers used across multiple states */
 const dataEventHandlers = {
