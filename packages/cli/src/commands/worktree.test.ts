@@ -1,5 +1,9 @@
 /**
  * Tests for saga worktree command
+ *
+ * Note: These tests perform real git operations (init, clone, worktree add, etc.)
+ * and are expected to take 300-800ms each. This is intentional as we're testing
+ * actual git worktree functionality, not mocked operations.
  */
 
 import { execSync } from 'node:child_process';
