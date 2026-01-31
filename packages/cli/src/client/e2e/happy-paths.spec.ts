@@ -202,6 +202,9 @@ test.describe('WebSocket Real-time Updates', () => {
   test('epic list updates when story status changes', async ({ page }) => {
     await page.goto('/');
 
+    // Wait for WebSocket connection to be established before modifying files
+    await expect(page.locator('[data-ws-connected="true"]')).toBeVisible({ timeout: 10_000 });
+
     // Verify initial state - Feature Development shows 1 completed
     const featureDevCard = page.locator('a[href="/epic/feature-development"]');
     await expect(featureDevCard).toContainText('Completed: 1');
@@ -225,6 +228,9 @@ test.describe('WebSocket Real-time Updates', () => {
 
   test('story detail updates when story file changes', async ({ page }) => {
     await page.goto('/epic/feature-development/story/auth-implementation');
+
+    // Wait for WebSocket connection to be established before modifying files
+    await expect(page.locator('[data-ws-connected="true"]')).toBeVisible({ timeout: 10_000 });
 
     // Verify initial state
     await expect(page.getByText('1/4 tasks completed')).toBeVisible();

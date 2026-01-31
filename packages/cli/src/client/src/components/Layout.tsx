@@ -10,7 +10,7 @@ export function Layout() {
   useDashboardToasts();
 
   // Auto-connect to WebSocket on mount for real-time updates
-  const { connect } = useDashboard();
+  const { connect, isConnected } = useDashboard();
   const hasConnected = useRef(false);
   useEffect(() => {
     if (!hasConnected.current) {
@@ -20,7 +20,7 @@ export function Layout() {
   }, [connect]);
 
   return (
-    <div class="min-h-screen bg-bg">
+    <div class="min-h-screen bg-bg" data-ws-connected={isConnected}>
       <header class="border-b border-border-muted bg-bg-dark">
         <div class="container mx-auto px-4 py-4">
           <div class="flex items-center justify-between">
