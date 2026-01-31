@@ -152,7 +152,8 @@ sessionsCommand
   });
 
 // Error handling for unknown commands
-program.on('command:*', (_operands) => {
+program.on('command:*', (operands) => {
+  console.error(`error: unknown command '${operands[0]}'`);
   process.exit(1);
 });
 

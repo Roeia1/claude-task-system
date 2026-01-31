@@ -1,8 +1,7 @@
 import { createActorContext } from '@xstate/react';
 import { useCallback, useMemo } from 'react';
 import type { ActorRefFrom } from 'xstate';
-import type { dashboardMachine } from '@/machines';
-import { dashboardMachine as machine } from '@/machines';
+import { dashboardMachine } from '@/machines/dashboardMachine';
 import type { Epic, EpicSummary, SessionInfo, StoryDetail } from '@/types/dashboard';
 
 type DashboardActorRef = ActorRefFrom<typeof dashboardMachine>;
@@ -11,7 +10,7 @@ type DashboardActorRef = ActorRefFrom<typeof dashboardMachine>;
  * Dashboard context using XState's createActorContext
  * Provides access to the dashboard state machine throughout the app
  */
-const DashboardContext = createActorContext(machine);
+const DashboardContext = createActorContext(dashboardMachine);
 
 /**
  * Provider component that wraps the app with dashboard state
@@ -90,6 +89,12 @@ function useDashboard() {
   const actorRef = useDashboardActorRef();
   const state = useDashboardSelector((snapshot) => snapshot.value);
   const context = useDashboardSelector((snapshot) => snapshot.context);
+  // Use matches() for hierarchical state checks
+  const isIdle = useDashboardSelector((snapshot) => snapshot.matches('idle'));
+  const isLoading = useDashboardSelector((snapshot) => snapshot.matches({ active: 'loading' }));
+  const isConnected = useDashboardSelector((snapshot) => snapshot.matches({ active: 'connected' }));
+  const isReconnecting = useDashboardSelector((snapshot) => snapshot.matches('reconnecting'));
+  const isError = useDashboardSelector((snapshot) => snapshot.matches('error'));
 
   const connectionActions = useConnectionActions(actorRef);
   const dataActions = useDataActions(actorRef);
@@ -98,11 +103,11 @@ function useDashboard() {
   return useMemo(
     () => ({
       state,
-      isIdle: state === 'idle',
-      isLoading: state === 'loading',
-      isConnected: state === 'connected',
-      isReconnecting: state === 'reconnecting',
-      isError: state === 'error',
+      isIdle,
+      isLoading,
+      isConnected,
+      isReconnecting,
+      isError,
       epics: context.epics,
       currentEpic: context.currentEpic,
       currentStory: context.currentStory,
@@ -115,7 +120,19 @@ function useDashboard() {
       ...subscriptionActions,
       actorRef,
     }),
-    [state, context, connectionActions, dataActions, subscriptionActions, actorRef],
+    [
+      state,
+      isIdle,
+      isLoading,
+      isConnected,
+      isReconnecting,
+      isError,
+      context,
+      connectionActions,
+      dataActions,
+      subscriptionActions,
+      actorRef,
+    ],
   );
 }
 

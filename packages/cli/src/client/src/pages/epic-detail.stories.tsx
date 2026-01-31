@@ -127,12 +127,12 @@ type StoryCardStory = StoryObj<typeof StoryCard>;
 const createSampleStory = (overrides: Partial<StoryDetailType> = {}): StoryDetailType => ({
   slug: 'setup-testing-framework',
   title: 'Setup Testing Framework',
-  status: 'in_progress',
+  status: 'inProgress',
   epicSlug: 'dashboard-restructure',
   tasks: [
     { id: 't1', title: 'Install dependencies', status: 'completed' },
     { id: 't2', title: 'Configure vitest', status: 'completed' },
-    { id: 't3', title: 'Write initial tests', status: 'in_progress' },
+    { id: 't3', title: 'Write initial tests', status: 'inProgress' },
     { id: 't4', title: 'Add CI integration', status: 'pending' },
   ],
   journal: [],
@@ -162,13 +162,13 @@ const sampleStories: StoryDetailType[] = [
   {
     slug: 'storybook-setup',
     title: 'Storybook Setup and Component Stories',
-    status: 'in_progress',
+    status: 'inProgress',
     epicSlug: 'dashboard-restructure',
     tasks: [
       { id: 't1', title: 'Install Storybook', status: 'completed' },
       { id: 't2', title: 'Configure Tailwind', status: 'completed' },
       { id: 't3', title: 'Create Layout stories', status: 'completed' },
-      { id: 't4', title: 'Create page stories', status: 'in_progress' },
+      { id: 't4', title: 'Create page stories', status: 'inProgress' },
       { id: 't5', title: 'Verify build', status: 'pending' },
     ],
     journal: [],
@@ -180,7 +180,7 @@ const sampleStories: StoryDetailType[] = [
     epicSlug: 'dashboard-restructure',
     tasks: [
       { id: 't1', title: 'Research tools', status: 'completed' },
-      { id: 't2', title: 'Configure chromatic', status: 'in_progress' },
+      { id: 't2', title: 'Configure chromatic', status: 'inProgress' },
       { id: 't3', title: 'Add snapshots', status: 'pending' },
     ],
     journal: [],
@@ -311,7 +311,7 @@ export const BadgeReady: StatusBadgeStory = {
  * In Progress status - primary blue color for active work.
  */
 export const BadgeInProgress: StatusBadgeStory = {
-  render: () => <StatusBadge status="in_progress" />,
+  render: () => <StatusBadge status="inProgress" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const badge = canvas.getByText('In Progress');
@@ -356,7 +356,7 @@ export const AllBadges: StatusBadgeStory = {
   render: () => (
     <div className="flex flex-wrap gap-2">
       <StatusBadge status="ready" />
-      <StatusBadge status="in_progress" />
+      <StatusBadge status="inProgress" />
       <StatusBadge status="blocked" />
       <StatusBadge status="completed" />
     </div>
@@ -465,7 +465,7 @@ export const CardBlocked: StoryCardStory = {
         status: 'blocked',
         tasks: [
           { id: 't1', title: 'Define schema', status: 'completed' },
-          { id: 't2', title: 'Implement endpoints', status: 'in_progress' },
+          { id: 't2', title: 'Implement endpoints', status: 'inProgress' },
           { id: 't3', title: 'Write tests', status: 'pending' },
         ],
       })}
@@ -541,7 +541,7 @@ export const CardLongTitle: StoryCardStory = {
         slug: 'long-title-story',
         title:
           'This Is a Very Long Story Title That Demonstrates How Text Wrapping Works in the Card Component',
-        status: 'in_progress',
+        status: 'inProgress',
       })}
       epicSlug="dashboard-restructure"
     />
@@ -583,7 +583,7 @@ export const CardGrid: StoryCardStory = {
           status: 'blocked',
           tasks: [
             { id: 't1', title: 'Task 1', status: 'completed' },
-            { id: 't2', title: 'Task 2', status: 'in_progress' },
+            { id: 't2', title: 'Task 2', status: 'inProgress' },
           ],
         })}
         epicSlug="dashboard-restructure"
@@ -592,7 +592,7 @@ export const CardGrid: StoryCardStory = {
         story={createSampleStory({
           slug: 'in-progress-story',
           title: 'Setup Testing',
-          status: 'in_progress',
+          status: 'inProgress',
         })}
         epicSlug="dashboard-restructure"
       />
@@ -970,7 +970,7 @@ export const WithBlockers: EpicDetailStory = {
         epicSlug: 'api-integration',
         tasks: [
           { id: 't1', title: 'Define schema', status: 'completed' },
-          { id: 't2', title: 'Review with team', status: 'in_progress' },
+          { id: 't2', title: 'Review with team', status: 'inProgress' },
         ],
         journal: [],
       },
@@ -980,7 +980,7 @@ export const WithBlockers: EpicDetailStory = {
         status: 'blocked',
         epicSlug: 'api-integration',
         tasks: [
-          { id: 't1', title: 'Implement', status: 'in_progress' },
+          { id: 't1', title: 'Implement', status: 'inProgress' },
           { id: 't2', title: 'Add tests', status: 'pending' },
         ],
         journal: [],
@@ -988,11 +988,11 @@ export const WithBlockers: EpicDetailStory = {
       {
         slug: 'data-endpoint',
         title: 'Data Endpoint',
-        status: 'in_progress',
+        status: 'inProgress',
         epicSlug: 'api-integration',
         tasks: [
           { id: 't1', title: 'Implement CRUD', status: 'completed' },
-          { id: 't2', title: 'Add validation', status: 'in_progress' },
+          { id: 't2', title: 'Add validation', status: 'inProgress' },
         ],
         journal: [],
       },

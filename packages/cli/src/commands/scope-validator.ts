@@ -102,9 +102,16 @@ function checkStoryAccess(path: string, allowedEpic: string, allowedStory: strin
 
   const pathEpic = parts[epicsIdx + 1];
 
+  // Path indices for story folder structure: .saga/epics/{epicSlug}/stories/{storySlug}
+  const storiesFolderIndex = 2;
+  const storySlugIndex = 3;
+
   // Check if this is in stories folder
-  if (parts.length > epicsIdx + 3 && parts[epicsIdx + 2] === 'stories') {
-    const pathStory = parts[epicsIdx + 3];
+  if (
+    parts.length > epicsIdx + storySlugIndex &&
+    parts[epicsIdx + storiesFolderIndex] === 'stories'
+  ) {
+    const pathStory = parts[epicsIdx + storySlugIndex];
     // Allow if matches current epic and story
     return pathEpic === allowedEpic && pathStory === allowedStory;
   }
@@ -127,27 +134,74 @@ function printScopeViolation(
 }
 
 /**
- * Execute the scope-validator command
- * Reads tool input from stdin and validates file path against story scope
+ * Read tool input from stdin
  */
-export async function scopeValidatorCommand(): Promise<void> {
-  // Get environment variables (set by SessionStart hook via CLAUDE_ENV_FILE)
+async function readStdinInput(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString('utf-8');
+}
+
+/**
+ * Get required environment variables for scope validation
+ * Returns null if any required variable is missing
+ */
+function getScopeEnvironment(): {
+  worktreePath: string;
+  epicSlug: string;
+  storySlug: string;
+} | null {
   const worktreePath = process.env.SAGA_PROJECT_DIR || '';
   const epicSlug = process.env.SAGA_EPIC_SLUG || '';
   const storySlug = process.env.SAGA_STORY_SLUG || '';
 
   if (!(worktreePath && epicSlug && storySlug)) {
+    return null;
+  }
+
+  return { worktreePath, epicSlug, storySlug };
+}
+
+/**
+ * Validate a file path against scope rules
+ * Returns the violation reason if blocked, null if allowed
+ */
+function validatePath(
+  filePath: string,
+  worktreePath: string,
+  epicSlug: string,
+  storySlug: string,
+): string | null {
+  const normPath = normalizePath(filePath);
+
+  if (!isWithinWorktree(normPath, worktreePath)) {
+    return 'Access outside worktree blocked\nReason: Workers can only access files within their assigned worktree directory.';
+  }
+
+  if (isArchiveAccess(normPath)) {
+    return 'Access to archive folder blocked\nReason: The archive folder contains completed stories and is read-only during execution.';
+  }
+
+  if (!checkStoryAccess(normPath, epicSlug, storySlug)) {
+    return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
+  }
+
+  return null;
+}
+
+/**
+ * Execute the scope-validator command
+ * Reads tool input from stdin and validates file path against story scope
+ */
+export async function scopeValidatorCommand(): Promise<void> {
+  const env = getScopeEnvironment();
+  if (!env) {
     process.exit(2);
   }
 
-  // Read tool input JSON from stdin
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(chunk);
-  }
-  const toolInput = Buffer.concat(chunks).toString('utf-8');
-
-  // Extract file path from JSON
+  const toolInput = await readStdinInput();
   const filePath = getFilePathFromInput(toolInput);
 
   // If no path found, allow the operation (not a file operation)
@@ -155,45 +209,11 @@ export async function scopeValidatorCommand(): Promise<void> {
     process.exit(0);
   }
 
-  // Normalize path
-  const normPath = normalizePath(filePath);
-
-  // Check for worktree boundary violation (must check first)
-  if (!isWithinWorktree(normPath, worktreePath)) {
-    printScopeViolation(
-      filePath,
-      epicSlug,
-      storySlug,
-      worktreePath,
-      'Access outside worktree blocked\nReason: Workers can only access files within their assigned worktree directory.',
-    );
+  const violation = validatePath(filePath, env.worktreePath, env.epicSlug, env.storySlug);
+  if (violation) {
+    printScopeViolation(filePath, env.epicSlug, env.storySlug, env.worktreePath, violation);
     process.exit(2);
   }
 
-  // Check for archive access
-  if (isArchiveAccess(normPath)) {
-    printScopeViolation(
-      filePath,
-      epicSlug,
-      storySlug,
-      worktreePath,
-      'Access to archive folder blocked\nReason: The archive folder contains completed stories and is read-only during execution.',
-    );
-    process.exit(2);
-  }
-
-  // Check for access to other stories
-  if (!checkStoryAccess(normPath, epicSlug, storySlug)) {
-    printScopeViolation(
-      filePath,
-      epicSlug,
-      storySlug,
-      worktreePath,
-      "Access to other story blocked\nReason: Workers can only access their assigned story's files.",
-    );
-    process.exit(2);
-  }
-
-  // All other paths within the worktree are allowed
   process.exit(0);
 }

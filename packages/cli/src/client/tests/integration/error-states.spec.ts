@@ -20,6 +20,12 @@ const HTTP_SERVICE_UNAVAILABLE = 503;
 const TOAST_TIMEOUT_MS = 5000;
 const LOADING_TIMEOUT_MS = 10_000;
 
+// Regex patterns for case-insensitive matching
+const BACK_TO_EPIC_LIST_REGEX = /Back to epic list/i;
+const BACK_TO_EPIC_REGEX = /Back to epic/i;
+const GOOD_EPIC_REGEX = /Good Epic/i;
+const WORKING_EPIC_REGEX = /Working Epic/i;
+
 /**
  * Error state tests for the dashboard.
  * These tests verify that error messages are displayed when API calls fail.
@@ -83,7 +89,7 @@ test.describe('Error States', () => {
       await expect(page.getByText('The epic "non-existent-epic" does not exist.')).toBeVisible();
 
       // Should have a link back to epic list
-      await expect(page.getByRole('link', { name: /Back to epic list/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: BACK_TO_EPIC_LIST_REGEX })).toBeVisible();
     });
 
     test('should show error page on 500 server error', async ({ page }) => {
@@ -102,7 +108,7 @@ test.describe('Error States', () => {
       await expect(page.getByText('Failed to load epic')).toBeVisible();
 
       // Should have a link back to epic list
-      await expect(page.getByRole('link', { name: /Back to epic list/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: BACK_TO_EPIC_LIST_REGEX })).toBeVisible();
     });
 
     test('should show toast notification on network failure', async ({ page }) => {
@@ -135,7 +141,7 @@ test.describe('Error States', () => {
       });
 
       // Click the back link
-      await page.getByRole('link', { name: /Back to epic list/i }).click();
+      await page.getByRole('link', { name: BACK_TO_EPIC_LIST_REGEX }).click();
 
       // Wait for epic list to load
       await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
@@ -167,7 +173,7 @@ test.describe('Error States', () => {
       ).toBeVisible();
 
       // Should have a link back to epic
-      await expect(page.getByRole('link', { name: /Back to epic/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: BACK_TO_EPIC_REGEX })).toBeVisible();
     });
 
     test('should show error page on 500 server error', async ({ page }) => {
@@ -186,7 +192,7 @@ test.describe('Error States', () => {
       await expect(page.getByText('Failed to load story')).toBeVisible();
 
       // Should have a link back to epic
-      await expect(page.getByRole('link', { name: /Back to epic/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: BACK_TO_EPIC_REGEX })).toBeVisible();
     });
 
     test('should show toast notification on network failure', async ({ page }) => {
@@ -224,7 +230,7 @@ test.describe('Error States', () => {
       });
 
       // Click the back link
-      await page.getByRole('link', { name: /Back to epic/i }).click();
+      await page.getByRole('link', { name: BACK_TO_EPIC_REGEX }).click();
 
       // Wait for epic detail to load
       await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, {
@@ -257,7 +263,7 @@ test.describe('Error States', () => {
       await expect(page.getByText('Good Epic')).toBeVisible();
 
       // Click to navigate to epic detail - should fail
-      await page.getByRole('link', { name: /Good Epic/i }).click();
+      await page.getByRole('link', { name: GOOD_EPIC_REGEX }).click();
 
       // Should show error state
       await expect(page.getByRole('heading', { name: 'Error' })).toBeVisible();
@@ -283,11 +289,11 @@ test.describe('Error States', () => {
       await expect(page.getByRole('heading', { name: 'Epic not found' })).toBeVisible();
 
       // Navigate back and then to working epic
-      await page.getByRole('link', { name: /Back to epic list/i }).click();
+      await page.getByRole('link', { name: BACK_TO_EPIC_LIST_REGEX }).click();
       await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
         timeout: LOADING_TIMEOUT_MS,
       });
-      await page.getByRole('link', { name: /Working Epic/i }).click();
+      await page.getByRole('link', { name: WORKING_EPIC_REGEX }).click();
       await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, {
         timeout: LOADING_TIMEOUT_MS,
       });

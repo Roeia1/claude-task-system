@@ -16,11 +16,27 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { type ServerInstance, startServer } from '../index.ts';
 
+// Constants for magic numbers
+const BASE_36 = 36;
+const RANDOM_STRING_SLICE_START = 2;
+const PORT_RANGE = 20_000;
+const PORT_BASE = 30_000;
+const WS_CONNECTION_TIMEOUT_MS = 5000;
+const SHORT_DELAY_MS = 100;
+const MEDIUM_DELAY_MS = 200;
+const WATCHER_DELAY_MS = 500;
+const EVENT_TIMEOUT_MS = 1000;
+const HTTP_OK = 200;
+const HTTP_NOT_FOUND = 404;
+const RAPID_CONNECTION_COUNT = 5;
+const CONCURRENT_CLIENT_COUNT = 3;
+const PERFORMANCE_CLIENT_COUNT = 10;
+
 // Helper to create a temporary saga directory
 async function createTempSagaDir(): Promise<string> {
   const tempDir = join(
     tmpdir(),
-    `saga-integration-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    `saga-integration-test-${Date.now()}-${Math.random().toString(BASE_36).slice(RANDOM_STRING_SLICE_START)}`,
   );
 
   // Create epic structure
@@ -62,16 +78,16 @@ Integration test story.
 
 // Helper to get a random port in a safe range
 function getRandomPort(): number {
-  return Math.floor(Math.random() * 20_000) + 30_000; // 30000-50000
+  return Math.floor(Math.random() * PORT_RANGE) + PORT_BASE; // 30000-50000
 }
 
 // Helper to create a WebSocket client and wait for connection
-async function createWsClient(port: number): Promise<WebSocket> {
+function createWsClient(port: number): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`ws://localhost:${port}`);
     const timeout = setTimeout(() => {
       reject(new Error('WebSocket connection timeout'));
-    }, 5000);
+    }, WS_CONNECTION_TIMEOUT_MS);
 
     ws.on('open', () => {
       clearTimeout(timeout);
@@ -86,10 +102,10 @@ async function createWsClient(port: number): Promise<WebSocket> {
 }
 
 // Helper to wait for a specific WebSocket event
-async function waitForEvent(
+function waitForEvent(
   ws: WebSocket,
   eventType: string,
-  timeoutMs = 1000,
+  timeoutMs = EVENT_TIMEOUT_MS,
 ): Promise<{ event: string; data: unknown }> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -146,12 +162,12 @@ describe('integration', () => {
 
       // Subscribe to story updates
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
 
       // Record start time
       const startTime = Date.now();
 
-      // Modify the story file
+      // Modify the story file (YAML uses snake_case, API returns camelCase)
       await writeFile(
         join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
         `---
@@ -174,16 +190,16 @@ Updated content.
       );
 
       // Wait for story:updated event
-      const msg = await waitForEvent(ws, 'story:updated', 1000);
+      const msg = await waitForEvent(ws, 'story:updated', EVENT_TIMEOUT_MS);
 
       // Calculate time elapsed
       const elapsed = Date.now() - startTime;
 
       // Verify update was received within 1 second
-      expect(elapsed).toBeLessThan(1000);
+      expect(elapsed).toBeLessThan(EVENT_TIMEOUT_MS);
       expect(msg.event).toBe('story:updated');
       expect(msg.data).toHaveProperty('title', 'Updated Story Title');
-      expect(msg.data).toHaveProperty('status', 'in_progress');
+      expect(msg.data).toHaveProperty('status', 'inProgress');
 
       ws.close();
     });
@@ -191,7 +207,7 @@ Updated content.
     it('should deliver epic update to all clients when structure changes', async () => {
       const ws1 = await createWsClient(port);
       const ws2 = await createWsClient(port);
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
 
       // Record start time
       const startTime = Date.now();
@@ -213,13 +229,13 @@ tasks: []
 
       // Both clients should receive epics:updated
       const [msg1, msg2] = await Promise.all([
-        waitForEvent(ws1, 'epics:updated', 1000),
-        waitForEvent(ws2, 'epics:updated', 1000),
+        waitForEvent(ws1, 'epics:updated', EVENT_TIMEOUT_MS),
+        waitForEvent(ws2, 'epics:updated', EVENT_TIMEOUT_MS),
       ]);
 
       const elapsed = Date.now() - startTime;
 
-      expect(elapsed).toBeLessThan(1000);
+      expect(elapsed).toBeLessThan(EVENT_TIMEOUT_MS);
       expect(msg1.event).toBe('epics:updated');
       expect(msg2.event).toBe('epics:updated');
 
@@ -230,7 +246,7 @@ tasks: []
     it('should update story via API after file change is detected', async () => {
       // Get initial story data
       const initialRes = await request(server.app).get('/api/stories/test-epic/test-story');
-      expect(initialRes.status).toBe(200);
+      expect(initialRes.status).toBe(HTTP_OK);
       expect(initialRes.body.status).toBe('ready');
 
       // Modify story file
@@ -251,11 +267,11 @@ Done.
       );
 
       // Wait for watcher to detect and cache to refresh
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_DELAY_MS));
 
       // Get updated story data
       const updatedRes = await request(server.app).get('/api/stories/test-epic/test-story');
-      expect(updatedRes.status).toBe(200);
+      expect(updatedRes.status).toBe(HTTP_OK);
       expect(updatedRes.body.status).toBe('completed');
       expect(updatedRes.body.title).toBe('API Test Story');
     });
@@ -264,7 +280,7 @@ Done.
   describe('server lifecycle', () => {
     it('should start and serve requests', async () => {
       const res = await request(server.app).get('/api/health');
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(res.body).toEqual({ status: 'ok' });
     });
 
@@ -312,23 +328,23 @@ Done.
     it('should continue serving after invalid API requests', async () => {
       // Make an invalid request
       const invalid1 = await request(server.app).get('/api/epics/nonexistent');
-      expect(invalid1.status).toBe(404);
+      expect(invalid1.status).toBe(HTTP_NOT_FOUND);
 
       const invalid2 = await request(server.app).get('/api/stories/bad/path');
-      expect(invalid2.status).toBe(404);
+      expect(invalid2.status).toBe(HTTP_NOT_FOUND);
 
       // Server should still work
       const valid = await request(server.app).get('/api/health');
-      expect(valid.status).toBe(200);
+      expect(valid.status).toBe(HTTP_OK);
     });
 
     it('should handle rapid WebSocket connections and disconnections', async () => {
       // Create and close multiple connections rapidly
-      const connections: WebSocket[] = [];
-      for (let i = 0; i < 5; i++) {
-        const ws = await createWsClient(port);
-        connections.push(ws);
+      const connectionPromises: Promise<WebSocket>[] = [];
+      for (let i = 0; i < RAPID_CONNECTION_COUNT; i++) {
+        connectionPromises.push(createWsClient(port));
       }
+      const connections = await Promise.all(connectionPromises);
 
       // Close all connections
       for (const ws of connections) {
@@ -336,7 +352,7 @@ Done.
       }
 
       // Wait a bit
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
 
       // Server should still accept new connections
       const newWs = await createWsClient(port);
@@ -345,16 +361,18 @@ Done.
     });
 
     it('should handle file operations during high WebSocket activity', async () => {
-      const clients: WebSocket[] = [];
-
       // Create multiple WebSocket clients
-      for (let i = 0; i < 3; i++) {
-        const ws = await createWsClient(port);
+      const clientPromises: Promise<WebSocket>[] = [];
+      for (let i = 0; i < CONCURRENT_CLIENT_COUNT; i++) {
+        clientPromises.push(createWsClient(port));
+      }
+      const clients = await Promise.all(clientPromises);
+
+      for (const ws of clients) {
         sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
-        clients.push(ws);
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
 
       // Make file changes while clients are connected
       await writeFile(
@@ -370,10 +388,10 @@ tasks: []
 
       // All clients should receive update
       const messages = await Promise.all(
-        clients.map((ws) => waitForEvent(ws, 'story:updated', 1000)),
+        clients.map((ws) => waitForEvent(ws, 'story:updated', EVENT_TIMEOUT_MS)),
       );
 
-      expect(messages.length).toBe(3);
+      expect(messages.length).toBe(CONCURRENT_CLIENT_COUNT);
       for (const msg of messages) {
         expect(msg.event).toBe('story:updated');
       }
@@ -388,9 +406,9 @@ tasks: []
     it('should return consistent data between API and WebSocket', async () => {
       const ws = await createWsClient(port);
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
 
-      // Modify story
+      // Modify story (YAML uses snake_case)
       await writeFile(
         join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
         `---
@@ -406,10 +424,10 @@ tasks:
       );
 
       // Get WebSocket update
-      const wsMsg = await waitForEvent(ws, 'story:updated', 1000);
+      const wsMsg = await waitForEvent(ws, 'story:updated', EVENT_TIMEOUT_MS);
 
       // Get API response
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
       const apiRes = await request(server.app).get('/api/stories/test-epic/test-story');
 
       // Both should have the same data
@@ -424,7 +442,7 @@ tasks:
     it('should include journal in story updates when present', async () => {
       const ws = await createWsClient(port);
       sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
 
       // Create a journal file
       await writeFile(
@@ -445,7 +463,7 @@ Waiting for code review.
       );
 
       // Wait for update
-      const msg = await waitForEvent(ws, 'story:updated', 1000);
+      const msg = await waitForEvent(ws, 'story:updated', EVENT_TIMEOUT_MS);
       const _data = msg.data as { journal?: unknown[] };
 
       // Journal should be included if the story detail includes it
@@ -459,17 +477,18 @@ Waiting for code review.
 
   describe('performance', () => {
     it('should handle multiple concurrent subscribers efficiently', async () => {
-      const clientCount = 10;
-      const clients: WebSocket[] = [];
-
       // Create multiple clients and subscribe them all
-      for (let i = 0; i < clientCount; i++) {
-        const ws = await createWsClient(port);
+      const clientPromises: Promise<WebSocket>[] = [];
+      for (let i = 0; i < PERFORMANCE_CLIENT_COUNT; i++) {
+        clientPromises.push(createWsClient(port));
+      }
+      const clients = await Promise.all(clientPromises);
+
+      for (const ws of clients) {
         sendMessage(ws, 'subscribe:story', { epicSlug: 'test-epic', storySlug: 'test-story' });
-        clients.push(ws);
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_DELAY_MS));
 
       const startTime = Date.now();
 
@@ -487,13 +506,13 @@ tasks: []
 
       // All clients should receive update within 1 second
       const messages = await Promise.all(
-        clients.map((ws) => waitForEvent(ws, 'story:updated', 1000)),
+        clients.map((ws) => waitForEvent(ws, 'story:updated', EVENT_TIMEOUT_MS)),
       );
 
       const elapsed = Date.now() - startTime;
 
-      expect(messages.length).toBe(clientCount);
-      expect(elapsed).toBeLessThan(1000);
+      expect(messages.length).toBe(PERFORMANCE_CLIENT_COUNT);
+      expect(elapsed).toBeLessThan(EVENT_TIMEOUT_MS);
 
       for (const ws of clients) {
         ws.close();

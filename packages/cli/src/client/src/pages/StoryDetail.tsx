@@ -51,16 +51,14 @@ function ContentSkeleton() {
 function StatusBadge({ status }: { status: StoryStatus }) {
   const variants: Record<StoryStatus, string> = {
     ready: 'bg-text-muted/20 text-text-muted',
-    // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
-    in_progress: 'bg-primary/20 text-primary',
+    inProgress: 'bg-primary/20 text-primary',
     blocked: 'bg-danger/20 text-danger',
     completed: 'bg-success/20 text-success',
   };
 
   const labels: Record<StoryStatus, string> = {
     ready: 'Ready',
-    // biome-ignore lint/style/useNamingConvention: StoryStatus type uses snake_case
-    in_progress: 'In Progress',
+    inProgress: 'In Progress',
     blocked: 'Blocked',
     completed: 'Completed',
   };
@@ -81,7 +79,7 @@ function TaskStatusIcon({ status }: { status: TaskStatus }) {
           data-testid="icon-check-circle"
         />
       );
-    case 'in_progress':
+    case 'inProgress':
       return (
         <Circle
           {...iconProps}
@@ -100,15 +98,23 @@ function TaskStatusIcon({ status }: { status: TaskStatus }) {
   }
 }
 
+/** Task status badge styles */
+const taskBadgeStyles: Record<TaskStatus, string> = {
+  pending: 'bg-text-muted/20 text-text-muted',
+  inProgress: 'bg-primary/20 text-primary',
+  completed: 'bg-success/20 text-success',
+};
+
+/** Task status labels */
+const taskStatusLabels: Record<TaskStatus, string> = {
+  pending: 'pending',
+  inProgress: 'in progress',
+  completed: 'completed',
+};
+
 /** Get badge class based on task status */
 function getTaskBadgeClass(status: TaskStatus): string {
-  if (status === 'completed') {
-    return 'bg-success/20 text-success';
-  }
-  if (status === 'in_progress') {
-    return 'bg-primary/20 text-primary';
-  }
-  return 'bg-text-muted/20 text-text-muted';
+  return taskBadgeStyles[status] || taskBadgeStyles.pending;
 }
 
 /** Single task item display */
@@ -121,7 +127,7 @@ function TaskItem({ task }: { task: StoryDetailType['tasks'][0] }) {
       <span class={task.status === 'completed' ? 'text-text-muted line-through' : 'text-text'}>
         {task.title}
       </span>
-      <Badge class={`ml-auto text-xs ${badgeClass}`}>{task.status.replace('_', ' ')}</Badge>
+      <Badge class={`ml-auto text-xs ${badgeClass}`}>{taskStatusLabels[task.status]}</Badge>
     </div>
   );
 }
@@ -185,49 +191,264 @@ function JournalEntryItem({
   );
 }
 
-function StoryDetail() {
-  const { epicSlug, storySlug } = useParams<{
-    epicSlug: string;
-    storySlug: string;
-  }>();
+/** Calculate task completion progress */
+function calculateTaskProgress(story: StoryDetailType | null) {
+  if (!story) {
+    return { completed: 0, total: 0 };
+  }
+  return {
+    completed: story.tasks.filter((t) => t.status === 'completed').length,
+    total: story.tasks.length,
+  };
+}
+
+/** Group journal entries by type */
+function groupJournalEntries(journal: JournalEntry[]) {
+  return {
+    blockers: journal.filter((e) => e.type === 'blocker'),
+    sessions: journal.filter((e) => e.type === 'session'),
+    resolutions: journal.filter((e) => e.type === 'resolution'),
+  };
+}
+
+/** Story not found state */
+function StoryNotFoundState({ epicSlug, storySlug }: { epicSlug: string; storySlug: string }) {
+  return (
+    <div class="text-center py-12">
+      <h1 class="text-2xl font-bold text-text mb-2">Story not found</h1>
+      <p class="text-text-muted mb-4">
+        The story &quot;{storySlug}&quot; does not exist in epic &quot;{epicSlug}&quot;.
+      </p>
+      <Link to={`/epic/${epicSlug}`} class="text-primary hover:underline">
+        ← Back to epic
+      </Link>
+    </div>
+  );
+}
+
+/** Story error state */
+function StoryErrorState({ epicSlug, error }: { epicSlug: string; error: string }) {
+  return (
+    <div class="text-center py-12">
+      <h1 class="text-2xl font-bold text-danger mb-2">Error</h1>
+      <p class="text-text-muted mb-4">{error}</p>
+      <Link to={`/epic/${epicSlug}`} class="text-primary hover:underline">
+        ← Back to epic
+      </Link>
+    </div>
+  );
+}
+
+/** Story loading state */
+function StoryLoadingState() {
+  return (
+    <div class="space-y-6">
+      <HeaderSkeleton />
+      <ContentSkeleton />
+    </div>
+  );
+}
+
+/** Story header with breadcrumb, title, and status */
+function StoryHeader({
+  story,
+  epicSlug,
+  storySlug,
+}: {
+  story: StoryDetailType;
+  epicSlug: string;
+  storySlug: string;
+}) {
+  const taskProgress = calculateTaskProgress(story);
+
+  return (
+    <div class="space-y-4">
+      <div class="flex items-center gap-2 text-sm text-text-muted">
+        <Link to={`/epic/${epicSlug}`} class="hover:text-primary">
+          {epicSlug}
+        </Link>
+        <span>/</span>
+        <span class="text-text">{storySlug}</span>
+      </div>
+      <h1 class="text-2xl font-bold text-text">{story.title}</h1>
+      <div class="flex items-center gap-4">
+        <StatusBadge status={story.status} />
+        <span class="text-sm text-text-muted">
+          {taskProgress.completed}/{taskProgress.total} tasks completed
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Tasks tab content */
+function TasksTabContent({ tasks }: { tasks: StoryDetailType['tasks'] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle class="text-lg">Tasks</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {tasks.length === 0 ? (
+          <p class="text-text-muted text-center py-4">No tasks defined for this story.</p>
+        ) : (
+          <div class="divide-y divide-border-muted">
+            {tasks.map((task) => (
+              <TaskItem key={task.id} task={task} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Story content tab */
+function ContentTabContent({ content }: { content: string | undefined }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle class="text-lg">Story Content</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {content ? (
+          <div class="prose prose-sm prose-invert max-w-none prose-headings:text-text prose-p:text-text-muted prose-strong:text-text prose-code:text-primary prose-code:bg-bg-dark prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-dark prose-pre:border prose-pre:border-border-muted prose-a:text-primary prose-a:no-underline prose-a:hover:underline prose-li:text-text-muted prose-table:border prose-table:border-border-muted prose-th:bg-bg-dark prose-th:px-3 prose-th:py-2 prose-th:text-text prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-border-muted">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          </div>
+        ) : (
+          <p class="text-text-muted text-center py-4">No story content available.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Get color class for journal section type */
+function getJournalSectionColor(type: string): string {
+  if (type === 'Blockers') {
+    return 'text-danger';
+  }
+  if (type === 'Resolutions') {
+    return 'text-success';
+  }
+  return 'text-text';
+}
+
+/** Journal entries section */
+function JournalSection({
+  entries,
+  type,
+  icon: Icon,
+}: {
+  entries: JournalEntry[];
+  type: string;
+  icon: typeof AlertCircle;
+}) {
+  if (entries.length === 0) {
+    return null;
+  }
+
+  const colorClass = getJournalSectionColor(type);
+
+  return (
+    <div class="space-y-3">
+      <h3 class={`text-sm font-semibold ${colorClass} flex items-center gap-2`}>
+        <Icon class="w-4 h-4" />
+        {type} ({entries.length})
+      </h3>
+      {entries.map((entry) => (
+        <JournalEntryItem
+          key={`${type.toLowerCase()}-${entry.title}-${entry.timestamp ?? ''}`}
+          entry={entry}
+          defaultOpen={type === 'Blockers'}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Journal tab content */
+function JournalTabContent({ journal }: { journal: JournalEntry[] }) {
+  if (journal.length === 0) {
+    return (
+      <Card>
+        <CardContent class="py-8">
+          <p class="text-text-muted text-center">No journal entries yet.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const { blockers, sessions, resolutions } = groupJournalEntries(journal);
+
+  return (
+    <div class="space-y-4">
+      <JournalSection entries={blockers} type="Blockers" icon={AlertCircle} />
+      <JournalSection entries={resolutions} type="Resolutions" icon={CheckCircle} />
+      <JournalSection entries={sessions} type="Sessions" icon={Circle} />
+    </div>
+  );
+}
+
+/** Result type for fetch response processing */
+type FetchResult = { type: 'notFound' } | { type: 'error' } | { type: 'success'; data: unknown };
+
+/** Process fetch response into a result type */
+async function processFetchResponse(response: Response): Promise<FetchResult> {
+  if (response.status === HTTP_NOT_FOUND) {
+    return { type: 'notFound' };
+  }
+  if (!response.ok) {
+    return { type: 'error' };
+  }
+  return { type: 'success', data: await response.json() };
+}
+
+/** Handle fetch error with toast notification */
+function handleFetchError(url: string, err: unknown, setError: (e: string) => void): void {
+  setError('Failed to load story');
+  showApiErrorToast(url, err instanceof Error ? err.message : 'Unknown error');
+}
+
+/** Custom hook for fetching story data */
+function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefined) {
   const {
     currentStory,
     setCurrentStory,
     clearCurrentStory,
-    isLoading,
     subscribeToStory,
     unsubscribeFromStory,
+    isConnected,
   } = useDashboard();
   const [isFetching, setIsFetching] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasSlugs = Boolean(epicSlug && storySlug);
 
+  // Fetch story data on mount
   useEffect(() => {
-    const fetchStory = async () => {
-      if (!(epicSlug && storySlug)) {
-        return;
-      }
+    if (!hasSlugs) {
+      return clearCurrentStory;
+    }
 
+    const fetchStory = async () => {
       setIsFetching(true);
       setNotFound(false);
       setError(null);
 
       try {
         const response = await fetch(`/api/stories/${epicSlug}/${storySlug}`);
-        if (response.status === HTTP_NOT_FOUND) {
+        const result = await processFetchResponse(response);
+
+        if (result.type === 'notFound') {
           setNotFound(true);
-          return;
-        }
-        if (!response.ok) {
+        } else if (result.type === 'error') {
           setError('Failed to load story');
-          return;
+        } else {
+          setCurrentStory(result.data);
         }
-        const data: StoryDetailType = await response.json();
-        setCurrentStory(data);
       } catch (err) {
-        setError('Failed to load story');
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        showApiErrorToast(`/api/stories/${epicSlug}/${storySlug}`, message);
+        handleFetchError(`/api/stories/${epicSlug}/${storySlug}`, err, setError);
       } finally {
         setIsFetching(false);
       }
@@ -235,211 +456,63 @@ function StoryDetail() {
 
     fetchStory();
 
-    // Subscribe to real-time story updates
-    if (epicSlug && storySlug) {
-      subscribeToStory(epicSlug, storySlug);
+    return clearCurrentStory;
+  }, [epicSlug, storySlug, hasSlugs, setCurrentStory, clearCurrentStory]);
+
+  // Subscribe to story updates when WebSocket is connected
+  useEffect(() => {
+    if (!(hasSlugs && isConnected)) {
+      return;
     }
 
+    subscribeToStory(epicSlug as string, storySlug as string);
+
     return () => {
-      clearCurrentStory();
-      if (epicSlug && storySlug) {
-        unsubscribeFromStory(epicSlug, storySlug);
-      }
+      unsubscribeFromStory(epicSlug as string, storySlug as string);
     };
-  }, [
-    epicSlug,
-    storySlug,
-    setCurrentStory,
-    clearCurrentStory,
-    subscribeToStory,
-    unsubscribeFromStory,
-  ]);
+  }, [epicSlug, storySlug, hasSlugs, isConnected, subscribeToStory, unsubscribeFromStory]);
 
-  const loading = isLoading || isFetching;
+  return { currentStory, loading: isFetching, notFound, error };
+}
 
-  // Calculate task progress
-  const taskProgress = currentStory
-    ? {
-        completed: currentStory.tasks.filter((t) => t.status === 'completed').length,
-        total: currentStory.tasks.length,
-      }
-    : { completed: 0, total: 0 };
+function StoryDetail() {
+  const { epicSlug, storySlug } = useParams<{ epicSlug: string; storySlug: string }>();
+  const { currentStory, loading, notFound, error } = useStoryFetch(epicSlug, storySlug);
 
-  // Group journal entries by type
-  const blockerEntries = currentStory?.journal.filter((e) => e.type === 'blocker') || [];
-  const sessionEntries = currentStory?.journal.filter((e) => e.type === 'session') || [];
-  const resolutionEntries = currentStory?.journal.filter((e) => e.type === 'resolution') || [];
-
-  // 404 state
   if (notFound) {
-    return (
-      <div class="text-center py-12">
-        <h1 class="text-2xl font-bold text-text mb-2">Story not found</h1>
-        <p class="text-text-muted mb-4">
-          The story &quot;{storySlug}&quot; does not exist in epic &quot;{epicSlug}&quot;.
-        </p>
-        <Link to={`/epic/${epicSlug}`} class="text-primary hover:underline">
-          ← Back to epic
-        </Link>
-      </div>
-    );
+    return <StoryNotFoundState epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />;
   }
-
-  // Error state
   if (error && !loading) {
-    return (
-      <div class="text-center py-12">
-        <h1 class="text-2xl font-bold text-danger mb-2">Error</h1>
-        <p class="text-text-muted mb-4">{error}</p>
-        <Link to={`/epic/${epicSlug}`} class="text-primary hover:underline">
-          ← Back to epic
-        </Link>
-      </div>
-    );
+    return <StoryErrorState epicSlug={epicSlug ?? ''} error={error} />;
+  }
+  if (loading || !currentStory) {
+    return <StoryLoadingState />;
   }
 
-  // Loading state
-  if (loading || !currentStory) {
-    return (
-      <div class="space-y-6">
-        <HeaderSkeleton />
-        <ContentSkeleton />
-      </div>
-    );
-  }
+  const { blockers } = groupJournalEntries(currentStory.journal);
 
   return (
     <div class="space-y-6">
-      {/* Story header */}
-      <div class="space-y-4">
-        <div class="flex items-center gap-2 text-sm text-text-muted">
-          <Link to={`/epic/${epicSlug}`} class="hover:text-primary">
-            {epicSlug}
-          </Link>
-          <span>/</span>
-          <span class="text-text">{storySlug}</span>
-        </div>
-        <h1 class="text-2xl font-bold text-text">{currentStory.title}</h1>
-        <div class="flex items-center gap-4">
-          <StatusBadge status={currentStory.status} />
-          <span class="text-sm text-text-muted">
-            {taskProgress.completed}/{taskProgress.total} tasks completed
-          </span>
-        </div>
-      </div>
-
-      {/* Tabs for Story Content and Journal */}
+      <StoryHeader story={currentStory} epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />
       <Tabs defaultValue="tasks" class="w-full">
         <TabsList class="mb-4">
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="content">Story Content</TabsTrigger>
           <TabsTrigger value="journal">
             Journal
-            {blockerEntries.length > 0 && (
-              <Badge class="ml-2 bg-danger/20 text-danger text-xs">{blockerEntries.length}</Badge>
+            {blockers.length > 0 && (
+              <Badge class="ml-2 bg-danger/20 text-danger text-xs">{blockers.length}</Badge>
             )}
           </TabsTrigger>
         </TabsList>
-
-        {/* Tasks tab */}
         <TabsContent value="tasks" class="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle class="text-lg">Tasks</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {currentStory.tasks.length === 0 ? (
-                <p class="text-text-muted text-center py-4">No tasks defined for this story.</p>
-              ) : (
-                <div class="divide-y divide-border-muted">
-                  {currentStory.tasks.map((task) => (
-                    <TaskItem key={task.id} task={task} />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <TasksTabContent tasks={currentStory.tasks} />
         </TabsContent>
-
-        {/* Story Content tab */}
         <TabsContent value="content" class="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle class="text-lg">Story Content</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {currentStory.content ? (
-                <div class="prose prose-sm prose-invert max-w-none prose-headings:text-text prose-p:text-text-muted prose-strong:text-text prose-code:text-primary prose-code:bg-bg-dark prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-dark prose-pre:border prose-pre:border-border-muted prose-a:text-primary prose-a:no-underline prose-a:hover:underline prose-li:text-text-muted prose-table:border prose-table:border-border-muted prose-th:bg-bg-dark prose-th:px-3 prose-th:py-2 prose-th:text-text prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-border-muted">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentStory.content}</ReactMarkdown>
-                </div>
-              ) : (
-                <p class="text-text-muted text-center py-4">No story content available.</p>
-              )}
-            </CardContent>
-          </Card>
+          <ContentTabContent content={currentStory.content} />
         </TabsContent>
-
-        {/* Journal tab */}
         <TabsContent value="journal" class="space-y-4">
-          {currentStory.journal.length === 0 ? (
-            <Card>
-              <CardContent class="py-8">
-                <p class="text-text-muted text-center">No journal entries yet.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div class="space-y-4">
-              {/* Blockers section - highlighted prominently */}
-              {blockerEntries.length > 0 && (
-                <div class="space-y-3">
-                  <h3 class="text-sm font-semibold text-danger flex items-center gap-2">
-                    <AlertCircle class="w-4 h-4" />
-                    Blockers ({blockerEntries.length})
-                  </h3>
-                  {blockerEntries.map((entry) => (
-                    <JournalEntryItem
-                      key={`blocker-${entry.title}-${entry.timestamp ?? ''}`}
-                      entry={entry}
-                      defaultOpen={true}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Resolutions section */}
-              {resolutionEntries.length > 0 && (
-                <div class="space-y-3">
-                  <h3 class="text-sm font-semibold text-success flex items-center gap-2">
-                    <CheckCircle class="w-4 h-4" />
-                    Resolutions ({resolutionEntries.length})
-                  </h3>
-                  {resolutionEntries.map((entry) => (
-                    <JournalEntryItem
-                      key={`resolution-${entry.title}-${entry.timestamp ?? ''}`}
-                      entry={entry}
-                      defaultOpen={false}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Sessions section */}
-              {sessionEntries.length > 0 && (
-                <div class="space-y-3">
-                  <h3 class="text-sm font-semibold text-text flex items-center gap-2">
-                    Sessions ({sessionEntries.length})
-                  </h3>
-                  {sessionEntries.map((entry) => (
-                    <JournalEntryItem
-                      key={`session-${entry.title}-${entry.timestamp ?? ''}`}
-                      entry={entry}
-                      defaultOpen={false}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          <JournalTabContent journal={currentStory.journal} />
         </TabsContent>
       </Tabs>
     </div>

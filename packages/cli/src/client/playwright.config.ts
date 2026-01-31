@@ -26,13 +26,15 @@ export default defineConfig({
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
 
+  // Stop on first failure to fail fast
+  maxFailures: 1,
+
   // Reporter configuration
   reporter: process.env.CI ? 'github' : 'html',
 
   // Shared settings for all projects
   use: {
-    // Base URL for navigation
-    // biome-ignore lint/style/useNamingConvention: Playwright API uses baseURL
+    // Base URL for navigation (Playwright API uses baseURL)
     baseURL: 'http://localhost:5173',
 
     // Collect trace on first retry

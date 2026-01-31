@@ -26,7 +26,7 @@ const DELAY_MS = 500;
  */
 test.describe('API Mocking Infrastructure', () => {
   test.describe('Mock Data Factories', () => {
-    test('createMockEpicSummary creates valid EpicSummary', async () => {
+    test('createMockEpicSummary creates valid EpicSummary', () => {
       const epic = createMockEpicSummary();
       expect(epic.slug).toBeDefined();
       expect(epic.title).toBeDefined();
@@ -34,7 +34,7 @@ test.describe('API Mocking Infrastructure', () => {
       expect(epic.storyCounts.total).toBeGreaterThanOrEqual(0);
     });
 
-    test('createMockEpicSummary allows overrides', async () => {
+    test('createMockEpicSummary allows overrides', () => {
       const epic = createMockEpicSummary({
         slug: 'custom-slug',
         title: 'Custom Title',
@@ -45,7 +45,7 @@ test.describe('API Mocking Infrastructure', () => {
       expect(epic.isArchived).toBe(true);
     });
 
-    test('createMockEpic creates valid Epic with stories', async () => {
+    test('createMockEpic creates valid Epic with stories', () => {
       const epic = createMockEpic();
       expect(epic.slug).toBeDefined();
       expect(epic.title).toBeDefined();
@@ -53,7 +53,7 @@ test.describe('API Mocking Infrastructure', () => {
       expect(epic.storyCounts).toBeDefined();
     });
 
-    test('createMockStoryDetail creates valid StoryDetail', async () => {
+    test('createMockStoryDetail creates valid StoryDetail', () => {
       const story = createMockStoryDetail();
       expect(story.slug).toBeDefined();
       expect(story.title).toBeDefined();

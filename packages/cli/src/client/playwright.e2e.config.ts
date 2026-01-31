@@ -63,13 +63,15 @@ export default defineConfig({
   // Use single worker since tests share filesystem state
   workers: 1,
 
+  // Stop on first failure to fail fast
+  maxFailures: 1,
+
   // Reporter configuration
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'html',
 
   // Shared settings for all projects
   use: {
-    // Base URL for navigation - connects to the real backend server
-    // biome-ignore lint/style/useNamingConvention: Playwright API uses baseURL
+    // Base URL for navigation - connects to the real backend server (Playwright API uses baseURL)
     baseURL: `http://localhost:${E2E_PORT}`,
 
     // Collect trace on first retry for debugging

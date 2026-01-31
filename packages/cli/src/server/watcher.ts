@@ -9,10 +9,33 @@ import { EventEmitter } from 'node:events';
 import { join, relative, sep } from 'node:path';
 import chokidar, { type FSWatcher } from 'chokidar';
 
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Minimum number of path parts required for a valid .saga path */
+const MIN_PATH_PARTS = 4;
+
+/** Number of path parts for an archive story file: .saga/archive/<epic>/<story>/<file> */
+const ARCHIVE_STORY_PARTS = 5;
+
+/** Number of path parts for an epic file: .saga/epics/<epic>/epic.md */
+const EPIC_FILE_PARTS = 4;
+
+/** Number of path parts for a story file: .saga/epics/<epic>/stories/<story>/<file> */
+const STORY_FILE_PARTS = 6;
+
+/** Debounce delay in milliseconds for file events */
+const DEBOUNCE_DELAY_MS = 100;
+
+// ============================================================================
+// Types (internal - not exported)
+// ============================================================================
+
 /**
  * Event types emitted by the watcher
  */
-export type WatcherEventType =
+type WatcherEventType =
   | 'epic:added'
   | 'epic:changed'
   | 'epic:removed'
@@ -23,7 +46,7 @@ export type WatcherEventType =
 /**
  * Event data for watcher events
  */
-export interface WatcherEvent {
+interface WatcherEvent {
   type: WatcherEventType;
   epicSlug: string;
   storySlug?: string;
@@ -34,7 +57,7 @@ export interface WatcherEvent {
 /**
  * SAGA file watcher interface
  */
-export interface SagaWatcher {
+interface SagaWatcher {
   /**
    * Subscribe to watcher events
    */
@@ -56,66 +79,56 @@ export interface SagaWatcher {
   close(): Promise<void>;
 }
 
+// ============================================================================
+// File Path Parsing
+// ============================================================================
+
 /**
- * Parse a file path to extract epic and story information
+ * Parsed file information from a .saga path
  */
-function parseFilePath(
-  filePath: string,
-  sagaRoot: string,
-): {
+interface ParsedFileInfo {
   epicSlug: string;
   storySlug?: string;
   archived: boolean;
   isEpicFile: boolean;
   isStoryFile: boolean;
   isMainStoryFile: boolean; // true for story.md, false for journal.md
-} | null {
-  // Get relative path from saga root
-  const relativePath = relative(sagaRoot, filePath);
-  const parts = relativePath.split(sep);
+}
 
-  // Expected patterns:
-  // .saga/epics/<epic-slug>/epic.md
-  // .saga/epics/<epic-slug>/stories/<story-slug>/story.md
-  // .saga/epics/<epic-slug>/stories/<story-slug>/journal.md
-  // .saga/archive/<epic-slug>/<story-slug>/story.md
-  // .saga/archive/<epic-slug>/<story-slug>/journal.md
+/**
+ * Check if a filename is a valid story-related markdown file
+ */
+function isStoryMarkdownFile(fileName: string): boolean {
+  return fileName === 'story.md' || fileName === 'journal.md';
+}
 
-  if (parts[0] !== '.saga' || parts.length < 4) {
-    return null;
-  }
-
-  const isArchive = parts[1] === 'archive';
-  const isEpics = parts[1] === 'epics';
-
-  if (!(isArchive || isEpics)) {
-    return null;
-  }
-
-  const epicSlug = parts[2];
-
-  if (isArchive) {
-    // Archive: .saga/archive/<epic-slug>/<story-slug>/...
-    if (parts.length >= 5) {
-      const storySlug = parts[3];
-      const fileName = parts[4];
-      if (fileName === 'story.md' || fileName === 'journal.md') {
-        return {
-          epicSlug,
-          storySlug,
-          archived: true,
-          isEpicFile: false,
-          isStoryFile: true,
-          isMainStoryFile: fileName === 'story.md',
-        };
-      }
+/**
+ * Parse an archive path: .saga/archive/<epic-slug>/<story-slug>/<file>
+ */
+function parseArchivePath(parts: string[], epicSlug: string): ParsedFileInfo | null {
+  if (parts.length >= ARCHIVE_STORY_PARTS) {
+    const storySlug = parts[3];
+    const fileName = parts[4];
+    if (isStoryMarkdownFile(fileName)) {
+      return {
+        epicSlug,
+        storySlug,
+        archived: true,
+        isEpicFile: false,
+        isStoryFile: true,
+        isMainStoryFile: fileName === 'story.md',
+      };
     }
-    return null;
   }
+  return null;
+}
 
-  // Epics: .saga/epics/<epic-slug>/...
-  if (parts.length === 4 && parts[3] === 'epic.md') {
-    // Epic file: .saga/epics/<epic-slug>/epic.md
+/**
+ * Parse an epics path: .saga/epics/<epic-slug>/...
+ */
+function parseEpicsPath(parts: string[], epicSlug: string): ParsedFileInfo | null {
+  // Epic file: .saga/epics/<epic-slug>/epic.md
+  if (parts.length === EPIC_FILE_PARTS && parts[3] === 'epic.md') {
     return {
       epicSlug,
       archived: false,
@@ -125,11 +138,11 @@ function parseFilePath(
     };
   }
 
-  if (parts.length >= 6 && parts[3] === 'stories') {
-    // Story file: .saga/epics/<epic-slug>/stories/<story-slug>/...
+  // Story file: .saga/epics/<epic-slug>/stories/<story-slug>/<file>
+  if (parts.length >= STORY_FILE_PARTS && parts[3] === 'stories') {
     const storySlug = parts[4];
     const fileName = parts[5];
-    if (fileName === 'story.md' || fileName === 'journal.md') {
+    if (isStoryMarkdownFile(fileName)) {
       return {
         epicSlug,
         storySlug,
@@ -141,6 +154,30 @@ function parseFilePath(
     }
   }
 
+  return null;
+}
+
+/**
+ * Parse a file path to extract epic and story information
+ */
+function parseFilePath(filePath: string, sagaRoot: string): ParsedFileInfo | null {
+  const relativePath = relative(sagaRoot, filePath);
+  const parts = relativePath.split(sep);
+
+  if (parts[0] !== '.saga' || parts.length < MIN_PATH_PARTS) {
+    return null;
+  }
+
+  const epicSlug = parts[2];
+  const isArchive = parts[1] === 'archive';
+  const isEpics = parts[1] === 'epics';
+
+  if (isArchive) {
+    return parseArchivePath(parts, epicSlug);
+  }
+  if (isEpics) {
+    return parseEpicsPath(parts, epicSlug);
+  }
   return null;
 }
 
@@ -176,107 +213,135 @@ function createDebouncer<T>(delayMs: number) {
   };
 }
 
-/**
- * Create a SAGA file watcher
- *
- * @param sagaRoot - Path to the project root containing .saga/ directory
- * @returns SagaWatcher instance
- */
-export async function createSagaWatcher(sagaRoot: string): Promise<SagaWatcher> {
-  const emitter = new EventEmitter();
-  const debouncer = createDebouncer<WatcherEvent>(100); // 100ms debounce
+// ============================================================================
+// Event Type Determination
+// ============================================================================
 
-  // Watch only .saga/epics and .saga/archive directories (not worktrees which can be huge)
+/**
+ * Determine the watcher event type for an epic file change
+ */
+function getEpicEventType(eventType: 'add' | 'change' | 'unlink'): WatcherEventType {
+  if (eventType === 'add') {
+    return 'epic:added';
+  }
+  if (eventType === 'unlink') {
+    return 'epic:removed';
+  }
+  return 'epic:changed';
+}
+
+/**
+ * Determine the watcher event type for a story file change
+ */
+function getStoryEventType(
+  eventType: 'add' | 'change' | 'unlink',
+  isMainStoryFile: boolean,
+): WatcherEventType {
+  // journal.md changes are always story:changed
+  if (!isMainStoryFile) {
+    return 'story:changed';
+  }
+  // story.md: add/unlink triggers story:added/removed
+  if (eventType === 'add') {
+    return 'story:added';
+  }
+  if (eventType === 'unlink') {
+    return 'story:removed';
+  }
+  return 'story:changed';
+}
+
+/**
+ * Determine the watcher event type based on parsed file info
+ */
+function determineEventType(
+  eventType: 'add' | 'change' | 'unlink',
+  parsed: ParsedFileInfo,
+): WatcherEventType | null {
+  if (parsed.isEpicFile) {
+    return getEpicEventType(eventType);
+  }
+  if (parsed.isStoryFile) {
+    return getStoryEventType(eventType, parsed.isMainStoryFile);
+  }
+  return null;
+}
+
+/**
+ * Create a debounce key for the parsed file info
+ */
+function createDebounceKey(parsed: ParsedFileInfo): string {
+  const { epicSlug, storySlug, archived } = parsed;
+  return storySlug ? `story:${epicSlug}:${storySlug}:${archived}` : `epic:${epicSlug}`;
+}
+
+// ============================================================================
+// Watcher Factory
+// ============================================================================
+
+/**
+ * Create a chokidar watcher for .saga directories
+ */
+function createChokidarWatcher(sagaRoot: string): FSWatcher {
   const epicsDir = join(sagaRoot, '.saga', 'epics');
   const archiveDir = join(sagaRoot, '.saga', 'archive');
 
-  // Create watcher for epics and archive directories
-  const watcher: FSWatcher = chokidar.watch([epicsDir, archiveDir], {
+  return chokidar.watch([epicsDir, archiveDir], {
     persistent: true,
-    ignoreInitial: true, // Don't emit events for existing files
-    // Use polling for reliable cross-platform behavior in tests
-    // This is fine since we only watch epics/archive (~20 files), not entire .saga/ (79K+ files)
+    ignoreInitial: true,
     usePolling: true,
-    interval: 100,
+    interval: DEBOUNCE_DELAY_MS,
   });
+}
 
-  // Track if watcher is closed
+/**
+ * Create a SAGA file watcher
+ */
+async function createSagaWatcher(sagaRoot: string): Promise<SagaWatcher> {
+  const emitter = new EventEmitter();
+  const debouncer = createDebouncer<WatcherEvent>(DEBOUNCE_DELAY_MS);
+  const watcher = createChokidarWatcher(sagaRoot);
   let closed = false;
   let ready = false;
 
-  // Handle file events
   const handleFileEvent = (eventType: 'add' | 'change' | 'unlink', filePath: string) => {
     if (closed || !ready) {
       return;
     }
-
     const parsed = parseFilePath(filePath, sagaRoot);
     if (!parsed) {
       return;
     }
 
-    const { epicSlug, storySlug, archived, isEpicFile, isStoryFile, isMainStoryFile } = parsed;
-
-    // Create a unique key for debouncing
-    const key = storySlug ? `story:${epicSlug}:${storySlug}:${archived}` : `epic:${epicSlug}`;
-
-    // Determine event type
-    let watcherEventType: WatcherEventType;
-    if (isEpicFile) {
-      if (eventType === 'add') {
-        watcherEventType = 'epic:added';
-      } else if (eventType === 'unlink') {
-        watcherEventType = 'epic:removed';
-      } else {
-        watcherEventType = 'epic:changed';
-      }
-    } else if (isStoryFile) {
-      // For story.md: add/unlink triggers story:added/removed
-      // For journal.md: any change triggers story:changed (it's a change to the story, not a new story)
-      if (isMainStoryFile) {
-        if (eventType === 'add') {
-          watcherEventType = 'story:added';
-        } else if (eventType === 'unlink') {
-          watcherEventType = 'story:removed';
-        } else {
-          watcherEventType = 'story:changed';
-        }
-      } else {
-        // journal.md changes are always story:changed
-        watcherEventType = 'story:changed';
-      }
-    } else {
+    const watcherEventType = determineEventType(eventType, parsed);
+    if (!watcherEventType) {
       return;
     }
 
     const event: WatcherEvent = {
       type: watcherEventType,
-      epicSlug,
-      storySlug,
-      archived,
+      epicSlug: parsed.epicSlug,
+      storySlug: parsed.storySlug,
+      archived: parsed.archived,
       path: relative(sagaRoot, filePath),
     };
 
-    // Debounce the event
-    debouncer.schedule(key, event, (debouncedEvent) => {
+    debouncer.schedule(createDebounceKey(parsed), event, (e) => {
       if (!closed) {
-        emitter.emit(debouncedEvent.type, debouncedEvent);
+        emitter.emit(e.type, e);
       }
     });
   };
 
-  // Register event handlers
   watcher.on('add', (path) => handleFileEvent('add', path));
   watcher.on('change', (path) => handleFileEvent('change', path));
   watcher.on('unlink', (path) => handleFileEvent('unlink', path));
-
   watcher.on('error', (error) => {
     if (!closed) {
       emitter.emit('error', error);
     }
   });
 
-  // Wait for watcher to be ready
   await new Promise<void>((resolve) => {
     watcher.on('ready', () => {
       ready = true;
@@ -289,7 +354,6 @@ export async function createSagaWatcher(sagaRoot: string): Promise<SagaWatcher> 
       emitter.on(event, listener);
       return this;
     },
-
     async close(): Promise<void> {
       closed = true;
       debouncer.clear();
@@ -297,3 +361,10 @@ export async function createSagaWatcher(sagaRoot: string): Promise<SagaWatcher> 
     },
   };
 }
+
+// ============================================================================
+// Exports
+// ============================================================================
+
+export type { WatcherEventType, WatcherEvent, SagaWatcher };
+export { createSagaWatcher };

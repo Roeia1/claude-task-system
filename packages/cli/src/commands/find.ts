@@ -50,6 +50,9 @@ export async function findCommand(query: string, options: FindOptions): Promise<
     result = await findStory(projectPath, query, { status: options.status });
   }
 
+  // Output JSON result
+  console.log(JSON.stringify(result, null, 2));
+
   // Exit with appropriate code
   if (!result.found) {
     process.exit(1);

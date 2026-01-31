@@ -9,6 +9,10 @@
 import { type Request, type Response, Router } from 'express';
 import { getCurrentSessions } from '../lib/session-polling.ts';
 
+// HTTP status codes
+const HTTP_NOT_FOUND = 404;
+const HTTP_INTERNAL_ERROR = 500;
+
 /**
  * Create the Session API router
  *
@@ -57,7 +61,7 @@ export function createSessionApiRouter(): Router {
 
       res.json(sessions);
     } catch (_error) {
-      res.status(500).json({ error: 'Failed to fetch sessions' });
+      res.status(HTTP_INTERNAL_ERROR).json({ error: 'Failed to fetch sessions' });
     }
   });
 
@@ -75,13 +79,13 @@ export function createSessionApiRouter(): Router {
       const session = sessions.find((s) => s.name === sessionName);
 
       if (!session) {
-        res.status(404).json({ error: 'Session not found' });
+        res.status(HTTP_NOT_FOUND).json({ error: 'Session not found' });
         return;
       }
 
       res.json(session);
     } catch (_error) {
-      res.status(500).json({ error: 'Failed to fetch session' });
+      res.status(HTTP_INTERNAL_ERROR).json({ error: 'Failed to fetch session' });
     }
   });
 

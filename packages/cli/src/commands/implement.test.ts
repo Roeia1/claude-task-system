@@ -9,6 +9,12 @@ import { join } from 'node:path';
 import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+// Regex patterns for case-insensitive matching
+const NOT_FOUND_REGEX = /not found|does not exist|saga init/i;
+const STORY_NOT_FOUND_REGEX = /not found|does not exist|no.*story/i;
+const NOT_SET_OR_FAILED_REGEX = /not set|FAILED/i;
+const NOT_FOUND_OR_FAILED_REGEX = /not found|FAILED/i;
+
 describe('implement command', () => {
   let testDir: string;
   let cliPath: string;
@@ -27,6 +33,8 @@ describe('implement command', () => {
   // Helper to run the CLI
   // Note: We unset SAGA_PLUGIN_ROOT by default to prevent the script from actually running
   // (the implement.py script would try to spawn claude which we don't want in tests)
+  const DEFAULT_TIMEOUT_MS = 5000;
+
   function runCli(
     args: string[],
     options: { env?: Record<string, string>; timeout?: number } = {},
@@ -41,7 +49,7 @@ describe('implement command', () => {
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
         env: { ...cleanEnv, ...options.env },
-        timeout: options.timeout ?? 5000, // 5 second timeout by default
+        timeout: options.timeout ?? DEFAULT_TIMEOUT_MS, // 5 second timeout by default
       });
       return { stdout, stderr: '', exitCode: 0 };
     } catch (error) {
@@ -151,7 +159,7 @@ Test story for implement command testing.
       const result = runCli(['implement', 'some-story']);
 
       expect(result.exitCode).not.toBe(0);
-      expect(result.stderr).toMatch(/not found|does not exist|saga init/i);
+      expect(result.stderr).toMatch(NOT_FOUND_REGEX);
     });
 
     it('should find project using --path option', () => {
@@ -200,7 +208,7 @@ Test story for implement command testing.
 
       expect(result.exitCode).not.toBe(0);
       // Should report story not found
-      expect(result.stderr + result.stdout).toMatch(/not found|does not exist|no.*story/i);
+      expect(result.stderr + result.stdout).toMatch(STORY_NOT_FOUND_REGEX);
     });
   });
 
@@ -298,7 +306,7 @@ Test story for implement command testing.
       const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir]);
 
       expect(result.stdout).toContain('SAGA_PLUGIN_ROOT');
-      expect(result.stdout).toMatch(/not set|FAILED/i);
+      expect(result.stdout).toMatch(NOT_SET_OR_FAILED_REGEX);
     });
 
     it('should pass all checks when environment is complete', () => {
@@ -327,7 +335,7 @@ Test story for implement command testing.
 
       expect(result.exitCode).not.toBe(0);
       expect(result.stdout).toContain('Worker prompt');
-      expect(result.stdout).toMatch(/not found|FAILED/i);
+      expect(result.stdout).toMatch(NOT_FOUND_OR_FAILED_REGEX);
     });
 
     it('should fail when worktree is missing', () => {

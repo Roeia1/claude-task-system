@@ -15,6 +15,19 @@
 import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Constants for test assertions
+const LONG_LINE_LENGTH = 150;
+const MAX_PREVIEW_LENGTH = 500;
+
+// Top-level regex patterns for test assertions
+const INVALID_EPIC_SLUG_PATTERN = /invalid epic slug/i;
+const INVALID_STORY_SLUG_PATTERN = /invalid story slug/i;
+const SESSION_NAME_PATTERN = /^saga-my-epic-my-story-\d+$/;
+const TMUX_NOT_FOUND_PATTERN = /tmux.*not found|not installed/i;
+const SESSION_CREATE_FAILED_PATTERN = /failed to create.*session/i;
+const OUTPUT_FILE_NOT_FOUND_PATTERN = /output file.*not found/i;
+
 import {
   buildSessionInfo,
   createSession,
@@ -225,73 +238,73 @@ describe('sessions', () => {
   });
 
   describe('createSession', () => {
-    it('should reject invalid epic slug', async () => {
-      await expect(createSession('Invalid_Epic', 'valid-story', 'echo hello')).rejects.toThrow(
-        /invalid epic slug/i,
+    it('should reject invalid epic slug', () => {
+      expect(() => createSession('Invalid_Epic', 'valid-story', 'echo hello')).toThrow(
+        INVALID_EPIC_SLUG_PATTERN,
       );
     });
 
-    it('should reject invalid story slug', async () => {
-      await expect(createSession('valid-epic', 'Invalid_Story', 'echo hello')).rejects.toThrow(
-        /invalid story slug/i,
+    it('should reject invalid story slug', () => {
+      expect(() => createSession('valid-epic', 'Invalid_Story', 'echo hello')).toThrow(
+        INVALID_STORY_SLUG_PATTERN,
       );
     });
 
-    it('should create output directory if it does not exist', async () => {
+    it('should create output directory if it does not exist', () => {
       mockExistsSync.mockReturnValueOnce(false).mockReturnValue(true);
       mockSpawnSync
         .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
         .mockReturnValueOnce({ status: 0, stdout: '' }); // tmux new-session
 
-      await createSession('my-epic', 'my-story', 'echo hello');
+      createSession('my-epic', 'my-story', 'echo hello');
 
       expect(mockMkdirSync).toHaveBeenCalledWith(OUTPUT_DIR, { recursive: true });
     });
 
-    it('should return session name and output file path on success', async () => {
+    it('should return session name and output file path on success', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync
         .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
         .mockReturnValueOnce({ status: 0, stdout: '' }); // tmux new-session
 
-      const result = await createSession('my-epic', 'my-story', 'echo hello');
+      const result = createSession('my-epic', 'my-story', 'echo hello');
 
       // Session name should match pattern: saga-<epic>-<story>-<timestamp>
-      expect(result.sessionName).toMatch(/^saga-my-epic-my-story-\d+$/);
+      expect(result.sessionName).toMatch(SESSION_NAME_PATTERN);
       expect(result.outputFile).toBe(`/tmp/saga-sessions/${result.sessionName}.out`);
     });
 
-    it('should throw error if tmux is not available', async () => {
+    it('should throw error if tmux is not available', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValueOnce({ status: 1, stdout: '' }); // which tmux fails
 
-      await expect(createSession('my-epic', 'my-story', 'echo hello')).rejects.toThrow(
-        /tmux.*not found|not installed/i,
+      expect(() => createSession('my-epic', 'my-story', 'echo hello')).toThrow(
+        TMUX_NOT_FOUND_PATTERN,
       );
     });
 
-    it('should throw error if tmux session creation fails', async () => {
+    it('should throw error if tmux session creation fails', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync
         .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
         .mockReturnValueOnce({ status: 1, stderr: 'session creation failed' }); // tmux new-session fails
 
-      await expect(createSession('my-epic', 'my-story', 'echo hello')).rejects.toThrow(
-        /failed to create.*session/i,
+      expect(() => createSession('my-epic', 'my-story', 'echo hello')).toThrow(
+        SESSION_CREATE_FAILED_PATTERN,
       );
     });
   });
 
   describe('listSessions', () => {
-    it('should return empty array when no sessions exist', async () => {
+    it('should return empty array when no sessions exist', () => {
       mockSpawnSync.mockReturnValue({ status: 1, stdout: '' }); // tmux ls returns non-zero when no sessions
 
-      const result = await listSessions();
+      const result = listSessions();
 
       expect(result).toEqual([]);
     });
 
-    it('should return only saga-prefixed sessions', async () => {
+    it('should return only saga-prefixed sessions', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValue({
         status: 0,
@@ -299,59 +312,59 @@ describe('sessions', () => {
           'saga-epic1-story1-1234: 1 windows\nother-session: 1 windows\nsaga-epic2-story2-5678: 2 windows\n',
       });
 
-      const result = await listSessions();
+      const result = listSessions();
 
       expect(result).toHaveLength(2);
       expect(result[0].name).toBe('saga-epic1-story1-1234');
       expect(result[1].name).toBe('saga-epic2-story2-5678');
     });
 
-    it('should include status for each session', async () => {
+    it('should include status for each session', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValue({
         status: 0,
         stdout: 'saga-epic1-story1-1234: 1 windows\n',
       });
 
-      const result = await listSessions();
+      const result = listSessions();
 
       expect(result[0].status).toBe('running');
     });
 
-    it('should include output file path for each session', async () => {
+    it('should include output file path for each session', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValue({
         status: 0,
         stdout: 'saga-epic1-story1-1234: 1 windows\n',
       });
 
-      const result = await listSessions();
+      const result = listSessions();
 
       expect(result[0].outputFile).toBe('/tmp/saga-sessions/saga-epic1-story1-1234.out');
     });
   });
 
   describe('getSessionStatus', () => {
-    it('should return running: true when session exists', async () => {
+    it('should return running: true when session exists', () => {
       mockSpawnSync.mockReturnValue({ status: 0 }); // tmux has-session returns 0 when session exists
 
-      const result = await getSessionStatus('saga-epic1-story1-1234');
+      const result = getSessionStatus('saga-epic1-story1-1234');
 
       expect(result.running).toBe(true);
     });
 
-    it('should return running: false when session does not exist', async () => {
+    it('should return running: false when session does not exist', () => {
       mockSpawnSync.mockReturnValue({ status: 1 }); // tmux has-session returns non-zero when not found
 
-      const result = await getSessionStatus('saga-epic1-story1-1234');
+      const result = getSessionStatus('saga-epic1-story1-1234');
 
       expect(result.running).toBe(false);
     });
 
-    it('should call tmux has-session with correct session name', async () => {
+    it('should call tmux has-session with correct session name', () => {
       mockSpawnSync.mockReturnValue({ status: 0 });
 
-      await getSessionStatus('saga-epic1-story1-1234');
+      getSessionStatus('saga-epic1-story1-1234');
 
       expect(mockSpawnSync).toHaveBeenCalledWith(
         'tmux',
@@ -362,26 +375,26 @@ describe('sessions', () => {
   });
 
   describe('killSession', () => {
-    it('should return killed: true when session is killed', async () => {
+    it('should return killed: true when session is killed', () => {
       mockSpawnSync.mockReturnValue({ status: 0 }); // tmux kill-session returns 0 on success
 
-      const result = await killSession('saga-epic1-story1-1234');
+      const result = killSession('saga-epic1-story1-1234');
 
       expect(result.killed).toBe(true);
     });
 
-    it('should return killed: false when session does not exist', async () => {
+    it('should return killed: false when session does not exist', () => {
       mockSpawnSync.mockReturnValue({ status: 1 }); // tmux kill-session returns non-zero when not found
 
-      const result = await killSession('saga-epic1-story1-1234');
+      const result = killSession('saga-epic1-story1-1234');
 
       expect(result.killed).toBe(false);
     });
 
-    it('should call tmux kill-session with correct session name', async () => {
+    it('should call tmux kill-session with correct session name', () => {
       mockSpawnSync.mockReturnValue({ status: 0 });
 
-      await killSession('saga-epic1-story1-1234');
+      killSession('saga-epic1-story1-1234');
 
       expect(mockSpawnSync).toHaveBeenCalledWith(
         'tmux',
@@ -401,10 +414,10 @@ describe('sessions', () => {
       mockChildProcess.kill = vi.fn();
     });
 
-    it('should throw error when output file does not exist', async () => {
+    it('should throw error when output file does not exist', () => {
       mockExistsSync.mockReturnValue(false);
 
-      await expect(streamLogs('saga-epic1-story1-1234')).rejects.toThrow(/output file.*not found/i);
+      expect(() => streamLogs('saga-epic1-story1-1234')).toThrow(OUTPUT_FILE_NOT_FOUND_PATTERN);
     });
 
     it('should spawn tail -f on the output file', async () => {
@@ -574,13 +587,13 @@ describe('sessions', () => {
         mtime: modifiedTime,
       });
       // Create content where last 5 lines exceed 500 chars
-      const longLine = 'x'.repeat(150);
+      const longLine = 'x'.repeat(LONG_LINE_LENGTH);
       const content = `${longLine}\n${longLine}\n${longLine}\n${longLine}\n${longLine}\n`;
       mockReadFile.mockResolvedValue(content);
 
       const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
-      expect(assertDefined(result.outputPreview).length).toBeLessThanOrEqual(500);
+      expect(assertDefined(result.outputPreview).length).toBeLessThanOrEqual(MAX_PREVIEW_LENGTH);
     });
 
     it('should handle output file with fewer than 5 lines', async () => {

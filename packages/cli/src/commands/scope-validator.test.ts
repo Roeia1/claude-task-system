@@ -170,8 +170,15 @@ describe('scope-validator', () => {
 
       const pathEpic = parts[epicsIdx + 1];
 
-      if (parts.length > epicsIdx + 3 && parts[epicsIdx + 2] === 'stories') {
-        const pathStory = parts[epicsIdx + 3];
+      // Path indices for story folder structure
+      const storiesFolderIndex = 2;
+      const storySlugIndex = 3;
+
+      if (
+        parts.length > epicsIdx + storySlugIndex &&
+        parts[epicsIdx + storiesFolderIndex] === 'stories'
+      ) {
+        const pathStory = parts[epicsIdx + storySlugIndex];
         return pathEpic === allowedEpic && pathStory === allowedStory;
       }
       return pathEpic === allowedEpic;

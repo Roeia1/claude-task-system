@@ -10,6 +10,9 @@ const MARKDOWN_WITH_CODE_BLOCK = [
   '```',
 ].join('\n');
 
+// Regex patterns for case-insensitive matching
+const EPIC_DOCUMENTATION_REGEX = /epic documentation/i;
+
 /**
  * Integration tests for epic content display in the dashboard.
  * Tests the EpicContent component as integrated into the EpicDetail page.
@@ -125,7 +128,7 @@ test.describe('Epic Content Display', () => {
       await expect(page.getByText('This content can be hidden.')).toBeVisible();
 
       // Click the toggle button
-      await page.getByRole('button', { name: /epic documentation/i }).click();
+      await page.getByRole('button', { name: EPIC_DOCUMENTATION_REGEX }).click();
 
       // Verify the section is collapsed
       await expect(epicContent).toHaveAttribute('data-state', 'closed');
@@ -144,7 +147,7 @@ test.describe('Epic Content Display', () => {
       await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       const epicContent = page.getByTestId('epic-content');
-      const toggleButton = page.getByRole('button', { name: /epic documentation/i });
+      const toggleButton = page.getByRole('button', { name: EPIC_DOCUMENTATION_REGEX });
 
       // Collapse
       await toggleButton.click();

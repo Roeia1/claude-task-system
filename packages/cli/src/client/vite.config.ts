@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 // https://vite.dev/config/
-export default defineConfig({
+const config = defineConfig({
   root: import.meta.dirname,
   plugins: [tailwindcss(), react()],
   resolve: {
@@ -31,3 +31,6 @@ export default defineConfig({
     },
   },
 });
+
+// Vite requires default export for config
+export { config as default };

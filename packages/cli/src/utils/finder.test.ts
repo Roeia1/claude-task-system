@@ -6,7 +6,8 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { extractContext, findEpic, findStory, parseFrontmatter } from './finder.ts';
+import { extractContext, findEpic, findStory } from './finder.ts';
+import { parseFrontmatter } from './saga-scanner.ts';
 
 // ============================================================================
 // Test Constants
@@ -17,6 +18,9 @@ const TEST_LONG_CONTEXT_LENGTH = 400;
 
 /** Maximum length for context extraction in tests */
 const TEST_MAX_CONTEXT_LENGTH = 300;
+
+/** Regex pattern for error message matching in findStory tests */
+const WORKTREES_EPICS_ERROR_REGEX = /worktrees|epics/;
 
 describe('parseFrontmatter', () => {
   it('should parse simple frontmatter', () => {
@@ -416,7 +420,7 @@ This story implements the login feature for the application.
 
     expect(result.found).toBe(false);
     if (!result.found && 'error' in result) {
-      expect(result.error).toMatch(/worktrees|epics/);
+      expect(result.error).toMatch(WORKTREES_EPICS_ERROR_REGEX);
     }
   });
 

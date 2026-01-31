@@ -3,10 +3,25 @@ import { MemoryRouter } from 'react-router';
 import { expect, within } from 'storybook/test';
 import { createActor } from 'xstate';
 import { DashboardProvider } from '@/context/dashboard-context';
-import { dashboardMachine } from '@/machines';
+import { dashboardMachine } from '@/machines/dashboardMachine';
 import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
 import type { EpicSummary } from '@/types/dashboard';
 import { EpicCard, EpicCardSkeleton, EpicList, StatusBadge } from './EpicList.tsx';
+
+// Test constants
+const MIN_SKELETON_PLACEHOLDERS = 3;
+const SKELETON_GRID_COUNT = 3;
+const EPIC_CARD_COUNT = 3;
+const EPIC_LINK_COUNT = 3;
+const TOTAL_EPICS_WITH_ARCHIVED = 5;
+
+// Regex patterns for case-insensitive matching
+const READY_REGEX = /Ready:/;
+const IN_PROGRESS_REGEX = /In Progress:/;
+const BLOCKED_REGEX = /Blocked:/;
+// ARCHIVED_REGEX was removed as it's unused in current tests
+const COMPLETED_REGEX = /Completed:/;
+const TO_GET_STARTED_REGEX = /to get started/;
 
 // ============================================================================
 // EpicCardSkeleton Stories
@@ -29,14 +44,13 @@ const skeletonMeta: Meta<typeof EpicCardSkeleton> = {
   },
 };
 
-export default skeletonMeta;
 type SkeletonStory = StoryObj<typeof EpicCardSkeleton>;
 
 /**
  * Default skeleton showing the animated loading state with
  * placeholder areas for title, progress bar, and status badges.
  */
-export const Skeleton: SkeletonStory = {
+const Skeleton: SkeletonStory = {
   play: async ({ canvasElement }) => {
     const _canvas = within(canvasElement);
     // Verify skeleton card structure exists - the card should have animate-pulse class
@@ -44,7 +58,7 @@ export const Skeleton: SkeletonStory = {
     await expect(card).toBeInTheDocument();
     // Verify skeleton has placeholder elements with bg-bg-light class
     const placeholders = canvasElement.querySelectorAll('.bg-bg-light');
-    await expect(placeholders.length).toBeGreaterThanOrEqual(3); // title, progress bar, badges
+    await expect(placeholders.length).toBeGreaterThanOrEqual(MIN_SKELETON_PLACEHOLDERS); // title, progress bar, badges
   },
 };
 
@@ -52,7 +66,7 @@ export const Skeleton: SkeletonStory = {
  * Multiple skeletons arranged in a grid, simulating the loading
  * state of the EpicList page.
  */
-export const SkeletonGrid: SkeletonStory = {
+const SkeletonGrid: SkeletonStory = {
   render: () => (
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <EpicCardSkeleton />
@@ -66,7 +80,7 @@ export const SkeletonGrid: SkeletonStory = {
     await expect(grid).toBeInTheDocument();
     // Verify three skeleton cards are rendered
     const skeletonCards = canvasElement.querySelectorAll('.animate-pulse');
-    await expect(skeletonCards.length).toBe(3);
+    await expect(skeletonCards.length).toBe(SKELETON_GRID_COUNT);
   },
 };
 
@@ -78,7 +92,7 @@ export const SkeletonGrid: SkeletonStory = {
  * Status badge component that displays story status with appropriate
  * color coding and count.
  */
-export const statusBadgeMeta: Meta<typeof StatusBadge> = {
+const statusBadgeMeta: Meta<typeof StatusBadge> = {
   title: 'Pages/EpicList/StatusBadge',
   component: StatusBadge,
   argTypes: {
@@ -107,7 +121,7 @@ type StatusBadgeStory = StoryObj<typeof StatusBadge>;
 /**
  * Ready status - gray color indicating stories that haven't started.
  */
-export const StatusReady: StatusBadgeStory = {
+const StatusReady: StatusBadgeStory = {
   render: () => <StatusBadge status="ready" count={5} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -119,8 +133,8 @@ export const StatusReady: StatusBadgeStory = {
 /**
  * In Progress status - primary blue color for active work.
  */
-export const StatusInProgress: StatusBadgeStory = {
-  render: () => <StatusBadge status="in_progress" count={3} />,
+const StatusInProgress: StatusBadgeStory = {
+  render: () => <StatusBadge status="inProgress" count={3} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const badge = canvas.getByText('In Progress: 3');
@@ -131,7 +145,7 @@ export const StatusInProgress: StatusBadgeStory = {
 /**
  * Blocked status - danger red color indicating impediments.
  */
-export const StatusBlocked: StatusBadgeStory = {
+const StatusBlocked: StatusBadgeStory = {
   render: () => <StatusBadge status="blocked" count={1} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -143,7 +157,7 @@ export const StatusBlocked: StatusBadgeStory = {
 /**
  * Completed status - success green color for finished stories.
  */
-export const StatusCompleted: StatusBadgeStory = {
+const StatusCompleted: StatusBadgeStory = {
   render: () => <StatusBadge status="completed" count={8} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -155,11 +169,11 @@ export const StatusCompleted: StatusBadgeStory = {
 /**
  * All status badges displayed together to show color contrast.
  */
-export const AllStatuses: StatusBadgeStory = {
+const AllStatuses: StatusBadgeStory = {
   render: () => (
     <div class="flex flex-wrap gap-2">
       <StatusBadge status="ready" count={5} />
-      <StatusBadge status="in_progress" count={3} />
+      <StatusBadge status="inProgress" count={3} />
       <StatusBadge status="blocked" count={1} />
       <StatusBadge status="completed" count={8} />
     </div>
@@ -181,7 +195,7 @@ export const AllStatuses: StatusBadgeStory = {
 /**
  * Epic card component displaying an epic's title, progress, and story status breakdown.
  */
-export const epicCardMeta: Meta<typeof EpicCard> = {
+const epicCardMeta: Meta<typeof EpicCard> = {
   title: 'Pages/EpicList/EpicCard',
   component: EpicCard,
   decorators: [
@@ -222,7 +236,7 @@ const sampleEpic: EpicSummary = {
 /**
  * Default epic card with a mix of story statuses.
  */
-export const Card: EpicCardStory = {
+const Card: EpicCardStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -255,7 +269,7 @@ export const Card: EpicCardStory = {
 /**
  * Epic card for a fully completed epic.
  */
-export const CardCompleted: EpicCardStory = {
+const CardCompleted: EpicCardStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -286,16 +300,16 @@ export const CardCompleted: EpicCardStory = {
     await expect(canvas.getByText('5/5 stories')).toBeInTheDocument();
     // Only completed badge should be visible (zero counts are hidden)
     await expect(canvas.getByText('Completed: 5')).toBeInTheDocument();
-    await expect(canvas.queryByText(/Ready:/)).not.toBeInTheDocument();
-    await expect(canvas.queryByText(/In Progress:/)).not.toBeInTheDocument();
-    await expect(canvas.queryByText(/Blocked:/)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(READY_REGEX)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(IN_PROGRESS_REGEX)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(BLOCKED_REGEX)).not.toBeInTheDocument();
   },
 };
 
 /**
  * Epic card with all stories ready to start.
  */
-export const CardAllReady: EpicCardStory = {
+const CardAllReady: EpicCardStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -326,16 +340,16 @@ export const CardAllReady: EpicCardStory = {
     await expect(canvas.getByText('0/4 stories')).toBeInTheDocument();
     // Only ready badge should be visible
     await expect(canvas.getByText('Ready: 4')).toBeInTheDocument();
-    await expect(canvas.queryByText(/Completed:/)).not.toBeInTheDocument();
-    await expect(canvas.queryByText(/In Progress:/)).not.toBeInTheDocument();
-    await expect(canvas.queryByText(/Blocked:/)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(COMPLETED_REGEX)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(IN_PROGRESS_REGEX)).not.toBeInTheDocument();
+    await expect(canvas.queryByText(BLOCKED_REGEX)).not.toBeInTheDocument();
   },
 };
 
 /**
  * Epic card with blocked work requiring attention.
  */
-export const CardWithBlockers: EpicCardStory = {
+const CardWithBlockers: EpicCardStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -375,7 +389,7 @@ export const CardWithBlockers: EpicCardStory = {
 /**
  * Epic card with a long title demonstrating text handling.
  */
-export const CardLongTitle: EpicCardStory = {
+const CardLongTitle: EpicCardStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -418,7 +432,7 @@ export const CardLongTitle: EpicCardStory = {
 /**
  * Multiple epic cards in a grid layout.
  */
-export const CardGrid: EpicCardStory = {
+const CardGrid: EpicCardStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -465,12 +479,10 @@ export const CardGrid: EpicCardStory = {
     await expect(canvas.getByText('API Integration')).toBeInTheDocument();
     // Verify all three links are present
     const links = canvas.getAllByRole('link');
-    await expect(links.length).toBe(3);
+    await expect(links.length).toBe(EPIC_LINK_COUNT);
 
     // Accessibility: Verify all links have accessible names
-    for (const link of links) {
-      await expect(link).toHaveAccessibleName();
-    }
+    await Promise.all(links.map((link) => expect(link).toHaveAccessibleName()));
   },
 };
 
@@ -512,7 +524,7 @@ function _MockDashboardProvider({
 /**
  * Full EpicList page component showing the list of epics with filtering.
  */
-export const epicListMeta: Meta<typeof EpicList> = {
+const epicListMeta: Meta<typeof EpicList> = {
   title: 'Pages/EpicList',
   component: EpicList,
   decorators: [
@@ -539,7 +551,7 @@ type EpicListStory = StoryObj<typeof EpicList>;
  * Loading state showing three skeleton cards.
  * Note: This uses a direct render to show the skeleton state.
  */
-export const Loading: EpicListStory = {
+const Loading: EpicListStory = {
   render: () => (
     <div class="space-y-6">
       <div class="flex items-center justify-between">
@@ -558,7 +570,7 @@ export const Loading: EpicListStory = {
     await expect(canvas.getByText('Epics')).toBeInTheDocument();
     // Verify three skeleton cards are rendered
     const skeletonCards = canvasElement.querySelectorAll('.animate-pulse');
-    await expect(skeletonCards.length).toBe(3);
+    await expect(skeletonCards.length).toBe(SKELETON_GRID_COUNT);
     // Verify grid layout
     const grid = canvasElement.querySelector('.grid');
     await expect(grid).toBeInTheDocument();
@@ -571,7 +583,7 @@ export const Loading: EpicListStory = {
 /**
  * Empty state when no epics exist.
  */
-export const Empty: EpicListStory = {
+const Empty: EpicListStory = {
   render: () => (
     <div class="space-y-6">
       <div class="flex items-center justify-between">
@@ -593,7 +605,7 @@ export const Empty: EpicListStory = {
     await expect(canvas.getByText('No epics found.')).toBeInTheDocument();
     // Verify guidance text with /create-epic command
     await expect(canvas.getByText('/create-epic')).toBeInTheDocument();
-    await expect(canvas.getByText(/to get started/)).toBeInTheDocument();
+    await expect(canvas.getByText(TO_GET_STARTED_REGEX)).toBeInTheDocument();
 
     // Visual snapshot test
     await matchCanvasSnapshot(canvasElement, 'epic-list-empty');
@@ -639,7 +651,7 @@ const sampleEpics: EpicSummary[] = [
 /**
  * Populated state with multiple epics showing various progress states.
  */
-export const Populated: EpicListStory = {
+const Populated: EpicListStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -673,7 +685,7 @@ export const Populated: EpicListStory = {
     await expect(canvas.getByText('1/7 stories')).toBeInTheDocument();
     // Verify links are present
     const links = canvas.getAllByRole('link');
-    await expect(links.length).toBe(3);
+    await expect(links.length).toBe(EPIC_CARD_COUNT);
 
     // Visual snapshot test
     await matchCanvasSnapshot(canvasElement, 'epic-list-populated');
@@ -712,7 +724,7 @@ const epicsWithArchived: EpicSummary[] = [
  * State with archived epics, showing the "Show archived" toggle.
  * Archived epics are hidden by default but can be revealed.
  */
-export const WithArchivedEpics: EpicListStory = {
+const WithArchivedEpics: EpicListStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -754,7 +766,7 @@ export const WithArchivedEpics: EpicListStory = {
     await expect(canvas.getByText('Show archived')).toBeInTheDocument();
     // Verify only non-archived epics are visible (3 epics)
     const links = canvas.getAllByRole('link');
-    await expect(links.length).toBe(3);
+    await expect(links.length).toBe(EPIC_CARD_COUNT);
 
     // Accessibility: Verify checkbox has accessible name via label
     await expect(checkbox).toHaveAccessibleName('Show archived');
@@ -764,7 +776,7 @@ export const WithArchivedEpics: EpicListStory = {
 /**
  * State showing all epics including archived ones (toggle enabled).
  */
-export const WithArchivedVisible: EpicListStory = {
+const WithArchivedVisible: EpicListStory = {
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -804,7 +816,7 @@ export const WithArchivedVisible: EpicListStory = {
     await expect(checkbox).toBeChecked();
     // Verify all epics are visible including archived (5 epics total)
     const links = canvas.getAllByRole('link');
-    await expect(links.length).toBe(5);
+    await expect(links.length).toBe(TOTAL_EPICS_WITH_ARCHIVED);
     // Verify archived epics are present
     await expect(canvas.getByText('Legacy Code Cleanup')).toBeInTheDocument();
     await expect(canvas.getByText('Old Feature (Archived)')).toBeInTheDocument();
@@ -812,4 +824,33 @@ export const WithArchivedVisible: EpicListStory = {
     // Accessibility: Verify checkbox has accessible name via label
     await expect(checkbox).toHaveAccessibleName('Show archived');
   },
+};
+
+// ============================================================================
+// Exports
+// ============================================================================
+
+export default skeletonMeta;
+export {
+  Skeleton,
+  SkeletonGrid,
+  statusBadgeMeta,
+  StatusReady,
+  StatusInProgress,
+  StatusBlocked,
+  StatusCompleted,
+  AllStatuses,
+  epicCardMeta,
+  Card,
+  CardCompleted,
+  CardAllReady,
+  CardWithBlockers,
+  CardLongTitle,
+  CardGrid,
+  epicListMeta,
+  Loading,
+  Empty,
+  Populated,
+  WithArchivedEpics,
+  WithArchivedVisible,
 };

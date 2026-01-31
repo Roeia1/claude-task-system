@@ -194,10 +194,8 @@ test.describe('Story Detail', () => {
 });
 
 test.describe('WebSocket Real-time Updates', () => {
-  // Skip WebSocket tests for now - the dashboard doesn't auto-connect to WebSocket on load.
-  // The WebSocket connection is only initiated when connect() is called, but no component
-  // currently calls this on mount. This is a pre-existing gap in the dashboard implementation.
-  // TODO: Enable these tests once WebSocket auto-connection is implemented in the dashboard.
+  // WebSocket auto-connection is implemented in the App component on mount.
+  // These tests verify real-time updates when files change on disk.
   test.describe.configure({ mode: 'serial' });
   test.setTimeout(WEBSOCKET_TEST_TIMEOUT_MS);
 

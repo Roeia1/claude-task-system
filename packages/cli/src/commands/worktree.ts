@@ -27,7 +27,7 @@ import { resolveProjectPath } from '../utils/project-discovery.ts';
 /**
  * Options for the worktree command
  */
-export interface WorktreeOptions {
+interface WorktreeOptions {
   path?: string;
 }
 
@@ -157,28 +157,31 @@ function createWorktree(projectPath: string, epicSlug: string, storySlug: string
 /**
  * Execute the worktree command
  */
-export async function worktreeCommand(
-  epicSlug: string,
-  storySlug: string,
-  options: WorktreeOptions,
-): Promise<void> {
+function worktreeCommand(epicSlug: string, storySlug: string, options: WorktreeOptions): void {
   // Resolve project path
   let projectPath: string;
   try {
     projectPath = resolveProjectPath(options.path);
   } catch (error) {
-    const _result: WorktreeResult = {
+    const result: WorktreeResult = {
       success: false,
       error: error instanceof Error ? error.message : String(error),
     };
+    console.log(JSON.stringify(result, null, 2));
     process.exit(1);
   }
 
   // Create the worktree
   const result = createWorktree(projectPath, epicSlug, storySlug);
 
+  // Output JSON result
+  console.log(JSON.stringify(result, null, 2));
+
   // Exit with appropriate code
   if (!result.success) {
     process.exit(1);
   }
 }
+
+export { worktreeCommand };
+export type { WorktreeOptions };

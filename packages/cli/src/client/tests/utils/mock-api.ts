@@ -30,7 +30,7 @@ const HTTP_OK = 200;
 /**
  * Creates a default StoryCounts object.
  */
-export function createMockStoryCounts(overrides: Partial<StoryCounts> = {}): StoryCounts {
+function createMockStoryCounts(overrides: Partial<StoryCounts> = {}): StoryCounts {
   return {
     ready: 0,
     inProgress: 0,
@@ -44,7 +44,7 @@ export function createMockStoryCounts(overrides: Partial<StoryCounts> = {}): Sto
 /**
  * Creates a mock Task with sensible defaults.
  */
-export function createMockTask(overrides: Partial<Task> = {}): Task {
+function createMockTask(overrides: Partial<Task> = {}): Task {
   return {
     id: `task-${Date.now()}`,
     title: 'Mock Task',
@@ -56,7 +56,7 @@ export function createMockTask(overrides: Partial<Task> = {}): Task {
 /**
  * Creates a mock JournalEntry with sensible defaults.
  */
-export function createMockJournalEntry(overrides: Partial<JournalEntry> = {}): JournalEntry {
+function createMockJournalEntry(overrides: Partial<JournalEntry> = {}): JournalEntry {
   return {
     type: 'session',
     title: 'Mock Session',
@@ -70,7 +70,7 @@ export function createMockJournalEntry(overrides: Partial<JournalEntry> = {}): J
  * Creates a mock EpicSummary with sensible defaults.
  * Used for the epic list view (/api/epics endpoint).
  */
-export function createMockEpicSummary(overrides: Partial<EpicSummary> = {}): EpicSummary {
+function createMockEpicSummary(overrides: Partial<EpicSummary> = {}): EpicSummary {
   const slug = overrides.slug || `mock-epic-${Date.now()}`;
   return {
     slug,
@@ -84,7 +84,7 @@ export function createMockEpicSummary(overrides: Partial<EpicSummary> = {}): Epi
  * Creates a mock StoryDetail with sensible defaults.
  * Used for story detail view (/api/stories/:epicSlug/:storySlug endpoint).
  */
-export function createMockStoryDetail(overrides: Partial<StoryDetail> = {}): StoryDetail {
+function createMockStoryDetail(overrides: Partial<StoryDetail> = {}): StoryDetail {
   const slug = overrides.slug || `mock-story-${Date.now()}`;
   return {
     slug,
@@ -101,14 +101,14 @@ export function createMockStoryDetail(overrides: Partial<StoryDetail> = {}): Sto
  * Creates a mock Epic with sensible defaults.
  * Used for epic detail view (/api/epics/:slug endpoint).
  */
-export function createMockEpic(overrides: Partial<Epic> = {}): Epic {
+function createMockEpic(overrides: Partial<Epic> = {}): Epic {
   const slug = overrides.slug || `mock-epic-${Date.now()}`;
   const stories = overrides.stories || [];
 
   // Calculate story counts from stories if not provided
   const storyCounts = overrides.storyCounts || {
     ready: stories.filter((s) => s.status === 'ready').length,
-    inProgress: stories.filter((s) => s.status === 'in_progress').length,
+    inProgress: stories.filter((s) => s.status === 'inProgress').length,
     blocked: stories.filter((s) => s.status === 'blocked').length,
     completed: stories.filter((s) => s.status === 'completed').length,
     total: stories.length,
@@ -134,12 +134,15 @@ export function createMockEpic(overrides: Partial<Epic> = {}): Epic {
 // - General-purpose mocks (mockApiError, mockApiDelay, mockNetworkFailure)
 //   accept glob patterns from the caller for flexibility.
 
+/** Route pattern type - accepts glob strings, regex, or function matchers */
+type RoutePattern = string | RegExp | ((url: URL) => boolean);
+
 /**
  * Mocks the GET /api/epics endpoint to return a list of epic summaries.
  * Uses a function matcher to match exactly /api/epics (with optional trailing slash)
  * but NOT /api/epics/some-slug.
  */
-export async function mockEpicList(page: Page, epics: EpicSummary[]): Promise<void> {
+async function mockEpicList(page: Page, epics: EpicSummary[]): Promise<void> {
   await page.route(
     (url) => url.pathname === '/api/epics' || url.pathname === '/api/epics/',
     async (route: Route) => {
@@ -156,7 +159,7 @@ export async function mockEpicList(page: Page, epics: EpicSummary[]): Promise<vo
  * Mocks the GET /api/epics/:slug endpoint to return epic details.
  * Uses a function matcher to handle the URL properly.
  */
-export async function mockEpicDetail(page: Page, epic: Epic): Promise<void> {
+async function mockEpicDetail(page: Page, epic: Epic): Promise<void> {
   await page.route(
     (url) => url.pathname === `/api/epics/${epic.slug}`,
     async (route: Route) => {
@@ -173,7 +176,7 @@ export async function mockEpicDetail(page: Page, epic: Epic): Promise<void> {
  * Mocks the GET /api/stories/:epicSlug/:storySlug endpoint to return story details.
  * Uses a function matcher to handle the URL properly.
  */
-export async function mockStoryDetail(page: Page, story: StoryDetail): Promise<void> {
+async function mockStoryDetail(page: Page, story: StoryDetail): Promise<void> {
   await page.route(
     (url) => url.pathname === `/api/stories/${story.epicSlug}/${story.slug}`,
     async (route: Route) => {
@@ -186,9 +189,6 @@ export async function mockStoryDetail(page: Page, story: StoryDetail): Promise<v
   );
 }
 
-/** Route pattern type - accepts glob strings, regex, or function matchers */
-type RoutePattern = string | RegExp | ((url: URL) => boolean);
-
 /**
  * Mocks an API route to return an error response.
  *
@@ -197,7 +197,7 @@ type RoutePattern = string | RegExp | ((url: URL) => boolean);
  * @param status - HTTP status code (e.g., 500, 404)
  * @param message - Error message to include in response body
  */
-export async function mockApiError(
+async function mockApiError(
   page: Page,
   routePattern: RoutePattern,
   status: number,
@@ -215,7 +215,7 @@ export async function mockApiError(
 /**
  * Options for fulfilling a route response.
  */
-export interface FulfillOptions {
+interface FulfillOptions {
   status?: number;
   contentType?: string;
   body?: string;
@@ -230,7 +230,7 @@ export interface FulfillOptions {
  * @param delayMs - Delay in milliseconds before responding
  * @param fulfillOptions - Options for the response (status, contentType, body)
  */
-export async function mockApiDelay(
+async function mockApiDelay(
   page: Page,
   routePattern: RoutePattern,
   delayMs: number,
@@ -253,7 +253,7 @@ export async function mockApiDelay(
  * @param page - Playwright page object
  * @param routePattern - URL pattern to match (glob like `**\/api/epics`, regex, or function)
  */
-export async function mockNetworkFailure(page: Page, routePattern: RoutePattern): Promise<void> {
+async function mockNetworkFailure(page: Page, routePattern: RoutePattern): Promise<void> {
   await page.route(routePattern, async (route: Route) => {
     await route.abort('connectionrefused');
   });
@@ -264,14 +264,10 @@ export async function mockNetworkFailure(page: Page, routePattern: RoutePattern)
 // ============================================================================
 
 /**
- * Sets up a complete mock API environment with sample data.
- * Useful for quick test setup when you need a working dashboard.
+ * Creates mock epic summaries for the dashboard.
  */
-export async function setupMockDashboard(page: Page): Promise<{
-  epics: EpicSummary[];
-  epicDetails: Record<string, Epic>;
-}> {
-  const epics = [
+function createMockEpicSummaries(): EpicSummary[] {
+  return [
     createMockEpicSummary({
       slug: 'epic-one',
       title: 'Epic One',
@@ -283,73 +279,136 @@ export async function setupMockDashboard(page: Page): Promise<{
       storyCounts: { ready: 0, inProgress: 0, blocked: 1, completed: 0, total: 1 },
     }),
   ];
+}
 
-  const epicDetails: Record<string, Epic> = {
-    'epic-one': createMockEpic({
-      slug: 'epic-one',
-      title: 'Epic One',
-      content: 'This is the first epic.',
-      stories: [
-        createMockStoryDetail({
-          slug: 'story-1',
-          title: 'Story One',
-          status: 'ready',
-          epicSlug: 'epic-one',
-        }),
-        createMockStoryDetail({
-          slug: 'story-2',
-          title: 'Story Two',
-          status: 'in_progress',
-          epicSlug: 'epic-one',
-          tasks: [
-            createMockTask({ id: 't1', title: 'Task 1', status: 'completed' }),
-            createMockTask({ id: 't2', title: 'Task 2', status: 'in_progress' }),
-          ],
-        }),
-        createMockStoryDetail({
-          slug: 'story-3',
-          title: 'Story Three',
-          status: 'completed',
-          epicSlug: 'epic-one',
-        }),
-        createMockStoryDetail({
-          slug: 'story-4',
-          title: 'Story Four',
-          status: 'completed',
-          epicSlug: 'epic-one',
-        }),
-      ],
-    }),
-    'epic-two': createMockEpic({
-      slug: 'epic-two',
-      title: 'Epic Two',
-      content: 'This is the second epic.',
-      stories: [
-        createMockStoryDetail({
-          slug: 'blocked-story',
-          title: 'Blocked Story',
-          status: 'blocked',
-          epicSlug: 'epic-two',
-          journal: [
-            createMockJournalEntry({
-              type: 'blocker',
-              title: 'Need clarification',
-              content: 'Waiting for requirements.',
-            }),
-          ],
-        }),
-      ],
-    }),
+/**
+ * Creates mock epic one with its stories.
+ */
+function createMockEpicOne(): Epic {
+  return createMockEpic({
+    slug: 'epic-one',
+    title: 'Epic One',
+    content: 'This is the first epic.',
+    stories: [
+      createMockStoryDetail({
+        slug: 'story-1',
+        title: 'Story One',
+        status: 'ready',
+        epicSlug: 'epic-one',
+      }),
+      createMockStoryDetail({
+        slug: 'story-2',
+        title: 'Story Two',
+        status: 'inProgress',
+        epicSlug: 'epic-one',
+        tasks: [
+          createMockTask({ id: 't1', title: 'Task 1', status: 'completed' }),
+          createMockTask({ id: 't2', title: 'Task 2', status: 'inProgress' }),
+        ],
+      }),
+      createMockStoryDetail({
+        slug: 'story-3',
+        title: 'Story Three',
+        status: 'completed',
+        epicSlug: 'epic-one',
+      }),
+      createMockStoryDetail({
+        slug: 'story-4',
+        title: 'Story Four',
+        status: 'completed',
+        epicSlug: 'epic-one',
+      }),
+    ],
+  });
+}
+
+/**
+ * Creates mock epic two with its stories.
+ */
+function createMockEpicTwo(): Epic {
+  return createMockEpic({
+    slug: 'epic-two',
+    title: 'Epic Two',
+    content: 'This is the second epic.',
+    stories: [
+      createMockStoryDetail({
+        slug: 'blocked-story',
+        title: 'Blocked Story',
+        status: 'blocked',
+        epicSlug: 'epic-two',
+        journal: [
+          createMockJournalEntry({
+            type: 'blocker',
+            title: 'Need clarification',
+            content: 'Waiting for requirements.',
+          }),
+        ],
+      }),
+    ],
+  });
+}
+
+/**
+ * Creates standard mock data for the dashboard.
+ */
+function createMockDashboardData(): { epics: EpicSummary[]; epicDetails: Record<string, Epic> } {
+  return {
+    epics: createMockEpicSummaries(),
+    epicDetails: {
+      'epic-one': createMockEpicOne(),
+      'epic-two': createMockEpicTwo(),
+    },
   };
+}
 
-  // Set up all API mocks
+/**
+ * Sets up all API mocks for the given epic details.
+ */
+async function setupApiMocks(
+  page: Page,
+  epics: EpicSummary[],
+  epicDetails: Record<string, Epic>,
+): Promise<void> {
   await mockEpicList(page, epics);
-  for (const [, epic] of Object.entries(epicDetails)) {
-    await mockEpicDetail(page, epic);
+
+  // Collect all mock promises
+  const mockPromises: Promise<void>[] = [];
+  for (const epic of Object.values(epicDetails)) {
+    mockPromises.push(mockEpicDetail(page, epic));
     for (const story of epic.stories) {
-      await mockStoryDetail(page, story);
+      mockPromises.push(mockStoryDetail(page, story));
     }
   }
 
+  await Promise.all(mockPromises);
+}
+
+/**
+ * Sets up a complete mock API environment with sample data.
+ * Useful for quick test setup when you need a working dashboard.
+ */
+async function setupMockDashboard(page: Page): Promise<{
+  epics: EpicSummary[];
+  epicDetails: Record<string, Epic>;
+}> {
+  const { epics, epicDetails } = createMockDashboardData();
+  await setupApiMocks(page, epics, epicDetails);
   return { epics, epicDetails };
 }
+
+export {
+  createMockStoryCounts,
+  createMockTask,
+  createMockJournalEntry,
+  createMockEpicSummary,
+  createMockStoryDetail,
+  createMockEpic,
+  mockEpicList,
+  mockEpicDetail,
+  mockStoryDetail,
+  mockApiError,
+  mockApiDelay,
+  mockNetworkFailure,
+  setupMockDashboard,
+};
+export type { FulfillOptions };
