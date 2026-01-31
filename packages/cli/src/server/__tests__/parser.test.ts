@@ -75,6 +75,57 @@ This is the story context.
       expect(result.tasks).toHaveLength(2);
       expect(result.tasks[0]).toEqual({ id: 't1', title: 'First Task', status: 'completed' });
       expect(result.tasks[1]).toEqual({ id: 't2', title: 'Second Task', status: 'pending' });
+      expect(result.content).toContain('## Context');
+      expect(result.content).toContain('This is the story context.');
+    });
+
+    it('should include body content in parsed story', async () => {
+      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'content-story');
+      mkdirSync(storyPath, { recursive: true });
+
+      const storyContent = `---
+id: content-story
+title: Content Story
+status: ready
+tasks: []
+---
+
+## Description
+
+This is the main description.
+
+## Acceptance Criteria
+
+- Criterion 1
+- Criterion 2
+`;
+      writeFileSync(join(storyPath, 'story.md'), storyContent);
+
+      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
+
+      expect(result.content).toBeDefined();
+      expect(result.content).toContain('## Description');
+      expect(result.content).toContain('This is the main description.');
+      expect(result.content).toContain('## Acceptance Criteria');
+      expect(result.content).toContain('- Criterion 1');
+    });
+
+    it('should return undefined content when story has no body', async () => {
+      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'empty-body-story');
+      mkdirSync(storyPath, { recursive: true });
+
+      const storyContent = `---
+id: empty-body-story
+title: Empty Body Story
+status: ready
+tasks: []
+---
+`;
+      writeFileSync(join(storyPath, 'story.md'), storyContent);
+
+      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
+
+      expect(result.content).toBeUndefined();
     });
 
     it('should return null for non-existent file', async () => {
@@ -366,6 +417,7 @@ Story content.
       expect(result[0].stories).toHaveLength(1);
       expect(result[0].stories[0].slug).toBe('my-story');
       expect(result[0].stories[0].title).toBe('My Test Story');
+      expect(result[0].stories[0].content).toContain('Story content.');
     });
 
     it('should calculate story counts correctly', async () => {

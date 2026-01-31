@@ -313,6 +313,15 @@ Archived.
       });
     });
 
+    it('should include story content (body after frontmatter)', async () => {
+      const res = await request(server.app).get('/api/stories/epic-one/story-alpha');
+
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.content).toBeDefined();
+      expect(res.body.content).toContain('## Description');
+      expect(res.body.content).toContain('This is story alpha.');
+    });
+
     it('should include parsed journal when present', async () => {
       const res = await request(server.app).get('/api/stories/epic-one/story-beta');
 

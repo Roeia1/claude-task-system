@@ -98,6 +98,7 @@ async function toStoryDetail(story: ScannedStory, sagaRoot: string): Promise<Sto
     title: story.title,
     status: toApiStoryStatus(validateStatus(story.status)),
     tasks,
+    content: story.body || undefined,
     archived: story.archived,
     paths: {
       storyMd: relative(sagaRoot, story.storyPath),
@@ -181,6 +182,7 @@ export interface StoryDetail {
   status: 'ready' | 'inProgress' | 'blocked' | 'completed';
   tasks: Task[];
   journal?: JournalEntry[];
+  content?: string;
   archived?: boolean;
   paths: {
     storyMd: string;
@@ -233,9 +235,11 @@ export async function parseStory(storyPath: string, epicSlug: string): Promise<S
 
   // Try to parse frontmatter, use defaults if invalid
   let frontmatter: Record<string, unknown> = {};
+  let bodyContent = '';
   try {
     const parsed = matter(content);
     frontmatter = parsed.data as Record<string, unknown>;
+    bodyContent = parsed.content;
   } catch {
     // Invalid YAML, continue with empty frontmatter
   }
@@ -262,6 +266,7 @@ export async function parseStory(storyPath: string, epicSlug: string): Promise<S
     title,
     status,
     tasks,
+    content: bodyContent || undefined,
     paths: {
       storyMd: storyPath,
       ...(hasJournal ? { journalMd: journalPath } : {}),
