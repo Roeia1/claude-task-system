@@ -202,6 +202,26 @@ function StoriesList({ stories, epicSlug }: { stories: StoryDetail[]; epicSlug: 
   );
 }
 
+/** Result type for fetch response processing */
+type FetchResult = { type: 'notFound' } | { type: 'error' } | { type: 'success'; data: unknown };
+
+/** Process fetch response into a result type */
+async function processFetchResponse(response: Response): Promise<FetchResult> {
+  if (response.status === HTTP_NOT_FOUND) {
+    return { type: 'notFound' };
+  }
+  if (!response.ok) {
+    return { type: 'error' };
+  }
+  return { type: 'success', data: await response.json() };
+}
+
+/** Handle fetch error with toast notification */
+function handleFetchError(url: string, err: unknown, setError: (e: string) => void): void {
+  setError('Failed to load epic');
+  showApiErrorToast(url, err instanceof Error ? err.message : 'Unknown error');
+}
+
 /** Custom hook for fetching epic data */
 function useEpicFetch(slug: string | undefined) {
   const { currentEpic, setCurrentEpic, clearCurrentEpic, isLoading } = useDashboard();
@@ -210,37 +230,35 @@ function useEpicFetch(slug: string | undefined) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchEpic = async () => {
-      if (!slug) return;
+    if (!slug) {
+      return clearCurrentEpic;
+    }
 
+    const fetchEpic = async () => {
       setIsFetching(true);
       setNotFound(false);
       setError(null);
 
       try {
         const response = await fetch(`/api/epics/${slug}`);
-        if (response.status === HTTP_NOT_FOUND) {
+        const result = await processFetchResponse(response);
+
+        if (result.type === 'notFound') {
           setNotFound(true);
-          return;
-        }
-        if (!response.ok) {
+        } else if (result.type === 'error') {
           setError('Failed to load epic');
-          return;
+        } else {
+          setCurrentEpic(result.data);
         }
-        setCurrentEpic(await response.json());
       } catch (err) {
-        setError('Failed to load epic');
-        showApiErrorToast(
-          `/api/epics/${slug}`,
-          err instanceof Error ? err.message : 'Unknown error',
-        );
+        handleFetchError(`/api/epics/${slug}`, err, setError);
       } finally {
         setIsFetching(false);
       }
     };
 
     fetchEpic();
-    return () => clearCurrentEpic();
+    return clearCurrentEpic;
   }, [slug, setCurrentEpic, clearCurrentEpic]);
 
   return { currentEpic, loading: isLoading || isFetching, notFound, error };
@@ -250,9 +268,15 @@ function EpicDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { currentEpic, loading, notFound, error } = useEpicFetch(slug);
 
-  if (notFound) return <NotFoundState slug={slug} />;
-  if (error && !loading) return <ErrorState error={error} />;
-  if (loading || !currentEpic) return <LoadingState />;
+  if (notFound) {
+    return <NotFoundState slug={slug} />;
+  }
+  if (error && !loading) {
+    return <ErrorState error={error} />;
+  }
+  if (loading || !currentEpic) {
+    return <LoadingState />;
+  }
 
   return (
     <div class="space-y-6">

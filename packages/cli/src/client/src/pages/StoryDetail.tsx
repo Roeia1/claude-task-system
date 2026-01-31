@@ -315,6 +315,17 @@ function ContentTabContent({ content }: { content: string | undefined }) {
   );
 }
 
+/** Get color class for journal section type */
+function getJournalSectionColor(type: string): string {
+  if (type === 'Blockers') {
+    return 'text-danger';
+  }
+  if (type === 'Resolutions') {
+    return 'text-success';
+  }
+  return 'text-text';
+}
+
 /** Journal entries section */
 function JournalSection({
   entries,
@@ -325,10 +336,11 @@ function JournalSection({
   type: string;
   icon: typeof AlertCircle;
 }) {
-  if (entries.length === 0) return null;
+  if (entries.length === 0) {
+    return null;
+  }
 
-  const colorClass =
-    type === 'Blockers' ? 'text-danger' : type === 'Resolutions' ? 'text-success' : 'text-text';
+  const colorClass = getJournalSectionColor(type);
 
   return (
     <div class="space-y-3">
@@ -370,6 +382,26 @@ function JournalTabContent({ journal }: { journal: JournalEntry[] }) {
   );
 }
 
+/** Result type for fetch response processing */
+type FetchResult = { type: 'notFound' } | { type: 'error' } | { type: 'success'; data: unknown };
+
+/** Process fetch response into a result type */
+async function processFetchResponse(response: Response): Promise<FetchResult> {
+  if (response.status === HTTP_NOT_FOUND) {
+    return { type: 'notFound' };
+  }
+  if (!response.ok) {
+    return { type: 'error' };
+  }
+  return { type: 'success', data: await response.json() };
+}
+
+/** Handle fetch error with toast notification */
+function handleFetchError(url: string, err: unknown, setError: (e: string) => void): void {
+  setError('Failed to load story');
+  showApiErrorToast(url, err instanceof Error ? err.message : 'Unknown error');
+}
+
 /** Custom hook for fetching story data */
 function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefined) {
   const {
@@ -383,47 +415,47 @@ function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefin
   const [isFetching, setIsFetching] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasSlugs = Boolean(epicSlug && storySlug);
 
   useEffect(() => {
-    const fetchStory = async () => {
-      if (!(epicSlug && storySlug)) return;
+    if (!hasSlugs) {
+      return clearCurrentStory;
+    }
 
+    const fetchStory = async () => {
       setIsFetching(true);
       setNotFound(false);
       setError(null);
 
       try {
         const response = await fetch(`/api/stories/${epicSlug}/${storySlug}`);
-        if (response.status === HTTP_NOT_FOUND) {
+        const result = await processFetchResponse(response);
+
+        if (result.type === 'notFound') {
           setNotFound(true);
-          return;
-        }
-        if (!response.ok) {
+        } else if (result.type === 'error') {
           setError('Failed to load story');
-          return;
+        } else {
+          setCurrentStory(result.data);
         }
-        setCurrentStory(await response.json());
       } catch (err) {
-        setError('Failed to load story');
-        showApiErrorToast(
-          `/api/stories/${epicSlug}/${storySlug}`,
-          err instanceof Error ? err.message : 'Unknown error',
-        );
+        handleFetchError(`/api/stories/${epicSlug}/${storySlug}`, err, setError);
       } finally {
         setIsFetching(false);
       }
     };
 
     fetchStory();
-    if (epicSlug && storySlug) subscribeToStory(epicSlug, storySlug);
+    subscribeToStory(epicSlug as string, storySlug as string);
 
     return () => {
       clearCurrentStory();
-      if (epicSlug && storySlug) unsubscribeFromStory(epicSlug, storySlug);
+      unsubscribeFromStory(epicSlug as string, storySlug as string);
     };
   }, [
     epicSlug,
     storySlug,
+    hasSlugs,
     setCurrentStory,
     clearCurrentStory,
     subscribeToStory,
@@ -437,9 +469,15 @@ function StoryDetail() {
   const { epicSlug, storySlug } = useParams<{ epicSlug: string; storySlug: string }>();
   const { currentStory, loading, notFound, error } = useStoryFetch(epicSlug, storySlug);
 
-  if (notFound) return <StoryNotFoundState epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />;
-  if (error && !loading) return <StoryErrorState epicSlug={epicSlug ?? ''} error={error} />;
-  if (loading || !currentStory) return <StoryLoadingState />;
+  if (notFound) {
+    return <StoryNotFoundState epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />;
+  }
+  if (error && !loading) {
+    return <StoryErrorState epicSlug={epicSlug ?? ''} error={error} />;
+  }
+  if (loading || !currentStory) {
+    return <StoryLoadingState />;
+  }
 
   const { blockers } = groupJournalEntries(currentStory.journal);
 

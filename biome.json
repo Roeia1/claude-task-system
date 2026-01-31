@@ -85,13 +85,33 @@
         "**/playwright.config.ts",
         "**/playwright.*.config.ts",
         "**/global-teardown.ts",
-        "**/jest.config.mjs"
+        "**/jest.config.mjs",
+        "packages/cli/src/client/vite.config.ts",
+        "packages/cli/vitest.config.ts"
       ],
       "linter": {
         "rules": {
           "style": {
             "noDefaultExport": "off",
             "useComponentExportOnlyModules": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/cli/src/client/playwright.config.ts",
+        "packages/cli/src/client/playwright.e2e.config.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "useNamingConvention": {
+              "level": "error",
+              "options": {
+                "strictCase": false
+              }
+            }
           }
         }
       }

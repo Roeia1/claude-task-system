@@ -384,6 +384,9 @@ function loadWorkerPrompt(pluginRoot: string): string {
 // Tool names that require scope validation (file system operations)
 const SCOPE_VALIDATED_TOOLS = ['Read', 'Write', 'Edit', 'Glob', 'Grep'];
 
+// Claude Code hook API uses PascalCase for hook names
+const HOOK_PRE_TOOL_USE = 'PreToolUse';
+
 function buildScopeSettings(): Record<string, unknown> {
   // Use npx to run the CLI's scope-validator command
   // This avoids dependency on Python and keeps everything in TypeScript
@@ -391,8 +394,7 @@ function buildScopeSettings(): Record<string, unknown> {
 
   return {
     hooks: {
-      // Claude Code hook API uses PascalCase for hook names
-      ['PreToolUse']: [
+      [HOOK_PRE_TOOL_USE]: [
         {
           matcher: SCOPE_VALIDATED_TOOLS.join('|'),
           hooks: [hookCommand],
@@ -759,7 +761,7 @@ async function executeWorkerCycle(
 /**
  * Execute the worker spawning loop using recursion
  */
-async function executeWorkerLoop(
+function executeWorkerLoop(
   workerPrompt: string,
   model: string,
   settings: Record<string, unknown>,
@@ -783,7 +785,7 @@ async function executeWorkerLoop(
   };
   const state: LoopState = { summaries: [], cycles: 0, lastBlocker: null, finalStatus: null };
 
-  // Use recursive function to avoid await in loop
+  // Use recursive async function to avoid await in loop
   const runNextCycle = async (): Promise<LoopState | LoopResult> => {
     const cycleResult = await executeWorkerCycle(config, state);
 

@@ -58,7 +58,7 @@ function sleep(ms: number): Promise<void> {
 const POLL_INTERVAL_MS = 50;
 
 // Helper to wait for a file to exist with polling (using recursion)
-async function waitForFile(filePath: string, maxWaitMs = DEFAULT_WAIT_MS): Promise<boolean> {
+function waitForFile(filePath: string, maxWaitMs = DEFAULT_WAIT_MS): Promise<boolean> {
   const pollInterval = POLL_INTERVAL_MS;
 
   const poll = async (waited: number): Promise<boolean> => {
