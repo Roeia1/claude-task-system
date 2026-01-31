@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { useDashboard } from '@/context/DashboardContext';
+import { useDashboard } from '@/context/dashboard-context';
 import type { SessionInfo } from '@/types/dashboard';
 import { SessionCard } from './session-card.tsx';
 

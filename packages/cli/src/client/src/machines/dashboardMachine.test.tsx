@@ -10,7 +10,30 @@ import {
 } from './dashboardMachine.ts';
 
 // Test constants
-const EXPECTED_REACHABLE_STATES_COUNT = 5;
+// The 'error' state requires retryCount >= 5 (accumulated through transitions),
+// so graph traversal only finds 4 states. Error state is tested in async tests.
+const EXPECTED_REACHABLE_STATES_COUNT = 4;
+
+// Regex for validating WebSocket URL format (localhost with ws or wss protocol)
+const WS_LOCALHOST_PATTERN = /^wss?:\/\/localhost/;
+
+/**
+ * Serialize state value to a string for comparison.
+ * Handles nested states like { active: 'loading' } -> 'active.loading'
+ */
+function serializeStateValue(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'object' && value !== null) {
+    const entries = Object.entries(value);
+    if (entries.length === 1) {
+      const [parent, child] = entries[0];
+      return `${parent}.${serializeStateValue(child)}`;
+    }
+  }
+  return String(value);
+}
 
 // Message type for subscription capture
 interface SubscriptionMessage {
@@ -194,15 +217,15 @@ describe('dashboardMachine', () => {
       { type: 'RETRY' },
     ];
 
-    it('should have all 5 states reachable', () => {
+    it('should have primary states reachable via graph traversal', () => {
       const paths = getShortestPaths(graphMachine, { events: transitionEvents });
-      const reachableStates = new Set(paths.map((p) => p.state.value));
+      const reachableStates = new Set(paths.map((p) => serializeStateValue(p.state.value)));
 
       expect(reachableStates).toContain('idle');
-      expect(reachableStates).toContain('loading');
-      expect(reachableStates).toContain('connected');
+      expect(reachableStates).toContain('active.loading');
+      expect(reachableStates).toContain('active.connected');
       expect(reachableStates).toContain('reconnecting');
-      expect(reachableStates).toContain('error');
+      // 'error' state requires retryCount >= 5, tested separately in async tests
       expect(reachableStates.size).toBe(EXPECTED_REACHABLE_STATES_COUNT);
     });
 
@@ -213,7 +236,7 @@ describe('dashboardMachine', () => {
       // getShortestPaths may return multiple paths to same state value (different contexts)
       const pathLengths = new Map<string, number>();
       for (const path of paths) {
-        const stateValue = path.state.value as string;
+        const stateValue = serializeStateValue(path.state.value);
         // Filter out xstate.init from step count since it's the automatic initialization
         const userEventSteps = path.steps.filter((s) => s.event.type !== 'xstate.init');
         const currentMin = pathLengths.get(stateValue);
@@ -224,17 +247,17 @@ describe('dashboardMachine', () => {
 
       // Verify expected minimum paths (counting only user-triggered events)
       expect(pathLengths.get('idle')).toBe(0); // Initial state
-      expect(pathLengths.get('loading')).toBe(1); // idle -> CONNECT -> loading
-      expect(pathLengths.get('connected')).toBe(2); // idle -> CONNECT -> loading -> WS_CONNECTED -> connected
-      expect(pathLengths.get('reconnecting')).toBe(2); // idle -> CONNECT -> loading -> WS_DISCONNECTED -> reconnecting
-      expect(pathLengths.get('error')).toBe(2); // idle -> CONNECT -> loading -> WS_ERROR -> error
+      expect(pathLengths.get('active.loading')).toBe(1); // idle -> CONNECT -> active.loading
+      expect(pathLengths.get('active.connected')).toBe(2); // idle -> CONNECT -> active.loading -> WS_CONNECTED -> active.connected
+      expect(pathLengths.get('reconnecting')).toBe(2); // idle -> CONNECT -> active.loading -> WS_DISCONNECTED -> reconnecting
+      // 'error' requires accumulated retryCount >= 5, tested separately in async tests
     });
 
     it('should have multiple valid paths through the machine', () => {
       const paths = getSimplePaths(graphMachine, {
         events: transitionEvents,
         // Limit to prevent combinatorial explosion
-        toState: (state) => state.value === 'connected',
+        toState: (state) => serializeStateValue(state.value) === 'active.connected',
       });
 
       // Should find at least the direct path to connected
@@ -263,7 +286,7 @@ describe('dashboardMachine', () => {
     // Generate a test for each reachable state
     it.each(
       paths.map((path) => ({
-        targetState: path.state.value as string,
+        targetState: serializeStateValue(path.state.value),
         steps: path.steps,
         pathDescription: path.steps.map((s) => s.event.type).join(' -> ') || '(initial)',
       })),
@@ -277,7 +300,7 @@ describe('dashboardMachine', () => {
         actor.send(step.event);
       }
 
-      expect(actor.getSnapshot().value).toBe(targetState);
+      expect(serializeStateValue(actor.getSnapshot().value)).toBe(targetState);
       actor.stop();
     });
   });
@@ -302,7 +325,7 @@ describe('dashboardMachine', () => {
 
     it.each(
       paths.map((path) => ({
-        targetState: path.state.value as string,
+        targetState: serializeStateValue(path.state.value),
         steps: path.steps,
       })),
     )('invariant: retryCount >= 0 in "$targetState"', ({ steps }) => {
@@ -321,7 +344,7 @@ describe('dashboardMachine', () => {
 
     it.each(
       paths.map((path) => ({
-        targetState: path.state.value as string,
+        targetState: serializeStateValue(path.state.value),
         steps: path.steps,
       })),
     )('invariant: arrays never null in "$targetState"', ({ steps }) => {
@@ -352,25 +375,26 @@ describe('dashboardMachine', () => {
       actor.start();
 
       actor.send({ type: 'CONNECT' });
-      expect(actor.getSnapshot().value).toBe('loading');
+      expect(actor.getSnapshot().matches({ active: 'loading' })).toBe(true);
 
-      await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
-      expect(actor.getSnapshot().value).toBe('connected');
+      await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
+      expect(actor.getSnapshot().matches({ active: 'connected' })).toBe(true);
       expect(actor.getSnapshot().context.retryCount).toBe(0);
 
       actor.stop();
     });
 
-    it('loading -> error on WebSocket error', async () => {
+    it('loading -> reconnecting on WebSocket error (triggers retry)', async () => {
+      // WS_ERROR from loading goes to reconnecting state, not directly to error
       const machine = createTestableMachine({ connectBehavior: 'error' });
       const actor = createActor(machine);
       actor.start();
 
       actor.send({ type: 'CONNECT' });
-      await waitFor(actor, (s) => s.value === 'error', { timeout: 1000 });
+      await waitFor(actor, (s) => s.value === 'reconnecting', { timeout: 1000 });
 
-      expect(actor.getSnapshot().value).toBe('error');
-      expect(actor.getSnapshot().context.error).toBe('Connection failed');
+      expect(actor.getSnapshot().value).toBe('reconnecting');
+      expect(actor.getSnapshot().context.retryCount).toBe(1);
 
       actor.stop();
     });
@@ -396,9 +420,9 @@ describe('dashboardMachine', () => {
 
       actor.send({ type: 'CONNECT' });
       await waitFor(actor, (s) => s.value === 'reconnecting', { timeout: 1000 });
-      await waitFor(actor, (s) => s.value === 'loading', { timeout: 100 });
+      await waitFor(actor, (s) => s.matches({ active: 'loading' }), { timeout: 100 });
 
-      expect(actor.getSnapshot().value).toBe('loading');
+      expect(actor.getSnapshot().matches({ active: 'loading' })).toBe(true);
 
       actor.stop();
     });
@@ -507,7 +531,7 @@ describe('dashboardMachine', () => {
         actor.start();
 
         actor.send({ type: 'CONNECT' });
-        await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+        await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
         actor.send({ type: 'EPICS_LOADED', epics: sampleEpics });
         expect(actor.getSnapshot().context.epics).toEqual(sampleEpics);
@@ -530,7 +554,7 @@ describe('dashboardMachine', () => {
         actor.start();
 
         actor.send({ type: 'CONNECT' });
-        await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+        await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
         const updatedEpics = [{ ...sampleEpics[0], title: 'Updated Epic' }];
         actor.send({ type: 'EPICS_UPDATED', epics: updatedEpics });
@@ -546,7 +570,7 @@ describe('dashboardMachine', () => {
         actor.start();
 
         actor.send({ type: 'CONNECT' });
-        await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+        await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
         actor.send({ type: 'STORY_LOADED', story: sampleStory });
 
@@ -564,7 +588,7 @@ describe('dashboardMachine', () => {
         actor.start();
 
         actor.send({ type: 'CONNECT' });
-        await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+        await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
         actor.send({ type: 'STORY_LOADED', story: sampleStory });
 
@@ -582,7 +606,7 @@ describe('dashboardMachine', () => {
         actor.start();
 
         actor.send({ type: 'CONNECT' });
-        await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+        await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
         const updatedSessions = [{ ...sampleSessions[0], status: 'completed' as const }];
         actor.send({ type: 'SESSIONS_UPDATED', sessions: updatedSessions });
@@ -598,11 +622,11 @@ describe('dashboardMachine', () => {
         actor.start();
 
         actor.send({ type: 'CONNECT' });
-        await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+        await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
         actor.send({ type: 'ERROR', error: 'API error' });
 
-        expect(actor.getSnapshot().value).toBe('connected');
+        expect(actor.getSnapshot().matches({ active: 'connected' })).toBe(true);
         expect(actor.getSnapshot().context.error).toBe('API error');
 
         actor.stop();
@@ -630,7 +654,7 @@ describe('dashboardMachine', () => {
       actor.start();
 
       actor.send({ type: 'CONNECT' });
-      await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+      await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
       actor.send({ type: 'SUBSCRIBE_STORY', epicSlug: 'epic-1', storySlug: 'story-1' });
 
@@ -651,7 +675,7 @@ describe('dashboardMachine', () => {
       actor.start();
 
       actor.send({ type: 'CONNECT' });
-      await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+      await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
       actor.send({ type: 'SUBSCRIBE_STORY', epicSlug: 'epic-1', storySlug: 'story-1' });
       actor.send({ type: 'SUBSCRIBE_STORY', epicSlug: 'epic-1', storySlug: 'story-1' });
@@ -670,7 +694,7 @@ describe('dashboardMachine', () => {
       actor.start();
 
       actor.send({ type: 'CONNECT' });
-      await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+      await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
       actor.send({ type: 'SUBSCRIBE_STORY', epicSlug: 'epic-1', storySlug: 'story-1' });
       actor.send({ type: 'UNSUBSCRIBE_STORY', epicSlug: 'epic-1', storySlug: 'story-1' });
@@ -689,7 +713,7 @@ describe('dashboardMachine', () => {
       actor.start();
 
       actor.send({ type: 'CONNECT' });
-      await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+      await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
       actor.send({ type: 'SUBSCRIBE_STORY', epicSlug: 'epic-1', storySlug: 'story-1' });
 
@@ -713,7 +737,7 @@ describe('dashboardMachine', () => {
       actor.start();
 
       actor.send({ type: 'CONNECT' });
-      await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+      await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
       actor.send({ type: 'SUBSCRIBE_STORY', epicSlug: 'epic-1', storySlug: 'story-1' });
       actor.send({ type: 'SUBSCRIBE_STORY', epicSlug: 'epic-2', storySlug: 'story-2' });
@@ -722,7 +746,7 @@ describe('dashboardMachine', () => {
 
       actor.send({ type: 'WS_DISCONNECTED' });
       await waitFor(actor, (s) => s.value === 'reconnecting', { timeout: 1000 });
-      await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+      await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
       expect(subscriptionCapture.messages).toContainEqual({
         type: 'subscribe:story',
@@ -747,7 +771,7 @@ describe('dashboardMachine', () => {
       actor.start();
 
       actor.send({ type: 'CONNECT' });
-      await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+      await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
       actor.send({ type: 'SUBSCRIBE_STORY', epicSlug: 'epic-1', storySlug: 'story-1' });
       actor.send({ type: 'SUBSCRIBE_STORY', epicSlug: 'epic-1', storySlug: 'story-2' });
@@ -757,7 +781,7 @@ describe('dashboardMachine', () => {
 
       actor.send({ type: 'WS_DISCONNECTED' });
       await waitFor(actor, (s) => s.value === 'reconnecting', { timeout: 1000 });
-      await waitFor(actor, (s) => s.value === 'connected', { timeout: 1000 });
+      await waitFor(actor, (s) => s.matches({ active: 'connected' }), { timeout: 1000 });
 
       const story1Messages = (subscriptionCapture.messages as SubscriptionMessage[]).filter(
         (m) => m.type === 'subscribe:story' && m.storySlug === 'story-1',
@@ -847,7 +871,8 @@ describe('dashboardMachine', () => {
       expect(context.sessions).toEqual([]);
       expect(context.error).toBeNull();
       expect(context.retryCount).toBe(0);
-      expect(context.wsUrl).toBe('ws://localhost:3847');
+      // wsUrl is derived from window.location in browser, defaults to localhost in jsdom
+      expect(context.wsUrl).toMatch(WS_LOCALHOST_PATTERN);
       expect(context.subscribedStories).toEqual([]);
 
       actor.stop();

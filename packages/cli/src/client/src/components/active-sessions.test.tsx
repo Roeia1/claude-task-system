@@ -1,8 +1,20 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DashboardProvider } from '@/context/dashboard-context';
 import type { SessionInfo } from '@/types/dashboard';
 import { ActiveSessions, ActiveSessionsSkeleton } from './active-sessions.tsx';
+
+/**
+ * Helper to render components with all required providers
+ */
+function renderWithProviders(ui: React.ReactNode) {
+  return render(
+    <DashboardProvider>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </DashboardProvider>,
+  );
+}
 
 // Regex patterns for output preview matching
 const BUILDING_COMPONENTS_PATTERN = /Building components/;
@@ -31,11 +43,7 @@ describe('ActiveSessions', () => {
           }),
       );
 
-      render(
-        <MemoryRouter>
-          <ActiveSessions />
-        </MemoryRouter>,
-      );
+      renderWithProviders(<ActiveSessions />);
 
       expect(screen.getByTestId('active-sessions-skeleton')).toBeInTheDocument();
     });
@@ -48,11 +56,7 @@ describe('ActiveSessions', () => {
         json: async () => [],
       });
 
-      const { container } = render(
-        <MemoryRouter>
-          <ActiveSessions />
-        </MemoryRouter>,
-      );
+      const { container } = renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.queryByTestId('active-sessions-skeleton')).not.toBeInTheDocument();
@@ -79,11 +83,7 @@ describe('ActiveSessions', () => {
         ],
       });
 
-      const { container } = render(
-        <MemoryRouter>
-          <ActiveSessions />
-        </MemoryRouter>,
-      );
+      const { container } = renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.queryByTestId('active-sessions-skeleton')).not.toBeInTheDocument();
@@ -123,11 +123,7 @@ describe('ActiveSessions', () => {
         json: async () => runningSessions,
       });
 
-      render(
-        <MemoryRouter>
-          <ActiveSessions />
-        </MemoryRouter>,
-      );
+      renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.getByText('Active Sessions')).toBeInTheDocument();
@@ -142,11 +138,7 @@ describe('ActiveSessions', () => {
         json: async () => runningSessions,
       });
 
-      render(
-        <MemoryRouter>
-          <ActiveSessions />
-        </MemoryRouter>,
-      );
+      renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.getByText('api-routes')).toBeInTheDocument();
@@ -164,11 +156,7 @@ describe('ActiveSessions', () => {
         json: async () => runningSessions,
       });
 
-      render(
-        <MemoryRouter>
-          <ActiveSessions />
-        </MemoryRouter>,
-      );
+      renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.getByText(BUILDING_COMPONENTS_PATTERN)).toBeInTheDocument();
@@ -205,11 +193,7 @@ describe('ActiveSessions', () => {
         json: async () => mixedSessions,
       });
 
-      render(
-        <MemoryRouter>
-          <ActiveSessions />
-        </MemoryRouter>,
-      );
+      renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.getByText('running-story')).toBeInTheDocument();
@@ -239,11 +223,7 @@ describe('ActiveSessions', () => {
         json: async () => sessions,
       });
 
-      render(
-        <MemoryRouter>
-          <ActiveSessions />
-        </MemoryRouter>,
-      );
+      renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.getByText('my-story')).toBeInTheDocument();
@@ -262,11 +242,7 @@ describe('ActiveSessions', () => {
         status: 500,
       });
 
-      const { container } = render(
-        <MemoryRouter>
-          <ActiveSessions />
-        </MemoryRouter>,
-      );
+      const { container } = renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.queryByTestId('active-sessions-skeleton')).not.toBeInTheDocument();
@@ -278,11 +254,7 @@ describe('ActiveSessions', () => {
     it('hides section when fetch throws error', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      const { container } = render(
-        <MemoryRouter>
-          <ActiveSessions />
-        </MemoryRouter>,
-      );
+      const { container } = renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(screen.queryByTestId('active-sessions-skeleton')).not.toBeInTheDocument();
@@ -299,11 +271,7 @@ describe('ActiveSessions', () => {
         json: async () => [],
       });
 
-      render(
-        <MemoryRouter>
-          <ActiveSessions />
-        </MemoryRouter>,
-      );
+      renderWithProviders(<ActiveSessions />);
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith('/api/sessions?status=running');
