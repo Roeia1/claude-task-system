@@ -19,6 +19,11 @@
 import { relative, resolve } from 'node:path';
 import process from 'node:process';
 
+// Box formatting constants for scope violation message
+const FILE_PATH_WIDTH = 50;
+const EPIC_STORY_WIDTH = 43;
+const REASON_WIDTH = 56;
+
 /**
  * Extract file path from hook input JSON
  *
@@ -133,14 +138,14 @@ function printScopeViolation(
     '',
     '╭─ Scope Violation ─────────────────────────────────────────╮',
     '│                                                           │',
-    `│  File: ${filePath.slice(0, 50).padEnd(50)}│`,
+    `│  File: ${filePath.slice(0, FILE_PATH_WIDTH).padEnd(FILE_PATH_WIDTH)}│`,
     '│                                                           │',
-    `│  ${reason.split('\n')[0].padEnd(56)}│`,
+    `│  ${reason.split('\n')[0].padEnd(REASON_WIDTH)}│`,
     '│                                                           │',
-    `│  Current scope:                                           │`,
-    `│    Epic:     ${epicSlug.slice(0, 43).padEnd(43)}│`,
-    `│    Story:    ${storySlug.slice(0, 43).padEnd(43)}│`,
-    `│    Worktree: ${worktreePath.slice(0, 43).padEnd(43)}│`,
+    '│  Current scope:                                           │',
+    `│    Epic:     ${epicSlug.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}│`,
+    `│    Story:    ${storySlug.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}│`,
+    `│    Worktree: ${worktreePath.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}│`,
     '│                                                           │',
     '╰───────────────────────────────────────────────────────────╯',
     '',

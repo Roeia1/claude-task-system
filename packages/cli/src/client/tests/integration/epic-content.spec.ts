@@ -1,4 +1,5 @@
-import { expect, test } from '../fixtures.ts';
+import { expect } from '@playwright/test';
+import { test } from '../fixtures.ts';
 import { createMockEpic, createMockStoryDetail, mockEpicDetail } from '../utils/mock-api.ts';
 
 // Test fixture: markdown content with code block

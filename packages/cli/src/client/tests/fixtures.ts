@@ -6,9 +6,10 @@ import { mockSessions } from './utils/mock-api.ts';
  * This prevents ECONNREFUSED proxy errors during integration tests when
  * the ActiveSessions component fetches running sessions.
  *
- * Usage: Import `test` from this file instead of @playwright/test
+ * Usage: Import `test` from this file and `expect` from @playwright/test
  * ```ts
- * import { test, expect } from '../fixtures.ts';
+ * import { test } from '../fixtures.ts';
+ * import { expect } from '@playwright/test';
  * ```
  */
 export const test = base.extend({
@@ -19,5 +20,3 @@ export const test = base.extend({
     await use(page);
   },
 });
-
-export { expect } from '@playwright/test';
