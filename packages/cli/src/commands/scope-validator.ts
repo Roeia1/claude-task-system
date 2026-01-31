@@ -123,14 +123,30 @@ function checkStoryAccess(path: string, allowedEpic: string, allowedStory: strin
  * Print scope violation error message to stderr
  */
 function printScopeViolation(
-  _filePath: string,
-  _epicSlug: string,
-  _storySlug: string,
-  _worktreePath: string,
-  _reason: string,
+  filePath: string,
+  epicSlug: string,
+  storySlug: string,
+  worktreePath: string,
+  reason: string,
 ): void {
-  // TODO: Implement error message output for scope violations
-  // This function is a placeholder for formatted error reporting
+  const message = [
+    '',
+    '╭─ Scope Violation ─────────────────────────────────────────╮',
+    '│                                                           │',
+    `│  File: ${filePath.slice(0, 50).padEnd(50)}│`,
+    '│                                                           │',
+    `│  ${reason.split('\n')[0].padEnd(56)}│`,
+    '│                                                           │',
+    `│  Current scope:                                           │`,
+    `│    Epic:     ${epicSlug.slice(0, 43).padEnd(43)}│`,
+    `│    Story:    ${storySlug.slice(0, 43).padEnd(43)}│`,
+    `│    Worktree: ${worktreePath.slice(0, 43).padEnd(43)}│`,
+    '│                                                           │',
+    '╰───────────────────────────────────────────────────────────╯',
+    '',
+  ].join('\n');
+
+  process.stderr.write(message);
 }
 
 /**
