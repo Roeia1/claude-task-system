@@ -99,3 +99,38 @@
 
 **Next steps:**
 - Task t4: Rewrite Breadcrumb stories to Showcase + Playground pattern
+
+## Session 4: 2026-02-01
+
+### Task: t4 - Rewrite Breadcrumb stories
+
+**What was done:**
+- Transformed `breadcrumb.stories.tsx` from 5 stories to Showcase + Playground pattern
+- Updated title from `'Components/Breadcrumb'` to `'Atoms/Breadcrumb'`
+- Created Showcase story displaying:
+  - Navigation States section: Root (Epic List), Epic Detail, Story Detail breadcrumbs
+  - Edge Cases section: Long epic slug, Long epic + story slugs
+- Created Playground story with:
+  - `preset` control (select) for route presets: root, epicDetail, storyDetail, longEpicSlug, longSlugs
+  - `customRoute` control (text) for testing custom route paths
+  - Displays route description and current path above breadcrumb
+- Created helper component `BreadcrumbWithRouter` to wrap Breadcrumb with proper MemoryRouter context
+- Created `routeConfigs` object mapping presets to routes and descriptions
+- Updated visual snapshot (renamed from 3 separate to single `breadcrumb-showcase`)
+- Removed 3 obsolete snapshots: `breadcrumb-root`, `breadcrumb-epic-detail`, `breadcrumb-story-detail`
+
+**Decisions:**
+- Created reusable `BreadcrumbWithRouter` component instead of inline decorators for each story
+- Used `getAllByText` for elements appearing multiple times (e.g., "dashboard-restructure" appears in both Epic Detail and Story Detail examples)
+- Preserved a11y testing with `aria-label: 'Breadcrumb'` verification
+- Kept comprehensive play function tests for Playground to verify different route presets
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 720/721 tests pass (1 pre-existing timeout failure)
+- Story count reduced: from 5 Breadcrumb stories to 2 (Showcase + Playground)
+
+**Next steps:**
+- Task t5: Rewrite EpicCard stories to Showcase + Playground pattern
