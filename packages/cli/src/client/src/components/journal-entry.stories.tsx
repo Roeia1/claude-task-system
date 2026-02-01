@@ -121,6 +121,7 @@ function CollapsedExpandedSection() {
             entry={createMockJournal('session', {
               title: 'Session: Collapsed state',
               content: 'This content is hidden until expanded.',
+              timestamp: '2026-01-28 02:00 UTC',
             })}
             defaultOpen={false}
           />
@@ -131,6 +132,7 @@ function CollapsedExpandedSection() {
             entry={createMockJournal('session', {
               title: 'Session: Expanded state',
               content: 'This content is visible because defaultOpen is true.',
+              timestamp: '2026-01-28 02:00 UTC',
             })}
             defaultOpen={true}
           />
@@ -158,6 +160,7 @@ function GroupedDisplaySection() {
             entry={createMockJournal('blocker', {
               title: 'Blocked: Database schema unclear',
               content: 'Need clarification on the data model before proceeding.',
+              timestamp: '2026-01-28 11:00 UTC',
             })}
             defaultOpen={true}
           />
@@ -171,6 +174,7 @@ function GroupedDisplaySection() {
             entry={createMockJournal('resolution', {
               title: 'Resolution: Schema finalized',
               content: 'Team agreed on schema. Using normalized approach.',
+              timestamp: '2026-01-28 15:00 UTC',
             })}
           />
         </div>
@@ -212,6 +216,7 @@ function EdgeCasesSection() {
               title:
                 'Session: 2026-01-28 01:00 UTC - This is a very long session title that might wrap to multiple lines',
               content: 'Content for long title entry.',
+              timestamp: '2026-01-28 01:00 UTC',
             })}
           />
         </div>
@@ -230,6 +235,7 @@ function EdgeCasesSection() {
 **Decisions:**
 - Chose Passport.js for OAuth integration
 - Used Redis for session storage`,
+              timestamp: '2026-01-28 03:00 UTC',
             })}
             defaultOpen={true}
           />
