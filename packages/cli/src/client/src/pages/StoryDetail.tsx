@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Link, useParams } from 'react-router';
 import remarkGfm from 'remark-gfm';
+import { SessionsPanel } from '@/components/SessionsPanel';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -512,6 +513,7 @@ function StoryDetail() {
               <Badge className="ml-2 bg-danger/20 text-danger text-xs">{blockers.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="sessions">Sessions</TabsTrigger>
         </TabsList>
         <TabsContent value="tasks" className="space-y-4">
           <TasksTabContent tasks={currentStory.tasks} />
@@ -521,6 +523,9 @@ function StoryDetail() {
         </TabsContent>
         <TabsContent value="journal" className="space-y-4">
           <JournalTabContent journal={currentStory.journal} />
+        </TabsContent>
+        <TabsContent value="sessions" className="space-y-4">
+          <SessionsPanel epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />
         </TabsContent>
       </Tabs>
     </div>
