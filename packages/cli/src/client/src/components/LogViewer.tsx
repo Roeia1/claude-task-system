@@ -1,6 +1,6 @@
 import type { VirtualItem, Virtualizer } from '@tanstack/react-virtual';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArrowDownToLine, CheckCircle, Loader2, Pause } from 'lucide-react';
+import { ArrowDownToLine, CheckCircle, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getWebSocketSend } from '@/machines/dashboardMachine';
 
@@ -86,14 +86,17 @@ function LogViewerHeader({
         data-testid="auto-scroll-toggle"
         onClick={onToggleAutoScroll}
         aria-pressed={autoScroll}
-        className="p-1.5 rounded-md bg-bg-light hover:bg-bg-lighter text-text-muted hover:text-text transition-colors"
+        className={`p-1.5 rounded-md transition-colors ${
+          autoScroll
+            ? 'bg-bg-light hover:bg-bg-lighter text-success'
+            : 'bg-bg-light hover:bg-bg-lighter text-text-muted'
+        }`}
         title={title}
       >
-        {autoScroll ? (
-          <ArrowDownToLine className="h-4 w-4" data-testid="autoscroll-icon-enabled" />
-        ) : (
-          <Pause className="h-4 w-4" data-testid="autoscroll-icon-disabled" />
-        )}
+        <ArrowDownToLine
+          className="h-4 w-4"
+          data-testid={autoScroll ? 'autoscroll-icon-enabled' : 'autoscroll-icon-disabled'}
+        />
       </button>
     </div>
   );
@@ -144,7 +147,7 @@ function LogViewerUnavailable() {
   return (
     <div
       data-testid="log-viewer"
-      className="h-96 bg-bg-dark rounded-md font-mono flex items-center justify-center"
+      className="h-full bg-bg-dark rounded-md font-mono flex items-center justify-center"
     >
       <span className="text-text-muted">Output unavailable</span>
     </div>
@@ -288,7 +291,7 @@ export function LogViewer({
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div data-testid="log-viewer" className="flex flex-col bg-bg-dark rounded-md">
+    <div data-testid="log-viewer" className="flex flex-col h-full bg-bg-dark rounded-md">
       <LogViewerHeader
         status={status}
         autoScroll={autoScroll}
@@ -298,7 +301,7 @@ export function LogViewer({
         data-testid="log-content"
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="h-96 font-mono overflow-auto"
+        className="flex-1 min-h-0 font-mono overflow-auto"
       >
         {showLoading ? (
           <LogViewerSkeleton />

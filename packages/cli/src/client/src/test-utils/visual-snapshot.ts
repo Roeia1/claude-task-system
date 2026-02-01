@@ -110,4 +110,3 @@ export async function matchPixelSnapshot(
 
   await expect(canvasElement).toMatchScreenshot(`${snapshotName}.png`);
 }
-

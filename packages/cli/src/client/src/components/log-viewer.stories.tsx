@@ -8,14 +8,7 @@ import { LogViewer } from './LogViewer.tsx';
 // ============================================================================
 
 /** Preset types for LogViewer states */
-type LogPreset =
-  | 'empty'
-  | 'short'
-  | 'long'
-  | 'ansi-colors'
-  | 'streaming'
-  | 'complete'
-  | 'unavailable';
+type LogPreset = 'empty' | 'short' | 'long' | 'streaming' | 'complete' | 'unavailable';
 
 // ============================================================================
 // Constants
@@ -34,10 +27,7 @@ const LARGE_LOG_LINE_COUNT = 10_000;
 const MAX_RENDERED_LINES_THRESHOLD = 100;
 
 /** Minimum log viewer count in Showcase */
-const MIN_SHOWCASE_LOG_VIEWERS = 6;
-
-/** Regex pattern for ANSI color log text */
-const STARTING_BUILD_PATTERN = /Starting build process/;
+const MIN_SHOWCASE_LOG_VIEWERS = 5;
 
 // ============================================================================
 // Mock Data
@@ -85,22 +75,6 @@ $ npm test
 
 Build completed successfully!`;
 
-/** Sample log content with ANSI color codes */
-const ansiColorLogContent = `\x1b[36m[INFO]\x1b[0m Starting build process...
-\x1b[32m✓\x1b[0m Dependencies installed successfully
-\x1b[33m[WARN]\x1b[0m Deprecation warning: legacy API usage
-\x1b[31m[ERROR]\x1b[0m Failed to load config file
-\x1b[35m[DEBUG]\x1b[0m Retrying with default configuration...
-\x1b[32m✓\x1b[0m Build completed
-\x1b[36m[INFO]\x1b[0m Output written to dist/
-
-\x1b[1m\x1b[4mTest Results:\x1b[0m
-  \x1b[32m✓\x1b[0m 15 passing
-  \x1b[33m○\x1b[0m 2 skipped
-  \x1b[31m✕\x1b[0m 1 failing
-
-\x1b[1mCoverage:\x1b[0m \x1b[32m87.5%\x1b[0m (target: 80%)`;
-
 /** Sample streaming log content */
 const streamingLogContent = `$ saga implement --story user-auth
 Starting story execution...
@@ -140,8 +114,6 @@ function getLogContentForPreset(preset: LogPreset): string {
       return shortLogContent;
     case 'long':
       return generateLargeLog(LARGE_LOG_LINE_COUNT);
-    case 'ansi-colors':
-      return ansiColorLogContent;
     case 'streaming':
       return streamingLogContent;
     case 'complete':
@@ -160,7 +132,6 @@ function getStatusForPreset(preset: LogPreset): 'running' | 'completed' {
   switch (preset) {
     case 'empty':
     case 'streaming':
-    case 'ansi-colors':
     case 'unavailable':
       return 'running';
     case 'short':
@@ -188,8 +159,6 @@ function presetToLabel(preset: LogPreset): string {
       return 'Short Log';
     case 'long':
       return 'Long Log (10K lines)';
-    case 'ansi-colors':
-      return 'ANSI Colors';
     case 'streaming':
       return 'Streaming';
     case 'complete':
@@ -248,23 +217,6 @@ function LogStatesSection(): React.JSX.Element {
             />
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
-
-/** ANSI colors section component */
-function AnsiColorsSection(): React.JSX.Element {
-  return (
-    <section aria-label="ANSI Colors">
-      <h3 className="text-sm font-semibold text-text-muted mb-3">ANSI Color Support</h3>
-      <div className="h-64">
-        <LogViewer
-          sessionName="ansi-session"
-          status="completed"
-          outputAvailable={true}
-          initialContent={ansiColorLogContent}
-        />
       </div>
     </section>
   );
@@ -334,7 +286,6 @@ function EdgeCasesSection(): React.JSX.Element {
  * - Virtual scrolling for 10,000+ log lines
  * - Auto-scroll toggle (enabled by default for running sessions)
  * - Status indicator (Streaming/Complete)
- * - ANSI color code rendering
  * - "Output unavailable" state for missing output files
  */
 const meta: Meta<{ preset: LogPreset; customContent: string }> = {
@@ -342,15 +293,7 @@ const meta: Meta<{ preset: LogPreset; customContent: string }> = {
   argTypes: {
     preset: {
       control: 'select',
-      options: [
-        'empty',
-        'short',
-        'long',
-        'ansi-colors',
-        'streaming',
-        'complete',
-        'unavailable',
-      ] satisfies LogPreset[],
+      options: ['empty', 'short', 'long', 'streaming', 'complete', 'unavailable'] satisfies LogPreset[],
       description: 'Select a log preset to display',
     },
     customContent: {
@@ -373,7 +316,6 @@ type Story = StoryObj<typeof meta>;
 /**
  * Showcase displaying representative LogViewer states:
  * - Empty, short, and long logs
- * - ANSI color support
  * - Status indicators (streaming vs complete)
  * - Edge cases (output unavailable)
  */
@@ -381,7 +323,6 @@ export const Showcase: Story = {
   render: () => (
     <div className="space-y-8 p-4">
       <LogStatesSection />
-      <AnsiColorsSection />
       <StatusIndicatorsSection />
       <EdgeCasesSection />
     </div>
@@ -391,7 +332,6 @@ export const Showcase: Story = {
 
     // Verify section headers
     await expect(canvas.getByRole('region', { name: 'Log States' })).toBeInTheDocument();
-    await expect(canvas.getByRole('region', { name: 'ANSI Colors' })).toBeInTheDocument();
     await expect(canvas.getByRole('region', { name: 'Status Indicators' })).toBeInTheDocument();
     await expect(canvas.getByRole('region', { name: 'Edge Cases' })).toBeInTheDocument();
 
@@ -408,9 +348,6 @@ export const Showcase: Story = {
 
     // Verify "Output unavailable" message
     await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
-
-    // Verify ANSI color indicators in the log
-    await expect(canvas.getByText(STARTING_BUILD_PATTERN)).toBeInTheDocument();
 
     // Visual snapshot tests
     await matchDomSnapshot(canvasElement, 'log-viewer-showcase');

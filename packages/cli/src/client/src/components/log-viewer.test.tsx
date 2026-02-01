@@ -114,7 +114,7 @@ describe('LogViewer', () => {
       expect(screen.getByText('Log line 2')).toBeInTheDocument();
     });
 
-    it('renders with fixed height container', () => {
+    it('renders with flexible height container', () => {
       render(
         <LogViewer
           sessionName="test-session"
@@ -125,8 +125,9 @@ describe('LogViewer', () => {
       );
 
       const content = screen.getByTestId('log-content');
-      // Should have a defined height for scrolling
-      expect(content).toHaveClass('h-96');
+      // Should flex to fill parent height
+      expect(content).toHaveClass('flex-1');
+      expect(content).toHaveClass('min-h-0');
     });
   });
 
