@@ -482,3 +482,35 @@ The previous session (9) created journal entries without timestamp overrides, ca
 
 **Next steps:**
 - Task t13: Rewrite Epic List page stories to Showcase + Playground pattern
+
+## Session 14: 2026-02-01
+
+### Task: t13 - Rewrite Epic List page stories
+
+**What was done:**
+- Updated `epic-list.stories.tsx` to use `PageWrapper` for proper Layout context
+- Changed decorator from `MemoryRouter` to `PageWrapper` with `route="/"` for root breadcrumb
+- Updated layout parameter from `'padded'` to `'fullscreen'` for proper page display
+- Updated all play functions to verify:
+  - Layout header with "SAGA" and "Dashboard" text
+  - Used `getAllByText('Epics')` instead of `getByText` (appears in breadcrumb + page title)
+  - Epic card links filtered by `/epic/` prefix to exclude breadcrumb nav links
+- Removed unused `MemoryRouter` import (replaced by PageWrapper)
+- Fixed biome lint issues for method chaining format
+- Updated 4 visual snapshots to include Layout wrapper (header, breadcrumb, main content, toaster)
+
+**Decisions:**
+- Used `PageWrapper` component from t2 to wrap all EpicList stories
+- Changed to `fullscreen` layout parameter since PageWrapper provides full page context
+- Used `getAllByText` assertions for elements that appear multiple times (breadcrumb + content)
+- Filtered link assertions by href pattern to distinguish epic cards from breadcrumb links
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 82/82 storybook tests pass
+- EpicList stories now render with full Layout (header, breadcrumb, content)
+
+**Next steps:**
+- Task t14: Rewrite Epic Detail page stories to Showcase + Playground pattern

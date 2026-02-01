@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { MemoryRouter } from 'react-router';
 import { expect, within } from 'storybook/test';
+import { PageWrapper } from '@/test-utils/storybook-page-wrapper';
 import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
 import type { EpicSummary } from '@/types/dashboard';
 import { EpicCard, EpicCardSkeleton, EpicList } from './EpicList.tsx';
@@ -105,13 +105,13 @@ const meta: Meta<typeof EpicList> = {
   component: EpicList,
   decorators: [
     (Story) => (
-      <MemoryRouter>
+      <PageWrapper route="/">
         <Story />
-      </MemoryRouter>
+      </PageWrapper>
     ),
   ],
   parameters: {
-    layout: 'padded',
+    layout: 'fullscreen',
     docs: {
       description: {
         component:
@@ -210,6 +210,10 @@ const Showcase: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
 
     // Verify section headers
     await expect(canvas.getByText('Loading State')).toBeInTheDocument();
@@ -340,9 +344,13 @@ const Playground: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // Verify page title is always present
-    const titles = canvas.getAllByText('Epics');
-    await expect(titles.length).toBeGreaterThan(0);
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
+
+    // Verify page title is always present (breadcrumb + page title)
+    const epicTexts = canvas.getAllByText('Epics');
+    await expect(epicTexts.length).toBeGreaterThan(0);
   },
 };
 
@@ -368,7 +376,12 @@ const Loading: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('Epics')).toBeInTheDocument();
+    // Verify header with SAGA Dashboard (from Layout)
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    // Verify page title and breadcrumb contain Epics
+    const epicTexts = canvas.getAllByText('Epics');
+    await expect(epicTexts.length).toBeGreaterThanOrEqual(1);
+    // Verify skeleton cards
     const skeletonCards = canvasElement.querySelectorAll('.animate-pulse');
     await expect(skeletonCards.length).toBe(SKELETON_GRID_COUNT);
     await matchCanvasSnapshot(canvasElement, 'epic-list-loading');
@@ -394,7 +407,12 @@ const Empty: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('Epics')).toBeInTheDocument();
+    // Verify header with SAGA Dashboard (from Layout)
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    // Verify page title and breadcrumb contain Epics
+    const epicTexts = canvas.getAllByText('Epics');
+    await expect(epicTexts.length).toBeGreaterThanOrEqual(1);
+    // Verify empty state content
     await expect(canvas.getByText('No epics found.')).toBeInTheDocument();
     await expect(canvas.getByText('/create-epic')).toBeInTheDocument();
     await matchCanvasSnapshot(canvasElement, 'epic-list-empty');
@@ -419,10 +437,18 @@ const Populated: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('Epics')).toBeInTheDocument();
+    // Verify header with SAGA Dashboard (from Layout)
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    // Verify page title and breadcrumb contain Epics
+    const epicTexts = canvas.getAllByText('Epics');
+    await expect(epicTexts.length).toBeGreaterThanOrEqual(1);
+    // Verify epic card content
     await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument();
-    const links = canvas.getAllByRole('link');
-    await expect(links.length).toBe(ACTIVE_EPIC_COUNT);
+    // Note: Links now include breadcrumb navigation, so check epic cards specifically
+    const epicLinks = canvas
+      .getAllByRole('link')
+      .filter((link) => link.getAttribute('href')?.startsWith('/epic/'));
+    await expect(epicLinks.length).toBe(ACTIVE_EPIC_COUNT);
     await matchCanvasSnapshot(canvasElement, 'epic-list-populated');
   },
 };
@@ -454,13 +480,22 @@ const WithArchivedVisible: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('Epics')).toBeInTheDocument();
+    // Verify header with SAGA Dashboard (from Layout)
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    // Verify page title and breadcrumb contain Epics
+    const epicTexts = canvas.getAllByText('Epics');
+    await expect(epicTexts.length).toBeGreaterThanOrEqual(1);
+    // Verify archive toggle
     const checkbox = canvas.getByRole('checkbox');
     await expect(checkbox).toBeChecked();
     await expect(checkbox).toHaveAccessibleName('Show archived');
+    // Verify archived epic appears
     await expect(canvas.getByText('Legacy Code Cleanup')).toBeInTheDocument();
-    const links = canvas.getAllByRole('link');
-    await expect(links.length).toBe(TOTAL_EPICS_WITH_ARCHIVED);
+    // Note: Links now include breadcrumb navigation, so check epic cards specifically
+    const epicLinks = canvas
+      .getAllByRole('link')
+      .filter((link) => link.getAttribute('href')?.startsWith('/epic/'));
+    await expect(epicLinks.length).toBe(TOTAL_EPICS_WITH_ARCHIVED);
   },
 };
 
