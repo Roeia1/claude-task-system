@@ -291,6 +291,12 @@ function createChokidarWatcher(sagaRoot: string): FSWatcher {
     ignoreInitial: true,
     usePolling: true,
     interval: DEBOUNCE_DELAY_MS,
+    // Wait for writes to finish before emitting events - prevents missing
+    // rapid file changes when polling
+    awaitWriteFinish: {
+      stabilityThreshold: 50,
+      pollInterval: 50,
+    },
   });
 }
 

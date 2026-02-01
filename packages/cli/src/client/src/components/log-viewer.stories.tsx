@@ -293,7 +293,14 @@ const meta: Meta<{ preset: LogPreset; customContent: string }> = {
   argTypes: {
     preset: {
       control: 'select',
-      options: ['empty', 'short', 'long', 'streaming', 'complete', 'unavailable'] satisfies LogPreset[],
+      options: [
+        'empty',
+        'short',
+        'long',
+        'streaming',
+        'complete',
+        'unavailable',
+      ] satisfies LogPreset[],
       description: 'Select a log preset to display',
     },
     customContent: {
