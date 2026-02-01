@@ -23,7 +23,7 @@ const MAX_PREVIEW_LENGTH = 500;
 // Top-level regex patterns for test assertions
 const INVALID_EPIC_SLUG_PATTERN = /invalid epic slug/i;
 const INVALID_STORY_SLUG_PATTERN = /invalid story slug/i;
-const SESSION_NAME_PATTERN = /^saga-my-epic-my-story-\d+$/;
+const SESSION_NAME_PATTERN = /^saga__my-epic__my-story__\d+$/;
 const TMUX_NOT_FOUND_PATTERN = /tmux.*not found|not installed/i;
 const SESSION_CREATE_FAILED_PATTERN = /failed to create.*session/i;
 const OUTPUT_FILE_NOT_FOUND_PATTERN = /output file.*not found/i;
@@ -304,26 +304,26 @@ describe('sessions', () => {
       expect(result).toEqual([]);
     });
 
-    it('should return only saga-prefixed sessions', () => {
+    it('should return only saga__-prefixed sessions', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValue({
         status: 0,
         stdout:
-          'saga-epic1-story1-1234: 1 windows\nother-session: 1 windows\nsaga-epic2-story2-5678: 2 windows\n',
+          'saga__epic1__story1__1234: 1 windows\nother-session: 1 windows\nsaga__epic2__story2__5678: 2 windows\n',
       });
 
       const result = listSessions();
 
       expect(result).toHaveLength(2);
-      expect(result[0].name).toBe('saga-epic1-story1-1234');
-      expect(result[1].name).toBe('saga-epic2-story2-5678');
+      expect(result[0].name).toBe('saga__epic1__story1__1234');
+      expect(result[1].name).toBe('saga__epic2__story2__5678');
     });
 
     it('should include status for each session', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValue({
         status: 0,
-        stdout: 'saga-epic1-story1-1234: 1 windows\n',
+        stdout: 'saga__epic1__story1__1234: 1 windows\n',
       });
 
       const result = listSessions();
@@ -335,12 +335,12 @@ describe('sessions', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValue({
         status: 0,
-        stdout: 'saga-epic1-story1-1234: 1 windows\n',
+        stdout: 'saga__epic1__story1__1234: 1 windows\n',
       });
 
       const result = listSessions();
 
-      expect(result[0].outputFile).toBe('/tmp/saga-sessions/saga-epic1-story1-1234.out');
+      expect(result[0].outputFile).toBe('/tmp/saga-sessions/saga__epic1__story1__1234.out');
     });
   });
 
@@ -348,7 +348,7 @@ describe('sessions', () => {
     it('should return running: true when session exists', () => {
       mockSpawnSync.mockReturnValue({ status: 0 }); // tmux has-session returns 0 when session exists
 
-      const result = getSessionStatus('saga-epic1-story1-1234');
+      const result = getSessionStatus('saga__epic1__story1__1234');
 
       expect(result.running).toBe(true);
     });
@@ -356,7 +356,7 @@ describe('sessions', () => {
     it('should return running: false when session does not exist', () => {
       mockSpawnSync.mockReturnValue({ status: 1 }); // tmux has-session returns non-zero when not found
 
-      const result = getSessionStatus('saga-epic1-story1-1234');
+      const result = getSessionStatus('saga__epic1__story1__1234');
 
       expect(result.running).toBe(false);
     });
@@ -364,11 +364,11 @@ describe('sessions', () => {
     it('should call tmux has-session with correct session name', () => {
       mockSpawnSync.mockReturnValue({ status: 0 });
 
-      getSessionStatus('saga-epic1-story1-1234');
+      getSessionStatus('saga__epic1__story1__1234');
 
       expect(mockSpawnSync).toHaveBeenCalledWith(
         'tmux',
-        ['has-session', '-t', 'saga-epic1-story1-1234'],
+        ['has-session', '-t', 'saga__epic1__story1__1234'],
         expect.any(Object),
       );
     });
@@ -378,7 +378,7 @@ describe('sessions', () => {
     it('should return killed: true when session is killed', () => {
       mockSpawnSync.mockReturnValue({ status: 0 }); // tmux kill-session returns 0 on success
 
-      const result = killSession('saga-epic1-story1-1234');
+      const result = killSession('saga__epic1__story1__1234');
 
       expect(result.killed).toBe(true);
     });
@@ -386,7 +386,7 @@ describe('sessions', () => {
     it('should return killed: false when session does not exist', () => {
       mockSpawnSync.mockReturnValue({ status: 1 }); // tmux kill-session returns non-zero when not found
 
-      const result = killSession('saga-epic1-story1-1234');
+      const result = killSession('saga__epic1__story1__1234');
 
       expect(result.killed).toBe(false);
     });
@@ -394,11 +394,11 @@ describe('sessions', () => {
     it('should call tmux kill-session with correct session name', () => {
       mockSpawnSync.mockReturnValue({ status: 0 });
 
-      killSession('saga-epic1-story1-1234');
+      killSession('saga__epic1__story1__1234');
 
       expect(mockSpawnSync).toHaveBeenCalledWith(
         'tmux',
-        ['kill-session', '-t', 'saga-epic1-story1-1234'],
+        ['kill-session', '-t', 'saga__epic1__story1__1234'],
         expect.any(Object),
       );
     });
@@ -417,7 +417,7 @@ describe('sessions', () => {
     it('should throw error when output file does not exist', () => {
       mockExistsSync.mockReturnValue(false);
 
-      expect(() => streamLogs('saga-epic1-story1-1234')).toThrow(OUTPUT_FILE_NOT_FOUND_PATTERN);
+      expect(() => streamLogs('saga__epic1__story1__1234')).toThrow(OUTPUT_FILE_NOT_FOUND_PATTERN);
     });
 
     it('should spawn tail -f on the output file', async () => {
@@ -425,7 +425,7 @@ describe('sessions', () => {
       mockSpawn.mockReturnValue(mockChildProcess);
 
       // Start streaming
-      const streamPromise = streamLogs('saga-epic1-story1-1234');
+      const streamPromise = streamLogs('saga__epic1__story1__1234');
 
       // Simulate process close
       setTimeout(() => {
@@ -436,7 +436,7 @@ describe('sessions', () => {
 
       expect(mockSpawn).toHaveBeenCalledWith(
         'tail',
-        ['-f', '/tmp/saga-sessions/saga-epic1-story1-1234.out'],
+        ['-f', '/tmp/saga-sessions/saga__epic1__story1__1234.out'],
         expect.objectContaining({ stdio: ['ignore', 'pipe', 'pipe'] }),
       );
     });
@@ -445,7 +445,7 @@ describe('sessions', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawn.mockReturnValue(mockChildProcess);
 
-      const streamPromise = streamLogs('saga-epic1-story1-1234');
+      const streamPromise = streamLogs('saga__epic1__story1__1234');
 
       // Simulate process close
       setTimeout(() => {
