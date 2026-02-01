@@ -297,41 +297,6 @@ test('modifies fixture file', async ({ page }) => {
 
 ## Common Patterns
 
-### Constants at Top of Test Files
-
-Define timing constants and magic numbers at the top of test files:
-
-```typescript
-const WS_CONNECTION_TIMEOUT_MS = 5000;
-const MESSAGE_TIMEOUT_MS = 3000;
-const SHORT_WAIT_MS = 50;
-const EXPECTED_ITEM_COUNT = 3;
-```
-
-### Unique Port Allocation
-
-For server tests, allocate unique ports to avoid `EADDRINUSE`:
-
-```typescript
-const PORT_BASE = 40_000;
-let portCounter = 0;
-
-function getRandomPort(): number {
-  portCounter++;
-  return PORT_BASE + portCounter;
-}
-```
-
-### Waiting for Loading States
-
-In Playwright tests, wait for skeleton loaders to disappear:
-
-```typescript
-await page.goto('/');
-await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, { timeout: 10_000 });
-await expect(page.getByText('My Epic')).toBeVisible();
-```
-
 ### WebSocket Connection Waiting (E2E)
 
 Wait for WebSocket connection before modifying files:
@@ -339,19 +304,6 @@ Wait for WebSocket connection before modifying files:
 ```typescript
 await page.goto('/');
 await expect(page.locator('[data-ws-connected="true"]')).toBeVisible({ timeout: 10_000 });
-```
-
-### Cleanup in afterEach
-
-Always clean up resources:
-
-```typescript
-afterEach(async () => {
-  if (server) {
-    await server.close();
-  }
-  await cleanupTempDir(tempDir);
-});
 ```
 
 ---
