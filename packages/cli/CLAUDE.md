@@ -36,7 +36,9 @@ Reference: `init.ts` (simple) or `implement.ts` (complex)
 
 ## Testing
 
-Tests run against the built CLI using `spawnSync`. See `src/commands/init.test.ts:14-21` for temp directory setup pattern.
+See [`docs/TESTING.md`](docs/TESTING.md) for comprehensive testing strategy, patterns, and examples.
+
+Quick summary: Tests run against the built CLI using `spawnSync`. See `src/commands/init.test.ts:14-21` for temp directory setup pattern.
 
 ## Key Concepts
 
