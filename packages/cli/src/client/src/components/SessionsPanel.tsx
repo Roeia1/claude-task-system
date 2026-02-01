@@ -2,7 +2,7 @@
  * SessionsPanel - Displays sessions for a specific story in the story detail page.
  * Fetches sessions from the API and displays them with real-time WebSocket updates.
  */
-import { ChevronDown, ChevronRight, Play, Square, Terminal } from 'lucide-react';
+import { CheckCircle, ChevronDown, ChevronRight, Play, Terminal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -66,7 +66,7 @@ function SessionsPanelSkeleton() {
 function SessionStatusBadge({ status }: { status: SessionStatus }) {
   if (status === 'running') {
     return (
-      <Badge className="bg-success/20 text-success flex items-center gap-1">
+      <Badge className="bg-primary/20 text-primary flex items-center gap-1">
         <Play className="w-3 h-3" />
         Running
       </Badge>
@@ -74,8 +74,8 @@ function SessionStatusBadge({ status }: { status: SessionStatus }) {
   }
 
   return (
-    <Badge className="bg-text-muted/20 text-text-muted flex items-center gap-1">
-      <Square className="w-3 h-3" />
+    <Badge className="bg-success/20 text-success flex items-center gap-1">
+      <CheckCircle className="w-3 h-3" />
       Completed
     </Badge>
   );
