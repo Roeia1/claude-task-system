@@ -22,6 +22,17 @@ Comprehensive testing guidance for the `@saga-ai/cli` package.
 | Full dashboard with real backend | E2E test | `src/client/e2e/*.spec.ts` |
 | Visual component appearance | Storybook visual test | `src/client/src/**/*.stories.tsx` |
 
+**Note:** Multiple test types often apply. Work down the table - if your change touches multiple layers, write tests at each level.
+
+**Examples:**
+- **New CLI command** → Unit test (arg parsing) + CLI integration test (full command)
+- **New dashboard feature** → Component test + Storybook visual + Playwright integration + E2E if critical path
+- **New WebSocket event** → Server integration test + E2E test for real-time UI updates
+- **New API endpoint** → Server integration test + Playwright integration if UI consumes it
+- **Bug fix** → Add test at the layer where the bug existed (prevents regression)
+- **Refactor** → Existing tests should pass; add tests only if coverage gaps found
+- **Change to existing functionality** → Update affected tests + add tests for new behavior
+
 ## File Naming & Location
 
 | Type | Pattern | Location |
