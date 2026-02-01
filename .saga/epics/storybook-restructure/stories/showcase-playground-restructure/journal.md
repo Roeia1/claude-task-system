@@ -298,3 +298,39 @@
 
 **Next steps:**
 - Task t9: Rewrite JournalEntry stories to Showcase + Playground pattern
+
+## Session 9: 2026-02-01
+
+### Task: t9 - Rewrite JournalEntry stories
+
+**What was done:**
+- Created new `packages/cli/src/client/src/components/journal-entry.stories.tsx` with Showcase + Playground pattern
+- Updated title to `'Components/JournalEntry'`
+- Created Showcase story displaying:
+  - Journal Entry Types section: Session, Blocker, Resolution entries with distinct styling
+  - Collapsed vs Expanded section: Demonstrating defaultOpen behavior
+  - Grouped Journal Display section: How entries appear grouped by type in StoryDetail
+  - Edge Cases section: Long title, Long content with markdown
+- Created Playground story with:
+  - `preset` control (select) for journal preset: session, blocker, resolution
+  - `content` control (text) for overriding entry content
+  - Displays both collapsed and expanded states
+- Used `createMockJournal()` factory function from t1 for generating mock data
+- Extracted section components (`EntryTypesSection`, `CollapsedExpandedSection`, `GroupedDisplaySection`, `EdgeCasesSection`) to satisfy biome's noExcessiveLinesPerFunction rule
+- Created new visual snapshot: `journal-entry-showcase`
+
+**Decisions:**
+- Created separate story file for JournalEntry component under Components/ hierarchy
+- Used `getAllByText` for badges and icons that appear multiple times in Showcase (multiple blocker entries shown)
+- Used `toBeGreaterThanOrEqual` assertions instead of exact counts since multiple entries of same type exist
+- Included grouped display example to show how entries are organized in actual StoryDetail page
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 691/692 tests pass (1 pre-existing timeout failure unrelated to this work)
+- New story file adds 2 stories (Showcase + Playground) for JournalEntry
+
+**Next steps:**
+- Task t10: Rewrite LogViewer stories to Showcase + Playground pattern
