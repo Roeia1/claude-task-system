@@ -134,3 +134,49 @@
 
 **Next steps:**
 - Task t5: Rewrite EpicCard stories to Showcase + Playground pattern
+
+## Session 5: 2026-02-01
+
+### Task: t5 - Rewrite EpicCard stories
+
+**What was done:**
+- Created new `packages/cli/src/client/src/components/epic-card.stories.tsx` with Showcase + Playground pattern
+- Updated title to `'Components/EpicCard'`
+- Created Showcase story displaying:
+  - All 6 epic preset states: Typical, Just Started, In Progress, Has Blockers, Almost Done, Completed
+  - Edge cases: Long title, Archived epic
+- Created Playground story with:
+  - `preset` control (select) for epic presets
+  - `title` control (text) for overriding epic title
+  - `isArchived` control (boolean) for archived state
+  - Displays story counts breakdown below the card
+- Used `createMockEpicSummary()` factory function from t1 for generating mock data
+- Rewrote `epic-list.stories.tsx` to:
+  - Remove redundant EpicCard stories (now in separate file)
+  - Remove redundant StatusBadge stories (already covered in status-badge.stories.tsx)
+  - Keep only EpicList page stories with Showcase + Playground pattern
+  - Showcase displays Loading, Empty, Populated, and With Archive Toggle states
+  - Individual stories (Loading, Empty, Populated, WithArchivedVisible) preserved for visual regression testing
+- Fixed biome lint issues:
+  - Sorted imports correctly
+  - Extracted magic number to `SHOWCASE_CARD_COUNT` constant
+  - Fixed template literal to string literal
+  - Removed unused `args` parameter from play function
+- Created new visual snapshot: `epic-card-showcase`
+- Updated `epic-list-showcase` snapshot
+
+**Decisions:**
+- Created separate story file for EpicCard component under Components/ hierarchy
+- Kept EpicList page stories in pages/ directory for proper hierarchy (Pages/EpicList)
+- Used `getAllByText` in EpicList Showcase tests for elements appearing in multiple sections
+- Preserved all individual page state stories (Loading, Empty, Populated, WithArchivedVisible) for visual regression testing
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 707/708 tests pass (1 pre-existing timeout failure unrelated to this work)
+- Story count reduced: EpicCard stories consolidated from 6+ to 2, EpicList stories restructured
+
+**Next steps:**
+- Task t6: Rewrite StoryCard stories to Showcase + Playground pattern
