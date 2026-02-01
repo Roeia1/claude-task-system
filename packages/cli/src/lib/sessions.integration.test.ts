@@ -19,7 +19,7 @@ import {
 } from './sessions.ts';
 
 // Module-level regex constants for biome lint/performance/useTopLevelRegex
-const SESSION_NAME_PATTERN = /^saga-test-epic-test-story-\d+$/;
+const SESSION_NAME_PATTERN = /^saga__test-epic__test-story__\d+$/;
 const INVALID_EPIC_SLUG_PATTERN = /invalid epic slug/i;
 const INVALID_STORY_SLUG_PATTERN = /invalid story slug/i;
 
@@ -43,7 +43,8 @@ async function cleanupTestSessions(): Promise<void> {
   const sessions = await listSessions();
   const testSessions = sessions.filter(
     (session) =>
-      session.name.startsWith('saga-test-epic-') || session.name.startsWith('saga-integration-'),
+      session.name.startsWith('saga__test-epic__') ||
+      session.name.startsWith('saga__integration__'),
   );
   await Promise.all(testSessions.map((session) => killSession(session.name)));
 }
@@ -190,7 +191,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
 
       const sessions = await listSessions();
       const testSessions = sessions.filter(
-        (s) => s.name.startsWith('saga-test-epic-') || s.name.startsWith('saga-integration-'),
+        (s) => s.name.startsWith('saga__test-epic__') || s.name.startsWith('saga__integration__'),
       );
       expect(testSessions).toHaveLength(0);
     });
@@ -217,7 +218,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
       expect(names).toContain(result2.sessionName);
     });
 
-    it('should only return sessions with saga- prefix', async () => {
+    it('should only return sessions with saga__ prefix', async () => {
       // Create a non-saga session
       spawnSync('tmux', ['new-session', '-d', '-s', 'other-session', 'sleep 5'], {
         encoding: 'utf-8',
@@ -225,7 +226,8 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
 
       try {
         const sessions = await listSessions();
-        const nonSagaSessions = sessions.filter((s) => !s.name.startsWith('saga-'));
+        // Sessions should start with saga__ prefix
+        const nonSagaSessions = sessions.filter((s) => !s.name.startsWith('saga__'));
 
         expect(nonSagaSessions).toHaveLength(0);
       } finally {
@@ -245,7 +247,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
     });
 
     it('should return running: false for non-existent session', async () => {
-      const status = await getSessionStatus('saga-non-existent-session-99999');
+      const status = await getSessionStatus('saga__non-existent__session__99999');
 
       expect(status.running).toBe(false);
     });
@@ -276,7 +278,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
     });
 
     it('should return killed: false for non-existent session', async () => {
-      const killResult = await killSession('saga-non-existent-session-99999');
+      const killResult = await killSession('saga__non-existent__session__99999');
 
       expect(killResult.killed).toBe(false);
     });

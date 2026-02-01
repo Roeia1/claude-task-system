@@ -4,7 +4,7 @@
  * Provides functions to create, list, monitor, and kill tmux sessions
  * running SAGA workers. This module is shared between the CLI and dashboard.
  *
- * Session naming convention: saga-<epic-slug>-<story-slug>-<timestamp>
+ * Session naming convention: saga__<epic-slug>__<story-slug>__<timestamp>
  * Output files stored in: /tmp/saga-sessions/<session-name>.out
  */
 
@@ -21,8 +21,8 @@ const PREVIEW_MAX_LENGTH = 500;
 
 // Top-level regex patterns
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
-// Matches both new format (saga__epic__story__pid) and legacy format (saga-epic-story-pid)
-const SESSION_NAME_PATTERN = /^(saga[-_][-_]?[a-z0-9_-]+):/;
+// Matches session name format: saga__<epic>__<story>__<timestamp>
+const SESSION_NAME_PATTERN = /^(saga__[a-z0-9_-]+):/;
 
 /**
  * Directory where session output files are stored
@@ -278,7 +278,7 @@ export function validateSlug(slug: unknown): boolean {
 /**
  * Create a new detached tmux session for running a command
  *
- * Creates a tmux session named: saga-<epic>-<story>-<timestamp>
+ * Creates a tmux session named: saga__<epic>__<story>__<timestamp>
  * Output is captured to: /tmp/saga-sessions/<session-name>.out
  *
  * @param epicSlug - The epic slug (validated)
@@ -300,8 +300,9 @@ export function createSession(
   }
 
   // Generate session name with timestamp for uniqueness
+  // Uses double-underscore format for dashboard compatibility (parseSessionName requires saga__)
   const timestamp = Date.now();
-  const sessionName = `saga-${epicSlug}-${storySlug}-${timestamp}`;
+  const sessionName = `saga__${epicSlug}__${storySlug}__${timestamp}`;
 
   // Create session files
   const { wrapperScriptPath, outputFile } = createSessionFiles(sessionName, command);
@@ -321,7 +322,7 @@ export function createSession(
 }
 
 /**
- * List all SAGA tmux sessions (those with saga- prefix)
+ * List all SAGA tmux sessions (those with saga__ prefix)
  *
  * @returns Array of session info
  */
@@ -338,10 +339,7 @@ export function listSessions(): SessionInfo[] {
 
   for (const line of lines) {
     // tmux ls output format: "session-name: N windows ..."
-    // Session name formats supported:
-    // - New format: saga__<epic>__<story>__<pid> (double underscore delimiter)
-    // - Legacy format: saga-<epic>-<story>-<pid> (single hyphen delimiter)
-    // Only new format sessions will appear in the dashboard (parseSessionName requires saga__)
+    // Session name format: saga__<epic>__<story>__<timestamp>
     const match = line.match(SESSION_NAME_PATTERN);
     if (match) {
       const name = match[1];
@@ -441,17 +439,11 @@ export function killSession(sessionName: string): KillSessionResult {
 /**
  * Parse a session name to extract epic and story slugs
  *
- * Expected format: saga__<epic-slug>__<story-slug>__<pid>
- * Uses double-underscore (`__`) as delimiter.
- *
- * NOTE: This format differs from the older single-hyphen format used by `createSession()`
- * (e.g., `saga-epic-story-timestamp`). Sessions created with the old format will return
- * null and won't appear in the dashboard. This is intentional - the dashboard only shows
- * sessions created with the new naming convention. A future update to `createSession()`
- * will migrate to the double-underscore format for dashboard compatibility.
+ * Expected format: saga__<epic-slug>__<story-slug>__<timestamp>
+ * Uses double-underscore (`__`) as delimiter to allow hyphens within slugs.
  *
  * @param name - The session name to parse
- * @returns Parsed slugs or null if not a valid SAGA session name (including old-format sessions)
+ * @returns Parsed slugs or null if not a valid SAGA session name
  */
 export function parseSessionName(name: string): ParsedSessionName | null {
   if (!name?.startsWith('saga__')) {

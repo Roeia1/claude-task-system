@@ -31,14 +31,14 @@ describe('sessions CLI subcommands', () => {
     it('should call listSessions and output JSON array', async () => {
       const mockSessions = [
         {
-          name: 'saga-epic1-story1-1234',
+          name: 'saga__epic1__story1__1234',
           status: 'running' as const,
-          outputFile: '/tmp/saga-sessions/saga-epic1-story1-1234.out',
+          outputFile: '/tmp/saga-sessions/saga__epic1__story1__1234.out',
         },
         {
-          name: 'saga-epic2-story2-5678',
+          name: 'saga__epic2__story2__5678',
           status: 'running' as const,
-          outputFile: '/tmp/saga-sessions/saga-epic2-story2-5678.out',
+          outputFile: '/tmp/saga-sessions/saga__epic2__story2__5678.out',
         },
       ];
       vi.mocked(listSessions).mockResolvedValue(mockSessions);
@@ -80,9 +80,9 @@ describe('sessions CLI subcommands', () => {
         // Suppress console output in tests
       });
 
-      await sessionsStatusCommand('saga-epic-story-1234');
+      await sessionsStatusCommand('saga__epic__story__1234');
 
-      expect(getSessionStatus).toHaveBeenCalledWith('saga-epic-story-1234');
+      expect(getSessionStatus).toHaveBeenCalledWith('saga__epic__story__1234');
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ running: true }, null, 2));
 
       logSpy.mockRestore();
@@ -95,9 +95,9 @@ describe('sessions CLI subcommands', () => {
         // Suppress console output in tests
       });
 
-      await sessionsStatusCommand('saga-nonexistent-1234');
+      await sessionsStatusCommand('saga__nonexistent__1234');
 
-      expect(getSessionStatus).toHaveBeenCalledWith('saga-nonexistent-1234');
+      expect(getSessionStatus).toHaveBeenCalledWith('saga__nonexistent__1234');
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ running: false }, null, 2));
 
       logSpy.mockRestore();
@@ -108,9 +108,9 @@ describe('sessions CLI subcommands', () => {
     it('should call streamLogs with session name', async () => {
       vi.mocked(streamLogs).mockResolvedValue(undefined);
 
-      await sessionsLogsCommand('saga-epic-story-1234');
+      await sessionsLogsCommand('saga__epic__story__1234');
 
-      expect(streamLogs).toHaveBeenCalledWith('saga-epic-story-1234');
+      expect(streamLogs).toHaveBeenCalledWith('saga__epic__story__1234');
     });
 
     it('should handle errors from streamLogs gracefully', async () => {
@@ -123,7 +123,7 @@ describe('sessions CLI subcommands', () => {
         throw new Error('process.exit called');
       });
 
-      await expect(sessionsLogsCommand('saga-nonexistent-1234')).rejects.toThrow(
+      await expect(sessionsLogsCommand('saga__nonexistent__1234')).rejects.toThrow(
         'process.exit called',
       );
 
@@ -143,9 +143,9 @@ describe('sessions CLI subcommands', () => {
         // Suppress console output in tests
       });
 
-      await sessionsKillCommand('saga-epic-story-1234');
+      await sessionsKillCommand('saga__epic__story__1234');
 
-      expect(killSession).toHaveBeenCalledWith('saga-epic-story-1234');
+      expect(killSession).toHaveBeenCalledWith('saga__epic__story__1234');
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ killed: true }, null, 2));
 
       logSpy.mockRestore();
@@ -158,9 +158,9 @@ describe('sessions CLI subcommands', () => {
         // Suppress console output in tests
       });
 
-      await sessionsKillCommand('saga-nonexistent-1234');
+      await sessionsKillCommand('saga__nonexistent__1234');
 
-      expect(killSession).toHaveBeenCalledWith('saga-nonexistent-1234');
+      expect(killSession).toHaveBeenCalledWith('saga__nonexistent__1234');
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ killed: false }, null, 2));
 
       logSpy.mockRestore();
