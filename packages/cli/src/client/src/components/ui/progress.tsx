@@ -16,7 +16,7 @@ const Progress = forwardRef<
     {...props}
   >
     <ProgressIndicator
-      className="h-full w-full flex-1 bg-secondary transition-all"
+      className="h-full w-full flex-1 bg-success transition-all"
       style={{ transform: `translateX(-${FULL_PROGRESS_PERCENTAGE - (value || 0)}%)` }}
     />
   </ProgressRoot>
