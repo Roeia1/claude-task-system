@@ -334,3 +334,29 @@
 
 **Next steps:**
 - Task t10: Rewrite LogViewer stories to Showcase + Playground pattern
+
+## Session 10: 2026-02-01
+
+### Fix: Journal entry snapshot with fixed timestamps
+
+**What was done:**
+- Fixed snapshot test failure in `journal-entry.stories.tsx` caused by dynamic timestamps
+- Added explicit `timestamp` overrides to all `createMockJournal()` calls in the Showcase story:
+  - CollapsedExpandedSection: `2026-01-28 02:00 UTC`
+  - GroupedDisplaySection blocker: `2026-01-28 11:00 UTC`
+  - GroupedDisplaySection resolution: `2026-01-28 15:00 UTC`
+  - EdgeCasesSection long title: `2026-01-28 01:00 UTC`
+  - EdgeCasesSection long content: `2026-01-28 03:00 UTC`
+- Regenerated the `journal-entry-showcase` snapshot with fixed timestamps
+
+**Issue:**
+The previous session (9) created journal entries without timestamp overrides, causing the mock factory to use `new Date().toISOString()`. This resulted in snapshot mismatches on every test run.
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook tests pass (101/101)
+- Full test suite: 41/42 pass (1 pre-existing timeout failure in implement.test.ts)
+
+**Next steps:**
+- Task t10: Rewrite LogViewer stories to Showcase + Playground pattern
