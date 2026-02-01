@@ -54,7 +54,7 @@ DOM snapshots only see HTML structure, not how it renders. If a component has po
 | Integration tests | `*.spec.ts` | `src/client/tests/integration/` |
 | E2E tests | `*.spec.ts` | `src/client/e2e/` |
 | Storybook stories | `*.stories.tsx` | Co-located with component |
-| Visual screenshot baselines | `*.png` | `src/client/src/**/__screenshots__/` (co-located) |
+| Visual screenshot baselines | `*.png` | `src/client/src/**/__snapshots__/` (co-located) |
 
 ## Commands Reference
 
@@ -391,4 +391,4 @@ await expect(page.locator('[data-ws-connected="true"]')).toBeVisible({ timeout: 
 | `src/client/e2e/fixtures-utils.ts` | E2E fixture file utilities |
 | `src/client/src/test-setup.ts` | React Testing Library setup |
 | `src/client/src/test-utils/visual-snapshot.ts` | Snapshot utilities (`matchDomSnapshot`, `matchPixelSnapshot`) |
-| `src/client/src/**/__screenshots__/` | Pixel snapshot baselines (co-located with stories) |
+| `src/client/src/**/__snapshots__/` | Pixel snapshot baselines (co-located with stories) |

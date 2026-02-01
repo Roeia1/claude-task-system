@@ -11,7 +11,7 @@
  *
  * 2. **Pixel Snapshots** (`matchPixelSnapshot`)
  *    - Captures actual rendered pixels as PNG images
- *    - Stored as .png files in __screenshots__/
+ *    - Stored as .png files in __snapshots__/
  *    - Catches: overlapping text, broken layouts, z-index issues
  *    - Use for components with complex positioning/layout
  *
