@@ -514,3 +514,37 @@ The previous session (9) created journal entries without timestamp overrides, ca
 
 **Next steps:**
 - Task t14: Rewrite Epic Detail page stories to Showcase + Playground pattern
+
+## Session 15: 2026-02-01
+
+### Task: t14 - Rewrite EpicDetail page stories
+
+**What was done:**
+- Updated `epic-detail.stories.tsx` to use `PageWrapper` for proper Layout context
+- Added `PageWrapper` decorator with `route="/epic/dashboard-restructure"` for epic detail breadcrumb
+- Changed layout parameter from `'padded'` to `'fullscreen'` for proper page display
+- Removed all internal `MemoryRouter` wrappers from stories (PageWrapper provides router context)
+- Removed unused `MemoryRouter` import (replaced by PageWrapper)
+- Updated all play functions to verify:
+  - Layout header with "SAGA" and "Dashboard" text
+  - Story card links filtered by `/story/` prefix to exclude breadcrumb nav links
+  - Back link assertions filtered by text content pattern
+- Fixed biome formatting issue (multiline paragraph to single line)
+- Regenerated 5 visual snapshots to include Layout wrapper (header, breadcrumb, main content, toaster)
+
+**Decisions:**
+- Used `PageWrapper` component from t2 to wrap all EpicDetail stories
+- Changed to `fullscreen` layout parameter since PageWrapper provides full page context
+- Removed inner MemoryRouter wrappers from Showcase (was causing "Cannot render Router inside another Router" error)
+- Used `getAllByText` assertions for elements that appear multiple times (breadcrumb + content)
+- Filtered link assertions by href pattern to distinguish story cards from breadcrumb links
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 82/82 storybook tests pass
+- EpicDetail stories now render with full Layout (header, breadcrumb, content)
+
+**Next steps:**
+- Task t15: Rewrite Story Detail page stories to Showcase + Playground pattern

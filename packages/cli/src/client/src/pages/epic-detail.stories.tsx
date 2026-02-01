@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Link, MemoryRouter } from 'react-router';
+import { Link } from 'react-router';
 import { expect, within } from 'storybook/test';
 import { EpicContent } from '@/components/EpicContent';
 import { Progress } from '@/components/ui/progress';
+import { PageWrapper } from '@/test-utils/storybook-page-wrapper';
 import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
 import type { StoryDetail as StoryDetailType } from '@/types/dashboard';
 import { EpicDetail, HeaderSkeleton, StoryCard, StoryCardSkeleton } from './EpicDetail.tsx';
@@ -114,8 +115,15 @@ This epic covers the complete restructuring of the SAGA dashboard to improve usa
 const meta: Meta<typeof EpicDetail> = {
   title: 'Pages/EpicDetail',
   component: EpicDetail,
+  decorators: [
+    (Story) => (
+      <PageWrapper route="/epic/dashboard-restructure">
+        <Story />
+      </PageWrapper>
+    ),
+  ],
   parameters: {
-    layout: 'padded',
+    layout: 'fullscreen',
     docs: {
       description: {
         component:
@@ -166,17 +174,15 @@ export const Showcase: EpicDetailStory = {
         <h3 className="text-lg font-semibold mb-4 text-text border-b border-border pb-2">
           Not Found (404)
         </h3>
-        <MemoryRouter>
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-text mb-2">Epic not found</h1>
-            <p className="text-text-muted mb-4">
-              The epic &quot;non-existent-epic&quot; does not exist.
-            </p>
-            <Link to="/" className="text-primary hover:underline">
-              ← Back to epic list
-            </Link>
-          </div>
-        </MemoryRouter>
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold text-text mb-2">Epic not found</h1>
+          <p className="text-text-muted mb-4">
+            The epic &quot;non-existent-epic&quot; does not exist.
+          </p>
+          <Link to="/" className="text-primary hover:underline">
+            ← Back to epic list
+          </Link>
+        </div>
       </section>
 
       {/* Empty State */}
@@ -184,26 +190,24 @@ export const Showcase: EpicDetailStory = {
         <h3 className="text-lg font-semibold mb-4 text-text border-b border-border pb-2">
           Empty State
         </h3>
-        <MemoryRouter>
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h1 className="text-2xl font-bold text-text">Dashboard Restructure and Testing</h1>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-text-muted">Progress</span>
-                  <span className="text-text-muted">0/0 stories completed</span>
-                </div>
-                <Progress value={0} />
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h1 className="text-2xl font-bold text-text">Dashboard Restructure and Testing</h1>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-text-muted">Progress</span>
+                <span className="text-text-muted">0/0 stories completed</span>
               </div>
-            </div>
-            <div className="text-center py-12">
-              <p className="text-text-muted text-lg">No stories in this epic.</p>
-              <p className="text-text-muted">
-                Run <code className="text-primary">/generate-stories</code> to create stories.
-              </p>
+              <Progress value={0} />
             </div>
           </div>
-        </MemoryRouter>
+          <div className="text-center py-12">
+            <p className="text-text-muted text-lg">No stories in this epic.</p>
+            <p className="text-text-muted">
+              Run <code className="text-primary">/generate-stories</code> to create stories.
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* Populated State */}
@@ -211,34 +215,36 @@ export const Showcase: EpicDetailStory = {
         <h3 className="text-lg font-semibold mb-4 text-text border-b border-border pb-2">
           Populated State
         </h3>
-        <MemoryRouter>
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h1 className="text-2xl font-bold text-text">Dashboard Restructure and Testing</h1>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-text-muted">Progress</span>
-                  <span className="text-text-muted">1/4 stories completed</span>
-                </div>
-                <Progress value={25} />
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h1 className="text-2xl font-bold text-text">Dashboard Restructure and Testing</h1>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-text-muted">Progress</span>
+                <span className="text-text-muted">1/4 stories completed</span>
               </div>
-            </div>
-            <EpicContent content={sampleEpicContent} />
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-text">Stories</h2>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {sampleStories.map((story) => (
-                  <StoryCard key={story.slug} story={story} epicSlug="dashboard-restructure" />
-                ))}
-              </div>
+              <Progress value={25} />
             </div>
           </div>
-        </MemoryRouter>
+          <EpicContent content={sampleEpicContent} />
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-text">Stories</h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {sampleStories.map((story) => (
+                <StoryCard key={story.slug} story={story} epicSlug="dashboard-restructure" />
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
 
     // Verify section headings
     await expect(canvas.getByText('Loading State')).toBeInTheDocument();
@@ -279,40 +285,44 @@ export const Showcase: EpicDetailStory = {
  */
 export const Playground: EpicDetailStory = {
   render: () => (
-    <MemoryRouter>
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <h1 className="text-2xl font-bold text-text">Dashboard Restructure and Testing</h1>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-text-muted">Progress</span>
-              <span className="text-text-muted">1/4 stories completed</span>
-            </div>
-            <Progress value={25} />
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-text">Dashboard Restructure and Testing</h1>
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-text-muted">Progress</span>
+            <span className="text-text-muted">1/4 stories completed</span>
           </div>
-        </div>
-        <EpicContent content={sampleEpicContent} />
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-text">Stories</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {sampleStories.map((story) => (
-              <StoryCard key={story.slug} story={story} epicSlug="dashboard-restructure" />
-            ))}
-          </div>
+          <Progress value={25} />
         </div>
       </div>
-    </MemoryRouter>
+      <EpicContent content={sampleEpicContent} />
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-text">Stories</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {sampleStories.map((story) => (
+            <StoryCard key={story.slug} story={story} epicSlug="dashboard-restructure" />
+          ))}
+        </div>
+      </div>
+    </div>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
 
     // Verify epic title
     await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument();
     // Verify progress text
     await expect(canvas.getByText('1/4 stories completed')).toBeInTheDocument();
-    // Verify story cards
-    const links = canvas.getAllByRole('link');
-    await expect(links.length).toBe(STORY_CARD_COUNT);
+    // Verify story cards - filter by href to exclude breadcrumb links
+    const storyLinks = canvas
+      .getAllByRole('link')
+      .filter((link) => link.getAttribute('href')?.includes('/story/'));
+    await expect(storyLinks.length).toBe(STORY_CARD_COUNT);
   },
 };
 
@@ -336,6 +346,10 @@ export const Loading: EpicDetailStory = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
+    // Verify loading skeletons
     const headerSkeleton = canvas.getByTestId('epic-header-skeleton');
     await expect(headerSkeleton).toBeInTheDocument();
     await expect(headerSkeleton).toHaveClass('animate-pulse');
@@ -350,29 +364,31 @@ export const Loading: EpicDetailStory = {
  */
 export const NotFound: EpicDetailStory = {
   render: () => (
-    <MemoryRouter>
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold text-text mb-2">Epic not found</h1>
-        <p className="text-text-muted mb-4">
-          The epic &quot;non-existent-epic&quot; does not exist.
-        </p>
-        <Link to="/" className="text-primary hover:underline">
-          ← Back to epic list
-        </Link>
-      </div>
-    </MemoryRouter>
+    <div className="text-center py-12">
+      <h1 className="text-2xl font-bold text-text mb-2">Epic not found</h1>
+      <p className="text-text-muted mb-4">The epic &quot;non-existent-epic&quot; does not exist.</p>
+      <Link to="/" className="text-primary hover:underline">
+        ← Back to epic list
+      </Link>
+    </div>
   ),
   parameters: {
     a11y: { test: 'error' },
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
+    // Verify not found state
     await expect(canvas.getByText('Epic not found')).toBeInTheDocument();
     await expect(canvas.getByText(NON_EXISTENT_EPIC_PATTERN)).toBeInTheDocument();
-    const backLink = canvas.getByRole('link', { name: BACK_TO_EPIC_LIST_PATTERN });
-    await expect(backLink).toBeInTheDocument();
-    await expect(backLink).toHaveAttribute('href', '/');
-    await expect(backLink).toHaveAccessibleName();
+    // Filter by explicit back link (not breadcrumb)
+    const backLinks = canvas
+      .getAllByRole('link')
+      .filter((link) => BACK_TO_EPIC_LIST_PATTERN.test(link.textContent || ''));
+    await expect(backLinks.length).toBeGreaterThanOrEqual(1);
+    await expect(backLinks[0]).toHaveAttribute('href', '/');
     await matchCanvasSnapshot(canvasElement, 'epic-detail-not-found');
   },
 };
@@ -382,28 +398,32 @@ export const NotFound: EpicDetailStory = {
  */
 export const ErrorState: EpicDetailStory = {
   render: () => (
-    <MemoryRouter>
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold text-danger mb-2">Error</h1>
-        <p className="text-text-muted mb-4">Failed to load epic</p>
-        <Link to="/" className="text-primary hover:underline">
-          ← Back to epic list
-        </Link>
-      </div>
-    </MemoryRouter>
+    <div className="text-center py-12">
+      <h1 className="text-2xl font-bold text-danger mb-2">Error</h1>
+      <p className="text-text-muted mb-4">Failed to load epic</p>
+      <Link to="/" className="text-primary hover:underline">
+        ← Back to epic list
+      </Link>
+    </div>
   ),
   parameters: {
     a11y: { test: 'error' },
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
+    // Verify error state
     const errorHeading = canvas.getByText('Error');
     await expect(errorHeading).toBeInTheDocument();
     await expect(errorHeading).toHaveClass('text-danger');
     await expect(canvas.getByText('Failed to load epic')).toBeInTheDocument();
-    const backLink = canvas.getByRole('link', { name: BACK_TO_EPIC_LIST_PATTERN });
-    await expect(backLink).toBeInTheDocument();
-    await expect(backLink).toHaveAccessibleName();
+    // Filter by explicit back link (not breadcrumb)
+    const backLinks = canvas
+      .getAllByRole('link')
+      .filter((link) => BACK_TO_EPIC_LIST_PATTERN.test(link.textContent || ''));
+    await expect(backLinks.length).toBeGreaterThanOrEqual(1);
   },
 };
 
@@ -412,29 +432,31 @@ export const ErrorState: EpicDetailStory = {
  */
 export const Empty: EpicDetailStory = {
   render: () => (
-    <MemoryRouter>
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <h1 className="text-2xl font-bold text-text">Dashboard Restructure and Testing</h1>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-text-muted">Progress</span>
-              <span className="text-text-muted">0/0 stories completed</span>
-            </div>
-            <Progress value={0} />
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-text">Dashboard Restructure and Testing</h1>
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-text-muted">Progress</span>
+            <span className="text-text-muted">0/0 stories completed</span>
           </div>
-        </div>
-        <div className="text-center py-12">
-          <p className="text-text-muted text-lg">No stories in this epic.</p>
-          <p className="text-text-muted">
-            Run <code className="text-primary">/generate-stories</code> to create stories.
-          </p>
+          <Progress value={0} />
         </div>
       </div>
-    </MemoryRouter>
+      <div className="text-center py-12">
+        <p className="text-text-muted text-lg">No stories in this epic.</p>
+        <p className="text-text-muted">
+          Run <code className="text-primary">/generate-stories</code> to create stories.
+        </p>
+      </div>
+    </div>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
+    // Verify empty state content
     await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument();
     await expect(canvas.getByText('0/0 stories completed')).toBeInTheDocument();
     await expect(canvas.getByText('No stories in this epic.')).toBeInTheDocument();
@@ -448,32 +470,34 @@ export const Empty: EpicDetailStory = {
  */
 export const Populated: EpicDetailStory = {
   render: () => (
-    <MemoryRouter>
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <h1 className="text-2xl font-bold text-text">Dashboard Restructure and Testing</h1>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-text-muted">Progress</span>
-              <span className="text-text-muted">1/4 stories completed</span>
-            </div>
-            <Progress value={25} />
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-text">Dashboard Restructure and Testing</h1>
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-text-muted">Progress</span>
+            <span className="text-text-muted">1/4 stories completed</span>
           </div>
-        </div>
-        <EpicContent content={sampleEpicContent} />
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-text">Stories</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {sampleStories.map((story) => (
-              <StoryCard key={story.slug} story={story} epicSlug="dashboard-restructure" />
-            ))}
-          </div>
+          <Progress value={25} />
         </div>
       </div>
-    </MemoryRouter>
+      <EpicContent content={sampleEpicContent} />
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-text">Stories</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {sampleStories.map((story) => (
+            <StoryCard key={story.slug} story={story} epicSlug="dashboard-restructure" />
+          ))}
+        </div>
+      </div>
+    </div>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
+    // Verify populated state content
     await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument();
     await expect(canvas.getByText('1/4 stories completed')).toBeInTheDocument();
     await expect(canvas.getByTestId('epic-content')).toBeInTheDocument();
@@ -481,8 +505,11 @@ export const Populated: EpicDetailStory = {
     await expect(canvas.getByText('Visual Regression Testing')).toBeInTheDocument();
     await expect(canvas.getByText('Playwright Integration Tests')).toBeInTheDocument();
     await expect(canvas.getByText('Flatten Dashboard Package Structure')).toBeInTheDocument();
-    const links = canvas.getAllByRole('link');
-    await expect(links.length).toBe(STORY_CARD_COUNT);
+    // Filter by story links (not breadcrumb links)
+    const storyLinks = canvas
+      .getAllByRole('link')
+      .filter((link) => link.getAttribute('href')?.includes('/story/'));
+    await expect(storyLinks.length).toBe(STORY_CARD_COUNT);
     await matchCanvasSnapshot(canvasElement, 'epic-detail-populated');
   },
 };
@@ -529,32 +556,34 @@ export const AllCompleted: EpicDetailStory = {
     ];
 
     return (
-      <MemoryRouter>
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <h1 className="text-2xl font-bold text-text">Authentication Migration</h1>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-text-muted">Progress</span>
-                <span className="text-text-muted">3/3 stories completed</span>
-              </div>
-              <Progress value={100} />
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <h1 className="text-2xl font-bold text-text">Authentication Migration</h1>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-text-muted">Progress</span>
+              <span className="text-text-muted">3/3 stories completed</span>
             </div>
-          </div>
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-text">Stories</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {completedStories.map((story) => (
-                <StoryCard key={story.slug} story={story} epicSlug="auth-migration" />
-              ))}
-            </div>
+            <Progress value={100} />
           </div>
         </div>
-      </MemoryRouter>
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-text">Stories</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {completedStories.map((story) => (
+              <StoryCard key={story.slug} story={story} epicSlug="auth-migration" />
+            ))}
+          </div>
+        </div>
+      </div>
     );
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
+    // Verify all completed state
     await expect(canvas.getByText('Authentication Migration')).toBeInTheDocument();
     await expect(canvas.getByText('3/3 stories completed')).toBeInTheDocument();
     await expect(canvas.getByText('Project Setup')).toBeInTheDocument();
@@ -618,32 +647,34 @@ export const WithBlockers: EpicDetailStory = {
     ];
 
     return (
-      <MemoryRouter>
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <h1 className="text-2xl font-bold text-text">API Integration</h1>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-text-muted">Progress</span>
-                <span className="text-text-muted">0/4 stories completed</span>
-              </div>
-              <Progress value={0} />
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <h1 className="text-2xl font-bold text-text">API Integration</h1>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-text-muted">Progress</span>
+              <span className="text-text-muted">0/4 stories completed</span>
             </div>
-          </div>
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-text">Stories</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {blockedStories.map((story) => (
-                <StoryCard key={story.slug} story={story} epicSlug="api-integration" />
-              ))}
-            </div>
+            <Progress value={0} />
           </div>
         </div>
-      </MemoryRouter>
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-text">Stories</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {blockedStories.map((story) => (
+              <StoryCard key={story.slug} story={story} epicSlug="api-integration" />
+            ))}
+          </div>
+        </div>
+      </div>
     );
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
+    // Verify blocked stories state
     await expect(canvas.getByText('API Integration')).toBeInTheDocument();
     await expect(canvas.getByText('0/4 stories completed')).toBeInTheDocument();
     await expect(canvas.getByText('API Design')).toBeInTheDocument();
