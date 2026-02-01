@@ -34,10 +34,6 @@ pnpm test:watch   # Watch mode
 
 Reference: `init.ts` (simple) or `implement.ts` (complex)
 
-## Testing
-
-Tests run against the built CLI using `spawnSync`. See `src/commands/init.test.ts:14-21` for temp directory setup pattern.
-
 ## Key Concepts
 
 **Project Discovery** - Walks up from cwd looking for `.saga/`. The `--path` flag overrides. See `project-discovery.ts`.
