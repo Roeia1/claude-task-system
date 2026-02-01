@@ -34,6 +34,26 @@ DOM snapshots only see HTML structure, not how it renders. If a component has po
 
 **Important:** When any snapshot is created or updated, manually verify it looks correct before committing.
 
+### Snapshot Directory Structure
+
+All snapshots are centralized under `src/client/src/snapshots/`:
+
+```
+snapshots/
+├── dom/                              # DOM snapshots (.snap files)
+│   ├── breadcrumb.stories.tsx.snap
+│   ├── epic-card.stories.tsx.snap
+│   └── ...
+└── pixel/                            # Pixel snapshots (.png files)
+    ├── epic-card.stories.tsx/
+    │   └── epic-card-showcase-chromium.png
+    ├── epic-detail.stories.tsx/
+    │   ├── epic-detail-showcase-chromium.png
+    │   ├── epic-detail-loading-chromium.png
+    │   └── ...
+    └── ...
+```
+
 **Examples:**
 - **New CLI command** → Unit test (arg parsing) + CLI integration test (full command)
 - **New dashboard feature** → Component test + Storybook story + Visual screenshot (if complex layout) + Playwright integration + E2E if critical path
@@ -54,7 +74,8 @@ DOM snapshots only see HTML structure, not how it renders. If a component has po
 | Integration tests | `*.spec.ts` | `src/client/tests/integration/` |
 | E2E tests | `*.spec.ts` | `src/client/e2e/` |
 | Storybook stories | `*.stories.tsx` | Co-located with component |
-| Visual screenshot baselines | `*.png` | `src/client/src/**/__snapshots__/` (co-located) |
+| DOM snapshots | `*.snap` | `src/client/src/snapshots/dom/` |
+| Pixel snapshots | `*.png` | `src/client/src/snapshots/pixel/{story}/` |
 
 ## Commands Reference
 
@@ -296,10 +317,10 @@ export const Default: Story = {
 
 **Snapshot utilities** (from `@/test-utils/visual-snapshot`):
 
-| Function | What it captures | Output | When to use |
-|----------|------------------|--------|-------------|
-| `matchDomSnapshot(el, name)` | HTML structure, CSS classes | `.snap` file | All stories |
-| `matchPixelSnapshot(el, name)` | Rendered pixels | `.png` file | Complex layouts |
+| Function | What it captures | Output location | When to use |
+|----------|------------------|-----------------|-------------|
+| `matchDomSnapshot(el, name)` | HTML structure, CSS classes | `snapshots/dom/{story}.snap` | All stories |
+| `matchPixelSnapshot(el, name)` | Rendered pixels | `snapshots/pixel/{story}/{name}-chromium.png` | Complex layouts |
 
 **Verifying snapshots:** When creating or updating snapshots, always open the file and confirm it looks correct. Never blindly run `--update` to make tests pass.
 
@@ -391,4 +412,5 @@ await expect(page.locator('[data-ws-connected="true"]')).toBeVisible({ timeout: 
 | `src/client/e2e/fixtures-utils.ts` | E2E fixture file utilities |
 | `src/client/src/test-setup.ts` | React Testing Library setup |
 | `src/client/src/test-utils/visual-snapshot.ts` | Snapshot utilities (`matchDomSnapshot`, `matchPixelSnapshot`) |
-| `src/client/src/**/__snapshots__/` | Pixel snapshot baselines (co-located with stories) |
+| `src/client/src/snapshots/dom/` | DOM snapshot baselines (`.snap` files) |
+| `src/client/src/snapshots/pixel/` | Pixel snapshot baselines (`.png` files by story) |

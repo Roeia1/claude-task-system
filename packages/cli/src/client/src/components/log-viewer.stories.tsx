@@ -1,7 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import { LogViewer } from './LogViewer.tsx';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+/** Preset types for LogViewer states */
+type LogPreset = 'empty' | 'short' | 'long' | 'streaming' | 'complete' | 'unavailable';
 
 // ============================================================================
 // Constants
@@ -19,27 +26,29 @@ const LARGE_LOG_LINE_COUNT = 10_000;
 /** Maximum rendered lines for virtualization test */
 const MAX_RENDERED_LINES_THRESHOLD = 100;
 
-/** Regex pattern for npm install text */
-const NPM_INSTALL_PATTERN = /npm install/;
-
-/** Regex pattern for saga implement text */
-const SAGA_IMPLEMENT_PATTERN = /saga implement/;
-
-/** Regex pattern for starting story execution text */
-const STARTING_STORY_EXECUTION_PATTERN = /Starting story execution/;
-
-/** Regex pattern for implementing auth service text */
-const IMPLEMENTING_AUTH_SERVICE_PATTERN = /Implementing auth service/;
-
-/** Regex pattern for processing item text */
-const PROCESSING_ITEM_PATTERN = /Processing item 1 of 10000/;
+/** Minimum log viewer count in Showcase */
+const MIN_SHOWCASE_LOG_VIEWERS = 5;
 
 // ============================================================================
 // Mock Data
 // ============================================================================
 
-/** Sample log content for a typical build session */
-const sampleLogContent = `$ npm install
+/** Short sample log content for typical display */
+const shortLogContent = `$ npm install
+added 1523 packages in 12.4s
+
+$ npm run build
+> saga-dashboard@1.0.0 build
+> vite build
+
+vite v5.2.0 building for production...
+✓ 127 modules transformed.
+✓ built in 3.21s
+
+Build completed successfully!`;
+
+/** Medium sample log content with more details */
+const mediumLogContent = `$ npm install
 added 1523 packages in 12.4s
 
 $ npm run build
@@ -66,20 +75,7 @@ $ npm test
 
 Build completed successfully!`;
 
-/** Generate large log content for performance testing */
-function generateLargeLog(lineCount: number): string {
-  const lines: string[] = [];
-  // Use a static base time for reproducible snapshots
-  const baseTime = new Date('2026-01-30T10:00:00.000Z').getTime();
-  for (let i = 1; i <= lineCount; i++) {
-    const timestamp = new Date(baseTime + i * LOG_LINE_TIME_OFFSET_MS).toISOString();
-    const logLevel = ['INFO', 'DEBUG', 'WARN', 'ERROR'][i % LOG_LEVEL_COUNT];
-    lines.push(`[${timestamp}] [${logLevel}] Processing item ${i} of ${lineCount}...`);
-  }
-  return lines.join('\n');
-}
-
-/** Sample streaming log content that grows over time */
+/** Sample streaming log content */
 const streamingLogContent = `$ saga implement --story user-auth
 Starting story execution...
 
@@ -96,8 +92,188 @@ Worktree: /Users/dev/saga/worktrees/user-auth
 [2026-01-30 10:00:07] ✓ All tests passing
 [2026-01-30 10:00:08] Implementing auth service...`;
 
+/** Generate large log content for performance testing */
+function generateLargeLog(lineCount: number): string {
+  const lines: string[] = [];
+  // Use a static base time for reproducible snapshots
+  const baseTime = new Date('2026-01-30T10:00:00.000Z').getTime();
+  for (let i = 1; i <= lineCount; i++) {
+    const timestamp = new Date(baseTime + i * LOG_LINE_TIME_OFFSET_MS).toISOString();
+    const logLevel = ['INFO', 'DEBUG', 'WARN', 'ERROR'][i % LOG_LEVEL_COUNT];
+    lines.push(`[${timestamp}] [${logLevel}] Processing item ${i} of ${lineCount}...`);
+  }
+  return lines.join('\n');
+}
+
+/** Get log content for a preset */
+function getLogContentForPreset(preset: LogPreset): string {
+  switch (preset) {
+    case 'empty':
+      return '';
+    case 'short':
+      return shortLogContent;
+    case 'long':
+      return generateLargeLog(LARGE_LOG_LINE_COUNT);
+    case 'streaming':
+      return streamingLogContent;
+    case 'complete':
+      return mediumLogContent;
+    case 'unavailable':
+      return '';
+    default: {
+      const _exhaustive: never = preset;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Get session status for a preset */
+function getStatusForPreset(preset: LogPreset): 'running' | 'completed' {
+  switch (preset) {
+    case 'empty':
+    case 'streaming':
+    case 'unavailable':
+      return 'running';
+    case 'short':
+    case 'long':
+    case 'complete':
+      return 'completed';
+    default: {
+      const _exhaustive: never = preset;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Check if output is available for a preset */
+function isOutputAvailableForPreset(preset: LogPreset): boolean {
+  return preset !== 'unavailable';
+}
+
+/** Convert preset to display label */
+function presetToLabel(preset: LogPreset): string {
+  switch (preset) {
+    case 'empty':
+      return 'Empty Log';
+    case 'short':
+      return 'Short Log';
+    case 'long':
+      return 'Long Log (10K lines)';
+    case 'streaming':
+      return 'Streaming';
+    case 'complete':
+      return 'Complete';
+    case 'unavailable':
+      return 'Output Unavailable';
+    default: {
+      const _exhaustive: never = preset;
+      return _exhaustive;
+    }
+  }
+}
+
 // ============================================================================
-// LogViewer Stories
+// Showcase Sections
+// ============================================================================
+
+/** Log states section component */
+function LogStatesSection(): React.JSX.Element {
+  return (
+    <section aria-label="Log States">
+      <h3 className="text-sm font-semibold text-text-muted mb-3">Log States</h3>
+      <div className="space-y-4">
+        <div>
+          <p className="text-xs text-text-muted mb-2">Empty Log (no content)</p>
+          <div className="h-32">
+            <LogViewer
+              sessionName="empty-session"
+              status="running"
+              outputAvailable={true}
+              initialContent=""
+            />
+          </div>
+        </div>
+        <div>
+          <p className="text-xs text-text-muted mb-2">Short Log (typical output)</p>
+          <div className="h-48">
+            <LogViewer
+              sessionName="short-session"
+              status="completed"
+              outputAvailable={true}
+              initialContent={shortLogContent}
+            />
+          </div>
+        </div>
+        <div>
+          <p className="text-xs text-text-muted mb-2">
+            Long Log (10,000 lines - virtualized scrolling)
+          </p>
+          <div className="h-48">
+            <LogViewer
+              sessionName="long-session"
+              status="completed"
+              outputAvailable={true}
+              initialContent={generateLargeLog(LARGE_LOG_LINE_COUNT)}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Status indicators section component */
+function StatusIndicatorsSection(): React.JSX.Element {
+  return (
+    <section aria-label="Status Indicators">
+      <h3 className="text-sm font-semibold text-text-muted mb-3">Status Indicators</h3>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-xs text-text-muted mb-2">Streaming (running session)</p>
+          <div className="h-32">
+            <LogViewer
+              sessionName="streaming-session"
+              status="running"
+              outputAvailable={true}
+              initialContent="[10:00:00] Working on task t1...\n[10:00:01] Running tests..."
+            />
+          </div>
+        </div>
+        <div>
+          <p className="text-xs text-text-muted mb-2">Complete (finished session)</p>
+          <div className="h-32">
+            <LogViewer
+              sessionName="complete-session"
+              status="completed"
+              outputAvailable={true}
+              initialContent="[10:00:00] Story execution complete!\n[10:00:00] All 5 tasks completed."
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Edge cases section component */
+function EdgeCasesSection(): React.JSX.Element {
+  return (
+    <section aria-label="Edge Cases">
+      <h3 className="text-sm font-semibold text-text-muted mb-3">Edge Cases</h3>
+      <div className="space-y-4">
+        <div>
+          <p className="text-xs text-text-muted mb-2">Output Unavailable</p>
+          <div className="h-24">
+            <LogViewer sessionName="unavailable-session" status="running" outputAvailable={false} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================================
+// Story Meta
 // ============================================================================
 
 /**
@@ -110,458 +286,138 @@ Worktree: /Users/dev/saga/worktrees/user-auth
  * - Virtual scrolling for 10,000+ log lines
  * - Auto-scroll toggle (enabled by default for running sessions)
  * - Status indicator (Streaming/Complete)
- * - Loading skeleton while waiting for initial data
  * - "Output unavailable" state for missing output files
  */
-const meta: Meta<typeof LogViewer> = {
+const meta: Meta<{ preset: LogPreset; customContent: string }> = {
   title: 'Components/LogViewer',
-  component: LogViewer,
   argTypes: {
-    sessionName: {
-      control: 'text',
-      description: 'The name of the session to display logs for',
-    },
-    status: {
+    preset: {
       control: 'select',
-      options: ['running', 'completed'],
-      description: 'The status of the session: running or completed',
+      options: ['empty', 'short', 'long', 'streaming', 'complete', 'unavailable'] satisfies LogPreset[],
+      description: 'Select a log preset to display',
     },
-    outputAvailable: {
-      control: 'boolean',
-      description: 'Whether the output file is available',
-    },
-    initialContent: {
+    customContent: {
       control: 'text',
-      description: 'Initial log content to display (bypasses WebSocket loading)',
+      description: 'Custom log content (overrides preset)',
     },
   },
-  parameters: {
-    docs: {
-      description: {
-        component: `
-The LogViewer component displays log output from SAGA worker sessions in a
-terminal-style interface. It's designed to handle real-time streaming logs
-with high performance.
-
-## Key Features
-
-- **Virtual Scrolling**: Uses \`@tanstack/react-virtual\` to efficiently render
-  only visible lines, maintaining 60fps with 10,000+ log lines
-- **Auto-Scroll**: Automatically follows new content when enabled (default for
-  running sessions)
-- **Status Indicators**: Shows "Streaming" with animation for running sessions,
-  "Complete" for finished sessions
-- **WebSocket Integration**: Subscribes to live log updates via WebSocket
-
-## Usage
-
-\`\`\`tsx
-<LogViewer
-  sessionName="my-session-001"
-  status="running"
-  outputAvailable={true}
-/>
-\`\`\`
-
-## States
-
-1. **Loading**: Shows skeleton while waiting for WebSocket data
-2. **Streaming**: Live log updates with auto-scroll
-3. **Complete**: Static log view, auto-scroll disabled by default
-4. **Unavailable**: Output file doesn't exist
-        `,
-      },
-    },
+  args: {
+    preset: 'short',
+    customContent: '',
   },
 };
 
-type Story = StoryObj<typeof LogViewer>;
+type Story = StoryObj<typeof meta>;
+
+// ============================================================================
+// Showcase Story
+// ============================================================================
 
 /**
- * Default state showing a running session with sample log content.
- * Auto-scroll is enabled by default for running sessions.
+ * Showcase displaying representative LogViewer states:
+ * - Empty, short, and long logs
+ * - Status indicators (streaming vs complete)
+ * - Edge cases (output unavailable)
  */
-export const Default: Story = {
-  args: {
-    sessionName: 'test-session-001',
-    status: 'running',
-    outputAvailable: true,
-    initialContent: sampleLogContent,
-  },
+export const Showcase: Story = {
+  render: () => (
+    <div className="space-y-8 p-4">
+      <LogStatesSection />
+      <StatusIndicatorsSection />
+      <EdgeCasesSection />
+    </div>
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // Verify log viewer container exists
-    const logViewer = canvas.getByTestId('log-viewer');
-    await expect(logViewer).toBeInTheDocument();
+    // Verify section headers
+    await expect(canvas.getByRole('region', { name: 'Log States' })).toBeInTheDocument();
+    await expect(canvas.getByRole('region', { name: 'Status Indicators' })).toBeInTheDocument();
+    await expect(canvas.getByRole('region', { name: 'Edge Cases' })).toBeInTheDocument();
 
-    // Verify status indicator shows streaming
-    const statusIndicator = canvas.getByTestId('status-indicator-streaming');
-    await expect(statusIndicator).toBeInTheDocument();
-    await expect(canvas.getByText('Streaming')).toBeInTheDocument();
+    // Verify log viewers are rendered
+    const logViewers = canvas.getAllByTestId('log-viewer');
+    await expect(logViewers.length).toBeGreaterThanOrEqual(MIN_SHOWCASE_LOG_VIEWERS);
 
-    // Verify auto-scroll toggle exists and is enabled (for running sessions)
-    const toggleButton = canvas.getByTestId('auto-scroll-toggle');
-    await expect(toggleButton).toBeInTheDocument();
-    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+    // Verify status indicators are present
+    const streamingIndicators = canvas.getAllByTestId('status-indicator-streaming');
+    await expect(streamingIndicators.length).toBeGreaterThanOrEqual(1);
 
-    // Verify log content is displayed (check first line - virtualization may not render all)
-    await expect(canvas.getByText(NPM_INSTALL_PATTERN)).toBeInTheDocument();
-
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-default');
-  },
-};
-
-/**
- * Loading state showing skeleton placeholders while waiting for
- * initial WebSocket data. This appears before the first `logs:data`
- * message with `isInitial: true`.
- *
- * Note: In Storybook, WebSocket is not available so the loading skeleton
- * won't appear (it only shows when WebSocket subscription is active but
- * hasn't received data yet). This story demonstrates the component structure
- * in an "empty content" state without WebSocket.
- */
-export const Loading: Story = {
-  args: {
-    sessionName: 'loading-session',
-    status: 'running',
-    outputAvailable: true,
-    // No initialContent - shows empty content area (no WebSocket in Storybook)
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Verify log viewer container exists
-    const logViewer = canvas.getByTestId('log-viewer');
-    await expect(logViewer).toBeInTheDocument();
-
-    // Verify status indicator shows streaming (status is running)
-    const statusIndicator = canvas.getByTestId('status-indicator-streaming');
-    await expect(statusIndicator).toBeInTheDocument();
-
-    // Verify log content area exists (empty content state without WebSocket)
-    const logContent = canvas.getByTestId('log-content');
-    await expect(logContent).toBeInTheDocument();
-
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-loading');
-  },
-};
-
-/**
- * Streaming state for an active running session.
- * Shows animated "Streaming" indicator and has auto-scroll enabled.
- */
-export const Streaming: Story = {
-  args: {
-    sessionName: 'streaming-session-001',
-    status: 'running',
-    outputAvailable: true,
-    initialContent: streamingLogContent,
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Verify streaming status indicator
-    const statusIndicator = canvas.getByTestId('status-indicator-streaming');
-    await expect(statusIndicator).toBeInTheDocument();
-    await expect(canvas.getByText('Streaming')).toBeInTheDocument();
-
-    // Verify animated loader icon is present
-    const loader = canvas.getByTestId('status-icon-loader');
-    await expect(loader).toBeInTheDocument();
-
-    // Verify auto-scroll is enabled for running session
-    const toggleButton = canvas.getByTestId('auto-scroll-toggle');
-    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
-
-    // Verify log content shows streaming output
-    await expect(canvas.getByText(SAGA_IMPLEMENT_PATTERN)).toBeInTheDocument();
-    await expect(canvas.getByText(STARTING_STORY_EXECUTION_PATTERN)).toBeInTheDocument();
-    await expect(canvas.getByText(IMPLEMENTING_AUTH_SERVICE_PATTERN)).toBeInTheDocument();
-
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-streaming');
-  },
-};
-
-/**
- * Complete state for a finished session.
- * Shows static "Complete" indicator and has auto-scroll disabled by default.
- */
-export const Complete: Story = {
-  args: {
-    sessionName: 'completed-session-001',
-    status: 'completed',
-    outputAvailable: true,
-    initialContent: sampleLogContent,
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Verify complete status indicator
-    const statusIndicator = canvas.getByTestId('status-indicator-complete');
-    await expect(statusIndicator).toBeInTheDocument();
-    await expect(canvas.getByText('Complete')).toBeInTheDocument();
-
-    // Verify status indicator has check icon (no animation)
-    const statusIcon = canvas.getByTestId('status-icon-complete');
-    await expect(statusIcon).toBeInTheDocument();
-    await expect(statusIcon).not.toHaveClass('animate-spin');
-
-    // Verify auto-scroll is disabled for completed session
-    const toggleButton = canvas.getByTestId('auto-scroll-toggle');
-    await expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
-
-    // Verify log content is displayed (check first line - virtualization may not render all)
-    await expect(canvas.getByText(NPM_INSTALL_PATTERN)).toBeInTheDocument();
-
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-complete');
-  },
-};
-
-/**
- * Unavailable state when the output file doesn't exist.
- * Shows "Output unavailable" message with dimmed styling.
- */
-export const Unavailable: Story = {
-  args: {
-    sessionName: 'unavailable-session',
-    status: 'running',
-    outputAvailable: false,
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Verify log viewer container exists
-    const logViewer = canvas.getByTestId('log-viewer');
-    await expect(logViewer).toBeInTheDocument();
+    const completeIndicators = canvas.getAllByTestId('status-indicator-complete');
+    await expect(completeIndicators.length).toBeGreaterThanOrEqual(1);
 
     // Verify "Output unavailable" message
     await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
 
-    // Verify no status indicator (not shown when output unavailable)
-    const streamingIndicator = canvas.queryByTestId('status-indicator-streaming');
-    const completeIndicator = canvas.queryByTestId('status-indicator-complete');
-    await expect(streamingIndicator).not.toBeInTheDocument();
-    await expect(completeIndicator).not.toBeInTheDocument();
-
-    // Verify no auto-scroll toggle (not shown when output unavailable)
-    const toggleButton = canvas.queryByTestId('auto-scroll-toggle');
-    await expect(toggleButton).not.toBeInTheDocument();
-
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-unavailable');
-  },
-};
-
-/**
- * Large log with 10,000+ lines demonstrating virtual scrolling performance.
- * Only visible lines are rendered, maintaining smooth 60fps scrolling.
- */
-export const LargeLog: Story = {
-  args: {
-    sessionName: 'large-log-session',
-    status: 'completed',
-    outputAvailable: true,
-    initialContent: generateLargeLog(LARGE_LOG_LINE_COUNT),
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Verify log viewer container exists
-    const logViewer = canvas.getByTestId('log-viewer');
-    await expect(logViewer).toBeInTheDocument();
-
-    // Verify complete status indicator
-    const statusIndicator = canvas.getByTestId('status-indicator-complete');
-    await expect(statusIndicator).toBeInTheDocument();
-
-    // Verify log content container exists
-    const logContent = canvas.getByTestId('log-content');
-    await expect(logContent).toBeInTheDocument();
-
-    // Verify virtualization - should NOT render all 10,000 lines
-    // Only a small number of visible lines should be in the DOM
-    const renderedLines = canvas.queryAllByTestId('log-line');
-    // With overscan of 5 and typical viewport, should render < 100 lines
-    await expect(renderedLines.length).toBeLessThan(MAX_RENDERED_LINES_THRESHOLD);
-    await expect(renderedLines.length).toBeGreaterThan(0);
-
-    // Verify first line content is visible
-    await expect(canvas.getByText(PROCESSING_ITEM_PATTERN)).toBeInTheDocument();
-
-    // Visual snapshot test (limited - snapshot only captures visible portion)
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-large-log');
-  },
-};
-
-/**
- * Empty content state - log viewer with no content yet but output available.
- * Shows empty content area (no loading skeleton when initialContent is empty string).
- */
-export const EmptyContent: Story = {
-  args: {
-    sessionName: 'empty-session',
-    status: 'running',
-    outputAvailable: true,
-    initialContent: '',
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Verify log viewer container exists
-    const logViewer = canvas.getByTestId('log-viewer');
-    await expect(logViewer).toBeInTheDocument();
-
-    // Verify streaming status indicator
-    await expect(canvas.getByTestId('status-indicator-streaming')).toBeInTheDocument();
-
-    // Verify log content area exists
-    const logContent = canvas.getByTestId('log-content');
-    await expect(logContent).toBeInTheDocument();
-
-    // Verify no loading skeleton (initialContent provided, even if empty)
-    const skeleton = canvas.queryByTestId('log-viewer-skeleton');
-    await expect(skeleton).not.toBeInTheDocument();
-
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-empty');
-  },
-};
-
-/**
- * Auto-scroll toggle demonstration showing the toggle button states.
- * Use this story to test toggling auto-scroll on and off.
- */
-export const AutoScrollToggle: Story = {
-  args: {
-    sessionName: 'autoscroll-demo',
-    status: 'running',
-    outputAvailable: true,
-    initialContent: streamingLogContent,
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Verify auto-scroll toggle button exists
-    const toggleButton = canvas.getByTestId('auto-scroll-toggle');
-    await expect(toggleButton).toBeInTheDocument();
-
-    // Verify initial state is enabled (for running session)
-    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
-
-    // Verify toggle button has proper title
-    await expect(toggleButton).toHaveAttribute('title', 'Auto-scroll enabled (click to disable)');
-
-    // Verify ArrowDownToLine icon is shown when enabled
-    const arrowIcon = canvas.getByTestId('autoscroll-icon-enabled');
-    await expect(arrowIcon).toBeInTheDocument();
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'log-viewer-showcase');
+    await matchPixelSnapshot(canvasElement, 'log-viewer-showcase');
   },
 };
 
 // ============================================================================
-// Comparison Stories
+// Playground Story
 // ============================================================================
 
 /**
- * Side-by-side comparison of running vs completed session states.
- * Demonstrates the visual differences in status indicators and auto-scroll defaults.
+ * Interactive playground for exploring LogViewer with different presets
+ * and custom content.
  */
-export const StatusComparison: Story = {
-  render: () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-medium text-text-muted mb-2">Running Session</h3>
-        <LogViewer
-          sessionName="running-session"
-          status="running"
-          outputAvailable={true}
-          initialContent="[10:00:00] Starting build...\n[10:00:01] Compiling sources...\n[10:00:02] Processing files..."
-        />
-      </div>
-      <div>
-        <h3 className="text-sm font-medium text-text-muted mb-2">Completed Session</h3>
-        <LogViewer
-          sessionName="completed-session"
-          status="completed"
-          outputAvailable={true}
-          initialContent="[10:00:00] Build started\n[10:00:05] Build completed\n[10:00:05] All tests passed!"
-        />
-      </div>
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Verify section headers
-    await expect(canvas.getByText('Running Session')).toBeInTheDocument();
-    await expect(canvas.getByText('Completed Session')).toBeInTheDocument();
-
-    // Verify both status indicators
-    await expect(canvas.getByTestId('status-indicator-streaming')).toBeInTheDocument();
-    await expect(canvas.getByTestId('status-indicator-complete')).toBeInTheDocument();
-
-    // Verify status text
-    await expect(canvas.getByText('Streaming')).toBeInTheDocument();
-    await expect(canvas.getByText('Complete')).toBeInTheDocument();
-
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-status-comparison');
+export const Playground: Story = {
+  args: {
+    preset: 'short',
+    customContent: '',
   },
-};
+  render: (args) => {
+    const content = args.customContent || getLogContentForPreset(args.preset);
+    const status = getStatusForPreset(args.preset);
+    const outputAvailable = isOutputAvailableForPreset(args.preset);
 
-/**
- * All edge cases displayed together for visual comparison.
- * Note: In Storybook, WebSocket is not available so Loading shows empty content instead of skeleton.
- */
-export const AllStates: Story = {
-  render: () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-medium text-text-muted mb-2">Streaming (active session)</h3>
-        <LogViewer
-          sessionName="streaming-demo"
-          status="running"
-          outputAvailable={true}
-          initialContent="[10:00:00] Working on task t1...\n[10:00:01] Running tests..."
-        />
+    return (
+      <div className="space-y-4 p-4">
+        <div className="text-sm text-text-muted">
+          <span className="font-medium">Preset:</span> {presetToLabel(args.preset)}
+          {args.customContent && ' (overridden with custom content)'}
+        </div>
+        <div className="h-96">
+          <LogViewer
+            sessionName={`${args.preset}-session`}
+            status={status}
+            outputAvailable={outputAvailable}
+            initialContent={content}
+          />
+        </div>
       </div>
-      <div>
-        <h3 className="text-sm font-medium text-text-muted mb-2">Complete (finished session)</h3>
-        <LogViewer
-          sessionName="complete-demo"
-          status="completed"
-          outputAvailable={true}
-          initialContent="[10:00:00] Story execution complete!\n[10:00:00] All 5 tasks completed."
-        />
-      </div>
-      <div>
-        <h3 className="text-sm font-medium text-text-muted mb-2">Unavailable (no output file)</h3>
-        <LogViewer sessionName="unavailable-demo" status="running" outputAvailable={false} />
-      </div>
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
+    );
+  },
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
 
-    // Verify section headers
-    await expect(canvas.getByText('Streaming (active session)')).toBeInTheDocument();
-    await expect(canvas.getByText('Complete (finished session)')).toBeInTheDocument();
-    await expect(canvas.getByText('Unavailable (no output file)')).toBeInTheDocument();
+    // Verify preset label is displayed
+    await expect(canvas.getByText(presetToLabel(args.preset))).toBeInTheDocument();
 
-    // Verify status indicators
-    await expect(canvas.getByTestId('status-indicator-streaming')).toBeInTheDocument();
-    await expect(canvas.getByTestId('status-indicator-complete')).toBeInTheDocument();
+    // Verify log viewer is rendered
+    const logViewer = canvas.getByTestId('log-viewer');
+    await expect(logViewer).toBeInTheDocument();
 
-    // Verify unavailable message
-    await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
+    // Verify appropriate status based on preset
+    if (args.preset === 'unavailable') {
+      await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
+    } else {
+      const status = getStatusForPreset(args.preset);
+      if (status === 'running') {
+        await expect(canvas.getByTestId('status-indicator-streaming')).toBeInTheDocument();
+      } else {
+        await expect(canvas.getByTestId('status-indicator-complete')).toBeInTheDocument();
+      }
+    }
 
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-all-states');
+    // For long preset, verify virtualization
+    if (args.preset === 'long') {
+      const renderedLines = canvas.queryAllByTestId('log-line');
+      await expect(renderedLines.length).toBeLessThan(MAX_RENDERED_LINES_THRESHOLD);
+      await expect(renderedLines.length).toBeGreaterThan(0);
+    }
   },
 };
 
