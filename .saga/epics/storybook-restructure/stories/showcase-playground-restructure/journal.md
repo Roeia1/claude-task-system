@@ -548,3 +548,56 @@ The previous session (9) created journal entries without timestamp overrides, ca
 
 **Next steps:**
 - Task t15: Rewrite Story Detail page stories to Showcase + Playground pattern
+
+## Session 16: 2026-02-01
+
+### Task: t15 - Rewrite Story Detail page stories
+
+**What was done:**
+- Transformed `story-detail.stories.tsx` from 40+ stories (across multiple metas) to Showcase + Playground pattern
+- Updated title to `'Pages/StoryDetail'`
+- Added `PageWrapper` decorator with route `/epic/dashboard-restructure/story/storybook-setup-component-stories` for story detail breadcrumb
+- Changed layout parameter from `'padded'` to `'fullscreen'` for proper page display
+- Removed all redundant sub-component stories that already have their own files:
+  - HeaderSkeleton, ContentSkeleton, TaskStatusIcon, TaskItem, JournalEntryItem, StatusBadge stories
+  - These are already covered in task-item.stories.tsx, journal-entry.stories.tsx, status-badge.stories.tsx
+- Created Showcase story displaying 6 page states:
+  - Loading State (skeleton placeholders)
+  - Not Found (404)
+  - Empty State (no tasks)
+  - Populated State (story with tasks)
+  - Blocked State (story with blocker in journal)
+  - Completed State (all tasks done)
+- Created Playground story showing full story detail with tabs
+- Preserved individual page state stories for visual regression testing:
+  - Loading, NotFound, ErrorState, Populated, EmptyTasks, WithBlocker, Completed, WithContent, EmptyJournal
+- Created helper components for cleaner code:
+  - `StoryHeader` - Renders story header with navigation, title, and status
+  - `TasksTabContent` - Renders Tasks tab content
+  - `ContentTabContent` - Renders Story Content tab with markdown
+  - `JournalTabContent` - Renders Journal tab with entries grouped by type
+  - Section components for Showcase (`LoadingStateSection`, `NotFoundSection`, etc.)
+- Updated all play functions to verify Layout header with "SAGA" and "Dashboard" text
+- Used `getAllByRole` with href filtering for epic links (appears in both breadcrumb and story header)
+- Fixed biome lint issues:
+  - Removed unused `REGEX_STORY_LINK` constant
+  - Used `entry.title` + `entry.timestamp` as keys instead of array indices in journal rendering
+- Regenerated 5 visual snapshots with Layout wrapper
+
+**Decisions:**
+- Used `PageWrapper` component to wrap all StoryDetail stories for proper Layout context
+- Changed to `fullscreen` layout parameter since PageWrapper provides full page context
+- Removed inner MemoryRouter wrappers from stories (PageWrapper provides router context)
+- Used helper components to organize rendering logic and satisfy biome line length limits
+- Filtered link assertions by href pattern to distinguish story links from breadcrumb links
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 56/56 storybook tests pass
+- StoryDetail stories now render with full Layout (header, breadcrumb, content)
+- Story count reduced: from 40+ StoryDetail stories to 11 (Showcase + Playground + 9 visual regression)
+
+**Next steps:**
+- Task t16: Reorganize sidebar hierarchy
