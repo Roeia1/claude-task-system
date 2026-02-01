@@ -2,7 +2,11 @@ import type { VirtualItem, Virtualizer } from '@tanstack/react-virtual';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowDownToLine, CheckCircle, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getWebSocketSend } from '@/machines/dashboardMachine';
+import {
+  getWebSocketSend,
+  subscribeToLogData,
+  unsubscribeFromLogData,
+} from '@/machines/dashboardMachine';
 
 interface LogViewerProps {
   /** The name of the session to display logs for */
@@ -29,7 +33,7 @@ function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
     return (
       <div
         data-testid="status-indicator-streaming"
-        className="flex items-center gap-1.5 text-success text-sm"
+        className="flex items-center gap-1.5 text-primary text-sm"
       >
         <Loader2 className="h-3.5 w-3.5 animate-spin" data-testid="status-icon-loader" />
         <span>Streaming</span>
@@ -40,7 +44,7 @@ function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
   return (
     <div
       data-testid="status-indicator-complete"
-      className="flex items-center gap-1.5 text-text-muted text-sm"
+      className="flex items-center gap-1.5 text-success text-sm"
     >
       <CheckCircle className="h-3.5 w-3.5" data-testid="status-icon-complete" />
       <span>Complete</span>
@@ -88,7 +92,7 @@ function LogViewerHeader({
         aria-pressed={autoScroll}
         className={`p-1.5 rounded-md transition-colors ${
           autoScroll
-            ? 'bg-bg-light hover:bg-bg-lighter text-success'
+            ? 'bg-bg-light hover:bg-bg-lighter text-primary'
             : 'bg-bg-light hover:bg-bg-lighter text-text-muted'
         }`}
         title={title}
@@ -162,16 +166,6 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
   const [content, setContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Handle incoming log data
-  const handleLogData = useCallback((data: string, isInitial: boolean) => {
-    if (isInitial) {
-      setContent(data);
-      setIsLoading(false);
-    } else {
-      setContent((prev) => prev + data);
-    }
-  }, []);
-
   useEffect(() => {
     if (!outputAvailable) {
       setIsLoading(false);
@@ -184,9 +178,31 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
       return;
     }
 
+    // Register callback to receive log data for this session
+    subscribeToLogData(
+      sessionName,
+      (data: string, isInitial: boolean, _isComplete: boolean) => {
+        if (isInitial) {
+          setContent(data);
+          setIsLoading(false);
+        } else {
+          setContent((prev) => prev + data);
+        }
+      },
+      (_error: string) => {
+        // Handle errors by stopping the loading state
+        setIsLoading(false);
+      },
+    );
+
+    // Send subscription request to server
     send({ event: 'subscribe:logs', data: { sessionName } });
 
     return () => {
+      // Unregister callback
+      unsubscribeFromLogData(sessionName);
+
+      // Send unsubscription request to server
       const currentSend = getWebSocketSend();
       if (currentSend) {
         currentSend({ event: 'unsubscribe:logs', data: { sessionName } });
@@ -194,7 +210,7 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
     };
   }, [sessionName, outputAvailable]);
 
-  return { content, isLoading, handleLogData };
+  return { content, isLoading };
 }
 
 /**

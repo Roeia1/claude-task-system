@@ -10,12 +10,18 @@ import {
   type Mock,
   vi,
 } from 'vitest';
-import { getWebSocketSend } from '@/machines/dashboardMachine';
+import {
+  getWebSocketSend,
+  subscribeToLogData,
+  unsubscribeFromLogData,
+} from '@/machines/dashboardMachine';
 import { LogViewer } from './LogViewer.tsx';
 
 // Mock the dashboardMachine module
 vi.mock('@/machines/dashboardMachine', () => ({
   getWebSocketSend: vi.fn(),
+  subscribeToLogData: vi.fn(),
+  unsubscribeFromLogData: vi.fn(),
 }));
 
 // Regex patterns defined at top level for performance
@@ -629,7 +635,7 @@ Line 3`;
       const streamingIndicator = screen.getByTestId('status-indicator-streaming');
       expect(streamingIndicator).toBeInTheDocument();
       expect(streamingIndicator).toHaveTextContent('Streaming');
-      expect(streamingIndicator).toHaveClass('text-success');
+      expect(streamingIndicator).toHaveClass('text-primary');
       // Indicator should contain an icon element
       expect(streamingIndicator.children.length).toBeGreaterThan(0);
     });
@@ -647,7 +653,7 @@ Line 3`;
       const completeIndicator = screen.getByTestId('status-indicator-complete');
       expect(completeIndicator).toBeInTheDocument();
       expect(completeIndicator).toHaveTextContent('Complete');
-      expect(completeIndicator).toHaveClass('text-text-muted');
+      expect(completeIndicator).toHaveClass('text-success');
       // Indicator should contain an icon element
       expect(completeIndicator.children.length).toBeGreaterThan(0);
     });
