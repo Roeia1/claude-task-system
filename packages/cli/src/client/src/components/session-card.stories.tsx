@@ -6,6 +6,7 @@ import {
   resetMockCounters,
   type SessionPreset,
 } from '@/test-utils/mock-factories';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import { formatDuration } from '@/utils/formatDuration';
 import { SessionCard } from './session-card.tsx';
 
@@ -238,6 +239,10 @@ const Showcase: Story = {
     await expect(canvas.getByText('0s')).toBeInTheDocument();
     await expect(canvas.getByText('30s')).toBeInTheDocument();
     await expect(canvas.getByText('1h 0m')).toBeInTheDocument();
+
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'session-card-showcase');
+    await matchPixelSnapshot(canvasElement, 'session-card-showcase');
   },
 };
 

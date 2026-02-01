@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router';
 import { expect, within } from 'storybook/test';
 import type { SessionPreset } from '@/test-utils/mock-factories';
 import { createMockSession } from '@/test-utils/mock-factories';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import { ActiveSessionsSkeleton } from './active-sessions.tsx';
 import { SessionCard } from './session-card.tsx';
 
@@ -317,6 +318,10 @@ const Showcase: Story = {
     // Verify links exist
     const links = canvas.getAllByRole('link');
     await expect(links.length).toBeGreaterThanOrEqual(SHOWCASE_MIN_STATES);
+
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'active-sessions-showcase');
+    await matchPixelSnapshot(canvasElement, 'active-sessions-showcase');
   },
 };
 

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { expect, within } from 'storybook/test';
-import { matchDomSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import { Breadcrumb } from './Breadcrumb.tsx';
 
 // ============================================================================
@@ -176,8 +176,9 @@ const Showcase: Story = {
     await expect(longEpicSlugs.length).toBe(2); // Appears in both long slug examples
     await expect(canvas.getByText('add-oauth-provider-integration')).toBeInTheDocument();
 
-    // Visual snapshot test
+    // Visual snapshot tests
     await matchDomSnapshot(canvasElement, 'breadcrumb-showcase');
+    await matchPixelSnapshot(canvasElement, 'breadcrumb-showcase');
   },
 };
 

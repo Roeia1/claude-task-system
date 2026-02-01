@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
+import { matchDomSnapshot } from '@/test-utils/visual-snapshot';
 
 /**
  * Test component to verify Tailwind CSS and SAGA theme integration in Storybook.
@@ -94,6 +95,9 @@ const AllColors: Story = {
     await expect(canvas.getByText('Card Component')).toBeInTheDocument();
     await expect(canvas.getByText('Card Title')).toBeInTheDocument();
     await expect(canvas.getByText('Card content with muted text')).toBeInTheDocument();
+
+    // Visual snapshot test
+    await matchDomSnapshot(canvasElement, 'theme-test-all-colors');
   },
 };
 
