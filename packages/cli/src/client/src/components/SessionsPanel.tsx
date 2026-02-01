@@ -287,4 +287,10 @@ function SessionsPanel({ epicSlug, storySlug }: SessionsPanelProps) {
   );
 }
 
-export { SessionsPanel, SessionsPanelSkeleton };
+export {
+  SessionsPanel,
+  SessionsPanelSkeleton,
+  SessionDetailCard,
+  SessionsPanelEmpty,
+  SessionStatusBadge,
+};
