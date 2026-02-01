@@ -401,3 +401,44 @@ The previous session (9) created journal entries without timestamp overrides, ca
 
 **Next steps:**
 - Task t11: Rewrite EpicContent stories to Showcase + Playground pattern
+
+## Session 12: 2026-02-01
+
+### Task: t11 - Rewrite EpicContent stories
+
+**What was done:**
+- Transformed `epic-content.stories.tsx` from 10 stories to Showcase + Playground pattern
+- Title remains as `'Components/EpicContent'` (already correct hierarchy)
+- Created Showcase story displaying:
+  - Empty Content section: Shows null state when content is undefined
+  - Markdown Features section: Simple text, headings, lists, code blocks, tables
+  - GFM Features section: Strikethrough text and link rendering
+  - Collapsible Behavior section: Demonstrates expand/collapse functionality
+  - Complete Example section: Full epic documentation with all features
+- Created Playground story with:
+  - `preset` control (select) for content presets: simple, headings, lists, code-blocks, tables, gfm-features, complete
+  - `customContent` control (text) for custom markdown input that overrides preset
+  - Displays content label and EpicContent component
+- Created `ContentPreset` type union and `contentPresets` object for preset data
+- Created helper functions:
+  - `presetToLabel()` - converts preset to display label
+- Extracted section components (`EmptyStateSection`, `MarkdownFeaturesSection`, `GfmFeaturesSection`, `CollapsibleBehaviorSection`, `CompleteExampleSection`) to organize the Showcase
+- Deleted old `EpicContent.stories.tsx.snap` file (old snapshot naming)
+- Removed 5 obsolete snapshots (Code Blocks, Complete Example, Headings, Lists, Tables)
+- Created new visual snapshot: `epic-content-showcase`
+
+**Decisions:**
+- Consolidated all markdown feature demonstrations into single Showcase with organized sections
+- Preserved collapsible behavior demonstration in dedicated section
+- Used simple play function assertions to avoid exceeding line limit
+- Extracted `SHOWCASE_MIN_EPIC_CONTENT_COUNT` constant to satisfy biome linter
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 85/85 storybook tests pass
+- Story count reduced: from 10 EpicContent stories to 2 (Showcase + Playground)
+
+**Next steps:**
+- Task t12: Rewrite ActiveSessions stories to Showcase + Playground pattern
