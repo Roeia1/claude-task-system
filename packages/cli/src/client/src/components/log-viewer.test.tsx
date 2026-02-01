@@ -10,14 +10,12 @@ import {
   type Mock,
   vi,
 } from 'vitest';
-import {
-  getWebSocketSend,
-  subscribeToLogData,
-  unsubscribeFromLogData,
-} from '@/machines/dashboardMachine';
+import { getWebSocketSend } from '@/machines/dashboardMachine';
 import { LogViewer } from './LogViewer.tsx';
 
 // Mock the dashboardMachine module
+// Note: subscribeToLogData and unsubscribeFromLogData are used by LogViewer component
+// but not imported directly in this test file
 vi.mock('@/machines/dashboardMachine', () => ({
   getWebSocketSend: vi.fn(),
   subscribeToLogData: vi.fn(),

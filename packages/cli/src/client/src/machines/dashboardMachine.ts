@@ -113,6 +113,45 @@ function unsubscribeFromLogData(sessionName: string): void {
   logErrorCallbacks.delete(sessionName);
 }
 
+/** Route log-related messages to registered callbacks */
+function handleLogMessage(
+  messageType: string,
+  data: {
+    sessionName: string;
+    data?: string;
+    isInitial?: boolean;
+    isComplete?: boolean;
+    error?: string;
+  },
+): void {
+  if (messageType === 'logs:data') {
+    const callback = logDataCallbacks.get(data.sessionName);
+    if (callback && data.data !== undefined) {
+      callback(data.data, data.isInitial ?? false, data.isComplete ?? false);
+    }
+  } else if (messageType === 'logs:error') {
+    const callback = logErrorCallbacks.get(data.sessionName);
+    if (callback && data.error) {
+      callback(data.error);
+    }
+  }
+}
+
+/** Route state update messages to the machine */
+function handleStateMessage(
+  messageType: string,
+  data: unknown,
+  sendBack: (event: DashboardEvent) => void,
+): void {
+  if (messageType === 'epics:updated') {
+    sendBack({ type: 'EPICS_UPDATED', epics: data as EpicSummary[] });
+  } else if (messageType === 'story:updated') {
+    sendBack({ type: 'STORY_UPDATED', story: data as StoryDetail });
+  } else if (messageType === 'sessions:updated') {
+    sendBack({ type: 'SESSIONS_UPDATED', sessions: data as SessionInfo[] });
+  }
+}
+
 /** Helper to handle WebSocket messages */
 function handleWebSocketMessage(
   wsEvent: MessageEvent,
@@ -121,32 +160,21 @@ function handleWebSocketMessage(
 ): void {
   try {
     const message = JSON.parse(wsEvent.data);
-    // Server sends messages with 'event' property (e.g., { event: 'epics:updated', data: ... })
     const messageType = message.event || message.type;
+
     if (messageType === 'pong') {
       lastPongRef.value = Date.now();
       return;
     }
-    if (messageType === 'epics:updated' && message.data) {
-      sendBack({ type: 'EPICS_UPDATED', epics: message.data });
-    } else if (messageType === 'story:updated' && message.data) {
-      sendBack({ type: 'STORY_UPDATED', story: message.data });
-    } else if (messageType === 'sessions:updated' && message.data) {
-      sendBack({ type: 'SESSIONS_UPDATED', sessions: message.data });
-    } else if (messageType === 'logs:data' && message.data) {
-      // Route log data to the appropriate callback
-      const { sessionName, data, isInitial, isComplete } = message.data;
-      const callback = logDataCallbacks.get(sessionName);
-      if (callback) {
-        callback(data, isInitial, isComplete);
-      }
-    } else if (messageType === 'logs:error' && message.data) {
-      // Route log errors to the appropriate callback
-      const { sessionName, error } = message.data;
-      const callback = logErrorCallbacks.get(sessionName);
-      if (callback) {
-        callback(error);
-      }
+
+    if (!message.data) {
+      return;
+    }
+
+    if (messageType === 'logs:data' || messageType === 'logs:error') {
+      handleLogMessage(messageType, message.data);
+    } else {
+      handleStateMessage(messageType, message.data, sendBack);
     }
   } catch {
     // Ignore malformed messages
