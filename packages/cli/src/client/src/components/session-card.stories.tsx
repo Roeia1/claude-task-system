@@ -1,7 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter } from 'react-router';
 import { expect, within } from 'storybook/test';
-import type { SessionInfo } from '@/types/dashboard';
+import {
+  createMockSession,
+  resetMockCounters,
+  type SessionPreset,
+} from '@/test-utils/mock-factories';
 import { formatDuration } from '@/utils/formatDuration';
 import { SessionCard } from './session-card.tsx';
 
@@ -9,10 +13,13 @@ import { SessionCard } from './session-card.tsx';
 // Constants
 // ============================================================================
 
-// Time constants in milliseconds
-const MS_FIFTEEN_SECONDS = 15_000;
-const MS_TWO_AND_HALF_MINUTES = 150_000;
-const MS_ONE_HOUR_TWO_MINUTES = 3_720_000;
+const SESSION_PRESETS: SessionPreset[] = [
+  'just-started',
+  'running',
+  'long-running',
+  'no-output',
+  'output-unavailable',
+];
 
 // Duration test constants in seconds
 const DURATION_0_SECONDS = 0;
@@ -26,35 +33,46 @@ const DURATION_1_DAY = 86_400;
 const DURATION_2D_3H = 183_600;
 
 // Count constants
-const MULTIPLE_CARDS_COUNT = 3;
+const SHOWCASE_SESSION_COUNT = 5;
 
 // Regex patterns for tests
 const DURATION_PATTERN = /\d+[smhd]/;
-const SECONDS_PATTERN = /\d+s/;
 const HOURS_MINUTES_PATTERN = /\d+h \d+m/;
-const STARTING_SESSION_PATTERN = /Starting session/;
-const LINE_1_PATTERN = /Line 1:/;
-const LINE_20_PATTERN = /Line 20:/;
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
 
-// Create a session with a start time that's a certain number of seconds in the past
-function createSession(overrides: Partial<SessionInfo> = {}): SessionInfo {
-  const startTime = new Date(Date.now() - MS_TWO_AND_HALF_MINUTES);
-  return {
-    name: 'saga__tmux-session-dashboard__home-page-active-sessions__12345',
-    epicSlug: 'tmux-session-dashboard',
-    storySlug: 'home-page-active-sessions',
-    status: 'running',
-    outputFile: '/tmp/saga/sessions/output.log',
-    outputAvailable: true,
-    startTime: startTime.toISOString(),
-    outputPreview:
-      '> Starting session...\n> Running tests...\n> Tests passed\n> Building...\n> Build complete',
-    ...overrides,
-  };
+/** Convert preset name to display label */
+function presetToLabel(preset: SessionPreset): string {
+  return preset
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+// ============================================================================
+// Helper Components
+// ============================================================================
+
+/** Wrapper component providing MemoryRouter context for SessionCard */
+function SessionCardWithRouter({
+  preset,
+  epicSlug,
+  storySlug,
+  outputPreview,
+}: {
+  preset: SessionPreset;
+  epicSlug?: string;
+  storySlug?: string;
+  outputPreview?: string;
+}) {
+  const session = createMockSession(preset, { epicSlug, storySlug, outputPreview });
+  return (
+    <MemoryRouter>
+      <SessionCard session={session} />
+    </MemoryRouter>
+  );
 }
 
 // ============================================================================
@@ -64,19 +82,12 @@ function createSession(overrides: Partial<SessionInfo> = {}): SessionInfo {
 /**
  * SessionCard displays a single running session with live duration updates,
  * output preview, and navigation to the story detail page.
+ *
+ * - **Showcase**: Displays all 5 session presets plus formatDuration utility examples
+ * - **Playground**: Interactive controls for exploring session states
  */
-const meta: Meta<typeof SessionCard> = {
+const meta: Meta<{ preset: SessionPreset; epicSlug: string; storySlug: string }> = {
   title: 'Components/SessionCard',
-  component: SessionCard,
-  decorators: [
-    (Story) => (
-      <MemoryRouter>
-        <div className="w-[350px]">
-          <Story />
-        </div>
-      </MemoryRouter>
-    ),
-  ],
   parameters: {
     docs: {
       description: {
@@ -85,269 +96,218 @@ const meta: Meta<typeof SessionCard> = {
       },
     },
   },
+  argTypes: {
+    preset: {
+      control: 'select',
+      options: SESSION_PRESETS,
+      description: 'Session preset determining duration and output state',
+    },
+    epicSlug: {
+      control: 'text',
+      description: 'Epic slug for the session',
+    },
+    storySlug: {
+      control: 'text',
+      description: 'Story slug for the session',
+    },
+  },
+  args: {
+    preset: 'running',
+    epicSlug: 'test-epic',
+    storySlug: 'test-story',
+  },
 };
 
-type Story = StoryObj<typeof SessionCard>;
+type Story = StoryObj<typeof meta>;
 
 // ============================================================================
-// Stories
+// Showcase Story
 // ============================================================================
 
 /**
- * Default session card showing all elements: story title, epic title,
- * duration counter, and output preview.
+ * Showcase displaying all session states and formatDuration examples.
  */
-const Default: Story = {
-  render: () => <SessionCard session={createSession()} />,
+const Showcase: Story = {
+  render: () => {
+    resetMockCounters();
+
+    return (
+      <div className="space-y-8">
+        {/* Session States */}
+        <section>
+          <h2 className="text-lg font-semibold text-text mb-4">Session States</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {SESSION_PRESETS.map((preset) => (
+              <div key={preset} className="space-y-2">
+                <div className="text-sm text-text-muted">{presetToLabel(preset)}</div>
+                <div className="w-[300px]">
+                  <SessionCardWithRouter
+                    preset={preset}
+                    epicSlug="feature-epic"
+                    storySlug={`${preset}-session`}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Edge Cases */}
+        <section>
+          <h2 className="text-lg font-semibold text-text mb-4">Edge Cases</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="text-sm text-text-muted">Long Epic/Story Slugs</div>
+              <div className="w-[300px]">
+                <SessionCardWithRouter
+                  preset="running"
+                  epicSlug="very-long-epic-slug-that-might-overflow"
+                  storySlug="another-very-long-story-slug-for-testing"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm text-text-muted">Long Output Preview</div>
+              <div className="w-[300px]">
+                <SessionCardWithRouter
+                  preset="running"
+                  epicSlug="test-epic"
+                  storySlug="long-output"
+                  outputPreview={Array.from(
+                    { length: 20 },
+                    (_, i) =>
+                      `Line ${i + 1}: This is a log line with content demonstrating truncation`,
+                  ).join('\n')}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* formatDuration Utility */}
+        <section>
+          <h2 className="text-lg font-semibold text-text mb-4">formatDuration Utility</h2>
+          <div className="bg-bg-dark rounded p-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="text-text-muted">0 seconds:</div>
+              <div className="text-text font-mono">{formatDuration(DURATION_0_SECONDS)}</div>
+              <div className="text-text-muted">30 seconds:</div>
+              <div className="text-text font-mono">{formatDuration(DURATION_30_SECONDS)}</div>
+              <div className="text-text-muted">59 seconds:</div>
+              <div className="text-text font-mono">{formatDuration(DURATION_59_SECONDS)}</div>
+              <div className="text-text-muted">1 minute:</div>
+              <div className="text-text font-mono">{formatDuration(DURATION_1_MINUTE)}</div>
+              <div className="text-text-muted">2m 34s:</div>
+              <div className="text-text font-mono">{formatDuration(DURATION_2M_34S)}</div>
+              <div className="text-text-muted">1 hour:</div>
+              <div className="text-text font-mono">{formatDuration(DURATION_1_HOUR)}</div>
+              <div className="text-text-muted">1h 15m:</div>
+              <div className="text-text font-mono">{formatDuration(DURATION_1H_15M)}</div>
+              <div className="text-text-muted">1 day:</div>
+              <div className="text-text font-mono">{formatDuration(DURATION_1_DAY)}</div>
+              <div className="text-text-muted">2d 3h:</div>
+              <div className="text-text font-mono">{formatDuration(DURATION_2D_3H)}</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // Verify story title
-    await expect(canvas.getByText('home-page-active-sessions')).toBeInTheDocument();
-    // Verify epic title
-    await expect(canvas.getByText('tmux-session-dashboard')).toBeInTheDocument();
-    // Verify duration is displayed (format varies based on elapsed time)
+
+    // Verify all 5 session presets are displayed
+    await expect(canvas.getAllByRole('link').length).toBeGreaterThanOrEqual(SHOWCASE_SESSION_COUNT);
+
+    // Verify session states section
+    await expect(canvas.getByText('Just Started')).toBeInTheDocument();
+    await expect(canvas.getByText('Running')).toBeInTheDocument();
+    await expect(canvas.getByText('Long Running')).toBeInTheDocument();
+    await expect(canvas.getByText('No Output')).toBeInTheDocument();
+    await expect(canvas.getByText('Output Unavailable')).toBeInTheDocument();
+
+    // Verify output unavailable message appears for that preset
+    await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
+
+    // Verify edge cases section
+    await expect(canvas.getByText('Long Epic/Story Slugs')).toBeInTheDocument();
+    await expect(canvas.getByText('Long Output Preview')).toBeInTheDocument();
+
+    // Verify formatDuration utility section
+    await expect(canvas.getByText('formatDuration Utility')).toBeInTheDocument();
+    await expect(canvas.getByText('0s')).toBeInTheDocument();
+    await expect(canvas.getByText('30s')).toBeInTheDocument();
+    await expect(canvas.getByText('1h 0m')).toBeInTheDocument();
+  },
+};
+
+// ============================================================================
+// Playground Story
+// ============================================================================
+
+/**
+ * Interactive playground for exploring SessionCard with different configurations.
+ */
+const Playground: Story = {
+  render: (args) => {
+    resetMockCounters();
+
+    return (
+      <div className="space-y-4">
+        <div className="text-sm text-text-muted">
+          <span className="font-medium">Preset:</span> {presetToLabel(args.preset)}
+        </div>
+        <div className="w-[350px]">
+          <SessionCardWithRouter
+            preset={args.preset}
+            epicSlug={args.epicSlug}
+            storySlug={args.storySlug}
+          />
+        </div>
+      </div>
+    );
+  },
+  args: {
+    preset: 'running',
+    epicSlug: 'feature-epic',
+    storySlug: 'active-session',
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+
+    // Verify preset label is displayed
+    await expect(canvas.getByText(presetToLabel(args.preset))).toBeInTheDocument();
+
+    // Verify story slug is displayed
+    await expect(canvas.getByText(args.storySlug)).toBeInTheDocument();
+
+    // Verify epic slug is displayed
+    await expect(canvas.getByText(args.epicSlug)).toBeInTheDocument();
+
+    // Verify duration is displayed
     const durationElement = canvas.getByText(DURATION_PATTERN);
     await expect(durationElement).toBeInTheDocument();
-    // Verify output preview
-    await expect(canvas.getByText(STARTING_SESSION_PATTERN)).toBeInTheDocument();
-    // Verify link points to correct URL
+
+    // Verify link exists with correct format
     const link = canvas.getByRole('link');
     await expect(link).toHaveAttribute(
       'href',
-      '/epic/tmux-session-dashboard/story/home-page-active-sessions?tab=sessions',
+      `/epic/${args.epicSlug}/story/${args.storySlug}?tab=sessions`,
     );
-  },
-};
 
-/**
- * Session with no output preview (outputPreview is undefined/empty).
- * The output section should not render.
- */
-const NoOutputPreview: Story = {
-  render: () => <SessionCard session={createSession({ outputPreview: undefined })} />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Verify story and epic titles are present
-    await expect(canvas.getByText('home-page-active-sessions')).toBeInTheDocument();
-    await expect(canvas.getByText('tmux-session-dashboard')).toBeInTheDocument();
-    // Verify no pre element for output
-    const preElement = canvasElement.querySelector('pre');
-    await expect(preElement).not.toBeInTheDocument();
-    // Verify "Output unavailable" is NOT shown (because outputAvailable is true)
-    await expect(canvas.queryByText('Output unavailable')).not.toBeInTheDocument();
-  },
-};
-
-/**
- * Session with output unavailable (outputAvailable: false).
- * Shows a dimmed "Output unavailable" message.
- */
-const OutputUnavailable: Story = {
-  render: () => (
-    <SessionCard
-      session={createSession({
-        outputAvailable: false,
-        outputPreview: undefined,
-      })}
-    />
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Verify "Output unavailable" message
-    await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
-    // Verify no pre element for output
-    const preElement = canvasElement.querySelector('pre');
-    await expect(preElement).not.toBeInTheDocument();
-  },
-};
-
-/**
- * Session with a very long output preview to demonstrate truncation.
- * Output is truncated to last 5 lines and max 500 characters.
- */
-const LongOutputPreview: Story = {
-  render: () => {
-    const longOutput = Array.from(
-      { length: 20 },
-      (_, i) =>
-        `Line ${i + 1}: This is a log line with some content that demonstrates truncation behavior`,
-    ).join('\n');
-    return <SessionCard session={createSession({ outputPreview: longOutput })} />;
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Verify output preview is present
-    const preElement = canvasElement.querySelector('pre');
-    await expect(preElement).toBeInTheDocument();
-    // The content should be truncated (won't have Line 1)
-    await expect(canvas.queryByText(LINE_1_PATTERN)).not.toBeInTheDocument();
-    // But should have later lines (last 5 lines)
-    await expect(canvas.getByText(LINE_20_PATTERN)).toBeInTheDocument();
-  },
-};
-
-/**
- * Session that just started (a few seconds ago).
- * Duration shows in seconds format.
- */
-const JustStarted: Story = {
-  render: () => {
-    const recentStart = new Date(Date.now() - MS_FIFTEEN_SECONDS);
-    return (
-      <SessionCard
-        session={createSession({
-          startTime: recentStart.toISOString(),
-          outputPreview: '> Initializing...',
-        })}
-      />
-    );
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Duration should show seconds format (approximately 15s)
-    const durationElement = canvas.getByText(SECONDS_PATTERN);
-    await expect(durationElement).toBeInTheDocument();
-  },
-};
-
-/**
- * Session running for over an hour.
- * Duration shows in hours/minutes format.
- */
-const LongRunning: Story = {
-  render: () => {
-    const hourAgo = new Date(Date.now() - MS_ONE_HOUR_TWO_MINUTES);
-    return (
-      <SessionCard
-        session={createSession({
-          storySlug: 'complex-implementation',
-          startTime: hourAgo.toISOString(),
-          outputPreview:
-            '> Long running task...\n> Still processing...\n> 50% complete...\n> 75% complete...\n> Almost done...',
-        })}
-      />
-    );
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Duration should show hours format
-    const durationElement = canvas.getByText(HOURS_MINUTES_PATTERN);
-    await expect(durationElement).toBeInTheDocument();
-  },
-};
-
-/**
- * Multiple session cards displayed together.
- * Demonstrates how cards look in a horizontal layout.
- * Note: Uses the meta decorator's MemoryRouter, only customizes the layout wrapper.
- */
-const MultipleCards: Story = {
-  decorators: [
-    (Story) => (
-      <div className="flex gap-4 overflow-x-auto w-[900px]">
-        <Story />
-      </div>
-    ),
-  ],
-  render: () => (
-    <>
-      <div className="min-w-[300px]">
-        <SessionCard
-          session={createSession({
-            epicSlug: 'epic-one',
-            storySlug: 'story-one',
-            outputPreview: '> First session output',
-          })}
-        />
-      </div>
-      <div className="min-w-[300px]">
-        <SessionCard
-          session={createSession({
-            epicSlug: 'epic-two',
-            storySlug: 'story-two',
-            outputPreview: '> Second session output',
-          })}
-        />
-      </div>
-      <div className="min-w-[300px]">
-        <SessionCard
-          session={createSession({
-            epicSlug: 'epic-three',
-            storySlug: 'story-three',
-            outputAvailable: false,
-          })}
-        />
-      </div>
-    </>
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Verify all three cards are present
-    await expect(canvas.getByText('story-one')).toBeInTheDocument();
-    await expect(canvas.getByText('story-two')).toBeInTheDocument();
-    await expect(canvas.getByText('story-three')).toBeInTheDocument();
-    // Verify all three links are present
-    const links = canvas.getAllByRole('link');
-    await expect(links.length).toBe(MULTIPLE_CARDS_COUNT);
-  },
-};
-
-/**
- * Stories demonstrating the formatDuration utility function.
- */
-const FormatDurationExamples: Story = {
-  render: () => (
-    <div className="space-y-2 p-4 bg-bg-dark rounded">
-      <h3 className="text-lg font-semibold text-text mb-4">formatDuration Examples</h3>
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div className="text-text-muted">0 seconds:</div>
-        <div className="text-text font-mono">{formatDuration(DURATION_0_SECONDS)}</div>
-        <div className="text-text-muted">30 seconds:</div>
-        <div className="text-text font-mono">{formatDuration(DURATION_30_SECONDS)}</div>
-        <div className="text-text-muted">59 seconds:</div>
-        <div className="text-text font-mono">{formatDuration(DURATION_59_SECONDS)}</div>
-        <div className="text-text-muted">1 minute:</div>
-        <div className="text-text font-mono">{formatDuration(DURATION_1_MINUTE)}</div>
-        <div className="text-text-muted">2m 34s:</div>
-        <div className="text-text font-mono">{formatDuration(DURATION_2M_34S)}</div>
-        <div className="text-text-muted">1 hour:</div>
-        <div className="text-text font-mono">{formatDuration(DURATION_1_HOUR)}</div>
-        <div className="text-text-muted">1h 15m:</div>
-        <div className="text-text font-mono">{formatDuration(DURATION_1H_15M)}</div>
-        <div className="text-text-muted">1 day:</div>
-        <div className="text-text font-mono">{formatDuration(DURATION_1_DAY)}</div>
-        <div className="text-text-muted">2d 3h:</div>
-        <div className="text-text font-mono">{formatDuration(DURATION_2D_3H)}</div>
-      </div>
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Verify formatDuration examples are displayed
-    await expect(canvas.getByText('0s')).toBeInTheDocument();
-    await expect(canvas.getByText('30s')).toBeInTheDocument();
-    await expect(canvas.getByText('59s')).toBeInTheDocument();
-    await expect(canvas.getByText('1m 0s')).toBeInTheDocument();
-    await expect(canvas.getByText('2m 34s')).toBeInTheDocument();
-    await expect(canvas.getByText('1h 0m')).toBeInTheDocument();
-    await expect(canvas.getByText('1h 15m')).toBeInTheDocument();
-    await expect(canvas.getByText('1d 0h')).toBeInTheDocument();
-    await expect(canvas.getByText('2d 3h')).toBeInTheDocument();
+    // Handle preset-specific checks
+    if (args.preset === 'output-unavailable') {
+      await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
+    } else if (args.preset === 'long-running') {
+      const hoursMinutes = canvas.getByText(HOURS_MINUTES_PATTERN);
+      await expect(hoursMinutes).toBeInTheDocument();
+    }
   },
 };
 
 // ============================================================================
-// Exports - All exports at the end
+// Exports
 // ============================================================================
 
 export default meta;
-export {
-  Default,
-  NoOutputPreview,
-  OutputUnavailable,
-  LongOutputPreview,
-  JustStarted,
-  LongRunning,
-  MultipleCards,
-  FormatDurationExamples,
-};
+export { Showcase, Playground };

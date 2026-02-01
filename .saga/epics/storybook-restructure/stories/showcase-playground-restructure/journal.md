@@ -226,3 +226,40 @@
 
 **Next steps:**
 - Task t7: Rewrite SessionCard stories to Showcase + Playground pattern
+
+## Session 7: 2026-02-01
+
+### Task: t7 - Rewrite SessionCard stories
+
+**What was done:**
+- Transformed `session-card.stories.tsx` from 8 stories to Showcase + Playground pattern
+- Title remains as `'Components/SessionCard'` (already correct hierarchy)
+- Created Showcase story displaying:
+  - All 5 session preset states: Just Started, Running, Long Running, No Output, Output Unavailable
+  - Edge Cases section: Long epic/story slugs, Long output preview
+  - formatDuration Utility section: Demonstrates all duration format outputs (0s to 2d 3h)
+- Created Playground story with:
+  - `preset` control (select) for session presets
+  - `epicSlug` control (text) for epic slug override
+  - `storySlug` control (text) for story slug override
+  - Displays preset info and card with link verification
+- Used `createMockSession()` factory function from t1 for generating mock data
+- Created helper component `SessionCardWithRouter` to wrap SessionCard with MemoryRouter
+- Fixed mock-factories.ts bug: 'no-output' preset now correctly sets `outputAvailable: true` (no preview shown but no error message) vs 'output-unavailable' which sets `outputAvailable: false` (shows "Output unavailable" message)
+- Consolidated FormatDurationExamples story into Showcase section
+
+**Decisions:**
+- Included formatDuration utility examples in Showcase since it's a core part of SessionCard display
+- Differentiated 'no-output' (output available but empty) from 'output-unavailable' (output file not accessible) in mock factory
+- Used `presetToLabel()` helper to convert preset names to display labels
+- Verified link navigation in play function tests
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 687/688 tests pass (1 pre-existing timeout failure unrelated to this work)
+- Story count reduced: from 8 SessionCard stories to 2 (Showcase + Playground)
+
+**Next steps:**
+- Task t8: Rewrite TaskItem stories to Showcase + Playground pattern

@@ -286,8 +286,9 @@ function createMockSession(
   const startTime = overrides.startTime ?? new Date(Date.now() - startOffset).toISOString();
 
   // Determine output availability based on preset
-  const outputAvailable =
-    overrides.outputAvailable ?? (preset !== 'output-unavailable' && preset !== 'no-output');
+  // 'no-output' means output is available but empty (no preview shown)
+  // 'output-unavailable' means output file is not accessible (shows message)
+  const outputAvailable = overrides.outputAvailable ?? preset !== 'output-unavailable';
   const outputPreview = getOutputPreviewForPreset(preset, overrides.outputPreview);
 
   return {
