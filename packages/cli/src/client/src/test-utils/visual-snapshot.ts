@@ -1,9 +1,19 @@
 /**
- * Visual snapshot testing utilities for Storybook stories.
+ * Snapshot testing utilities for Storybook stories.
  *
- * This module provides DOM/HTML snapshot testing for Storybook play functions.
- * It uses Vitest's toMatchSnapshot() to capture and compare the rendered HTML
- * structure of components.
+ * Two types of snapshots are available:
+ *
+ * 1. **DOM Snapshots** (`matchDomSnapshot`)
+ *    - Captures HTML structure and CSS classes
+ *    - Stored as strings in .snap files
+ *    - Catches: missing elements, wrong props, structural changes
+ *    - Fast, runs on all stories by default
+ *
+ * 2. **Pixel Snapshots** (`matchPixelSnapshot`)
+ *    - Captures actual rendered pixels as PNG images
+ *    - Stored as .png files in __screenshots__/
+ *    - Catches: overlapping text, broken layouts, z-index issues
+ *    - Use for components with complex positioning/layout
  *
  * The vitest.setup.ts file exposes the expect object globally, allowing
  * this module to create snapshots without direct vitest imports that would
@@ -20,7 +30,7 @@ function isVitestTest(): boolean {
 }
 
 /**
- * Normalize HTML for consistent snapshots.
+ * Normalize HTML for consistent DOM snapshots.
  * Removes dynamic attributes that change between runs.
  */
 function normalizeHtml(html: string): string {
@@ -38,14 +48,75 @@ function normalizeHtml(html: string): string {
   );
 }
 
+// ============================================================================
+// DOM Snapshots - captures HTML structure
+// ============================================================================
+
 /**
  * Take a DOM snapshot of the canvas element.
+ *
+ * Captures HTML structure and CSS classes. Use this to verify component
+ * structure, props, and conditional rendering.
  *
  * In Vitest test mode, captures the HTML and compares it against a baseline.
  * In Storybook dev mode, this is a no-op.
  *
  * @param canvasElement - The canvas element from the play function context
- * @param snapshotName - A unique name for this snapshot (optional)
+ * @param snapshotName - A unique name for this snapshot
+ */
+export async function matchDomSnapshot(
+  canvasElement: HTMLElement,
+  snapshotName: string,
+): Promise<void> {
+  if (!isVitestTest()) {
+    return;
+  }
+
+  const expect = globalThis.__vitest_expect__;
+  const html = normalizeHtml(canvasElement.innerHTML);
+
+  await expect(html).toMatchSnapshot(snapshotName);
+}
+
+// ============================================================================
+// Pixel Snapshots - captures rendered pixels
+// ============================================================================
+
+/**
+ * Take a pixel snapshot of the canvas element.
+ *
+ * Captures actual rendered pixels as a PNG image. Use this to verify
+ * visual appearance, especially for components with:
+ * - position: absolute/fixed/sticky
+ * - z-index or overlapping elements
+ * - Complex flexbox/grid layouts
+ * - Virtualized/scrolling content
+ *
+ * In Vitest test mode, takes a screenshot and compares it against a baseline.
+ * In Storybook dev mode, this is a no-op.
+ *
+ * @param canvasElement - The canvas element from the play function context
+ * @param snapshotName - A unique name for this snapshot (without .png extension)
+ */
+export async function matchPixelSnapshot(
+  canvasElement: HTMLElement,
+  snapshotName: string,
+): Promise<void> {
+  if (!isVitestTest()) {
+    return;
+  }
+
+  const expect = globalThis.__vitest_expect__;
+
+  await expect(canvasElement).toMatchScreenshot(`${snapshotName}.png`);
+}
+
+// ============================================================================
+// Legacy aliases (deprecated - use matchDomSnapshot instead)
+// ============================================================================
+
+/**
+ * @deprecated Use `matchDomSnapshot` instead. This function will be removed in a future version.
  */
 export async function matchCanvasSnapshot(
   canvasElement: HTMLElement,
@@ -66,11 +137,7 @@ export async function matchCanvasSnapshot(
 }
 
 /**
- * Take a DOM snapshot of an element by test ID.
- *
- * @param canvasElement - The canvas element to search within
- * @param testId - The data-testid attribute of the element to snapshot
- * @param snapshotName - A unique name for this snapshot (optional)
+ * @deprecated Use `matchDomSnapshot` with a specific element selector instead.
  */
 export async function matchElementSnapshot(
   canvasElement: HTMLElement,

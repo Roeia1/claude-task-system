@@ -21,16 +21,16 @@ Comprehensive testing guidance for the `@saga-ai/cli` package.
 | UI workflow with mocked API | Playwright integration | `src/client/tests/integration/*.spec.ts` |
 | Full dashboard with real backend | E2E test | `src/client/e2e/*.spec.ts` |
 | Component states & variations | Storybook stories | `src/client/src/**/*.stories.tsx` |
-| Visual layout correctness | Storybook visual snapshot | `src/client/src/**/*.stories.tsx` (with `play` function) |
+| Visual layout correctness | Storybook pixel snapshot | `src/client/src/**/*.stories.tsx` (with `play` function) |
 
 **Note:** Multiple test types often apply. Work down the table - if your change touches multiple layers, write tests at each level.
 
 ### Storybook Snapshot Types
 
-- **DOM snapshots** - All stories get these automatically. Catches missing elements and wrong props.
-- **Visual snapshots** - Add these when layout matters. Catches overlapping text, broken positioning, z-index issues.
+- **DOM snapshots** (`matchDomSnapshot`) - All stories should have these. Captures HTML structure and CSS classes. Catches missing elements and wrong props.
+- **Pixel snapshots** (`matchPixelSnapshot`) - Add when layout matters. Captures rendered pixels as PNG. Catches overlapping text, broken positioning, z-index issues.
 
-DOM snapshots only see HTML structure, not how it renders. If a component has positioning, z-index, or complex layout, add a visual snapshot.
+DOM snapshots only see HTML structure, not how it renders. If a component has positioning, z-index, or complex layout, add a pixel snapshot.
 
 **Important:** When any snapshot is created or updated, manually verify it looks correct before committing.
 
@@ -63,7 +63,7 @@ pnpm test              # Full suite (build + unit + integration + e2e + storyboo
 pnpm test:watch        # Unit tests in watch mode
 pnpm test:integration  # Playwright integration tests (mocked API)
 pnpm test:e2e          # Playwright E2E tests (real backend)
-pnpm test:storybook    # Storybook tests (DOM + visual snapshots)
+pnpm test:storybook    # Storybook tests (DOM + pixel snapshots)
 pnpm test:storybook:update # Update Storybook snapshots - VERIFY OUTPUT MANUALLY!
 ```
 
@@ -255,15 +255,16 @@ describe('MyComponent', () => {
 });
 ```
 
-### Visual Screenshot Testing Pattern
+### Storybook Snapshot Testing Pattern
 
-Add visual snapshots directly in Storybook stories using the `play` function:
+Use the snapshot utilities in story `play` functions:
 
 ```typescript
 // log-viewer.stories.tsx
-import type { Meta, StoryObj } from '@storybook/react';
-import { expect } from '@storybook/test';
-import { LogViewer } from './log-viewer.tsx';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, within } from 'storybook/test';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
+import { LogViewer } from './LogViewer.tsx';
 
 const meta: Meta<typeof LogViewer> = {
   component: LogViewer,
@@ -273,47 +274,34 @@ export default meta;
 
 type Story = StoryObj<typeof LogViewer>;
 
-export const Showcase: Story = {
+export const Default: Story = {
   args: {
     content: 'Example log output...',
     isStreaming: false,
   },
   play: async ({ canvasElement }) => {
-    // Wait for any async rendering to complete
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    const canvas = within(canvasElement);
 
-    // Visual snapshot comparison
-    await expect(canvasElement).toMatchImageSnapshot({
-      // Allow small differences for anti-aliasing
-      failureThreshold: 0.01,
-      failureThresholdType: 'percent',
-    });
-  },
-};
+    // Functional assertions
+    await expect(canvas.getByTestId('log-viewer')).toBeInTheDocument();
 
-// For stories showing multiple states, add visual snapshot to catch layout issues
-export const AllStates: Story = {
-  render: () => (
-    <div className="space-y-4">
-      <LogViewer content="Streaming..." isStreaming={true} />
-      <LogViewer content="Complete" isStreaming={false} />
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    await expect(canvasElement).toMatchImageSnapshot();
+    // DOM snapshot - captures HTML structure (all stories should have this)
+    await matchDomSnapshot(canvasElement, 'log-viewer-default');
+
+    // Pixel snapshot - captures rendered pixels (add for complex layouts)
+    await matchPixelSnapshot(canvasElement, 'log-viewer-default');
   },
 };
 ```
 
-**Key points:**
+**Snapshot utilities** (from `@/test-utils/visual-snapshot`):
 
-- Visual snapshots live in the story's `play` function alongside other assertions
-- Screenshots are stored in `__screenshots__/` directory next to the story file
-- Run `pnpm test:storybook:update` to create/update baselines after intentional changes
-- Use `failureThreshold` to handle minor anti-aliasing differences
+| Function | What it captures | Output | When to use |
+|----------|------------------|--------|-------------|
+| `matchDomSnapshot(el, name)` | HTML structure, CSS classes | `.snap` file | All stories |
+| `matchPixelSnapshot(el, name)` | Rendered pixels | `.png` file | Complex layouts |
 
-**Verifying snapshots:** When creating or updating snapshots, always open the image and confirm it looks correct. Never blindly run `--update` to make tests pass.
+**Verifying snapshots:** When creating or updating snapshots, always open the file and confirm it looks correct. Never blindly run `--update` to make tests pass.
 
 ---
 
@@ -402,4 +390,5 @@ await expect(page.locator('[data-ws-connected="true"]')).toBeVisible({ timeout: 
 | `src/client/tests/utils/mock-api.ts` | Mock data factories for Playwright |
 | `src/client/e2e/fixtures-utils.ts` | E2E fixture file utilities |
 | `src/client/src/test-setup.ts` | React Testing Library setup |
-| `src/client/src/**/__screenshots__/` | Visual snapshot baselines (co-located with stories) |
+| `src/client/src/test-utils/visual-snapshot.ts` | Snapshot utilities (`matchDomSnapshot`, `matchPixelSnapshot`) |
+| `src/client/src/**/__screenshots__/` | Pixel snapshot baselines (co-located with stories) |
