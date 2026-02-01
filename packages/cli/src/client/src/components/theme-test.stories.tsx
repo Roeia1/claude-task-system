@@ -54,7 +54,7 @@ const ThemeTest = () => (
 );
 
 const meta: Meta<typeof ThemeTest> = {
-  title: 'Theme/Color Tokens',
+  title: 'Foundation/Color Tokens',
   component: ThemeTest,
   parameters: {
     docs: {

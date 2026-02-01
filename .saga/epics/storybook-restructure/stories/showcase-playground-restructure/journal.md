@@ -601,3 +601,31 @@ The previous session (9) created journal entries without timestamp overrides, ca
 
 **Next steps:**
 - Task t16: Reorganize sidebar hierarchy
+
+## Session 17: 2026-02-01
+
+### Task: t16 - Reorganize sidebar hierarchy
+
+**What was done:**
+- Updated `theme-test.stories.tsx` title from `'Theme/Color Tokens'` to `'Foundation/Color Tokens'`
+- Verified all story file meta titles follow the correct hierarchy
+
+**Final sidebar hierarchy:**
+- **Foundation**: Color Tokens (theme color demonstration)
+- **Atoms**: StatusBadge, Breadcrumb, TaskItem (simple, atomic UI elements)
+- **Components**: ActiveSessions, EpicCard, EpicContent, JournalEntry, Layout, LogViewer, SessionCard, StoryCard (composed UI elements)
+- **Pages**: EpicDetail, EpicList, StoryDetail (full page components)
+
+**Decisions:**
+- Only the theme-test.stories.tsx needed a title change (Theme → Foundation)
+- All other story titles were already correctly organized in previous sessions
+- Layout component stories remain in Components/ (will be deleted in t17)
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- 56/56 storybook tests pass
+- Sidebar hierarchy is now Foundation/Atoms/Components/Pages
+
+**Next steps:**
+- Task t17: Delete obsolete files and verify build
