@@ -1,7 +1,7 @@
 # SAGA
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-2.11.2-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.16.0-blue)](CHANGELOG.md)
 [![npm](https://img.shields.io/npm/v/@saga-ai/cli)](https://www.npmjs.com/package/@saga-ai/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skills](https://img.shields.io/badge/skills-6-green)](https://github.com/Roeia1/saga)
@@ -391,7 +391,7 @@ Contributions are welcome! Please:
 3. Follow the existing code patterns
 4. Submit a pull request
 
-For maintainers: use `/publish-plugin` to publish new versions.
+For maintainers: use `/publish` to release new versions.
 
 ---
 

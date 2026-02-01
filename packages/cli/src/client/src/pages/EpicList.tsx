@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useDashboard } from '@/context/DashboardContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router';
+import { ActiveSessions } from '@/components/active-sessions';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { useDashboard } from '@/context/dashboard-context';
 import { showApiErrorToast } from '@/lib/toast-utils';
 import type { EpicSummary, StoryStatus } from '@/types/dashboard';
+
+/** Percentage conversion multiplier */
+const PERCENTAGE_MULTIPLIER = 100;
 
 /** Skeleton loading component for epic cards */
 export function EpicCardSkeleton() {
@@ -30,14 +34,14 @@ export function EpicCardSkeleton() {
 export function StatusBadge({ status, count }: { status: StoryStatus; count: number }) {
   const variants: Record<StoryStatus, string> = {
     ready: 'bg-text-muted/20 text-text-muted',
-    in_progress: 'bg-primary/20 text-primary',
+    inProgress: 'bg-primary/20 text-primary',
     blocked: 'bg-danger/20 text-danger',
     completed: 'bg-success/20 text-success',
   };
 
   const labels: Record<StoryStatus, string> = {
     ready: 'Ready',
-    in_progress: 'In Progress',
+    inProgress: 'In Progress',
     blocked: 'Blocked',
     completed: 'Completed',
   };
@@ -54,7 +58,7 @@ export function EpicCard({ epic }: { epic: EpicSummary }) {
   const { storyCounts } = epic;
   const completionPercentage =
     storyCounts.total > 0
-      ? Math.round((storyCounts.completed / storyCounts.total) * 100)
+      ? Math.round((storyCounts.completed / storyCounts.total) * PERCENTAGE_MULTIPLIER)
       : 0;
 
   return (
@@ -74,11 +78,9 @@ export function EpicCard({ epic }: { epic: EpicSummary }) {
             <Progress value={completionPercentage} />
           </div>
           <div className="flex flex-wrap gap-2">
-            {storyCounts.ready > 0 && (
-              <StatusBadge status="ready" count={storyCounts.ready} />
-            )}
+            {storyCounts.ready > 0 && <StatusBadge status="ready" count={storyCounts.ready} />}
             {storyCounts.inProgress > 0 && (
-              <StatusBadge status="in_progress" count={storyCounts.inProgress} />
+              <StatusBadge status="inProgress" count={storyCounts.inProgress} />
             )}
             {storyCounts.blocked > 0 && (
               <StatusBadge status="blocked" count={storyCounts.blocked} />
@@ -94,7 +96,7 @@ export function EpicCard({ epic }: { epic: EpicSummary }) {
 }
 
 export function EpicList() {
-  const { epics, setEpics, isLoading } = useDashboard();
+  const { epics, setEpics } = useDashboard();
   const [showArchived, setShowArchived] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
@@ -117,7 +119,7 @@ export function EpicList() {
     fetchEpics();
   }, [setEpics]);
 
-  const loading = isLoading || isFetching;
+  const loading = isFetching;
 
   // Filter epics based on archived toggle
   const filteredEpics = epics.filter((epic) => {
@@ -132,6 +134,7 @@ export function EpicList() {
 
   return (
     <div className="space-y-6">
+      <ActiveSessions />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-text">Epics</h1>
         {hasArchivedEpics && (
@@ -147,20 +150,22 @@ export function EpicList() {
         )}
       </div>
 
-      {loading ? (
+      {loading && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <EpicCardSkeleton />
           <EpicCardSkeleton />
           <EpicCardSkeleton />
         </div>
-      ) : filteredEpics.length === 0 ? (
+      )}
+      {!loading && filteredEpics.length === 0 && (
         <div className="text-center py-12">
           <p className="text-text-muted text-lg">No epics found.</p>
           <p className="text-text-muted">
             Run <code className="text-primary">/create-epic</code> to get started.
           </p>
         </div>
-      ) : (
+      )}
+      {!loading && filteredEpics.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredEpics.map((epic) => (
             <EpicCard key={epic.slug} epic={epic} />
@@ -170,5 +175,3 @@ export function EpicList() {
     </div>
   );
 }
-
-export default EpicList;

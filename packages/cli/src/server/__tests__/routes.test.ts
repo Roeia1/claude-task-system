@@ -7,13 +7,37 @@
  * - GET /api/stories/:epicSlug/:storySlug - returns StoryDetail with parsed journal
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { mkdir, writeFile, rm } from 'fs/promises';
-import { join } from 'path';
-import { tmpdir } from 'os';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import request from 'supertest';
-import { startServer, type ServerInstance } from '../index.js';
-import type { EpicSummary, Epic, StoryDetail } from '../parser.js';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { type ServerInstance, startServer } from '../index.ts';
+import type { EpicSummary, StoryDetail } from '../parser.ts';
+
+// HTTP status codes
+const HTTP_OK = 200;
+const HTTP_NOT_FOUND = 404;
+
+// Port range constants for random port generation
+const PORT_BASE = 30_000;
+const PORT_RANGE = 20_000;
+
+// Expected counts in test data
+const EXPECTED_EPIC_COUNT = 2;
+const EXPECTED_EPIC_ONE_STORY_COUNT = 3; // 2 active + 1 archived
+const EXPECTED_JOURNAL_ENTRIES = 3; // 1 session + 1 blocker + 1 resolution
+
+// Regex patterns for path and content type validation
+const SAGA_PATH_PATTERN = /^\.saga\//;
+const JSON_CONTENT_TYPE_PATTERN = /application\/json/;
+
+/**
+ * Generate a random port within the test range
+ */
+function getRandomPort(): number {
+  return PORT_BASE + Math.floor(Math.random() * PORT_RANGE);
+}
 
 describe('routes', () => {
   let testDir: string;
@@ -34,11 +58,11 @@ describe('routes', () => {
     // Create epic.md files
     await writeFile(
       join(epicsDir, 'epic-one', 'epic.md'),
-      '# First Epic\n\nThis is the first epic.'
+      '# First Epic\n\nThis is the first epic.',
     );
     await writeFile(
       join(epicsDir, 'epic-two', 'epic.md'),
-      '# Second Epic\n\nThis is the second epic.'
+      '# Second Epic\n\nThis is the second epic.',
     );
 
     // Create story.md files
@@ -59,7 +83,7 @@ tasks:
 
 ## Description
 This is story alpha.
-`
+`,
     );
 
     await writeFile(
@@ -76,7 +100,7 @@ tasks:
 
 ## Description
 This is story beta.
-`
+`,
     );
 
     // Create journal for story-beta
@@ -98,7 +122,7 @@ Waiting for API spec confirmation.
 ## Resolution: API spec confirmed
 
 Got confirmation, proceeding with REST endpoints.
-`
+`,
     );
 
     await writeFile(
@@ -114,7 +138,7 @@ tasks:
 ---
 
 Completed story.
-`
+`,
     );
 
     // Create archived story
@@ -131,7 +155,7 @@ tasks:
 ---
 
 Archived.
-`
+`,
     );
   }
 
@@ -142,8 +166,7 @@ Archived.
     await createTestFixtures();
 
     // Start server with random port
-    const randomPort = 30000 + Math.floor(Math.random() * 20000);
-    server = await startServer({ sagaRoot: testDir, port: randomPort });
+    server = await startServer({ sagaRoot: testDir, port: getRandomPort() });
   });
 
   afterAll(async () => {
@@ -157,9 +180,9 @@ Archived.
     it('should return list of epic summaries', async () => {
       const res = await request(server.app).get('/api/epics');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBe(2);
+      expect(res.body.length).toBe(EXPECTED_EPIC_COUNT);
     });
 
     it('should return epic summaries with correct structure', async () => {
@@ -169,7 +192,7 @@ Archived.
       expect(epic1).toBeDefined();
       expect(epic1.title).toBe('First Epic');
       expect(epic1.storyCounts).toBeDefined();
-      expect(epic1.storyCounts.total).toBe(3); // 2 active + 1 archived
+      expect(epic1.storyCounts.total).toBe(EXPECTED_EPIC_ONE_STORY_COUNT);
       expect(epic1.path).toBeDefined();
     });
 
@@ -197,12 +220,11 @@ Archived.
       const emptyDir = join(tmpdir(), `saga-routes-empty-${Date.now()}`);
       await mkdir(emptyDir, { recursive: true });
 
-      const randomPort = 30000 + Math.floor(Math.random() * 20000);
-      const emptyServer = await startServer({ sagaRoot: emptyDir, port: randomPort });
+      const emptyServer = await startServer({ sagaRoot: emptyDir, port: getRandomPort() });
 
       try {
         const res = await request(emptyServer.app).get('/api/epics');
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(HTTP_OK);
         expect(res.body).toEqual([]);
       } finally {
         await emptyServer.close();
@@ -215,11 +237,11 @@ Archived.
     it('should return epic detail with full story list', async () => {
       const res = await request(server.app).get('/api/epics/epic-one');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(res.body.slug).toBe('epic-one');
       expect(res.body.title).toBe('First Epic');
       expect(Array.isArray(res.body.stories)).toBe(true);
-      expect(res.body.stories.length).toBe(3);
+      expect(res.body.stories.length).toBe(EXPECTED_EPIC_ONE_STORY_COUNT);
     });
 
     it('should include epic content', async () => {
@@ -251,7 +273,7 @@ Archived.
     it('should return 404 for non-existent epic', async () => {
       const res = await request(server.app).get('/api/epics/non-existent');
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(HTTP_NOT_FOUND);
       expect(res.body.error).toBeDefined();
     });
 
@@ -260,7 +282,7 @@ Archived.
 
       const storyAlpha = res.body.stories.find((s: StoryDetail) => s.slug === 'story-alpha');
       expect(storyAlpha.paths.storyMd).not.toContain(testDir);
-      expect(storyAlpha.paths.storyMd).toMatch(/^\.saga\//);
+      expect(storyAlpha.paths.storyMd).toMatch(SAGA_PATH_PATTERN);
     });
   });
 
@@ -268,7 +290,7 @@ Archived.
     it('should return story detail', async () => {
       const res = await request(server.app).get('/api/stories/epic-one/story-alpha');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(res.body.slug).toBe('story-alpha');
       expect(res.body.epicSlug).toBe('epic-one');
       expect(res.body.title).toBe('Story Alpha');
@@ -291,12 +313,21 @@ Archived.
       });
     });
 
+    it('should include story content (body after frontmatter)', async () => {
+      const res = await request(server.app).get('/api/stories/epic-one/story-alpha');
+
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.content).toBeDefined();
+      expect(res.body.content).toContain('## Description');
+      expect(res.body.content).toContain('This is story alpha.');
+    });
+
     it('should include parsed journal when present', async () => {
       const res = await request(server.app).get('/api/stories/epic-one/story-beta');
 
       expect(res.body.journal).toBeDefined();
       expect(Array.isArray(res.body.journal)).toBe(true);
-      expect(res.body.journal.length).toBe(3); // 1 session + 1 blocker + 1 resolution
+      expect(res.body.journal.length).toBe(EXPECTED_JOURNAL_ENTRIES);
     });
 
     it('should parse journal entries with correct types', async () => {
@@ -326,21 +357,21 @@ Archived.
     it('should return 404 for non-existent story', async () => {
       const res = await request(server.app).get('/api/stories/epic-one/non-existent');
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(HTTP_NOT_FOUND);
       expect(res.body.error).toBeDefined();
     });
 
     it('should return 404 for non-existent epic', async () => {
       const res = await request(server.app).get('/api/stories/non-existent/story-alpha');
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(HTTP_NOT_FOUND);
       expect(res.body.error).toBeDefined();
     });
 
     it('should return archived story with archived flag', async () => {
       const res = await request(server.app).get('/api/stories/epic-one/story-archived');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(HTTP_OK);
       expect(res.body.slug).toBe('story-archived');
       expect(res.body.archived).toBe(true);
     });
@@ -350,13 +381,13 @@ Archived.
     it('should return 404 for unknown API routes', async () => {
       const res = await request(server.app).get('/api/unknown');
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(HTTP_NOT_FOUND);
     });
 
     it('should return JSON error responses', async () => {
       const res = await request(server.app).get('/api/epics/non-existent');
 
-      expect(res.headers['content-type']).toMatch(/application\/json/);
+      expect(res.headers['content-type']).toMatch(JSON_CONTENT_TYPE_PATTERN);
       expect(res.body).toHaveProperty('error');
     });
   });

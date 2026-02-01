@@ -1,9 +1,16 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+import process from 'node:process';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'task-status');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SCRIPT_PATH = path.join(__dirname, '..', 'bin', 'saga-status');
+
+// Constants for test thresholds
+const LONG_TITLE_LENGTH = 100;
+const MAX_OUTPUT_LENGTH = 150;
 
 /**
  * Helper to run the script with given args and environment
@@ -49,10 +56,14 @@ function createTaskMd(tmpDir, taskId, content) {
  */
 function createEnvFile(tmpDir, taskId) {
   const envFile = path.join(tmpDir, 'claude-env.sh');
-  fs.writeFileSync(envFile, `export SAGA_TASK_CONTEXT="worktree"
+  fs.writeFileSync(
+    envFile,
+    `export SAGA_TASK_CONTEXT="worktree"
 export CURRENT_TASK_ID="${taskId}"
 export SAGA_PROJECT_DIR="${tmpDir}"
-`, { mode: 0o644 });
+`,
+    { mode: 0o644 },
+  );
   return envFile;
 }
 
@@ -70,15 +81,19 @@ describe('task-status --task flag: task parsing', () => {
     test('should extract title from standard "# Task NNN: Title" header', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '042', `# Task 042: Implement user authentication
+        createTaskMd(
+          tmpDir,
+          '042',
+          `# Task 042: Implement user authentication
 
 ## Overview
 Some overview text
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '042');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('Implement user authentication');
@@ -90,14 +105,18 @@ Some overview text
     test('should handle title containing colons', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '043', `# Task 043: Fix: edge case in parser
+        createTaskMd(
+          tmpDir,
+          '043',
+          `# Task 043: Fix: edge case in parser
 
 ## Overview
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '043');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('Fix: edge case in parser');
@@ -109,13 +128,17 @@ Some overview text
     test('should handle missing task header gracefully', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '044', `## Overview
+        createTaskMd(
+          tmpDir,
+          '044',
+          `## Overview
 Some text without header
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '044');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should output some fallback, not error
@@ -127,19 +150,23 @@ Some text without header
     test('should handle very long title (truncate to reasonable length)', () => {
       const tmpDir = createTempTaskDir();
       try {
-        const longTitle = 'A'.repeat(100);
-        createTaskMd(tmpDir, '045', `# Task 045: ${longTitle}
+        const longTitle = 'A'.repeat(LONG_TITLE_LENGTH);
+        createTaskMd(
+          tmpDir,
+          '045',
+          `# Task 045: ${longTitle}
 
 ## Overview
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '045');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should truncate to ~40 chars or handle gracefully
-        expect(result.stdout.length).toBeLessThan(150);
+        expect(result.stdout.length).toBeLessThan(MAX_OUTPUT_LENGTH);
       } finally {
         cleanupTempDir(tmpDir);
       }
@@ -148,14 +175,18 @@ Some text without header
     test('should handle malformed header (no colon)', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '046', `# Task 046 Missing colon
+        createTaskMd(
+          tmpDir,
+          '046',
+          `# Task 046 Missing colon
 
 ## Overview
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '046');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should not crash, may output fallback
@@ -169,14 +200,18 @@ Some text without header
     test('should extract type from "**Type:**" field', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '050', `# Task 050: Some task
+        createTaskMd(
+          tmpDir,
+          '050',
+          `# Task 050: Some task
 
 **Type:** feature
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '050');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should show feature icon (sparkles ✨ or [F])
@@ -189,14 +224,18 @@ Some text without header
     test('should recognize bugfix type', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '051', `# Task 051: Fix bug
+        createTaskMd(
+          tmpDir,
+          '051',
+          `# Task 051: Fix bug
 
 **Type:** bugfix
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '051');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Bug icon 🐛 or [B]
@@ -209,14 +248,18 @@ Some text without header
     test('should recognize refactor type', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '052', `# Task 052: Refactor code
+        createTaskMd(
+          tmpDir,
+          '052',
+          `# Task 052: Refactor code
 
 **Type:** refactor
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '052');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Recycle icon ♻️ or [R]
@@ -229,14 +272,18 @@ Some text without header
     test('should recognize performance type', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '053', `# Task 053: Optimize queries
+        createTaskMd(
+          tmpDir,
+          '053',
+          `# Task 053: Optimize queries
 
 **Type:** performance
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '053');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Lightning icon ⚡ or [P]
@@ -249,14 +296,18 @@ Some text without header
     test('should recognize deployment type', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '054', `# Task 054: Deploy to prod
+        createTaskMd(
+          tmpDir,
+          '054',
+          `# Task 054: Deploy to prod
 
 **Type:** deployment
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '054');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Rocket icon 🚀 or [D]
@@ -269,16 +320,20 @@ Some text without header
     test('should handle unknown type with fallback', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '055', `# Task 055: Unknown type
+        createTaskMd(
+          tmpDir,
+          '055',
+          `# Task 055: Unknown type
 
 ## Task Type
 
 someunknowntype - Description
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '055');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should use generic icon or [?]
@@ -290,15 +345,19 @@ someunknowntype - Description
     test('should handle missing Task Type section', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '056', `# Task 056: No type section
+        createTaskMd(
+          tmpDir,
+          '056',
+          `# Task 056: No type section
 
 ## Overview
 Content without task type
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '056');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should not crash
@@ -310,14 +369,18 @@ Content without task type
     test('should handle type field normally', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '057', `# Task 057: Normal type
+        createTaskMd(
+          tmpDir,
+          '057',
+          `# Task 057: Normal type
 
 **Type:** feature
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '057');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toMatch(/✨|\[F\]/);
@@ -334,17 +397,24 @@ Content without task type
         // Create feature.md file
         const featureDir = path.join(tmpDir, 'task-system', 'features', '001-user-authentication');
         fs.mkdirSync(featureDir, { recursive: true });
-        fs.writeFileSync(path.join(featureDir, 'feature.md'), `# Feature: User Authentication\n\n**Status:** In Progress\n`);
+        fs.writeFileSync(
+          path.join(featureDir, 'feature.md'),
+          '# Feature: User Authentication\n\n**Status:** In Progress\n',
+        );
 
-        createTaskMd(tmpDir, '060', `# Task 060: Implement feature
+        createTaskMd(
+          tmpDir,
+          '060',
+          `# Task 060: Implement feature
 
 **Type:** feature
 **Feature:** [001-user-authentication](../../features/001-user-authentication/feature.md)
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '060');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('User Authentication');
@@ -356,15 +426,19 @@ Content without task type
     test('should handle missing Feature Context section gracefully', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '061', `# Task 061: Standalone task
+        createTaskMd(
+          tmpDir,
+          '061',
+          `# Task 061: Standalone task
 
 ## Overview
 No feature context here
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '061');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should omit feature portion, not error
@@ -379,17 +453,24 @@ No feature context here
         // Create feature.md file
         const featureDir = path.join(tmpDir, 'task-system', 'features', '002-api-v2-redesign');
         fs.mkdirSync(featureDir, { recursive: true });
-        fs.writeFileSync(path.join(featureDir, 'feature.md'), `# Feature: API v2 Redesign\n\n**Status:** Draft\n`);
+        fs.writeFileSync(
+          path.join(featureDir, 'feature.md'),
+          '# Feature: API v2 Redesign\n\n**Status:** Draft\n',
+        );
 
-        createTaskMd(tmpDir, '062', `# Task 062: Feature with dashes
+        createTaskMd(
+          tmpDir,
+          '062',
+          `# Task 062: Feature with dashes
 
 **Type:** feature
 **Feature:** [002-api-v2-redesign](../../features/002-api-v2-redesign/feature.md)
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '062');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('API v2 Redesign');
@@ -403,14 +484,18 @@ No feature context here
     test('should show Unicode icons by default', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '070', `# Task 070: Feature task
+        createTaskMd(
+          tmpDir,
+          '070',
+          `# Task 070: Feature task
 
 **Type:** feature
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '070');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should contain Unicode feature icon (sparkles)
@@ -423,14 +508,18 @@ No feature context here
     test('should show ASCII fallbacks with --no-icons', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '071', `# Task 071: Feature task
+        createTaskMd(
+          tmpDir,
+          '071',
+          `# Task 071: Feature task
 
 **Type:** feature
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '071');
         const result = runScript(['--task', '--no-icons'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should contain ASCII [F] instead of Unicode
@@ -444,14 +533,18 @@ No feature context here
     test('should map bugfix to correct ASCII fallback', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '072', `# Task 072: Bug fix
+        createTaskMd(
+          tmpDir,
+          '072',
+          `# Task 072: Bug fix
 
 **Type:** bugfix
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '072');
         const result = runScript(['--task', '--no-icons'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('[B]');
@@ -463,14 +556,18 @@ No feature context here
     test('should map refactor to correct ASCII fallback', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '073', `# Task 073: Code refactor
+        createTaskMd(
+          tmpDir,
+          '073',
+          `# Task 073: Code refactor
 
 **Type:** refactor
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '073');
         const result = runScript(['--task', '--no-icons'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('[R]');
@@ -482,14 +579,18 @@ No feature context here
     test('should map performance to correct ASCII fallback', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '074', `# Task 074: Performance work
+        createTaskMd(
+          tmpDir,
+          '074',
+          `# Task 074: Performance work
 
 **Type:** performance
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '074');
         const result = runScript(['--task', '--no-icons'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('[P]');
@@ -501,14 +602,18 @@ No feature context here
     test('should map deployment to correct ASCII fallback', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '075', `# Task 075: Deployment
+        createTaskMd(
+          tmpDir,
+          '075',
+          `# Task 075: Deployment
 
 **Type:** deployment
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '075');
         const result = runScript(['--task', '--no-icons'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('[D]');
@@ -527,7 +632,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '080');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should show fallback "Task 080" when task.md is missing
@@ -545,7 +650,7 @@ No feature context here
         const envFile = createEnvFile(tmpDir, '081');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should show "Task 081" as fallback
@@ -559,12 +664,16 @@ No feature context here
       const tmpDir = createTempTaskDir();
       try {
         const envFile = path.join(tmpDir, 'env.sh');
-        fs.writeFileSync(envFile, `export SAGA_TASK_CONTEXT="worktree"
+        fs.writeFileSync(
+          envFile,
+          `export SAGA_TASK_CONTEXT="worktree"
 export SAGA_PROJECT_DIR="${tmpDir}"
-`, { mode: 0o644 });
+`,
+          { mode: 0o644 },
+        );
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should handle missing task ID gracefully
@@ -580,7 +689,7 @@ export SAGA_PROJECT_DIR="${tmpDir}"
         const envFile = createEnvFile(tmpDir, '082');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should not crash, produce fallback
@@ -592,14 +701,18 @@ export SAGA_PROJECT_DIR="${tmpDir}"
     test('should handle task.md with only partial sections', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '083', `# Task 083: Partial task
+        createTaskMd(
+          tmpDir,
+          '083',
+          `# Task 083: Partial task
 
 This file has no proper sections, just a title and random text.
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '083');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should extract title at minimum
@@ -614,7 +727,10 @@ This file has no proper sections, just a title and random text.
     test('should combine task info with origin when both flags used', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '090', `# Task 090: Combined output test
+        createTaskMd(
+          tmpDir,
+          '090',
+          `# Task 090: Combined output test
 
 ## Task Type
 
@@ -623,15 +739,16 @@ feature - Test feature
 ## Feature Context
 
 **Feature**: [001-test-feature](../../features/001-test-feature/feature.md)
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '090');
         const result = runScript(['--origin', '--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Should have worktree icon and task info
-        expect(result.stdout).toMatch(/[🌿]|\[W\]/); // worktree icon
+        expect(result.stdout).toMatch(/[🌿]|\[W\]/u); // worktree icon
         expect(result.stdout).toContain('Combined output test');
       } finally {
         cleanupTempDir(tmpDir);
@@ -641,16 +758,20 @@ feature - Test feature
     test('should include task info in all-sections output (no flags)', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '091', `# Task 091: All sections test
+        createTaskMd(
+          tmpDir,
+          '091',
+          `# Task 091: All sections test
 
 ## Task Type
 
 bugfix - Bug fix test
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '091');
         const result = runScript([], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('All sections test');
@@ -662,16 +783,20 @@ bugfix - Bug fix test
     test('should not show task info when only --origin flag is used', () => {
       const tmpDir = createTempTaskDir();
       try {
-        createTaskMd(tmpDir, '092', `# Task 092: Should not appear
+        createTaskMd(
+          tmpDir,
+          '092',
+          `# Task 092: Should not appear
 
 ## Task Type
 
 feature - Test
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '092');
         const result = runScript(['--origin'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Task title should NOT appear when only --origin is used
@@ -689,9 +814,15 @@ feature - Test
         // Create feature.md file
         const featureDir = path.join(tmpDir, 'task-system', 'features', '001-statusline-task-info');
         fs.mkdirSync(featureDir, { recursive: true });
-        fs.writeFileSync(path.join(featureDir, 'feature.md'), `# Feature: Statusline Task Info\n\n**Status:** In Progress\n`);
+        fs.writeFileSync(
+          path.join(featureDir, 'feature.md'),
+          '# Feature: Statusline Task Info\n\n**Status:** In Progress\n',
+        );
 
-        createTaskMd(tmpDir, '100', `# Task 100: Implement task information parsing
+        createTaskMd(
+          tmpDir,
+          '100',
+          `# Task 100: Implement task information parsing
 
 **Type:** feature
 **Feature:** [001-statusline-task-info](../../features/001-statusline-task-info/feature.md)
@@ -721,11 +852,12 @@ P1 - Core functionality required for task awareness
 ## Acceptance Criteria
 
 - Running \`task-status --task\` outputs task title
-`);
+`,
+        );
         const envFile = createEnvFile(tmpDir, '100');
         const result = runScript(['--task'], {
           CLAUDE_ENV_FILE: envFile,
-          SAGA_PROJECT_DIR: tmpDir
+          SAGA_PROJECT_DIR: tmpDir,
         });
         expect(result.exitCode).toBe(0);
         // Title is truncated to 30 chars (+ "...")

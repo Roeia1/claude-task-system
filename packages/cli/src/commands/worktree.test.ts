@@ -1,19 +1,16 @@
 /**
  * Tests for saga worktree command
+ *
+ * Note: These tests perform real git operations (init, clone, worktree add, etc.)
+ * and are expected to take 300-800ms each. This is intentional as we're testing
+ * actual git worktree functionality, not mocked operations.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  mkdtempSync,
-  rmSync,
-  mkdirSync,
-  writeFileSync,
-  realpathSync,
-  existsSync,
-} from 'node:fs';
+import { execSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('worktree command', () => {
   let testDir: string;
@@ -69,9 +66,7 @@ describe('worktree command', () => {
   });
 
   // Helper to run the CLI
-  function runCli(
-    args: string[]
-  ): { stdout: string; stderr: string; exitCode: number } {
+  function runCli(args: string[]): { stdout: string; stderr: string; exitCode: number } {
     const cliPath = join(__dirname, '../../dist/cli.cjs');
     try {
       const stdout = execSync(`node ${cliPath} ${args.join(' ')}`, {
@@ -80,24 +75,19 @@ describe('worktree command', () => {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
       return { stdout, stderr: '', exitCode: 0 };
-    } catch (error: any) {
+    } catch (error) {
+      const spawnError = error as { stdout?: Buffer; stderr?: Buffer; status?: number };
       return {
-        stdout: error.stdout?.toString() || '',
-        stderr: error.stderr?.toString() || '',
-        exitCode: error.status || 1,
+        stdout: spawnError.stdout?.toString() || '',
+        stderr: spawnError.stderr?.toString() || '',
+        exitCode: spawnError.status || 1,
       };
     }
   }
 
   describe('successful worktree creation', () => {
     it('should create worktree and branch', () => {
-      const result = runCli([
-        'worktree',
-        'my-epic',
-        'my-story',
-        '--path',
-        testDir,
-      ]);
+      const result = runCli(['worktree', 'my-epic', 'my-story', '--path', testDir]);
 
       expect(result.exitCode).toBe(0);
 
@@ -110,13 +100,7 @@ describe('worktree command', () => {
     it('should create worktree directory on disk', () => {
       runCli(['worktree', 'my-epic', 'my-story', '--path', testDir]);
 
-      const worktreePath = join(
-        testDir,
-        '.saga',
-        'worktrees',
-        'my-epic',
-        'my-story'
-      );
+      const worktreePath = join(testDir, '.saga', 'worktrees', 'my-epic', 'my-story');
       expect(existsSync(worktreePath)).toBe(true);
       expect(existsSync(join(worktreePath, '.git'))).toBe(true);
     });
@@ -133,13 +117,7 @@ describe('worktree command', () => {
     });
 
     it('should output valid JSON', () => {
-      const result = runCli([
-        'worktree',
-        'my-epic',
-        'my-story',
-        '--path',
-        testDir,
-      ]);
+      const result = runCli(['worktree', 'my-epic', 'my-story', '--path', testDir]);
 
       expect(() => JSON.parse(result.stdout)).not.toThrow();
     });
@@ -153,13 +131,7 @@ describe('worktree command', () => {
         stdio: 'pipe',
       });
 
-      const result = runCli([
-        'worktree',
-        'my-epic',
-        'my-story',
-        '--path',
-        testDir,
-      ]);
+      const result = runCli(['worktree', 'my-epic', 'my-story', '--path', testDir]);
 
       expect(result.exitCode).not.toBe(0);
       const output = JSON.parse(result.stdout);
@@ -169,22 +141,10 @@ describe('worktree command', () => {
 
     it('should fail if worktree directory already exists', () => {
       // Create the worktree directory first
-      const worktreePath = join(
-        testDir,
-        '.saga',
-        'worktrees',
-        'my-epic',
-        'my-story'
-      );
+      const worktreePath = join(testDir, '.saga', 'worktrees', 'my-epic', 'my-story');
       mkdirSync(worktreePath, { recursive: true });
 
-      const result = runCli([
-        'worktree',
-        'my-epic',
-        'my-story',
-        '--path',
-        testDir,
-      ]);
+      const result = runCli(['worktree', 'my-epic', 'my-story', '--path', testDir]);
 
       expect(result.exitCode).not.toBe(0);
       const output = JSON.parse(result.stdout);
@@ -196,13 +156,7 @@ describe('worktree command', () => {
       // Remove .saga directory
       rmSync(join(testDir, '.saga'), { recursive: true, force: true });
 
-      const result = runCli([
-        'worktree',
-        'my-epic',
-        'my-story',
-        '--path',
-        testDir,
-      ]);
+      const result = runCli(['worktree', 'my-epic', 'my-story', '--path', testDir]);
 
       expect(result.exitCode).not.toBe(0);
       const output = JSON.parse(result.stdout);
@@ -212,13 +166,7 @@ describe('worktree command', () => {
 
     it('should fail with non-existent path', () => {
       const nonExistent = join(testDir, 'does-not-exist');
-      const result = runCli([
-        'worktree',
-        'my-epic',
-        'my-story',
-        '--path',
-        nonExistent,
-      ]);
+      const result = runCli(['worktree', 'my-epic', 'my-story', '--path', nonExistent]);
 
       expect(result.exitCode).not.toBe(0);
     });
@@ -226,84 +174,42 @@ describe('worktree command', () => {
 
   describe('branch naming', () => {
     it('should use correct branch naming convention', () => {
-      const result = runCli([
-        'worktree',
-        'auth-system',
-        'login-form',
-        '--path',
-        testDir,
-      ]);
+      const result = runCli(['worktree', 'auth-system', 'login-form', '--path', testDir]);
 
       const output = JSON.parse(result.stdout);
       expect(output.branch).toBe('story-login-form-epic-auth-system');
     });
 
     it('should handle slugs with hyphens', () => {
-      const result = runCli([
-        'worktree',
-        'my-complex-epic',
-        'my-complex-story',
-        '--path',
-        testDir,
-      ]);
+      const result = runCli(['worktree', 'my-complex-epic', 'my-complex-story', '--path', testDir]);
 
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
-      expect(output.branch).toBe(
-        'story-my-complex-story-epic-my-complex-epic'
-      );
+      expect(output.branch).toBe('story-my-complex-story-epic-my-complex-epic');
     });
   });
 
   describe('worktree path', () => {
     it('should create worktree at correct location', () => {
-      const result = runCli([
-        'worktree',
-        'auth',
-        'login',
-        '--path',
-        testDir,
-      ]);
+      const result = runCli(['worktree', 'auth', 'login', '--path', testDir]);
 
       const output = JSON.parse(result.stdout);
-      expect(output.worktreePath).toBe(
-        join(testDir, '.saga', 'worktrees', 'auth', 'login')
-      );
+      expect(output.worktreePath).toBe(join(testDir, '.saga', 'worktrees', 'auth', 'login'));
     });
 
     it('should create parent directories if needed', () => {
       // Worktrees dir exists but epic subdir doesn't
-      const result = runCli([
-        'worktree',
-        'new-epic',
-        'new-story',
-        '--path',
-        testDir,
-      ]);
+      const result = runCli(['worktree', 'new-epic', 'new-story', '--path', testDir]);
 
       expect(result.exitCode).toBe(0);
-      expect(
-        existsSync(join(testDir, '.saga', 'worktrees', 'new-epic', 'new-story'))
-      ).toBe(true);
+      expect(existsSync(join(testDir, '.saga', 'worktrees', 'new-epic', 'new-story'))).toBe(true);
     });
   });
 
   describe('multiple worktrees', () => {
     it('should allow creating multiple worktrees for same epic', () => {
-      const result1 = runCli([
-        'worktree',
-        'my-epic',
-        'story-1',
-        '--path',
-        testDir,
-      ]);
-      const result2 = runCli([
-        'worktree',
-        'my-epic',
-        'story-2',
-        '--path',
-        testDir,
-      ]);
+      const result1 = runCli(['worktree', 'my-epic', 'story-1', '--path', testDir]);
+      const result2 = runCli(['worktree', 'my-epic', 'story-2', '--path', testDir]);
 
       expect(result1.exitCode).toBe(0);
       expect(result2.exitCode).toBe(0);
@@ -316,20 +222,8 @@ describe('worktree command', () => {
     });
 
     it('should allow creating worktrees for different epics', () => {
-      const result1 = runCli([
-        'worktree',
-        'epic-1',
-        'story-a',
-        '--path',
-        testDir,
-      ]);
-      const result2 = runCli([
-        'worktree',
-        'epic-2',
-        'story-b',
-        '--path',
-        testDir,
-      ]);
+      const result1 = runCli(['worktree', 'epic-1', 'story-a', '--path', testDir]);
+      const result2 = runCli(['worktree', 'epic-2', 'story-b', '--path', testDir]);
 
       expect(result1.exitCode).toBe(0);
       expect(result2.exitCode).toBe(0);

@@ -1,10 +1,15 @@
-import { beforeAll } from 'vitest';
 import { setProjectAnnotations } from '@storybook/react-vite';
-import * as previewAnnotations from './preview';
+import { beforeAll, expect } from 'vitest';
+import previewAnnotations from './preview.tsx';
+
+// Types are declared in src/types/vitest-globals.d.ts
 
 const annotations = setProjectAnnotations([previewAnnotations]);
 
-// Run Storybook's beforeAll hook
-if (annotations.beforeAll) {
-  beforeAll(annotations.beforeAll);
-}
+// Set expect globally for visual snapshot tests and run Storybook's beforeAll hook
+beforeAll(async () => {
+  globalThis.__vitest_expect__ = expect;
+  if (annotations.beforeAll) {
+    await annotations.beforeAll();
+  }
+});

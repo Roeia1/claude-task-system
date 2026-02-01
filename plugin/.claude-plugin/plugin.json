@@ -1,7 +1,7 @@
 {
   "name": "core",
   "description": "SAGA - Structured Autonomous Goal Achievement: epic/story workflow with autonomous execution",
-  "version": "2.11.2",
+  "version": "2.16.0",
   "author": {
     "name": "Roei Avrahami",
     "email": "roei.avrahami2@gmail.com"
@@ -9,13 +9,7 @@
   "homepage": "https://github.com/Roeia1/saga",
   "repository": "https://github.com/Roeia1/saga",
   "license": "MIT",
-  "keywords": [
-    "epic-management",
-    "story-workflow",
-    "tdd",
-    "autonomous-execution",
-    "journaling"
-  ],
+  "keywords": ["epic-management", "story-workflow", "tdd", "autonomous-execution", "journaling"],
   "skills": "./skills/",
   "agents": ["./agents/generate-story.md"]
 }

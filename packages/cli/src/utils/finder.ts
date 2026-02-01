@@ -11,23 +11,21 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import Fuse from 'fuse.js';
 import {
-  scanAllStories,
-  scanEpics,
   epicsDirectoryExists,
-  worktreesDirectoryExists,
-  parseFrontmatter,
   type ScannedStory,
-} from './saga-scanner.js';
+  scanAllStories,
+  worktreesDirectoryExists,
+} from './saga-scanner.ts';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export interface EpicInfo {
+interface EpicInfo {
   slug: string;
 }
 
-export interface StoryInfo {
+interface StoryInfo {
   slug: string;
   title: string;
   status: string;
@@ -37,12 +35,12 @@ export interface StoryInfo {
   worktreePath: string;
 }
 
-export type FindResult<T> =
+type FindResult<T> =
   | { found: true; data: T }
   | { found: false; matches: T[] }
   | { found: false; error: string };
 
-export interface FindStoryOptions {
+interface FindStoryOptions {
   status?: string;
 }
 
@@ -61,8 +59,14 @@ const MATCH_THRESHOLD = 0.6;
 // If multiple matches have scores within this range of the best, return all as ambiguous
 const SCORE_SIMILARITY_THRESHOLD = 0.1;
 
-// Re-export parseFrontmatter for backward compatibility
-export { parseFrontmatter } from './saga-scanner.js';
+// Default maximum length for extracted context
+const DEFAULT_CONTEXT_MAX_LENGTH = 300;
+
+// Length of the ellipsis suffix "..."
+const ELLIPSIS_LENGTH = 3;
+
+// Regex pattern for extracting ## Context section (case-insensitive)
+const CONTEXT_SECTION_REGEX = /##\s*Context\s*\n+([\s\S]*?)(?=\n##|Z|$)/i;
 
 // ============================================================================
 // Context Extraction
@@ -75,18 +79,18 @@ export { parseFrontmatter } from './saga-scanner.js';
  * @param maxLength - Maximum length of extracted context (default 300)
  * @returns The context text, truncated if necessary
  */
-export function extractContext(body: string, maxLength: number = 300): string {
+function extractContext(body: string, maxLength = DEFAULT_CONTEXT_MAX_LENGTH): string {
   // Look for ## Context section (case-insensitive)
-  const contextMatch = body.match(/##\s*Context\s*\n+([\s\S]*?)(?=\n##|\Z|$)/i);
+  const contextMatch = body.match(CONTEXT_SECTION_REGEX);
 
   if (!contextMatch) {
     return '';
   }
 
-  let context = contextMatch[1].trim();
+  const context = contextMatch[1].trim();
 
   if (context.length > maxLength) {
-    return context.slice(0, maxLength - 3) + '...';
+    return `${context.slice(0, maxLength - ELLIPSIS_LENGTH)}...`;
   }
 
   return context;
@@ -122,6 +126,85 @@ function toStoryInfo(story: ScannedStory): StoryInfo {
 }
 
 // ============================================================================
+// Fuzzy Match Result Processing
+// ============================================================================
+
+/**
+ * Process fuzzy search results and determine the best match or return ambiguous matches
+ */
+function processFuzzyResults<T>(results: Fuse.FuseResult<T>[]): FindResult<T> {
+  // If only one match, return it
+  if (results.length === 1) {
+    return { found: true, data: results[0].item };
+  }
+
+  // Check if there are multiple similar scores
+  const bestScore = results[0].score ?? 0;
+  const similarMatches = results.filter(
+    (r) => (r.score ?? 0) - bestScore <= SCORE_SIMILARITY_THRESHOLD,
+  );
+
+  // If multiple matches have similar scores, return all for disambiguation
+  if (similarMatches.length > 1) {
+    return { found: false, matches: similarMatches.map((r) => r.item) };
+  }
+
+  // If best match is significantly better than others and good enough, return it
+  if (bestScore <= FUZZY_THRESHOLD) {
+    return { found: true, data: results[0].item };
+  }
+
+  // Multiple matches with varying scores - return all for disambiguation
+  return { found: false, matches: results.map((r) => r.item) };
+}
+
+// ============================================================================
+// Epic Resolution Helpers
+// ============================================================================
+
+/**
+ * Get all epic slugs from the epics directory
+ */
+function getEpicSlugs(projectPath: string): string[] {
+  const epicsDir = join(projectPath, '.saga', 'epics');
+  return readdirSync(epicsDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name);
+}
+
+/**
+ * Find exact match for epic slug
+ */
+function findExactEpicMatch(epicSlugs: string[], queryNormalized: string): EpicInfo | null {
+  for (const slug of epicSlugs) {
+    if (slug.toLowerCase() === queryNormalized) {
+      return { slug };
+    }
+  }
+  return null;
+}
+
+/**
+ * Perform fuzzy search on epics
+ */
+function fuzzySearchEpics(epicSlugs: string[], query: string): FindResult<EpicInfo> {
+  const epics = epicSlugs.map((slug) => ({ slug }));
+  const fuse = new Fuse(epics, {
+    keys: ['slug'],
+    threshold: MATCH_THRESHOLD,
+    includeScore: true,
+  });
+
+  const results = fuse.search(query);
+
+  if (results.length === 0) {
+    return { found: false, error: `No epic found matching '${query}'` };
+  }
+
+  return processFuzzyResults(results);
+}
+
+// ============================================================================
 // Epic Resolution
 // ============================================================================
 
@@ -135,45 +218,55 @@ function toStoryInfo(story: ScannedStory): StoryInfo {
  * @param query - The identifier to resolve
  * @returns FindResult with epic info or matches/error
  */
-export function findEpic(projectPath: string, query: string): FindResult<EpicInfo> {
-  const epicsDir = join(projectPath, '.saga', 'epics');
-
+function findEpic(projectPath: string, query: string): FindResult<EpicInfo> {
   if (!epicsDirectoryExists(projectPath)) {
-    return {
-      found: false,
-      error: 'No .saga/epics/ directory found',
-    };
+    return { found: false, error: 'No .saga/epics/ directory found' };
   }
 
-  // List all epic folders
-  const epicSlugs = readdirSync(epicsDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name);
+  const epicSlugs = getEpicSlugs(projectPath);
 
   if (epicSlugs.length === 0) {
-    return {
-      found: false,
-      error: `No epic found matching '${query}'`,
-    };
+    return { found: false, error: `No epic found matching '${query}'` };
   }
 
   // Normalize query for exact matching
   const queryNormalized = query.toLowerCase().replace(/_/g, '-');
 
   // Check for exact match first (fast path)
-  for (const slug of epicSlugs) {
-    if (slug.toLowerCase() === queryNormalized) {
-      return {
-        found: true,
-        data: { slug },
-      };
-    }
+  const exactMatch = findExactEpicMatch(epicSlugs, queryNormalized);
+  if (exactMatch) {
+    return { found: true, data: exactMatch };
   }
 
-  // Use Fuse.js for fuzzy matching
-  const epics = epicSlugs.map((slug) => ({ slug }));
-  const fuse = new Fuse(epics, {
-    keys: ['slug'],
+  // Use fuzzy search
+  return fuzzySearchEpics(epicSlugs, query);
+}
+
+// ============================================================================
+// Story Resolution Helpers
+// ============================================================================
+
+/**
+ * Find exact match for story slug
+ */
+function findExactStoryMatch(allStories: StoryInfo[], queryNormalized: string): StoryInfo | null {
+  for (const story of allStories) {
+    if (normalize(story.slug) === queryNormalized) {
+      return story;
+    }
+  }
+  return null;
+}
+
+/**
+ * Perform fuzzy search on stories
+ */
+function fuzzySearchStories(allStories: StoryInfo[], query: string): FindResult<StoryInfo> {
+  const fuse = new Fuse(allStories, {
+    keys: [
+      { name: 'slug', weight: 2 }, // Prioritize slug matches
+      { name: 'title', weight: 1 },
+    ],
     threshold: MATCH_THRESHOLD,
     includeScore: true,
   });
@@ -181,47 +274,40 @@ export function findEpic(projectPath: string, query: string): FindResult<EpicInf
   const results = fuse.search(query);
 
   if (results.length === 0) {
-    return {
-      found: false,
-      error: `No epic found matching '${query}'`,
-    };
+    return { found: false, error: `No story found matching '${query}'` };
   }
 
-  // If only one match, return it
-  if (results.length === 1) {
-    return {
-      found: true,
-      data: results[0].item,
-    };
+  return processFuzzyResults(results);
+}
+
+/**
+ * Load and filter stories based on options
+ */
+async function loadAndFilterStories(
+  projectPath: string,
+  query: string,
+  options: FindStoryOptions,
+): Promise<FindResult<StoryInfo> | StoryInfo[]> {
+  const scannedStories = await scanAllStories(projectPath);
+
+  if (scannedStories.length === 0) {
+    return { found: false, error: `No story found matching '${query}'` };
   }
 
-  // Check if there are multiple similar scores
-  const bestScore = results[0].score ?? 0;
-  const similarMatches = results.filter(
-    (r) => (r.score ?? 0) - bestScore <= SCORE_SIMILARITY_THRESHOLD
-  );
+  let allStories = scannedStories.map(toStoryInfo);
 
-  // If multiple matches have similar scores, return all for disambiguation
-  if (similarMatches.length > 1) {
-    return {
-      found: false,
-      matches: similarMatches.map((r) => r.item),
-    };
+  if (options.status) {
+    allStories = allStories.filter((story) => story.status === options.status);
+
+    if (allStories.length === 0) {
+      return {
+        found: false,
+        error: `No story found matching '${query}' with status '${options.status}'`,
+      };
+    }
   }
 
-  // If best match is significantly better than others and good enough, return it
-  if (bestScore <= FUZZY_THRESHOLD) {
-    return {
-      found: true,
-      data: results[0].item,
-    };
-  }
-
-  // Multiple matches with varying scores - return all for disambiguation
-  return {
-    found: false,
-    matches: results.map((r) => r.item),
-  };
+  return allStories;
 }
 
 // ============================================================================
@@ -243,103 +329,43 @@ export function findEpic(projectPath: string, query: string): FindResult<EpicInf
  * @param options - Optional filters (status)
  * @returns Promise resolving to FindResult with story info or matches/error
  */
-export async function findStory(projectPath: string, query: string, options: FindStoryOptions = {}): Promise<FindResult<StoryInfo>> {
-  if (!worktreesDirectoryExists(projectPath) && !epicsDirectoryExists(projectPath)) {
+async function findStory(
+  projectPath: string,
+  query: string,
+  options: FindStoryOptions = {},
+): Promise<FindResult<StoryInfo>> {
+  if (!(worktreesDirectoryExists(projectPath) || epicsDirectoryExists(projectPath))) {
     return {
       found: false,
       error: 'No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first.',
     };
   }
 
-  // Use shared scanner to get all stories
-  const scannedStories = await scanAllStories(projectPath);
+  const storiesOrError = await loadAndFilterStories(projectPath, query, options);
 
-  if (scannedStories.length === 0) {
-    return {
-      found: false,
-      error: `No story found matching '${query}'`,
-    };
+  // If it's a FindResult (error), return it
+  if (!Array.isArray(storiesOrError)) {
+    return storiesOrError;
   }
 
-  // Convert to StoryInfo format and apply status filter
-  let allStories = scannedStories.map(toStoryInfo);
-
-  if (options.status) {
-    allStories = allStories.filter(story => story.status === options.status);
-
-    if (allStories.length === 0) {
-      return {
-        found: false,
-        error: `No story found matching '${query}' with status '${options.status}'`,
-      };
-    }
-  }
+  const allStories = storiesOrError;
 
   // Normalize query for exact matching
   const queryNormalized = normalize(query);
 
-  // Check for exact match on slug first (fast path)
-  for (const story of allStories) {
-    if (normalize(story.slug) === queryNormalized) {
-      return {
-        found: true,
-        data: story,
-      };
-    }
+  // Check for exact match first (fast path)
+  const exactMatch = findExactStoryMatch(allStories, queryNormalized);
+  if (exactMatch) {
+    return { found: true, data: exactMatch };
   }
 
-  // Use Fuse.js for fuzzy matching on slug and title
-  const fuse = new Fuse(allStories, {
-    keys: [
-      { name: 'slug', weight: 2 },   // Prioritize slug matches
-      { name: 'title', weight: 1 },
-    ],
-    threshold: MATCH_THRESHOLD,
-    includeScore: true,
-  });
-
-  const results = fuse.search(query);
-
-  if (results.length === 0) {
-    return {
-      found: false,
-      error: `No story found matching '${query}'`,
-    };
-  }
-
-  // If only one match, return it
-  if (results.length === 1) {
-    return {
-      found: true,
-      data: results[0].item,
-    };
-  }
-
-  // Check if there are multiple similar scores
-  const bestScore = results[0].score ?? 0;
-  const similarMatches = results.filter(
-    (r) => (r.score ?? 0) - bestScore <= SCORE_SIMILARITY_THRESHOLD
-  );
-
-  // If multiple matches have similar scores, return all for disambiguation
-  if (similarMatches.length > 1) {
-    return {
-      found: false,
-      matches: similarMatches.map((r) => r.item),
-    };
-  }
-
-  // If best match is significantly better than others and good enough, return it
-  if (bestScore <= FUZZY_THRESHOLD) {
-    return {
-      found: true,
-      data: results[0].item,
-    };
-  }
-
-  // Multiple matches with varying scores - return all for disambiguation
-  return {
-    found: false,
-    matches: results.map((r) => r.item),
-  };
+  // Use fuzzy search
+  return fuzzySearchStories(allStories, query);
 }
+
+// ============================================================================
+// Exports
+// ============================================================================
+
+export { extractContext, findEpic, findStory };
+export type { EpicInfo, FindResult, FindStoryOptions, StoryInfo };

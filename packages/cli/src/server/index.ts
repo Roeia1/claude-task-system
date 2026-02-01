@@ -6,16 +6,20 @@
  * real-time updates to connected clients via WebSocket.
  */
 
+import { createServer, type Server as HttpServer } from 'node:http';
+import { join } from 'node:path';
 import express, { type Express, type Request, type Response } from 'express';
-import { createServer, type Server as HttpServer } from 'http';
-import { join } from 'path';
-import { createApiRouter } from './routes.js';
-import { createWebSocketServer, type WebSocketInstance } from './websocket.js';
+import { createApiRouter } from './routes.ts';
+import { createWebSocketServer, type WebSocketInstance } from './websocket.ts';
+
+// ============================================================================
+// Types
+// ============================================================================
 
 /**
  * Configuration for starting the server
  */
-export interface ServerConfig {
+interface ServerConfig {
   /** Path to the project root with .saga/ directory */
   sagaRoot: string;
   /** Server port (default: 3847) */
@@ -25,7 +29,7 @@ export interface ServerConfig {
 /**
  * Server instance returned by startServer
  */
-export interface ServerInstance {
+interface ServerInstance {
   /** The Express app instance */
   app: Express;
   /** The HTTP server instance */
@@ -38,8 +42,16 @@ export interface ServerInstance {
   close: () => Promise<void>;
 }
 
+// ============================================================================
+// Constants
+// ============================================================================
+
 /** Default port for the dashboard server */
 const DEFAULT_PORT = 3847;
+
+// ============================================================================
+// App Factory
+// ============================================================================
 
 /**
  * Create and configure the Express app
@@ -68,16 +80,21 @@ function createApp(sagaRoot: string): Express {
 
   // Serve static files from built client (dist/client relative to dist/cli.cjs)
   const clientDistPath = join(__dirname, 'client');
+  const _indexHtmlPath = join(clientDistPath, 'index.html');
   app.use(express.static(clientDistPath));
 
   // SPA fallback - serve index.html for client-side routing
   // Express 5 requires named wildcards, use {*splat} to also match root path
   app.get('/{*splat}', (_req: Request, res: Response) => {
-    res.sendFile(join(clientDistPath, 'index.html'));
+    res.sendFile('index.html', { root: clientDistPath });
   });
 
   return app;
 }
+
+// ============================================================================
+// Server Factory
+// ============================================================================
 
 /**
  * Start the SAGA Dashboard server
@@ -85,7 +102,7 @@ function createApp(sagaRoot: string): Express {
  * @param config - Server configuration
  * @returns Promise resolving to the server instance
  */
-export async function startServer(config: ServerConfig): Promise<ServerInstance> {
+async function startServer(config: ServerConfig): Promise<ServerInstance> {
   const port = config.port ?? DEFAULT_PORT;
   const app = createApp(config.sagaRoot);
   const httpServer = createServer(app);
@@ -97,8 +114,6 @@ export async function startServer(config: ServerConfig): Promise<ServerInstance>
     httpServer.on('error', reject);
 
     httpServer.listen(port, () => {
-      console.log(`SAGA Dashboard server running on http://localhost:${port}`);
-
       resolve({
         app,
         httpServer,
@@ -118,8 +133,15 @@ export async function startServer(config: ServerConfig): Promise<ServerInstance>
               }
             });
           });
-        }
+        },
       });
     });
   });
 }
+
+// ============================================================================
+// Exports
+// ============================================================================
+
+export { startServer };
+export type { ServerConfig, ServerInstance };

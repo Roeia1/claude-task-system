@@ -1,36 +1,36 @@
 ---
 id: storybook-interaction-testing
 title: Add Storybook Interaction Testing
-status: ready
+status: completed
 epic: dashboard-restructure-and-testing
 tasks:
   - id: t1
     title: Install @storybook/test and @storybook/addon-a11y
-    status: pending
+    status: completed
   - id: t2
     title: Configure a11y addon in Storybook
-    status: pending
+    status: completed
   - id: t3
     title: Add play functions to StatusBadge stories
-    status: pending
+    status: completed
   - id: t4
     title: Add play functions to Breadcrumb stories
-    status: pending
+    status: completed
   - id: t5
     title: Add play functions to EpicList stories
-    status: pending
+    status: completed
   - id: t6
     title: Add play functions to EpicDetail stories
-    status: pending
+    status: completed
   - id: t7
     title: Add play functions to StoryDetail stories
-    status: pending
+    status: completed
   - id: t8
     title: Add accessibility tests to key interactive stories
-    status: pending
+    status: completed
   - id: t9
     title: Verify all tests pass with pnpm storybook test
-    status: pending
+    status: completed
 ---
 
 ## Context

@@ -2,11 +2,12 @@
   "name": "@saga/statusline",
   "version": "1.1.0",
   "description": "Statusline integration script for SAGA - displays task context in terminal prompts",
+  "type": "module",
   "bin": {
     "saga-status": "bin/saga-status"
   },
   "scripts": {
-    "test": "jest",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "test:coverage": "jest --coverage",
     "lint": "shellcheck bin/saga-status scripts/*.sh"
   },

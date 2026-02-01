@@ -1,12 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from '../fixtures.ts';
 import {
   createMockEpic,
+  createMockJournalEntry,
   createMockStoryDetail,
   createMockTask,
-  createMockJournalEntry,
   mockEpicDetail,
   mockStoryDetail,
-} from '../utils/mock-api';
+} from '../utils/mock-api.ts';
+
+// Top-level regex patterns for tab names
+const REGEX_JOURNAL = /Journal/;
+const REGEX_SESSIONS = /Sessions/;
 
 /**
  * Story detail interaction tests for the dashboard.
@@ -27,16 +32,22 @@ test.describe('Story Detail Interactions', () => {
         epicSlug: 'tab-epic',
         tasks: [createMockTask({ id: 't1', title: 'Sample Task', status: 'pending' })],
         content: 'Story content here',
-        journal: [createMockJournalEntry({ type: 'session', title: 'Session 1', content: 'Work done' })],
+        journal: [
+          createMockJournalEntry({ type: 'session', title: 'Session 1', content: 'Work done' }),
+        ],
       });
 
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/tab-epic/story/tab-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Verify Tasks tab is active and content is visible
-      await expect(page.getByRole('tab', { name: 'Tasks' })).toHaveAttribute('data-state', 'active');
+      await expect(page.getByRole('tab', { name: 'Tasks' })).toHaveAttribute(
+        'data-state',
+        'active',
+      );
       await expect(page.getByText('Sample Task')).toBeVisible();
     });
 
@@ -60,12 +71,16 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/content-epic/story/content-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Click on Story Content tab
       await page.getByRole('tab', { name: 'Story Content' }).click();
 
       // Verify tab is active and content is shown
-      await expect(page.getByRole('tab', { name: 'Story Content' })).toHaveAttribute('data-state', 'active');
+      await expect(page.getByRole('tab', { name: 'Story Content' })).toHaveAttribute(
+        'data-state',
+        'active',
+      );
       await expect(page.getByText('This is the full story content.')).toBeVisible();
     });
 
@@ -82,8 +97,16 @@ test.describe('Story Detail Interactions', () => {
         epicSlug: 'journal-epic',
         tasks: [],
         journal: [
-          createMockJournalEntry({ type: 'session', title: 'First Session', content: 'Started working' }),
-          createMockJournalEntry({ type: 'session', title: 'Second Session', content: 'Made progress' }),
+          createMockJournalEntry({
+            type: 'session',
+            title: 'First Session',
+            content: 'Started working',
+          }),
+          createMockJournalEntry({
+            type: 'session',
+            title: 'Second Session',
+            content: 'Made progress',
+          }),
         ],
       });
 
@@ -91,12 +114,16 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/journal-epic/story/journal-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Click on Journal tab
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
 
       // Verify tab is active and journal entries are shown
-      await expect(page.getByRole('tab', { name: /Journal/ })).toHaveAttribute('data-state', 'active');
+      await expect(page.getByRole('tab', { name: REGEX_JOURNAL })).toHaveAttribute(
+        'data-state',
+        'active',
+      );
       await expect(page.getByText('First Session')).toBeVisible();
       await expect(page.getByText('Second Session')).toBeVisible();
     });
@@ -123,9 +150,10 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/blocker-epic/story/blocker-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Verify Journal tab shows blocker count
-      const journalTab = page.getByRole('tab', { name: /Journal/ });
+      const journalTab = page.getByRole('tab', { name: REGEX_JOURNAL });
       await expect(journalTab.getByText('2')).toBeVisible();
     });
 
@@ -149,15 +177,16 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/persist-epic/story/persist-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Switch to Story Content
       await page.getByRole('tab', { name: 'Story Content' }).click();
       await expect(page.getByText('Content text')).toBeVisible();
 
       // Switch to Journal
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
       // Look for the journal section heading indicating sessions exist
-      await expect(page.getByRole('heading', { name: /Sessions/ })).toBeVisible();
+      await expect(page.getByRole('heading', { name: REGEX_SESSIONS })).toBeVisible();
 
       // Switch back to Tasks
       await page.getByRole('tab', { name: 'Tasks' }).click();
@@ -191,14 +220,17 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/collapsible-epic/story/collapsible-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
 
       // Go to Journal tab
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
 
       // Session entries are collapsed by default
       await expect(page.getByText('Expandable Session')).toBeVisible();
       // Content should not be visible initially (collapsed)
-      await expect(page.getByText('This is the detailed content of the session.')).not.toBeVisible();
+      await expect(
+        page.getByText('This is the detailed content of the session.'),
+      ).not.toBeVisible();
 
       // Click to expand
       await page.getByText('Expandable Session').click();
@@ -232,7 +264,8 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/toggle-epic/story/toggle-story');
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
 
       // Expand
       await page.getByText('Toggle Session').click();
@@ -268,11 +301,14 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/blocker-expand-epic/story/blocker-expand-story');
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
 
       // Blocker entries should be expanded by default
       await expect(page.getByText('Critical Blocker')).toBeVisible();
-      await expect(page.getByText('This blocker content should be visible by default.')).toBeVisible();
+      await expect(
+        page.getByText('This blocker content should be visible by default.'),
+      ).toBeVisible();
     });
 
     test('should allow multiple entries to be expanded independently', async ({ page }) => {
@@ -297,7 +333,8 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
 
       await page.goto('/epic/multi-epic/story/multi-story');
-      await page.getByRole('tab', { name: /Journal/ }).click();
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+      await page.getByRole('tab', { name: REGEX_JOURNAL }).click();
 
       // Both collapsed initially
       await expect(page.getByText('Content A')).not.toBeVisible();

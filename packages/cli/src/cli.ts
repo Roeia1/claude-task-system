@@ -7,21 +7,22 @@
  *   saga dashboard         Start the dashboard server
  */
 
-import { Command } from 'commander';
-import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
-import { initCommand } from './commands/init.js';
-import { implementCommand } from './commands/implement.js';
-import { dashboardCommand } from './commands/dashboard.js';
-import { scopeValidatorCommand } from './commands/scope-validator.js';
-import { findCommand } from './commands/find.js';
-import { worktreeCommand } from './commands/worktree.js';
+import { join } from 'node:path';
+import process from 'node:process';
+import { Command } from 'commander';
+import { dashboardCommand } from './commands/dashboard.ts';
+import { findCommand } from './commands/find.ts';
+import { implementCommand } from './commands/implement.ts';
+import { initCommand } from './commands/init.ts';
+import { scopeValidatorCommand } from './commands/scope-validator.ts';
 import {
-  sessionsListCommand,
-  sessionsStatusCommand,
-  sessionsLogsCommand,
   sessionsKillCommand,
-} from './commands/sessions/index.js';
+  sessionsListCommand,
+  sessionsLogsCommand,
+  sessionsStatusCommand,
+} from './commands/sessions/index.ts';
+import { worktreeCommand } from './commands/worktree.ts';
 
 // Read version from package.json
 // In the bundled CJS output, __dirname will be available
@@ -54,20 +55,25 @@ program
 program
   .command('implement <story-slug>')
   .description('Run story implementation')
-  .option('--max-cycles <n>', 'Maximum number of implementation cycles', parseInt)
-  .option('--max-time <n>', 'Maximum time in minutes', parseInt)
+  .option('--max-cycles <n>', 'Maximum number of implementation cycles', Number.parseInt)
+  .option('--max-time <n>', 'Maximum time in minutes', Number.parseInt)
   .option('--model <name>', 'Model to use for implementation')
   .option('--dry-run', 'Validate dependencies without running implementation')
-  .action(async (storySlug: string, options: { maxCycles?: number; maxTime?: number; model?: string; dryRun?: boolean }) => {
-    const globalOpts = program.opts();
-    await implementCommand(storySlug, {
-      path: globalOpts.path,
-      maxCycles: options.maxCycles,
-      maxTime: options.maxTime,
-      model: options.model,
-      dryRun: options.dryRun,
-    });
-  });
+  .action(
+    async (
+      storySlug: string,
+      options: { maxCycles?: number; maxTime?: number; model?: string; dryRun?: boolean },
+    ) => {
+      const globalOpts = program.opts();
+      await implementCommand(storySlug, {
+        path: globalOpts.path,
+        maxCycles: options.maxCycles,
+        maxTime: options.maxTime,
+        model: options.model,
+        dryRun: options.dryRun,
+      });
+    },
+  );
 
 // find command
 program
@@ -97,7 +103,7 @@ program
 program
   .command('dashboard')
   .description('Start the dashboard server')
-  .option('--port <n>', 'Port to run the server on (default: 3847)', parseInt)
+  .option('--port <n>', 'Port to run the server on (default: 3847)', Number.parseInt)
   .action(async (options: { port?: number }) => {
     const globalOpts = program.opts();
     await dashboardCommand({
@@ -115,9 +121,7 @@ program
   });
 
 // sessions command group
-const sessionsCommand = program
-  .command('sessions')
-  .description('Manage SAGA tmux sessions');
+const sessionsCommand = program.command('sessions').description('Manage SAGA tmux sessions');
 
 sessionsCommand
   .command('list')

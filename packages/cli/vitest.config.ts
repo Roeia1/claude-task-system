@@ -1,15 +1,74 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig, mergeConfig } from 'vitest/config';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+import { playwright } from '@vitest/browser-playwright';
+import { defineConfig, mergeConfig } from 'vitest/config';
 
 // Import the client's vite config to get aliases and plugins for storybook tests
-import viteConfig from './src/client/vite.config';
+import viteConfig from './src/client/vite.config.ts';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig({
+// Centralized snapshot directories
+const snapshotsDir = path.join(dirname, 'src/client/src/snapshots');
+const domSnapshotsDir = path.join(snapshotsDir, 'dom');
+const pixelSnapshotsDir = path.join(snapshotsDir, 'pixel');
+
+// Custom DOM snapshot path resolver - routes story files to snapshots/dom/
+const resolveSnapshotPath = (testPath: string, snapExtension: string) => {
+  // Only route .stories.tsx files to the centralized snapshots directory
+  if (testPath.includes('.stories.')) {
+    const fileName = path.basename(testPath);
+    return path.join(domSnapshotsDir, `${fileName}${snapExtension}`);
+  }
+  // Other tests use default colocated __snapshots__ directory
+  const testDir = path.dirname(testPath);
+  const fileName = path.basename(testPath);
+  return path.join(testDir, '__snapshots__', `${fileName}${snapExtension}`);
+};
+
+// Common browser configuration for visual snapshot testing
+const browserConfig = {
+  enabled: true,
+  headless: true,
+  provider: playwright(),
+  instances: [{ browser: 'chromium' as const }],
+  // Visual snapshot testing configuration
+  screenshotDirectory: pixelSnapshotsDir,
+  expect: {
+    toMatchScreenshot: {
+      comparatorName: 'pixelmatch' as const,
+      comparatorOptions: {
+        // Allow small pixel differences for cross-platform consistency
+        threshold: 0.2,
+        // Allow up to 0.5% pixel mismatch for anti-aliasing differences
+        allowedMismatchedPixelRatio: 0.005,
+      },
+      // Custom path resolution - all pixel snapshots go to snapshots/pixel/
+      resolveScreenshotPath: ({
+        arg,
+        browserName,
+        ext,
+        testFileName,
+      }: {
+        arg: string;
+        browserName: string;
+        ext: string;
+        testFileName: string;
+      }) => {
+        const fileName = path.basename(testFileName);
+        return path.join(pixelSnapshotsDir, fileName, `${arg}-${browserName}${ext}`);
+      },
+    },
+  },
+};
+
+const config = defineConfig({
   test: {
+    // Stop on first failure to fail fast
+    bail: 1,
+    // Global snapshot path resolver - routes story files to centralized snapshots/dom/
+    resolveSnapshotPath,
     projects: [
       // Unit tests project - runs in Node environment from package root
       {
@@ -20,9 +79,22 @@ export default defineConfig({
           exclude: ['src/client/**'],
         },
       },
-      // Storybook tests project - runs in browser with client's vite config
+      // Client component tests project - runs in jsdom with React Testing Library
       mergeConfig(viteConfig, {
+        test: {
+          name: 'client',
+          root: path.join(dirname, 'src/client'),
+          include: ['src/**/*.test.tsx'],
+          environment: 'jsdom',
+          setupFiles: [path.join(dirname, 'src/client/src/test-setup.ts')],
+        },
+      }),
+      // Storybook tests project - runs in browser with client's vite config
+      // Note: Using spread instead of mergeConfig to preserve function references
+      {
+        ...viteConfig,
         plugins: [
+          ...(viteConfig.plugins || []),
           storybookTest({
             configDir: path.join(dirname, 'src/client/.storybook'),
             storybookScript: 'pnpm storybook --no-open',
@@ -30,15 +102,13 @@ export default defineConfig({
         ],
         test: {
           name: 'storybook',
-          browser: {
-            enabled: true,
-            headless: true,
-            provider: 'playwright',
-            instances: [{ browser: 'chromium' }],
-          },
+          browser: browserConfig,
           setupFiles: [path.join(dirname, 'src/client/.storybook/vitest.setup.ts')],
         },
-      }),
+      },
     ],
   },
 });
+
+// Vitest config requires default export
+export { config as default };

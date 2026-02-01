@@ -16,8 +16,9 @@
  *   - error: string (if no match)
  */
 
-import { findEpic, findStory } from '../utils/finder.js';
-import { resolveProjectPath } from '../utils/project-discovery.js';
+import process from 'node:process';
+import { findEpic, findStory } from '../utils/finder.ts';
+import { resolveProjectPath } from '../utils/project-discovery.ts';
 
 /**
  * Options for the find command
@@ -36,14 +37,13 @@ export async function findCommand(query: string, options: FindOptions): Promise<
   let projectPath: string;
   try {
     projectPath = resolveProjectPath(options.path);
-  } catch (error: any) {
-    console.log(JSON.stringify({ found: false, error: error.message }));
+  } catch (_error) {
     process.exit(1);
   }
 
   const type = options.type ?? 'story';
 
-  let result;
+  let result: ReturnType<typeof findEpic> | Awaited<ReturnType<typeof findStory>>;
   if (type === 'epic') {
     result = findEpic(projectPath, query);
   } else {

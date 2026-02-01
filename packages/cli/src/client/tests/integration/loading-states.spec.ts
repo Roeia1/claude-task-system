@@ -1,13 +1,34 @@
-import { test, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from '../fixtures.ts';
 import {
-  mockApiDelay,
-  mockEpicList,
-  mockEpicDetail,
-  mockStoryDetail,
-  createMockEpicSummary,
   createMockEpic,
+  createMockEpicSummary,
   createMockStoryDetail,
-} from '../utils/mock-api';
+  mockApiDelay,
+  mockEpicDetail,
+  mockEpicList,
+} from '../utils/mock-api.ts';
+
+// HTTP Status Codes
+const HTTP_OK = 200;
+
+// Delay durations (ms)
+const DELAY_SHORT_MS = 100;
+const DELAY_TRANSITION_MS = 500;
+const DELAY_MEDIUM_MS = 1000;
+const DELAY_LONG_MS = 1500;
+const DELAY_VERY_LONG_MS = 2000;
+
+// Timeouts (ms)
+const CONTENT_TIMEOUT_MS = 5000;
+const LOADING_TIMEOUT_MS = 10_000;
+
+// Expected counts
+const EXPECTED_SKELETON_CARDS = 3;
+
+// Regex patterns defined at module level for performance
+const EPIC_ONE_REGEX = /Epic One/i;
+const NAV_EPIC_1_REGEX = /Nav Epic 1/i;
 
 /**
  * Loading state tests for the dashboard.
@@ -24,8 +45,8 @@ test.describe('Loading States', () => {
       ];
 
       // Add 1 second delay to the response
-      await mockApiDelay(page, '**/api/epics', 1000, {
-        status: 200,
+      await mockApiDelay(page, '**/api/epics', DELAY_MEDIUM_MS, {
+        status: HTTP_OK,
         contentType: 'application/json',
         body: JSON.stringify(epics),
       });
@@ -38,18 +59,18 @@ test.describe('Loading States', () => {
       await expect(skeletons.first()).toBeVisible();
 
       // Wait for the data to load
-      await expect(page.getByText('Epic One')).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText('Epic One')).toBeVisible({ timeout: CONTENT_TIMEOUT_MS });
       await expect(page.getByText('Epic Two')).toBeVisible();
 
       // Skeleton loaders should no longer be visible (or at least not the main loading ones)
       // After data loads, the page should show the actual epic cards
-      await expect(page.getByRole('link', { name: /Epic One/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: EPIC_ONE_REGEX })).toBeVisible();
     });
 
     test('should show multiple skeleton cards while loading', async ({ page }) => {
       // Mock with delay
-      await mockApiDelay(page, '**/api/epics', 2000, {
-        status: 200,
+      await mockApiDelay(page, '**/api/epics', DELAY_VERY_LONG_MS, {
+        status: HTTP_OK,
         contentType: 'application/json',
         body: JSON.stringify([]),
       });
@@ -58,15 +79,15 @@ test.describe('Loading States', () => {
 
       // The EpicList shows 3 skeleton cards during loading
       const skeletons = page.locator('[data-testid="epic-card-skeleton"]');
-      await expect(skeletons).toHaveCount(3);
+      await expect(skeletons).toHaveCount(EXPECTED_SKELETON_CARDS);
     });
 
     test('should hide skeleton loaders after data arrives', async ({ page }) => {
       const epics = [createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' })];
 
       // Mock with a short delay
-      await mockApiDelay(page, '**/api/epics', 100, {
-        status: 200,
+      await mockApiDelay(page, '**/api/epics', DELAY_SHORT_MS, {
+        status: HTTP_OK,
         contentType: 'application/json',
         body: JSON.stringify(epics),
       });
@@ -74,7 +95,7 @@ test.describe('Loading States', () => {
       await page.goto('/');
 
       // Wait for data to load
-      await expect(page.getByText('Test Epic')).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText('Test Epic')).toBeVisible({ timeout: CONTENT_TIMEOUT_MS });
 
       // Skeleton loaders should be gone after data loads
       // Check that the epic card skeletons are not present
@@ -93,8 +114,8 @@ test.describe('Loading States', () => {
       });
 
       // Mock with delay
-      await mockApiDelay(page, '**/api/epics/test-epic', 1000, {
-        status: 200,
+      await mockApiDelay(page, '**/api/epics/test-epic', DELAY_MEDIUM_MS, {
+        status: HTTP_OK,
         contentType: 'application/json',
         body: JSON.stringify(epic),
       });
@@ -106,7 +127,9 @@ test.describe('Loading States', () => {
       await expect(headerSkeleton).toBeVisible();
 
       // Wait for data to load
-      await expect(page.getByRole('heading', { name: 'Test Epic Detail' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Test Epic Detail' })).toBeVisible({
+        timeout: CONTENT_TIMEOUT_MS,
+      });
 
       // Content should now be visible
       await expect(page.getByText('Story One')).toBeVisible();
@@ -115,8 +138,8 @@ test.describe('Loading States', () => {
     test('should show progress skeleton in header while loading', async ({ page }) => {
       const epic = createMockEpic({ slug: 'loading-epic', title: 'Loading Epic' });
 
-      await mockApiDelay(page, '**/api/epics/loading-epic', 1500, {
-        status: 200,
+      await mockApiDelay(page, '**/api/epics/loading-epic', DELAY_LONG_MS, {
+        status: HTTP_OK,
         contentType: 'application/json',
         body: JSON.stringify(epic),
       });
@@ -127,7 +150,9 @@ test.describe('Loading States', () => {
       await expect(page.locator('[data-testid="epic-header-skeleton"]')).toBeVisible();
 
       // Wait for real content
-      await expect(page.getByRole('heading', { name: 'Loading Epic' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Loading Epic' })).toBeVisible({
+        timeout: CONTENT_TIMEOUT_MS,
+      });
     });
   });
 
@@ -141,8 +166,8 @@ test.describe('Loading States', () => {
       });
 
       // Mock with delay
-      await mockApiDelay(page, '**/api/stories/test-epic/test-story', 1000, {
-        status: 200,
+      await mockApiDelay(page, '**/api/stories/test-epic/test-story', DELAY_MEDIUM_MS, {
+        status: HTTP_OK,
         contentType: 'application/json',
         body: JSON.stringify(story),
       });
@@ -154,7 +179,9 @@ test.describe('Loading States', () => {
       await expect(headerSkeleton).toBeVisible();
 
       // Wait for data to load
-      await expect(page.getByRole('heading', { name: 'Test Story Detail' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Test Story Detail' })).toBeVisible({
+        timeout: CONTENT_TIMEOUT_MS,
+      });
     });
 
     test('should show skeleton placeholders for header elements', async ({ page }) => {
@@ -164,8 +191,8 @@ test.describe('Loading States', () => {
         epicSlug: 'my-epic',
       });
 
-      await mockApiDelay(page, '**/api/stories/my-epic/story-with-tasks', 1500, {
-        status: 200,
+      await mockApiDelay(page, '**/api/stories/my-epic/story-with-tasks', DELAY_LONG_MS, {
+        status: HTTP_OK,
         contentType: 'application/json',
         body: JSON.stringify(story),
       });
@@ -177,7 +204,9 @@ test.describe('Loading States', () => {
       await expect(page.locator('[data-testid="story-content-skeleton"]')).toBeVisible();
 
       // Wait for real content
-      await expect(page.getByRole('heading', { name: 'Story With Tasks' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Story With Tasks' })).toBeVisible({
+        timeout: CONTENT_TIMEOUT_MS,
+      });
     });
 
     test('should transition from loading to loaded state correctly', async ({ page }) => {
@@ -188,11 +217,16 @@ test.describe('Loading States', () => {
         status: 'ready',
       });
 
-      await mockApiDelay(page, '**/api/stories/transition-epic/transition-story', 500, {
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(story),
-      });
+      await mockApiDelay(
+        page,
+        '**/api/stories/transition-epic/transition-story',
+        DELAY_TRANSITION_MS,
+        {
+          status: HTTP_OK,
+          contentType: 'application/json',
+          body: JSON.stringify(story),
+        },
+      );
 
       await page.goto('/epic/transition-epic/story/transition-story');
 
@@ -200,7 +234,9 @@ test.describe('Loading States', () => {
       await expect(page.locator('[data-testid="story-header-skeleton"]')).toBeVisible();
 
       // After loading, should show the story details
-      await expect(page.getByRole('heading', { name: 'Transition Story' })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: 'Transition Story' })).toBeVisible({
+        timeout: CONTENT_TIMEOUT_MS,
+      });
 
       // Status badge should be visible
       await expect(page.getByText('Ready')).toBeVisible();
@@ -215,6 +251,9 @@ test.describe('Loading States', () => {
       await mockEpicList(page, epics);
 
       await page.goto('/');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
+        timeout: LOADING_TIMEOUT_MS,
+      });
 
       // Data should appear quickly
       await expect(page.getByText('Fast Epic')).toBeVisible();
@@ -239,10 +278,16 @@ test.describe('Loading States', () => {
       await mockEpicDetail(page, epic1);
 
       await page.goto('/');
+      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
+        timeout: LOADING_TIMEOUT_MS,
+      });
       await expect(page.getByText('Nav Epic 1')).toBeVisible();
 
       // Click to navigate to epic detail
-      await page.getByRole('link', { name: /Nav Epic 1/i }).click();
+      await page.getByRole('link', { name: NAV_EPIC_1_REGEX }).click();
+      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, {
+        timeout: LOADING_TIMEOUT_MS,
+      });
 
       // Should eventually show the epic detail
       await expect(page.getByRole('heading', { name: 'Nav Epic 1 Detail' })).toBeVisible();

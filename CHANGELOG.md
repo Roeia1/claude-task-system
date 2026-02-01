@@ -5,6 +5,110 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.16.0] - 2026-02-01
+
+### Added
+
+- **storybook**: Mock data factories (`mock-factories.ts`) for generating consistent test data across all component stories
+- **storybook**: PageWrapper component for proper Layout context in page stories
+- **storybook**: New component stories for EpicCard, StoryCard, TaskItem, and JournalEntry
+- **cli**: Comprehensive testing strategy documentation (`TESTING.md`)
+
+### Changed
+
+- **storybook**: Restructured all stories to Showcase + Playground pattern (reduced from 40+ stories to 2 per component)
+- **storybook**: Reorganized sidebar hierarchy to Foundation/Atoms/Components/Pages
+- **storybook**: Centralized snapshots under `snapshots/dom/` and `snapshots/pixel/` directories
+- **cli**: Improved LogViewer component with better auto-scroll toggle (removed confusing pause button)
+- **cli**: Changed progress bar colors for clearer visual feedback (green for progress, clearer empty state)
+- **cli**: Clarified DOM vs pixel snapshot terminology in documentation
+
+### Fixed
+
+- **cli**: Resolved flaky WebSocket file watcher e2e test
+- **cli**: Corrected snapshot directory name in docs
+
+## [2.15.1] - 2026-02-01
+
+### Fixed
+
+- **sessions**: Use double-underscore naming for dashboard compatibility
+- **dashboard**: Include story content in API response
+
+## [2.15.0] - 2026-01-31
+
+### Added
+
+- **dashboard**: Active sessions display on home page with real-time WebSocket updates
+- **dashboard**: SessionCard and ActiveSessions components for session monitoring
+- **dashboard**: Storybook stories for session components
+- **scope-validator**: Error message output for scope violations
+
+### Changed
+
+- **cli**: Upgraded to React 19 and React Router v7
+- **cli**: Upgraded to Tailwind v4 with Biome linter
+- **cli**: Upgraded vite, vitest, esbuild, and related packages
+- **cli**: Improved test patterns with model-based testing using xstate/graph
+- **build**: Split vendor chunks to reduce main bundle size
+
+### Fixed
+
+- **cli**: WebSocket session broadcast and ping/pong reliability
+- **cli**: WebSocket reconnection and subscription restoration
+- **cli**: Sequential ports in WebSocket tests to prevent EADDRINUSE
+- **cli**: Biome lint errors across codebase (300+ fixes)
+- **storybook**: Removed component exports and unused MDX patterns
+- **lint**: Resolved barrel file and magic number warnings
+
+## [2.14.0] - 2026-01-30
+
+### Added
+
+- **dashboard**: Log viewer component for real-time tmux session log display
+- **dashboard**: WebSocket log streaming for live session output
+- **dashboard**: Story content rendered as markdown in StoryDetail view
+
+### Changed
+
+- **build**: Parallelized build and test scripts using concurrently for faster CI
+
+### Fixed
+
+- **cli**: E2E test setup now resets fixtures before each test for clean state
+
+## [2.13.0] - 2026-01-30
+
+### Added
+
+- **dashboard**: Epic.md content display with collapsible markdown rendering using react-markdown and remark-gfm
+- **dashboard**: Visual snapshot testing infrastructure with Storybook-based DOM snapshots
+- **dashboard**: Backend session API with REST endpoints (GET /api/sessions, GET /api/sessions/:sessionName)
+- **dashboard**: WebSocket broadcasts for real-time session updates (sessions:updated event)
+- **dashboard**: Session polling service with change detection for new, completed, and removed sessions
+
+## [2.12.1] - 2026-01-29
+
+### Fixed
+
+- **cli**: Dashboard CPU usage reduced from 400%+ to near zero by watching only epics/archive directories instead of entire .saga/ (which includes worktrees with 79K+ files)
+
+## [2.12.0] - 2026-01-29
+
+### Added
+
+- **dashboard**: Epic.md content display in epic detail view
+- **dashboard**: Playwright E2E tests with real backend (happy paths + error paths)
+- **dashboard**: Test fixtures for E2E testing (sample epics, stories, journals)
+
+### Changed
+
+- **skills**: Consolidated `/publish-cli` and `/publish-plugin` into single `/publish` skill
+
+### Fixed
+
+- **dashboard**: SPA routing for direct URL navigation (Express 5 sendFile fix)
+
 ## [2.11.2] - 2026-01-29
 
 ### Fixed

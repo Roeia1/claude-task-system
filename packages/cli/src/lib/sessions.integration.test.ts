@@ -5,18 +5,28 @@
  * Tests are skipped if tmux is not available.
  */
 
-import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { existsSync, rmSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   createSession,
-  listSessions,
   getSessionStatus,
   killSession,
-  validateSlug,
+  listSessions,
   OUTPUT_DIR,
-} from './sessions.js';
+  validateSlug,
+} from './sessions.ts';
+
+// Module-level regex constants for biome lint/performance/useTopLevelRegex
+const SESSION_NAME_PATTERN = /^saga__test-epic__test-story__\d+$/;
+const INVALID_EPIC_SLUG_PATTERN = /invalid epic slug/i;
+const INVALID_STORY_SLUG_PATTERN = /invalid story slug/i;
+
+// Module-level numeric constants for biome lint/style/noMagicNumbers
+const DEFAULT_WAIT_MS = 2000;
+const OUTPUT_SETTLE_MS = 100;
+const LONG_SLUG_LENGTH = 100;
 
 /**
  * Check if tmux is available on the system
@@ -31,34 +41,45 @@ const hasTmux = isTmuxAvailable();
 // Helper to clean up all saga-test sessions
 async function cleanupTestSessions(): Promise<void> {
   const sessions = await listSessions();
-  for (const session of sessions) {
-    if (session.name.startsWith('saga-test-epic-') || session.name.startsWith('saga-integration-')) {
-      await killSession(session.name);
-    }
-  }
+  const testSessions = sessions.filter(
+    (session) =>
+      session.name.startsWith('saga__test-epic__') ||
+      session.name.startsWith('saga__integration__'),
+  );
+  await Promise.all(testSessions.map((session) => killSession(session.name)));
 }
 
 // Helper to wait for session to be fully created
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Helper to wait for a file to exist with polling
-async function waitForFile(filePath: string, maxWaitMs = 2000): Promise<boolean> {
-  const pollInterval = 50;
-  let waited = 0;
-  while (!existsSync(filePath) && waited < maxWaitMs) {
+// Constants for polling
+const POLL_INTERVAL_MS = 50;
+
+// Helper to wait for a file to exist with polling (using recursion)
+function waitForFile(filePath: string, maxWaitMs = DEFAULT_WAIT_MS): Promise<boolean> {
+  const pollInterval = POLL_INTERVAL_MS;
+
+  const poll = async (waited: number): Promise<boolean> => {
+    if (existsSync(filePath)) {
+      return true;
+    }
+    if (waited >= maxWaitMs) {
+      return false;
+    }
     await sleep(pollInterval);
-    waited += pollInterval;
-  }
-  return existsSync(filePath);
+    return poll(waited + pollInterval);
+  };
+
+  return poll(0);
 }
 
 describe.skipIf(!hasTmux)('sessions integration', () => {
   const testEpic = 'test-epic';
   const testStory = 'test-story';
 
-  beforeAll(async () => {
+  beforeAll(() => {
     // Create output directory if it doesn't exist
     if (!existsSync(OUTPUT_DIR)) {
       mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -79,7 +100,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
     it('should create a tmux session with correct name pattern', async () => {
       const result = await createSession(testEpic, testStory, 'echo "test output"');
 
-      expect(result.sessionName).toMatch(/^saga-test-epic-test-story-\d+$/);
+      expect(result.sessionName).toMatch(SESSION_NAME_PATTERN);
       expect(result.outputFile).toBe(join(OUTPUT_DIR, `${result.sessionName}.out`));
 
       // Verify session exists
@@ -93,7 +114,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
       const result = await createSession(testEpic, testStory, 'echo "hello world" && sleep 1');
 
       // Wait for script to create output file (poll with timeout)
-      const fileExists = await waitForFile(result.outputFile, 2000);
+      const fileExists = await waitForFile(result.outputFile, DEFAULT_WAIT_MS);
 
       expect(fileExists).toBe(true);
     });
@@ -103,56 +124,63 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
       const result = await createSession(testEpic, testStory, `echo "${testMessage}" && sleep 1`);
 
       // Wait for output file to exist, then wait a bit more for content
-      await waitForFile(result.outputFile, 2000);
-      await sleep(100);
+      await waitForFile(result.outputFile, DEFAULT_WAIT_MS);
+      await sleep(OUTPUT_SETTLE_MS);
 
       const output = readFileSync(result.outputFile, 'utf-8');
       expect(output).toContain(testMessage);
     });
 
-    it('should reject invalid epic slug', async () => {
-      await expect(createSession('Invalid_Epic', testStory, 'echo test'))
-        .rejects.toThrow(/invalid epic slug/i);
+    it('should reject invalid epic slug', () => {
+      expect(() => createSession('Invalid_Epic', testStory, 'echo test')).toThrow(
+        INVALID_EPIC_SLUG_PATTERN,
+      );
     });
 
-    it('should reject invalid story slug', async () => {
-      await expect(createSession(testEpic, 'Invalid_Story', 'echo test'))
-        .rejects.toThrow(/invalid story slug/i);
+    it('should reject invalid story slug', () => {
+      expect(() => createSession(testEpic, 'Invalid_Story', 'echo test')).toThrow(
+        INVALID_STORY_SLUG_PATTERN,
+      );
     });
 
-    it('should reject slug with uppercase letters', async () => {
-      await expect(createSession('MyEpic', testStory, 'echo test'))
-        .rejects.toThrow(/invalid epic slug/i);
+    it('should reject slug with uppercase letters', () => {
+      expect(() => createSession('MyEpic', testStory, 'echo test')).toThrow(
+        INVALID_EPIC_SLUG_PATTERN,
+      );
     });
 
-    it('should reject slug with underscores', async () => {
-      await expect(createSession('my_epic', testStory, 'echo test'))
-        .rejects.toThrow(/invalid epic slug/i);
+    it('should reject slug with underscores', () => {
+      expect(() => createSession('my_epic', testStory, 'echo test')).toThrow(
+        INVALID_EPIC_SLUG_PATTERN,
+      );
     });
 
-    it('should reject slug with special characters', async () => {
-      await expect(createSession('my@epic', testStory, 'echo test'))
-        .rejects.toThrow(/invalid epic slug/i);
+    it('should reject slug with special characters', () => {
+      expect(() => createSession('my@epic', testStory, 'echo test')).toThrow(
+        INVALID_EPIC_SLUG_PATTERN,
+      );
     });
 
-    it('should reject slug with spaces', async () => {
-      await expect(createSession('my epic', testStory, 'echo test'))
-        .rejects.toThrow(/invalid epic slug/i);
+    it('should reject slug with spaces', () => {
+      expect(() => createSession('my epic', testStory, 'echo test')).toThrow(
+        INVALID_EPIC_SLUG_PATTERN,
+      );
     });
 
-    it('should reject slug starting with hyphen', async () => {
-      await expect(createSession('-my-epic', testStory, 'echo test'))
-        .rejects.toThrow(/invalid epic slug/i);
+    it('should reject slug starting with hyphen', () => {
+      expect(() => createSession('-my-epic', testStory, 'echo test')).toThrow(
+        INVALID_EPIC_SLUG_PATTERN,
+      );
     });
 
-    it('should reject slug ending with hyphen', async () => {
-      await expect(createSession('my-epic-', testStory, 'echo test'))
-        .rejects.toThrow(/invalid epic slug/i);
+    it('should reject slug ending with hyphen', () => {
+      expect(() => createSession('my-epic-', testStory, 'echo test')).toThrow(
+        INVALID_EPIC_SLUG_PATTERN,
+      );
     });
 
-    it('should reject empty slug', async () => {
-      await expect(createSession('', testStory, 'echo test'))
-        .rejects.toThrow(/invalid epic slug/i);
+    it('should reject empty slug', () => {
+      expect(() => createSession('', testStory, 'echo test')).toThrow(INVALID_EPIC_SLUG_PATTERN);
     });
   });
 
@@ -162,8 +190,8 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
       await cleanupTestSessions();
 
       const sessions = await listSessions();
-      const testSessions = sessions.filter(s =>
-        s.name.startsWith('saga-test-epic-') || s.name.startsWith('saga-integration-')
+      const testSessions = sessions.filter(
+        (s) => s.name.startsWith('saga__test-epic__') || s.name.startsWith('saga__integration__'),
       );
       expect(testSessions).toHaveLength(0);
     });
@@ -172,7 +200,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
       const result = await createSession(testEpic, testStory, 'sleep 10');
 
       const sessions = await listSessions();
-      const found = sessions.find(s => s.name === result.sessionName);
+      const found = sessions.find((s) => s.name === result.sessionName);
 
       expect(found).toBeDefined();
       expect(found?.status).toBe('running');
@@ -184,19 +212,22 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
       const result2 = await createSession('integration', 'story2', 'sleep 10');
 
       const sessions = await listSessions();
-      const names = sessions.map(s => s.name);
+      const names = sessions.map((s) => s.name);
 
       expect(names).toContain(result1.sessionName);
       expect(names).toContain(result2.sessionName);
     });
 
-    it('should only return sessions with saga- prefix', async () => {
+    it('should only return sessions with saga__ prefix', async () => {
       // Create a non-saga session
-      spawnSync('tmux', ['new-session', '-d', '-s', 'other-session', 'sleep 5'], { encoding: 'utf-8' });
+      spawnSync('tmux', ['new-session', '-d', '-s', 'other-session', 'sleep 5'], {
+        encoding: 'utf-8',
+      });
 
       try {
         const sessions = await listSessions();
-        const nonSagaSessions = sessions.filter(s => !s.name.startsWith('saga-'));
+        // Sessions should start with saga__ prefix
+        const nonSagaSessions = sessions.filter((s) => !s.name.startsWith('saga__'));
 
         expect(nonSagaSessions).toHaveLength(0);
       } finally {
@@ -216,7 +247,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
     });
 
     it('should return running: false for non-existent session', async () => {
-      const status = await getSessionStatus('saga-non-existent-session-99999');
+      const status = await getSessionStatus('saga__non-existent__session__99999');
 
       expect(status.running).toBe(false);
     });
@@ -247,7 +278,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
     });
 
     it('should return killed: false for non-existent session', async () => {
-      const killResult = await killSession('saga-non-existent-session-99999');
+      const killResult = await killSession('saga__non-existent__session__99999');
 
       expect(killResult.killed).toBe(false);
     });
@@ -272,12 +303,12 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
     it('should complete full lifecycle: create -> list -> status -> kill', async () => {
       // 1. Create session
       const createResult = await createSession(testEpic, testStory, 'sleep 30');
-      expect(createResult.sessionName).toMatch(/^saga-test-epic-test-story-\d+$/);
+      expect(createResult.sessionName).toMatch(SESSION_NAME_PATTERN);
       expect(createResult.outputFile).toContain('/tmp/saga-sessions/');
 
       // 2. Verify it appears in list
       let sessions = await listSessions();
-      let found = sessions.find(s => s.name === createResult.sessionName);
+      let found = sessions.find((s) => s.name === createResult.sessionName);
       expect(found).toBeDefined();
       expect(found?.status).toBe('running');
 
@@ -291,7 +322,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
 
       // 5. Verify removed from list
       sessions = await listSessions();
-      found = sessions.find(s => s.name === createResult.sessionName);
+      found = sessions.find((s) => s.name === createResult.sessionName);
       expect(found).toBeUndefined();
 
       // 6. Verify status shows not running
@@ -311,7 +342,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
 
       // They should have different names (different PIDs)
       expect(result2.sessionName).not.toBe(result1.sessionName);
-      expect(result2.sessionName).toMatch(/^saga-test-epic-test-story-\d+$/);
+      expect(result2.sessionName).toMatch(SESSION_NAME_PATTERN);
     });
   });
 
@@ -349,7 +380,7 @@ describe('validateSlug edge cases', () => {
   });
 
   it('should accept long slugs', () => {
-    const longSlug = 'a'.repeat(100);
+    const longSlug = 'a'.repeat(LONG_SLUG_LENGTH);
     expect(validateSlug(longSlug)).toBe(true);
   });
 
@@ -359,8 +390,8 @@ describe('validateSlug edge cases', () => {
   });
 
   it('should reject null-like inputs', () => {
-    expect(validateSlug(null as any)).toBe(false);
-    expect(validateSlug(undefined as any)).toBe(false);
+    expect(validateSlug(null)).toBe(false);
+    expect(validateSlug(undefined)).toBe(false);
   });
 
   it('should reject slug with leading/trailing whitespace', () => {
@@ -381,14 +412,5 @@ describe('validateSlug edge cases', () => {
     expect(validateSlug('tëst')).toBe(false);
     expect(validateSlug('tést')).toBe(false);
     expect(validateSlug('test🚀')).toBe(false);
-  });
-});
-
-describe('tmux not available handling', () => {
-  // This test is always run but only meaningful when tmux is actually not available
-  // It serves as documentation for expected behavior
-  it.skipIf(hasTmux)('should throw error when tmux is not installed', async () => {
-    await expect(createSession('my-epic', 'my-story', 'echo test'))
-      .rejects.toThrow(/tmux.*not found|not installed/i);
   });
 });

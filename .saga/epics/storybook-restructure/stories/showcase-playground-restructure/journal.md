@@ -1,0 +1,665 @@
+# Execution Journal
+
+## Session 1: 2026-02-01
+
+### Task: t1 - Create mock data factories
+
+**What was done:**
+- Created `packages/cli/src/client/src/test-utils/mock-factories.ts` with preset-based factory functions
+- Implemented `createMockEpic()`, `createMockEpicSummary()`, `createMockStory()`, `createMockSession()`, `createMockTask()`, `createMockJournal()` functions
+- Exported preset type unions: `EpicPreset`, `StoryPreset`, `SessionPreset`, `TaskPreset`, `JournalPreset`
+- Exported override interfaces: `EpicOverrides`, `EpicSummaryOverrides`, `StoryOverrides`, `SessionOverrides`, `TaskOverrides`, `JournalOverrides`
+- Added utility functions: `resetMockCounters()`, `createStoryCounts()`
+- Fixed all biome linting issues:
+  - Restructured file to put all exports at the end
+  - Extracted magic number to named constant `BASE_SESSION_PID`
+  - Added default cases with `satisfies never` for exhaustive switch statements
+  - Added block statements to if expressions
+  - Removed unused counter variable
+
+**Decisions:**
+- Used `satisfies never` pattern for default switch cases to get TypeScript exhaustiveness checking
+- Chose to put all exports at the end of file using `export { ... }` syntax to satisfy biome's `useExportsLast` rule
+- Made internal helper functions non-exported (generateTasksForPreset, generateJournalForPreset, etc.)
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- 729/730 unit tests pass (1 pre-existing timeout failure unrelated to this work)
+
+**Next steps:**
+- Task t2: Create PageWrapper component for Page stories
+
+## Session 2: 2026-02-01
+
+### Task: t2 - Create PageWrapper component
+
+**What was done:**
+- Created `packages/cli/src/client/src/test-utils/storybook-page-wrapper.tsx` with `PageWrapper` component
+- Implemented routing context for breadcrumb support:
+  - Root route `/` for EpicList page
+  - Epic detail route `/epic/:slug` for EpicDetail page
+  - Story detail route `/epic/:epicSlug/story/:storySlug` for StoryDetail page
+- Wrapped children with:
+  - `DashboardProvider` for state management context
+  - `MemoryRouter` with `initialEntries` for route context
+  - `Layout` component for header and breadcrumb rendering
+- Created test file `storybook-page-wrapper.test.tsx` with 5 tests:
+  - Renders children inside Layout with header
+  - Shows correct breadcrumb for root route
+  - Shows correct breadcrumb for epic detail route
+  - Shows correct breadcrumb for story detail route
+  - Renders with default route when not specified
+
+**Decisions:**
+- Used same routing pattern as `layout.stories.tsx` - Layout component is placed as Route element and uses its internal Outlet
+- Removed `PageWrapperProps` type export to satisfy biome's `useComponentExportOnlyModules` rule (consumers can use `ComponentProps<typeof PageWrapper>` if needed)
+- Used `cleanup()` in tests to properly reset DOM between test cases
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- 734/735 unit tests pass (1 pre-existing timeout failure unrelated to this work)
+
+**Next steps:**
+- Task t3: Rewrite StatusBadge stories to Showcase + Playground pattern
+
+## Session 3: 2026-02-01
+
+### Task: t3 - Rewrite StatusBadge stories
+
+**What was done:**
+- Transformed `status-badge.stories.tsx` from 12+ stories to Showcase + Playground pattern
+- Updated title from `'Components/StatusBadge'` to `'Atoms/StatusBadge'`
+- Created Showcase story displaying:
+  - All 4 status variants without count (Ready, In Progress, Blocked, Completed)
+  - All 4 status variants with count
+  - Edge cases section (zero counts, large counts)
+- Created Playground story with:
+  - `preset` control (select) for status type
+  - `count` control (number) for WithCount variant
+  - Displays both variants (with/without count) using selected preset
+- Preserved visual snapshot test (renamed to `status-badge-showcase`)
+- Removed 3 obsolete snapshots (AllVariants, AllVariantsWithCount, BadgeComparison)
+- Fixed biome lint issues:
+  - Moved all exports to end of file
+  - Used `Promise.all` instead of await in loops
+
+**Decisions:**
+- Consolidated all status demonstrations into single Showcase instead of separate stories per status
+- Used args-based typing for meta `Meta<{ preset: StatusPreset; count: number }>` for Playground controls
+- Kept both StatusBadge (without count) and StatusBadgeWithCount inline components as they're story-specific
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 723/724 tests pass (1 pre-existing timeout failure)
+- Story count reduced: from 12+ StatusBadge stories to 2 (Showcase + Playground)
+
+**Next steps:**
+- Task t4: Rewrite Breadcrumb stories to Showcase + Playground pattern
+
+## Session 4: 2026-02-01
+
+### Task: t4 - Rewrite Breadcrumb stories
+
+**What was done:**
+- Transformed `breadcrumb.stories.tsx` from 5 stories to Showcase + Playground pattern
+- Updated title from `'Components/Breadcrumb'` to `'Atoms/Breadcrumb'`
+- Created Showcase story displaying:
+  - Navigation States section: Root (Epic List), Epic Detail, Story Detail breadcrumbs
+  - Edge Cases section: Long epic slug, Long epic + story slugs
+- Created Playground story with:
+  - `preset` control (select) for route presets: root, epicDetail, storyDetail, longEpicSlug, longSlugs
+  - `customRoute` control (text) for testing custom route paths
+  - Displays route description and current path above breadcrumb
+- Created helper component `BreadcrumbWithRouter` to wrap Breadcrumb with proper MemoryRouter context
+- Created `routeConfigs` object mapping presets to routes and descriptions
+- Updated visual snapshot (renamed from 3 separate to single `breadcrumb-showcase`)
+- Removed 3 obsolete snapshots: `breadcrumb-root`, `breadcrumb-epic-detail`, `breadcrumb-story-detail`
+
+**Decisions:**
+- Created reusable `BreadcrumbWithRouter` component instead of inline decorators for each story
+- Used `getAllByText` for elements appearing multiple times (e.g., "dashboard-restructure" appears in both Epic Detail and Story Detail examples)
+- Preserved a11y testing with `aria-label: 'Breadcrumb'` verification
+- Kept comprehensive play function tests for Playground to verify different route presets
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 720/721 tests pass (1 pre-existing timeout failure)
+- Story count reduced: from 5 Breadcrumb stories to 2 (Showcase + Playground)
+
+**Next steps:**
+- Task t5: Rewrite EpicCard stories to Showcase + Playground pattern
+
+## Session 5: 2026-02-01
+
+### Task: t5 - Rewrite EpicCard stories
+
+**What was done:**
+- Created new `packages/cli/src/client/src/components/epic-card.stories.tsx` with Showcase + Playground pattern
+- Updated title to `'Components/EpicCard'`
+- Created Showcase story displaying:
+  - All 6 epic preset states: Typical, Just Started, In Progress, Has Blockers, Almost Done, Completed
+  - Edge cases: Long title, Archived epic
+- Created Playground story with:
+  - `preset` control (select) for epic presets
+  - `title` control (text) for overriding epic title
+  - `isArchived` control (boolean) for archived state
+  - Displays story counts breakdown below the card
+- Used `createMockEpicSummary()` factory function from t1 for generating mock data
+- Rewrote `epic-list.stories.tsx` to:
+  - Remove redundant EpicCard stories (now in separate file)
+  - Remove redundant StatusBadge stories (already covered in status-badge.stories.tsx)
+  - Keep only EpicList page stories with Showcase + Playground pattern
+  - Showcase displays Loading, Empty, Populated, and With Archive Toggle states
+  - Individual stories (Loading, Empty, Populated, WithArchivedVisible) preserved for visual regression testing
+- Fixed biome lint issues:
+  - Sorted imports correctly
+  - Extracted magic number to `SHOWCASE_CARD_COUNT` constant
+  - Fixed template literal to string literal
+  - Removed unused `args` parameter from play function
+- Created new visual snapshot: `epic-card-showcase`
+- Updated `epic-list-showcase` snapshot
+
+**Decisions:**
+- Created separate story file for EpicCard component under Components/ hierarchy
+- Kept EpicList page stories in pages/ directory for proper hierarchy (Pages/EpicList)
+- Used `getAllByText` in EpicList Showcase tests for elements appearing in multiple sections
+- Preserved all individual page state stories (Loading, Empty, Populated, WithArchivedVisible) for visual regression testing
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 707/708 tests pass (1 pre-existing timeout failure unrelated to this work)
+- Story count reduced: EpicCard stories consolidated from 6+ to 2, EpicList stories restructured
+
+**Next steps:**
+- Task t6: Rewrite StoryCard stories to Showcase + Playground pattern
+
+## Session 6: 2026-02-01
+
+### Task: t6 - Rewrite StoryCard stories
+
+**What was done:**
+- Created new `packages/cli/src/client/src/components/story-card.stories.tsx` with Showcase + Playground pattern
+- Updated title to `'Components/StoryCard'`
+- Created Showcase story displaying:
+  - All 5 story preset states: Ready, In Progress, Blocked, Almost Done, Completed
+  - Edge cases: Long title, No tasks
+- Created Playground story with:
+  - `preset` control (select) for story presets
+  - `title` control (text) for overriding story title
+  - Displays preset info above the card
+- Used `createMockStory()` factory function from t1 for generating mock data
+- Created helper component `StoryCardWithRouter` to wrap StoryCard with MemoryRouter
+- Rewrote `epic-detail.stories.tsx` to:
+  - Remove redundant StoryCard stories (now in separate file - Card, CardReady, CardBlocked, CardCompleted, CardLongTitle, CardGrid)
+  - Remove redundant StatusBadge stories (already covered in status-badge.stories.tsx)
+  - Remove redundant skeleton meta definitions (now only one meta)
+  - Keep only EpicDetail page stories with Showcase + Playground pattern
+  - Showcase displays Loading, Not Found, Empty, and Populated states
+  - Individual stories (Loading, NotFound, ErrorState, Empty, Populated, AllCompleted, WithBlockers) preserved for visual regression testing
+- Fixed biome lint issues:
+  - Extracted regex to constant `PRESET_LABEL_PATTERN`
+  - Used `satisfies never` for exhaustive switch statement
+  - Fixed import order
+- Created new visual snapshot: `story-card-showcase`
+- Updated `epic-detail-showcase` snapshot
+
+**Decisions:**
+- Created separate story file for StoryCard component under Components/ hierarchy
+- Kept EpicDetail page stories in pages/ directory for proper hierarchy (Pages/EpicDetail)
+- Used `getAllByText` for status badges that appear multiple times (preset label + badge)
+- Preserved all individual page state stories for visual regression testing
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 693/694 tests pass (1 pre-existing timeout failure unrelated to this work)
+- Story count reduced: StoryCard stories consolidated from 6+ to 2, EpicDetail stories restructured
+
+**Next steps:**
+- Task t7: Rewrite SessionCard stories to Showcase + Playground pattern
+
+## Session 7: 2026-02-01
+
+### Task: t7 - Rewrite SessionCard stories
+
+**What was done:**
+- Transformed `session-card.stories.tsx` from 8 stories to Showcase + Playground pattern
+- Title remains as `'Components/SessionCard'` (already correct hierarchy)
+- Created Showcase story displaying:
+  - All 5 session preset states: Just Started, Running, Long Running, No Output, Output Unavailable
+  - Edge Cases section: Long epic/story slugs, Long output preview
+  - formatDuration Utility section: Demonstrates all duration format outputs (0s to 2d 3h)
+- Created Playground story with:
+  - `preset` control (select) for session presets
+  - `epicSlug` control (text) for epic slug override
+  - `storySlug` control (text) for story slug override
+  - Displays preset info and card with link verification
+- Used `createMockSession()` factory function from t1 for generating mock data
+- Created helper component `SessionCardWithRouter` to wrap SessionCard with MemoryRouter
+- Fixed mock-factories.ts bug: 'no-output' preset now correctly sets `outputAvailable: true` (no preview shown but no error message) vs 'output-unavailable' which sets `outputAvailable: false` (shows "Output unavailable" message)
+- Consolidated FormatDurationExamples story into Showcase section
+
+**Decisions:**
+- Included formatDuration utility examples in Showcase since it's a core part of SessionCard display
+- Differentiated 'no-output' (output available but empty) from 'output-unavailable' (output file not accessible) in mock factory
+- Used `presetToLabel()` helper to convert preset names to display labels
+- Verified link navigation in play function tests
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 687/688 tests pass (1 pre-existing timeout failure unrelated to this work)
+- Story count reduced: from 8 SessionCard stories to 2 (Showcase + Playground)
+
+**Next steps:**
+- Task t8: Rewrite TaskItem stories to Showcase + Playground pattern
+
+## Session 8: 2026-02-01
+
+### Task: t8 - Rewrite TaskItem stories
+
+**What was done:**
+- Created new `packages/cli/src/client/src/components/task-item.stories.tsx` with Showcase + Playground pattern
+- Updated title to `'Atoms/TaskItem'` (matching story's guidance for Atoms category)
+- Created Showcase story displaying:
+  - Task States section: Pending, In Progress, Completed task items
+  - Edge Cases section: Long title, Special characters
+  - Status Icons Reference section: All 3 icon variants (pending, in-progress, completed)
+- Created Playground story with:
+  - `preset` control (select) for task preset: pending, in-progress, completed
+  - `title` control (text) for overriding task title
+  - Displays preset info above the card
+- Used `createMockTask()` factory function from t1 for generating mock data
+- Exported both `TaskItem` and `TaskStatusIcon` from StoryDetail for use in stories
+- Created new visual snapshot: `task-item-showcase`
+
+**Decisions:**
+- Created separate story file for TaskItem component under Atoms/ hierarchy (not Components/ since tasks are atomic elements)
+- Included TaskStatusIcon examples in Showcase as reference for icon variants
+- Used `getAllByText` for badges that appear multiple times (in progress appears 2x due to long title edge case)
+- Kept TaskItem stories in `story-detail.stories.tsx` for now - they will be removed in a later cleanup pass (t17)
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 689/690 tests pass (1 pre-existing timeout failure unrelated to this work)
+- New story file adds 2 stories (Showcase + Playground) for TaskItem
+
+**Next steps:**
+- Task t9: Rewrite JournalEntry stories to Showcase + Playground pattern
+
+## Session 9: 2026-02-01
+
+### Task: t9 - Rewrite JournalEntry stories
+
+**What was done:**
+- Created new `packages/cli/src/client/src/components/journal-entry.stories.tsx` with Showcase + Playground pattern
+- Updated title to `'Components/JournalEntry'`
+- Created Showcase story displaying:
+  - Journal Entry Types section: Session, Blocker, Resolution entries with distinct styling
+  - Collapsed vs Expanded section: Demonstrating defaultOpen behavior
+  - Grouped Journal Display section: How entries appear grouped by type in StoryDetail
+  - Edge Cases section: Long title, Long content with markdown
+- Created Playground story with:
+  - `preset` control (select) for journal preset: session, blocker, resolution
+  - `content` control (text) for overriding entry content
+  - Displays both collapsed and expanded states
+- Used `createMockJournal()` factory function from t1 for generating mock data
+- Extracted section components (`EntryTypesSection`, `CollapsedExpandedSection`, `GroupedDisplaySection`, `EdgeCasesSection`) to satisfy biome's noExcessiveLinesPerFunction rule
+- Created new visual snapshot: `journal-entry-showcase`
+
+**Decisions:**
+- Created separate story file for JournalEntry component under Components/ hierarchy
+- Used `getAllByText` for badges and icons that appear multiple times in Showcase (multiple blocker entries shown)
+- Used `toBeGreaterThanOrEqual` assertions instead of exact counts since multiple entries of same type exist
+- Included grouped display example to show how entries are organized in actual StoryDetail page
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 691/692 tests pass (1 pre-existing timeout failure unrelated to this work)
+- New story file adds 2 stories (Showcase + Playground) for JournalEntry
+
+**Next steps:**
+- Task t10: Rewrite LogViewer stories to Showcase + Playground pattern
+
+## Session 10: 2026-02-01
+
+### Fix: Journal entry snapshot with fixed timestamps
+
+**What was done:**
+- Fixed snapshot test failure in `journal-entry.stories.tsx` caused by dynamic timestamps
+- Added explicit `timestamp` overrides to all `createMockJournal()` calls in the Showcase story:
+  - CollapsedExpandedSection: `2026-01-28 02:00 UTC`
+  - GroupedDisplaySection blocker: `2026-01-28 11:00 UTC`
+  - GroupedDisplaySection resolution: `2026-01-28 15:00 UTC`
+  - EdgeCasesSection long title: `2026-01-28 01:00 UTC`
+  - EdgeCasesSection long content: `2026-01-28 03:00 UTC`
+- Regenerated the `journal-entry-showcase` snapshot with fixed timestamps
+
+**Issue:**
+The previous session (9) created journal entries without timestamp overrides, causing the mock factory to use `new Date().toISOString()`. This resulted in snapshot mismatches on every test run.
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook tests pass (101/101)
+- Full test suite: 41/42 pass (1 pre-existing timeout failure in implement.test.ts)
+
+**Next steps:**
+- Task t10: Rewrite LogViewer stories to Showcase + Playground pattern
+
+## Session 11: 2026-02-01
+
+### Task: t10 - Rewrite LogViewer stories
+
+**What was done:**
+- Transformed `log-viewer.stories.tsx` from 10 stories to Showcase + Playground pattern
+- Title remains as `'Components/LogViewer'` (already correct hierarchy)
+- Created Showcase story displaying:
+  - Log States section: Empty, Short, Long (10K lines virtualized) logs
+  - ANSI Color Support section: Demonstrates color code rendering
+  - Status Indicators section: Streaming vs Complete side-by-side
+  - Edge Cases section: Output Unavailable state
+- Created Playground story with:
+  - `preset` control (select) for log presets: empty, short, long, ansi-colors, streaming, complete, unavailable
+  - `customContent` control (text) for custom log content override
+  - Displays preset info above the log viewer
+- Created helper functions:
+  - `getLogContentForPreset()` - returns log content for each preset
+  - `getStatusForPreset()` - returns running/completed status per preset
+  - `isOutputAvailableForPreset()` - returns output availability per preset
+  - `presetToLabel()` - converts preset to display label
+- Extracted section components (`LogStatesSection`, `AnsiColorsSection`, `StatusIndicatorsSection`, `EdgeCasesSection`) to organize the Showcase
+- Removed 9 obsolete snapshots (Default, Loading, Streaming, Complete, Unavailable, LargeLog, EmptyContent, StatusComparison, AllStates)
+- Created new visual snapshot: `log-viewer-showcase`
+
+**Decisions:**
+- Included ANSI color demonstration in Showcase since it's a key LogViewer feature
+- Used `satisfies never` pattern for exhaustive switch statements
+- Created `LogPreset` type union for type-safe preset handling
+- Preserved virtualization testing in Playground for 'long' preset
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 93/93 storybook tests pass
+- Story count reduced: from 10 LogViewer stories to 2 (Showcase + Playground)
+
+**Next steps:**
+- Task t11: Rewrite EpicContent stories to Showcase + Playground pattern
+
+## Session 12: 2026-02-01
+
+### Task: t11 - Rewrite EpicContent stories
+
+**What was done:**
+- Transformed `epic-content.stories.tsx` from 10 stories to Showcase + Playground pattern
+- Title remains as `'Components/EpicContent'` (already correct hierarchy)
+- Created Showcase story displaying:
+  - Empty Content section: Shows null state when content is undefined
+  - Markdown Features section: Simple text, headings, lists, code blocks, tables
+  - GFM Features section: Strikethrough text and link rendering
+  - Collapsible Behavior section: Demonstrates expand/collapse functionality
+  - Complete Example section: Full epic documentation with all features
+- Created Playground story with:
+  - `preset` control (select) for content presets: simple, headings, lists, code-blocks, tables, gfm-features, complete
+  - `customContent` control (text) for custom markdown input that overrides preset
+  - Displays content label and EpicContent component
+- Created `ContentPreset` type union and `contentPresets` object for preset data
+- Created helper functions:
+  - `presetToLabel()` - converts preset to display label
+- Extracted section components (`EmptyStateSection`, `MarkdownFeaturesSection`, `GfmFeaturesSection`, `CollapsibleBehaviorSection`, `CompleteExampleSection`) to organize the Showcase
+- Deleted old `EpicContent.stories.tsx.snap` file (old snapshot naming)
+- Removed 5 obsolete snapshots (Code Blocks, Complete Example, Headings, Lists, Tables)
+- Created new visual snapshot: `epic-content-showcase`
+
+**Decisions:**
+- Consolidated all markdown feature demonstrations into single Showcase with organized sections
+- Preserved collapsible behavior demonstration in dedicated section
+- Used simple play function assertions to avoid exceeding line limit
+- Extracted `SHOWCASE_MIN_EPIC_CONTENT_COUNT` constant to satisfy biome linter
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 85/85 storybook tests pass
+- Story count reduced: from 10 EpicContent stories to 2 (Showcase + Playground)
+
+**Next steps:**
+- Task t12: Rewrite ActiveSessions stories to Showcase + Playground pattern
+
+## Session 13: 2026-02-01
+
+### Task: t12 - Rewrite ActiveSessions stories
+
+**What was done:**
+- Transformed `active-sessions.stories.tsx` from 9 stories (across 2 metas) to Showcase + Playground pattern
+- Title remains as `'Components/ActiveSessions'` (already correct hierarchy)
+- Created Showcase story displaying:
+  - Loading State section: ActiveSessionsSkeleton with animated placeholders
+  - Empty State section: Explanation that ActiveSessions returns null when no sessions
+  - Session States section: All 5 session presets (just-started, running, long-running, no-output, output-unavailable)
+  - Multiple Sessions section: Horizontal scrollable layout with 4 sessions
+  - Mixed States section: Sessions with different output states
+- Created Playground story with:
+  - `preset` control (select) for session presets
+  - `epicSlug` control (text) for epic slug override
+  - `storySlug` control (text) for story slug override
+  - Displays preset info and link verification
+- Used `createMockSession()` factory function from t1 for generating mock data
+- Removed old `createMockSession()` helper (replaced by factory import)
+- Removed dual-meta structure (skeletonMeta, compositeSessionsMeta) - now single meta
+- Extracted helper components: `SessionCardWithRouter`, `ActiveSessionsLayout`, section components
+- Used `satisfies never` pattern for exhaustive switch in `presetToLabel()`
+- Preserved individual stories (Loading, SingleSession, MultipleSessions, MixedSessionStates) for visual regression testing
+
+**Decisions:**
+- Kept additional visual regression stories since ActiveSessions has API-fetched data and mock rendering is important
+- Removed Empty, OutputUnavailable, LongOutputPreview, Skeleton as separate stories (now in Showcase sections)
+- Used single meta instead of dual-meta structure for cleaner organization
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 82/82 storybook tests pass
+- Story count reduced: from 9 ActiveSessions stories to 6 (Showcase + Playground + 4 visual regression)
+
+**Next steps:**
+- Task t13: Rewrite Epic List page stories to Showcase + Playground pattern
+
+## Session 14: 2026-02-01
+
+### Task: t13 - Rewrite Epic List page stories
+
+**What was done:**
+- Updated `epic-list.stories.tsx` to use `PageWrapper` for proper Layout context
+- Changed decorator from `MemoryRouter` to `PageWrapper` with `route="/"` for root breadcrumb
+- Updated layout parameter from `'padded'` to `'fullscreen'` for proper page display
+- Updated all play functions to verify:
+  - Layout header with "SAGA" and "Dashboard" text
+  - Used `getAllByText('Epics')` instead of `getByText` (appears in breadcrumb + page title)
+  - Epic card links filtered by `/epic/` prefix to exclude breadcrumb nav links
+- Removed unused `MemoryRouter` import (replaced by PageWrapper)
+- Fixed biome lint issues for method chaining format
+- Updated 4 visual snapshots to include Layout wrapper (header, breadcrumb, main content, toaster)
+
+**Decisions:**
+- Used `PageWrapper` component from t2 to wrap all EpicList stories
+- Changed to `fullscreen` layout parameter since PageWrapper provides full page context
+- Used `getAllByText` assertions for elements that appear multiple times (breadcrumb + content)
+- Filtered link assertions by href pattern to distinguish epic cards from breadcrumb links
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 82/82 storybook tests pass
+- EpicList stories now render with full Layout (header, breadcrumb, content)
+
+**Next steps:**
+- Task t14: Rewrite Epic Detail page stories to Showcase + Playground pattern
+
+## Session 15: 2026-02-01
+
+### Task: t14 - Rewrite EpicDetail page stories
+
+**What was done:**
+- Updated `epic-detail.stories.tsx` to use `PageWrapper` for proper Layout context
+- Added `PageWrapper` decorator with `route="/epic/dashboard-restructure"` for epic detail breadcrumb
+- Changed layout parameter from `'padded'` to `'fullscreen'` for proper page display
+- Removed all internal `MemoryRouter` wrappers from stories (PageWrapper provides router context)
+- Removed unused `MemoryRouter` import (replaced by PageWrapper)
+- Updated all play functions to verify:
+  - Layout header with "SAGA" and "Dashboard" text
+  - Story card links filtered by `/story/` prefix to exclude breadcrumb nav links
+  - Back link assertions filtered by text content pattern
+- Fixed biome formatting issue (multiline paragraph to single line)
+- Regenerated 5 visual snapshots to include Layout wrapper (header, breadcrumb, main content, toaster)
+
+**Decisions:**
+- Used `PageWrapper` component from t2 to wrap all EpicDetail stories
+- Changed to `fullscreen` layout parameter since PageWrapper provides full page context
+- Removed inner MemoryRouter wrappers from Showcase (was causing "Cannot render Router inside another Router" error)
+- Used `getAllByText` assertions for elements that appear multiple times (breadcrumb + content)
+- Filtered link assertions by href pattern to distinguish story cards from breadcrumb links
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 82/82 storybook tests pass
+- EpicDetail stories now render with full Layout (header, breadcrumb, content)
+
+**Next steps:**
+- Task t15: Rewrite Story Detail page stories to Showcase + Playground pattern
+
+## Session 16: 2026-02-01
+
+### Task: t15 - Rewrite Story Detail page stories
+
+**What was done:**
+- Transformed `story-detail.stories.tsx` from 40+ stories (across multiple metas) to Showcase + Playground pattern
+- Updated title to `'Pages/StoryDetail'`
+- Added `PageWrapper` decorator with route `/epic/dashboard-restructure/story/storybook-setup-component-stories` for story detail breadcrumb
+- Changed layout parameter from `'padded'` to `'fullscreen'` for proper page display
+- Removed all redundant sub-component stories that already have their own files:
+  - HeaderSkeleton, ContentSkeleton, TaskStatusIcon, TaskItem, JournalEntryItem, StatusBadge stories
+  - These are already covered in task-item.stories.tsx, journal-entry.stories.tsx, status-badge.stories.tsx
+- Created Showcase story displaying 6 page states:
+  - Loading State (skeleton placeholders)
+  - Not Found (404)
+  - Empty State (no tasks)
+  - Populated State (story with tasks)
+  - Blocked State (story with blocker in journal)
+  - Completed State (all tasks done)
+- Created Playground story showing full story detail with tabs
+- Preserved individual page state stories for visual regression testing:
+  - Loading, NotFound, ErrorState, Populated, EmptyTasks, WithBlocker, Completed, WithContent, EmptyJournal
+- Created helper components for cleaner code:
+  - `StoryHeader` - Renders story header with navigation, title, and status
+  - `TasksTabContent` - Renders Tasks tab content
+  - `ContentTabContent` - Renders Story Content tab with markdown
+  - `JournalTabContent` - Renders Journal tab with entries grouped by type
+  - Section components for Showcase (`LoadingStateSection`, `NotFoundSection`, etc.)
+- Updated all play functions to verify Layout header with "SAGA" and "Dashboard" text
+- Used `getAllByRole` with href filtering for epic links (appears in both breadcrumb and story header)
+- Fixed biome lint issues:
+  - Removed unused `REGEX_STORY_LINK` constant
+  - Used `entry.title` + `entry.timestamp` as keys instead of array indices in journal rendering
+- Regenerated 5 visual snapshots with Layout wrapper
+
+**Decisions:**
+- Used `PageWrapper` component to wrap all StoryDetail stories for proper Layout context
+- Changed to `fullscreen` layout parameter since PageWrapper provides full page context
+- Removed inner MemoryRouter wrappers from stories (PageWrapper provides router context)
+- Used helper components to organize rendering logic and satisfy biome line length limits
+- Filtered link assertions by href pattern to distinguish story links from breadcrumb links
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 56/56 storybook tests pass
+- StoryDetail stories now render with full Layout (header, breadcrumb, content)
+- Story count reduced: from 40+ StoryDetail stories to 11 (Showcase + Playground + 9 visual regression)
+
+**Next steps:**
+- Task t16: Reorganize sidebar hierarchy
+
+## Session 17: 2026-02-01
+
+### Task: t16 - Reorganize sidebar hierarchy
+
+**What was done:**
+- Updated `theme-test.stories.tsx` title from `'Theme/Color Tokens'` to `'Foundation/Color Tokens'`
+- Verified all story file meta titles follow the correct hierarchy
+
+**Final sidebar hierarchy:**
+- **Foundation**: Color Tokens (theme color demonstration)
+- **Atoms**: StatusBadge, Breadcrumb, TaskItem (simple, atomic UI elements)
+- **Components**: ActiveSessions, EpicCard, EpicContent, JournalEntry, Layout, LogViewer, SessionCard, StoryCard (composed UI elements)
+- **Pages**: EpicDetail, EpicList, StoryDetail (full page components)
+
+**Decisions:**
+- Only the theme-test.stories.tsx needed a title change (Theme → Foundation)
+- All other story titles were already correctly organized in previous sessions
+- Layout component stories remain in Components/ (will be deleted in t17)
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- 56/56 storybook tests pass
+- Sidebar hierarchy is now Foundation/Atoms/Components/Pages
+
+**Next steps:**
+- Task t17: Delete obsolete files and verify build
+
+## Session 18: 2026-02-01
+
+### Task: t17 - Delete obsolete files and verify build
+
+**What was done:**
+- Deleted `packages/cli/src/client/src/components/layout.stories.tsx` and its snapshot file
+- Evaluated `theme-test.stories.tsx` for deletion - **kept it** as it serves a unique purpose (documenting color tokens in Foundation category)
+- Verified Storybook build succeeds (no errors)
+- Verified all 52 visual snapshot tests pass
+- Verified lint passes (126 files checked, no issues)
+
+**Final story count:**
+- **Core Showcase + Playground stories**: 28 (14 components × 2)
+- **Visual regression stories**: 24 (additional page state stories preserved for snapshot testing)
+- **Total**: 52 stories (reduced from 50+ original, with better organization)
+
+**Final sidebar hierarchy:**
+- **Foundation**: Color Tokens (1 component, 2 stories)
+- **Atoms**: StatusBadge, Breadcrumb, TaskItem (3 components, 6 stories)
+- **Components**: ActiveSessions, EpicCard, EpicContent, JournalEntry, LogViewer, SessionCard, StoryCard (7 components, 20 stories)
+- **Pages**: EpicDetail, EpicList, StoryDetail (3 components, 24 stories including visual regression)
+
+**Decisions:**
+- Kept theme-test.stories.tsx as it documents color tokens (not redundant)
+- Layout component stories removed (now demonstrated through PageWrapper in all page stories)
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 52/52 storybook tests pass
+
+**Task completed.** All story tasks (t1-t17) are now complete.

@@ -1,6 +1,6 @@
 import { Toaster } from '@/components/ui/toaster';
 
-function App() {
+export function App() {
   return (
     <div>
       <h1>SAGA Dashboard</h1>
@@ -9,5 +9,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

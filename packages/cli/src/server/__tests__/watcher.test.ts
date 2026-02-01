@@ -2,13 +2,28 @@
  * Tests for File Watcher Module
  *
  * Tests file watching with chokidar for .saga/ directory changes.
+ *
+ * Note: These tests involve real file system watching with debouncing and
+ * awaitWriteFinish for reliability. Tests take ~500ms each due to:
+ * watcher setup + awaitWriteFinish stabilization + debounce delay + FS events.
+ * This is expected behavior for integration tests of file watching functionality.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtemp, rm, mkdir, writeFile } from 'fs/promises';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { createSagaWatcher, type SagaWatcher, type WatcherEvent } from '../watcher.js';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { createSagaWatcher, type WatcherEvent } from '../watcher.ts';
+
+/** Delay in ms to wait for watcher to be ready */
+const WATCHER_READY_DELAY_MS = 100;
+
+/**
+ * Delay in ms to wait for debounced events.
+ * Accounts for: polling interval (100ms) + awaitWriteFinish stabilization (50ms)
+ * + debounce delay (100ms) + buffer for system variance
+ */
+const DEBOUNCE_WAIT_MS = 400;
 
 describe('watcher', () => {
   let tempDir: string;
@@ -28,7 +43,7 @@ describe('watcher', () => {
     // Create epic.md
     await writeFile(
       join(sagaRoot, '.saga', 'epics', 'test-epic', 'epic.md'),
-      '# Test Epic\n\nSome content.'
+      '# Test Epic\n\nSome content.',
     );
 
     // Create story.md
@@ -46,7 +61,7 @@ tasks:
 
 ## Context
 Some context.
-`
+`,
     );
   });
 
@@ -95,7 +110,7 @@ Some context.
       });
 
       // Wait for watcher to be ready
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
       // Modify story.md
       await writeFile(
@@ -112,11 +127,11 @@ tasks:
 
 ## Context
 Updated context.
-`
+`,
       );
 
       // Wait for debounced event (100ms debounce + buffer)
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
       expect(events[0].type).toBe('story:changed');
@@ -135,7 +150,7 @@ Updated context.
       });
 
       // Wait for watcher to be ready
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
       // Create journal.md
       await writeFile(
@@ -148,11 +163,11 @@ Updated context.
 
 **What was done:**
 - Created journal
-`
+`,
       );
 
       // Wait for debounced event
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
       expect(events.some((e) => e.type === 'story:changed')).toBe(true);
@@ -169,16 +184,16 @@ Updated context.
       });
 
       // Wait for watcher to be ready
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
       // Modify epic.md
       await writeFile(
         join(sagaRoot, '.saga', 'epics', 'test-epic', 'epic.md'),
-        '# Test Epic Updated\n\nUpdated content.'
+        '# Test Epic Updated\n\nUpdated content.',
       );
 
       // Wait for debounced event
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
       expect(events[0].type).toBe('epic:changed');
@@ -196,17 +211,17 @@ Updated context.
       });
 
       // Wait for watcher to be ready
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
       // Create new epic
       await mkdir(join(sagaRoot, '.saga', 'epics', 'new-epic'), { recursive: true });
       await writeFile(
         join(sagaRoot, '.saga', 'epics', 'new-epic', 'epic.md'),
-        '# New Epic\n\nNew content.'
+        '# New Epic\n\nNew content.',
       );
 
       // Wait for debounced event
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
       expect(events.some((e) => e.type === 'epic:added' && e.epicSlug === 'new-epic')).toBe(true);
@@ -223,7 +238,7 @@ Updated context.
       });
 
       // Wait for watcher to be ready
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
       // Create new story
       await mkdir(join(sagaRoot, '.saga', 'epics', 'test-epic', 'stories', 'new-story'), {
@@ -237,14 +252,16 @@ title: New Story
 status: ready
 tasks: []
 ---
-`
+`,
       );
 
       // Wait for debounced event
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
-      expect(events.some((e) => e.type === 'story:added' && e.storySlug === 'new-story')).toBe(true);
+      expect(events.some((e) => e.type === 'story:added' && e.storySlug === 'new-story')).toBe(
+        true,
+      );
 
       await watcher.close();
     });
@@ -260,7 +277,7 @@ tasks: []
       });
 
       // Wait for watcher to be ready
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
       // Make rapid changes
       const storyPath = join(
@@ -270,7 +287,7 @@ tasks: []
         'test-epic',
         'stories',
         'test-story',
-        'story.md'
+        'story.md',
       );
 
       await writeFile(storyPath, '---\nid: test-story\ntitle: Change 1\nstatus: ready\n---\n');
@@ -278,7 +295,7 @@ tasks: []
       await writeFile(storyPath, '---\nid: test-story\ntitle: Change 3\nstatus: ready\n---\n');
 
       // Wait for debounce window to pass
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       // Should have only 1 event (or at most 2 due to timing), not 3
       expect(events.length).toBeLessThanOrEqual(2);
@@ -300,16 +317,13 @@ tasks: []
       });
 
       // Wait for watcher to be ready
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
       // Create a non-md file
-      await writeFile(
-        join(sagaRoot, '.saga', 'epics', 'test-epic', 'notes.txt'),
-        'Some notes'
-      );
+      await writeFile(join(sagaRoot, '.saga', 'epics', 'test-epic', 'notes.txt'), 'Some notes');
 
       // Wait for potential event
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       // Should not have received any events for .txt file
       expect(events.length).toBe(0);
@@ -332,7 +346,7 @@ title: Archived Story
 status: completed
 tasks: []
 ---
-`
+`,
       );
 
       const watcher = await createSagaWatcher(sagaRoot);
@@ -343,7 +357,7 @@ tasks: []
       });
 
       // Wait for watcher to be ready
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
       // Modify archived story
       await writeFile(
@@ -354,11 +368,11 @@ title: Archived Story Updated
 status: completed
 tasks: []
 ---
-`
+`,
       );
 
       // Wait for debounced event
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
       expect(events[0].storySlug).toBe('archived-story');
@@ -407,15 +421,15 @@ tasks: []
       await watcher.close();
 
       // Wait a bit then make changes
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
       await writeFile(
         join(sagaRoot, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        '---\nid: test-story\ntitle: After Close\nstatus: ready\n---\n'
+        '---\nid: test-story\ntitle: After Close\nstatus: ready\n---\n',
       );
 
       // Wait for potential event
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       // Should not have received events after close
       expect(events.length).toBe(0);

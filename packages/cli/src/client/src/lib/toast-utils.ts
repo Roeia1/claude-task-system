@@ -1,13 +1,13 @@
-import { toast } from '@/hooks/use-toast';
+import React from 'react';
 import type { ToastActionElement } from '@/components/ui/toast';
 import { ToastAction } from '@/components/ui/toast';
-import React from 'react';
+import { toast } from '@/hooks/use-toast';
 
 /** Track active toast IDs to prevent duplicates */
 const activeToasts = new Set<string>();
 
 /** Duration for error toasts - they stay until dismissed */
-const ERROR_TOAST_DURATION = Infinity;
+const ERROR_TOAST_DURATION = Number.POSITIVE_INFINITY;
 
 /** Duration for info toasts like reconnecting */
 const INFO_TOAST_DURATION = 5000;
@@ -70,10 +70,7 @@ export function showReconnectingToast(retryCount: number) {
 /**
  * Show a connection error toast with optional retry action
  */
-export function showConnectionErrorToast(
-  error: string,
-  onRetry?: () => void
-) {
+export function showConnectionErrorToast(error: string, onRetry?: () => void) {
   const toastId = 'connection-error';
 
   // Prevent duplicate connection error toasts
@@ -98,7 +95,7 @@ export function showConnectionErrorToast(
               onRetry();
             },
           },
-          'Retry'
+          'Retry',
         ) as unknown as ToastActionElement)
       : undefined,
     onOpenChange: (open) => {

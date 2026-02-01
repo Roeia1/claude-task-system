@@ -2,11 +2,18 @@
  * Tests for saga implement command
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, realpathSync, readFileSync, existsSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { execSync, spawnSync } from 'node:child_process';
+import process from 'node:process';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+// Regex patterns for case-insensitive matching
+const NOT_FOUND_REGEX = /not found|does not exist|saga init/i;
+const STORY_NOT_FOUND_REGEX = /not found|does not exist|no.*story/i;
+const NOT_SET_OR_FAILED_REGEX = /not set|FAILED/i;
+const NOT_FOUND_OR_FAILED_REGEX = /not found|FAILED/i;
 
 describe('implement command', () => {
   let testDir: string;
@@ -26,10 +33,15 @@ describe('implement command', () => {
   // Helper to run the CLI
   // Note: We unset SAGA_PLUGIN_ROOT by default to prevent the script from actually running
   // (the implement.py script would try to spawn claude which we don't want in tests)
-  function runCli(args: string[], options: { env?: Record<string, string>; timeout?: number } = {}): { stdout: string; stderr: string; exitCode: number } {
+  const DEFAULT_TIMEOUT_MS = 5000;
+
+  function runCli(
+    args: string[],
+    options: { env?: Record<string, string>; timeout?: number } = {},
+  ): { stdout: string; stderr: string; exitCode: number } {
     // Create a clean env without SAGA_PLUGIN_ROOT (unless explicitly provided)
     const cleanEnv = { ...process.env };
-    delete cleanEnv.SAGA_PLUGIN_ROOT;
+    cleanEnv.SAGA_PLUGIN_ROOT = undefined;
 
     try {
       const stdout = execSync(`node ${cliPath} ${args.join(' ')}`, {
@@ -37,14 +49,15 @@ describe('implement command', () => {
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
         env: { ...cleanEnv, ...options.env },
-        timeout: options.timeout ?? 5000, // 5 second timeout by default
+        timeout: options.timeout ?? DEFAULT_TIMEOUT_MS, // 5 second timeout by default
       });
       return { stdout, stderr: '', exitCode: 0 };
-    } catch (error: any) {
+    } catch (error) {
+      const spawnError = error as { stdout?: Buffer; stderr?: Buffer; status?: number };
       return {
-        stdout: error.stdout?.toString() || '',
-        stderr: error.stderr?.toString() || '',
-        exitCode: error.status || 1,
+        stdout: spawnError.stdout?.toString() || '',
+        stderr: spawnError.stderr?.toString() || '',
+        exitCode: spawnError.status || 1,
       };
     }
   }
@@ -54,13 +67,22 @@ describe('implement command', () => {
     const sagaDir = join(dir, '.saga');
     const worktreeDir = join(sagaDir, 'worktrees', options.epicSlug, options.storySlug);
     // Story.md lives inside the worktree at: <worktree>/.saga/epics/<epic>/stories/<story>/story.md
-    const storyDirInWorktree = join(worktreeDir, '.saga', 'epics', options.epicSlug, 'stories', options.storySlug);
+    const storyDirInWorktree = join(
+      worktreeDir,
+      '.saga',
+      'epics',
+      options.epicSlug,
+      'stories',
+      options.storySlug,
+    );
 
     // Create directory structure
     mkdirSync(storyDirInWorktree, { recursive: true });
 
     // Create minimal story.md inside the worktree
-    writeFileSync(join(storyDirInWorktree, 'story.md'), `---
+    writeFileSync(
+      join(storyDirInWorktree, 'story.md'),
+      `---
 id: ${options.storySlug}
 title: Test Story
 status: ready
@@ -73,7 +95,8 @@ tasks:
 
 ## Context
 Test story for implement command testing.
-`);
+`,
+    );
 
     return { sagaDir, storyDir: storyDirInWorktree, worktreeDir };
   }
@@ -83,7 +106,7 @@ Test story for implement command testing.
       const result = runCli(['implement']);
 
       expect(result.exitCode).not.toBe(0);
-      expect(result.stderr).toContain("required");
+      expect(result.stderr).toContain('required');
     });
 
     it('should accept story-slug as positional argument', () => {
@@ -96,10 +119,10 @@ Test story for implement command testing.
 
       // It should fail on missing SAGA_PLUGIN_ROOT, not argument parsing
       // The error should NOT be about missing required command-line argument
-      expect(result.stderr).not.toContain("missing required argument");
-      expect(result.stderr).not.toContain("error: required");
+      expect(result.stderr).not.toContain('missing required argument');
+      expect(result.stderr).not.toContain('error: required');
       // But it WILL contain "required" in the context of SAGA_PLUGIN_ROOT which is fine
-      expect(result.stderr).toContain("SAGA_PLUGIN_ROOT");
+      expect(result.stderr).toContain('SAGA_PLUGIN_ROOT');
     });
   });
 
@@ -110,7 +133,7 @@ Test story for implement command testing.
       const result = runCli(['implement', 'test-story', '--max-cycles', '5', '--path', testDir]);
 
       // Should not fail due to option parsing
-      expect(result.stderr).not.toContain("unknown option");
+      expect(result.stderr).not.toContain('unknown option');
     });
 
     it('should accept --max-time option', () => {
@@ -118,7 +141,7 @@ Test story for implement command testing.
 
       const result = runCli(['implement', 'test-story', '--max-time', '30', '--path', testDir]);
 
-      expect(result.stderr).not.toContain("unknown option");
+      expect(result.stderr).not.toContain('unknown option');
     });
 
     it('should accept --model option', () => {
@@ -126,7 +149,7 @@ Test story for implement command testing.
 
       const result = runCli(['implement', 'test-story', '--model', 'sonnet', '--path', testDir]);
 
-      expect(result.stderr).not.toContain("unknown option");
+      expect(result.stderr).not.toContain('unknown option');
     });
   });
 
@@ -136,7 +159,7 @@ Test story for implement command testing.
       const result = runCli(['implement', 'some-story']);
 
       expect(result.exitCode).not.toBe(0);
-      expect(result.stderr).toMatch(/not found|does not exist|saga init/i);
+      expect(result.stderr).toMatch(NOT_FOUND_REGEX);
     });
 
     it('should find project using --path option', () => {
@@ -149,7 +172,7 @@ Test story for implement command testing.
       // Run from subDir but specify --path to testDir
       // Note: We unset SAGA_PLUGIN_ROOT to prevent actual script execution
       const cleanEnv = { ...process.env };
-      delete cleanEnv.SAGA_PLUGIN_ROOT;
+      cleanEnv.SAGA_PLUGIN_ROOT = undefined;
 
       const result = (() => {
         try {
@@ -161,17 +184,18 @@ Test story for implement command testing.
             env: cleanEnv,
           });
           return { stdout, stderr: '', exitCode: 0 };
-        } catch (error: any) {
+        } catch (error) {
+          const execError = error as { stdout?: Buffer; stderr?: Buffer; status?: number };
           return {
-            stdout: error.stdout?.toString() || '',
-            stderr: error.stderr?.toString() || '',
-            exitCode: error.status || 1,
+            stdout: execError.stdout?.toString() || '',
+            stderr: execError.stderr?.toString() || '',
+            exitCode: execError.status || 1,
           };
         }
       })();
 
       // Should not fail on project discovery
-      expect(result.stderr).not.toContain("SAGA project not found");
+      expect(result.stderr).not.toContain('SAGA project not found');
     });
   });
 
@@ -184,7 +208,7 @@ Test story for implement command testing.
 
       expect(result.exitCode).not.toBe(0);
       // Should report story not found
-      expect(result.stderr + result.stdout).toMatch(/not found|does not exist|no.*story/i);
+      expect(result.stderr + result.stdout).toMatch(STORY_NOT_FOUND_REGEX);
     });
   });
 
@@ -193,7 +217,7 @@ Test story for implement command testing.
       // This test verifies that we're using the native TypeScript implementation
       // The implement command no longer depends on Python scripts
       const scriptsDir = join(__dirname, '../../scripts');
-      const pythonScript = join(scriptsDir, 'implement.py');
+      const _pythonScript = join(scriptsDir, 'implement.py');
 
       // The Python script should no longer exist (or be used)
       // The implementation is now in TypeScript
@@ -225,7 +249,7 @@ Test story for implement command testing.
       } else {
         // Expected to fail because tmux might not be available or the claude CLI isn't available
         // but it should NOT fail on argument parsing
-        expect(result.stderr).not.toContain("unknown option");
+        expect(result.stderr).not.toContain('unknown option');
       }
     });
 
@@ -238,10 +262,10 @@ Test story for implement command testing.
       mkdirSync(skillDir, { recursive: true });
       writeFileSync(join(skillDir, 'worker-prompt.md'), '# Worker Prompt\nTest prompt content');
 
-      // Use a shorter timeout since we just want to see if it starts correctly
+      // Use a short timeout since we just need to capture initial output
       const result = runCli(['implement', 'test-story', '--path', testDir], {
         env: { SAGA_PLUGIN_ROOT: pluginDir, SAGA_INTERNAL_SESSION: '1' },
-        timeout: 2000, // Short timeout - we just want to see the initial output
+        timeout: 500, // 500ms is enough to capture initial startup message
       });
 
       // Internal session mode should print "Starting story implementation..." followed by story info
@@ -251,7 +275,6 @@ Test story for implement command testing.
       expect(result.stdout).not.toContain('sessionName');
       expect(result.stdout).not.toContain('outputFile');
     });
-
   });
 
   describe('dry-run mode', () => {
@@ -272,9 +295,9 @@ Test story for implement command testing.
       const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir]);
 
       // Should not fail due to unknown option
-      expect(result.stderr).not.toContain("unknown option");
+      expect(result.stderr).not.toContain('unknown option');
       // Should contain dry run output
-      expect(result.stdout).toContain("Dry Run");
+      expect(result.stdout).toContain('Dry Run');
     });
 
     it('should report missing SAGA_PLUGIN_ROOT in dry-run', () => {
@@ -282,8 +305,8 @@ Test story for implement command testing.
 
       const result = runCli(['implement', 'test-story', '--dry-run', '--path', testDir]);
 
-      expect(result.stdout).toContain("SAGA_PLUGIN_ROOT");
-      expect(result.stdout).toMatch(/not set|FAILED/i);
+      expect(result.stdout).toContain('SAGA_PLUGIN_ROOT');
+      expect(result.stdout).toMatch(NOT_SET_OR_FAILED_REGEX);
     });
 
     it('should pass all checks when environment is complete', () => {
@@ -296,8 +319,8 @@ Test story for implement command testing.
       });
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("All checks passed");
-      expect(result.stdout).toContain("Ready to implement");
+      expect(result.stdout).toContain('All checks passed');
+      expect(result.stdout).toContain('Ready to implement');
     });
 
     it('should fail when worker-prompt.md is missing', () => {
@@ -311,8 +334,8 @@ Test story for implement command testing.
       });
 
       expect(result.exitCode).not.toBe(0);
-      expect(result.stdout).toContain("Worker prompt");
-      expect(result.stdout).toMatch(/not found|FAILED/i);
+      expect(result.stdout).toContain('Worker prompt');
+      expect(result.stdout).toMatch(NOT_FOUND_OR_FAILED_REGEX);
     });
 
     it('should fail when worktree is missing', () => {
@@ -330,8 +353,8 @@ Test story for implement command testing.
 
       // Since stories are only found in worktrees, missing worktree = story not found
       expect(result.exitCode).not.toBe(0);
-      expect(result.stderr).toContain("not found");
-      expect(result.stderr).toContain("/generate-stories");
+      expect(result.stderr).toContain('not found');
+      expect(result.stderr).toContain('/generate-stories');
     });
 
     it('should report story found successfully', () => {
@@ -343,9 +366,9 @@ Test story for implement command testing.
         env: { SAGA_PLUGIN_ROOT: pluginDir },
       });
 
-      expect(result.stdout).toContain("Story found");
-      expect(result.stdout).toContain("my-story");
-      expect(result.stdout).toContain("my-epic");
+      expect(result.stdout).toContain('Story found');
+      expect(result.stdout).toContain('my-story');
+      expect(result.stdout).toContain('my-epic');
     });
 
     it('should check for claude CLI availability', () => {
@@ -358,7 +381,7 @@ Test story for implement command testing.
       });
 
       // Should check for claude CLI
-      expect(result.stdout).toContain("claude CLI");
+      expect(result.stdout).toContain('claude CLI');
     });
   });
 });
