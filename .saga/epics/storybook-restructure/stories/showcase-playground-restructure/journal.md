@@ -442,3 +442,43 @@ The previous session (9) created journal entries without timestamp overrides, ca
 
 **Next steps:**
 - Task t12: Rewrite ActiveSessions stories to Showcase + Playground pattern
+
+## Session 13: 2026-02-01
+
+### Task: t12 - Rewrite ActiveSessions stories
+
+**What was done:**
+- Transformed `active-sessions.stories.tsx` from 9 stories (across 2 metas) to Showcase + Playground pattern
+- Title remains as `'Components/ActiveSessions'` (already correct hierarchy)
+- Created Showcase story displaying:
+  - Loading State section: ActiveSessionsSkeleton with animated placeholders
+  - Empty State section: Explanation that ActiveSessions returns null when no sessions
+  - Session States section: All 5 session presets (just-started, running, long-running, no-output, output-unavailable)
+  - Multiple Sessions section: Horizontal scrollable layout with 4 sessions
+  - Mixed States section: Sessions with different output states
+- Created Playground story with:
+  - `preset` control (select) for session presets
+  - `epicSlug` control (text) for epic slug override
+  - `storySlug` control (text) for story slug override
+  - Displays preset info and link verification
+- Used `createMockSession()` factory function from t1 for generating mock data
+- Removed old `createMockSession()` helper (replaced by factory import)
+- Removed dual-meta structure (skeletonMeta, compositeSessionsMeta) - now single meta
+- Extracted helper components: `SessionCardWithRouter`, `ActiveSessionsLayout`, section components
+- Used `satisfies never` pattern for exhaustive switch in `presetToLabel()`
+- Preserved individual stories (Loading, SingleSession, MultipleSessions, MixedSessionStates) for visual regression testing
+
+**Decisions:**
+- Kept additional visual regression stories since ActiveSessions has API-fetched data and mock rendering is important
+- Removed Empty, OutputUnavailable, LongOutputPreview, Skeleton as separate stories (now in Showcase sections)
+- Used single meta instead of dual-meta structure for cleaner organization
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 82/82 storybook tests pass
+- Story count reduced: from 9 ActiveSessions stories to 6 (Showcase + Playground + 4 visual regression)
+
+**Next steps:**
+- Task t13: Rewrite Epic List page stories to Showcase + Playground pattern
