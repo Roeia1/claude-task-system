@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { Badge } from '@/components/ui/badge';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot } from '@/test-utils/visual-snapshot';
 import type { StoryStatus } from '@/types/dashboard';
 
 // ============================================================================
@@ -169,7 +169,7 @@ const Showcase: Story = {
     await expect(canvas.getByText('Completed: 100')).toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'status-badge-showcase');
+    await matchDomSnapshot(canvasElement, 'status-badge-showcase');
   },
 };
 

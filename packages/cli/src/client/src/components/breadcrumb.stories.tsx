@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { expect, within } from 'storybook/test';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot } from '@/test-utils/visual-snapshot';
 import { Breadcrumb } from './Breadcrumb.tsx';
 
 // ============================================================================
@@ -177,7 +177,7 @@ const Showcase: Story = {
     await expect(canvas.getByText('add-oauth-provider-integration')).toBeInTheDocument();
 
     // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'breadcrumb-showcase');
+    await matchDomSnapshot(canvasElement, 'breadcrumb-showcase');
   },
 };
 

@@ -3,7 +3,7 @@ import { AlertCircle, CheckCircle, Circle } from 'lucide-react';
 import { expect, within } from 'storybook/test';
 import { JournalEntryItem } from '@/pages/StoryDetail';
 import { createMockJournal, type JournalPreset } from '@/test-utils/mock-factories';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 
 // ============================================================================
 // Types
@@ -330,8 +330,9 @@ const Showcase: Story = {
     await expect(canvas.getByText('Resolutions (1)')).toBeInTheDocument();
     await expect(canvas.getByText('Sessions (2)')).toBeInTheDocument();
 
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'journal-entry-showcase');
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'journal-entry-showcase');
+    await matchPixelSnapshot(canvasElement, 'journal-entry-showcase');
   },
 };
 

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { TaskItem, TaskStatusIcon } from '@/pages/StoryDetail';
 import { createMockTask, resetMockCounters, type TaskPreset } from '@/test-utils/mock-factories';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 
 // Test IDs for icon verification
 const ICON_CIRCLE_PENDING = 'icon-circle-pending';
@@ -170,8 +170,9 @@ const Showcase: Story = {
       ),
     ).toBeInTheDocument();
 
-    // Visual snapshot
-    await matchCanvasSnapshot(canvasElement, 'task-item-showcase');
+    // Visual snapshots
+    await matchDomSnapshot(canvasElement, 'task-item-showcase');
+    await matchPixelSnapshot(canvasElement, 'task-item-showcase');
   },
 };
 

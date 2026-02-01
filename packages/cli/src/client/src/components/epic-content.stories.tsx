@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, within } from 'storybook/test';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import { EpicContent } from './EpicContent.tsx';
 
 /** Regex pattern for matching Epic Documentation button (case insensitive) */
@@ -333,8 +333,9 @@ export const Showcase: Story = {
     const strikethroughTexts = canvas.getAllByText('This feature has been deprecated.');
     await expect(strikethroughTexts[0].tagName).toBe('DEL');
 
-    // Visual snapshot
-    await matchCanvasSnapshot(canvasElement, 'epic-content-showcase');
+    // Visual snapshots
+    await matchDomSnapshot(canvasElement, 'epic-content-showcase');
+    await matchPixelSnapshot(canvasElement, 'epic-content-showcase');
   },
 };
 

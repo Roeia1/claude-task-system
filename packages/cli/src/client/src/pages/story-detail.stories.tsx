@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageWrapper } from '@/test-utils/storybook-page-wrapper';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import type { JournalEntry, StoryDetail as StoryDetailType, Task } from '@/types/dashboard';
 import {
   ContentSkeleton,
@@ -557,8 +557,9 @@ export const Showcase: StoryDetailStory = {
     // Verify completed state
     await expect(canvas.getByText('Setup Project Structure')).toBeInTheDocument();
 
-    // Visual snapshot
-    await matchCanvasSnapshot(canvasElement, 'story-detail-showcase');
+    // Visual snapshots
+    await matchDomSnapshot(canvasElement, 'story-detail-showcase');
+    await matchPixelSnapshot(canvasElement, 'story-detail-showcase');
   },
 };
 
@@ -648,8 +649,9 @@ export const Loading: StoryDetailStory = {
     const placeholders = canvasElement.querySelectorAll('.bg-bg-light');
     await expect(placeholders.length).toBeGreaterThanOrEqual(MIN_SKELETON_PLACEHOLDER_COUNT);
 
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'story-detail-loading');
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'story-detail-loading');
+    await matchPixelSnapshot(canvasElement, 'story-detail-loading');
   },
 };
 
@@ -689,8 +691,9 @@ export const NotFound: StoryDetailStory = {
     await expect(backLinks.length).toBeGreaterThanOrEqual(1);
     await expect(backLinks[0]).toHaveAttribute('href', '/epic/dashboard-restructure');
 
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'story-detail-not-found');
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'story-detail-not-found');
+    await matchPixelSnapshot(canvasElement, 'story-detail-not-found');
   },
 };
 
@@ -786,8 +789,9 @@ export const Populated: StoryDetailStory = {
     await expect(canvas.getByText('Install and configure Storybook 10.x')).toBeInTheDocument();
     await expect(canvas.getByText('Create stories for StoryDetail page')).toBeInTheDocument();
 
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'story-detail-populated');
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'story-detail-populated');
+    await matchPixelSnapshot(canvasElement, 'story-detail-populated');
   },
 };
 
@@ -894,8 +898,9 @@ export const WithBlocker: StoryDetailStory = {
     // Verify session entry title
     await expect(canvas.getByText('Session: 2026-01-28 09:00 UTC')).toBeInTheDocument();
 
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'story-detail-with-blocker');
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'story-detail-with-blocker');
+    await matchPixelSnapshot(canvasElement, 'story-detail-with-blocker');
   },
 };
 

@@ -4,7 +4,7 @@ import { expect, within } from 'storybook/test';
 import { EpicCard } from '@/pages/EpicList';
 import type { EpicPreset, EpicSummaryOverrides } from '@/test-utils/mock-factories';
 import { createMockEpicSummary, resetMockCounters } from '@/test-utils/mock-factories';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 
 // ============================================================================
 // Constants
@@ -226,8 +226,9 @@ const Showcase: Story = {
     // Verify all links have accessible names
     await Promise.all(links.map((link) => expect(link).toHaveAccessibleName()));
 
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'epic-card-showcase');
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'epic-card-showcase');
+    await matchPixelSnapshot(canvasElement, 'epic-card-showcase');
   },
 };
 

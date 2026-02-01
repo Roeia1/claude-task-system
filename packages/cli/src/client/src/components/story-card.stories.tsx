@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router';
 import { expect, within } from 'storybook/test';
 import { StoryCard } from '@/pages/EpicDetail';
 import { createMockStory, resetMockCounters, type StoryPreset } from '@/test-utils/mock-factories';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 
 // ============================================================================
 // Types and Constants
@@ -210,8 +210,9 @@ export const Showcase: Story = {
     await expect(links.length).toBeGreaterThanOrEqual(SHOWCASE_CARD_COUNT);
     await Promise.all(links.map((link) => expect(link).toHaveAccessibleName()));
 
-    // Visual snapshot
-    await matchCanvasSnapshot(canvasElement, 'story-card-showcase');
+    // Visual snapshots
+    await matchDomSnapshot(canvasElement, 'story-card-showcase');
+    await matchPixelSnapshot(canvasElement, 'story-card-showcase');
   },
 };
 

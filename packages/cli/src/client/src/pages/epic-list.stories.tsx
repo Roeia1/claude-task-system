@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { PageWrapper } from '@/test-utils/storybook-page-wrapper';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import type { EpicSummary } from '@/types/dashboard';
 import { EpicCard, EpicCardSkeleton, EpicList } from './EpicList.tsx';
 
@@ -247,8 +247,9 @@ const Showcase: Story = {
     await expect(checkbox).toBeInTheDocument();
     await expect(checkbox).toBeChecked();
 
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'epic-list-showcase');
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'epic-list-showcase');
+    await matchPixelSnapshot(canvasElement, 'epic-list-showcase');
   },
 };
 
@@ -384,7 +385,8 @@ const Loading: Story = {
     // Verify skeleton cards
     const skeletonCards = canvasElement.querySelectorAll('.animate-pulse');
     await expect(skeletonCards.length).toBe(SKELETON_GRID_COUNT);
-    await matchCanvasSnapshot(canvasElement, 'epic-list-loading');
+    await matchDomSnapshot(canvasElement, 'epic-list-loading');
+    await matchPixelSnapshot(canvasElement, 'epic-list-loading');
   },
 };
 
@@ -415,7 +417,8 @@ const Empty: Story = {
     // Verify empty state content
     await expect(canvas.getByText('No epics found.')).toBeInTheDocument();
     await expect(canvas.getByText('/create-epic')).toBeInTheDocument();
-    await matchCanvasSnapshot(canvasElement, 'epic-list-empty');
+    await matchDomSnapshot(canvasElement, 'epic-list-empty');
+    await matchPixelSnapshot(canvasElement, 'epic-list-empty');
   },
 };
 
@@ -449,7 +452,8 @@ const Populated: Story = {
       .getAllByRole('link')
       .filter((link) => link.getAttribute('href')?.startsWith('/epic/'));
     await expect(epicLinks.length).toBe(ACTIVE_EPIC_COUNT);
-    await matchCanvasSnapshot(canvasElement, 'epic-list-populated');
+    await matchDomSnapshot(canvasElement, 'epic-list-populated');
+    await matchPixelSnapshot(canvasElement, 'epic-list-populated');
   },
 };
 

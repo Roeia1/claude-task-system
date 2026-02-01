@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import { LogViewer } from './LogViewer.tsx';
 
 // ============================================================================
@@ -412,8 +412,9 @@ export const Showcase: Story = {
     // Verify ANSI color indicators in the log
     await expect(canvas.getByText(STARTING_BUILD_PATTERN)).toBeInTheDocument();
 
-    // Visual snapshot test
-    await matchCanvasSnapshot(canvasElement, 'log-viewer-showcase');
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'log-viewer-showcase');
+    await matchPixelSnapshot(canvasElement, 'log-viewer-showcase');
   },
 };
 

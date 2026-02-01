@@ -4,7 +4,7 @@ import { expect, within } from 'storybook/test';
 import { EpicContent } from '@/components/EpicContent';
 import { Progress } from '@/components/ui/progress';
 import { PageWrapper } from '@/test-utils/storybook-page-wrapper';
-import { matchCanvasSnapshot } from '@/test-utils/visual-snapshot';
+import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import type { StoryDetail as StoryDetailType } from '@/types/dashboard';
 import { EpicDetail, HeaderSkeleton, StoryCard, StoryCardSkeleton } from './EpicDetail.tsx';
 
@@ -268,8 +268,9 @@ export const Showcase: EpicDetailStory = {
     await expect(canvas.getByText('Storybook Setup and Component Stories')).toBeInTheDocument();
     await expect(canvas.getByText('Visual Regression Testing')).toBeInTheDocument();
 
-    // Visual snapshot
-    await matchCanvasSnapshot(canvasElement, 'epic-detail-showcase');
+    // Visual snapshots
+    await matchDomSnapshot(canvasElement, 'epic-detail-showcase');
+    await matchPixelSnapshot(canvasElement, 'epic-detail-showcase');
   },
 };
 
@@ -355,7 +356,8 @@ export const Loading: EpicDetailStory = {
     await expect(headerSkeleton).toHaveClass('animate-pulse');
     const storySkeletons = canvas.getAllByTestId('story-card-skeleton');
     await expect(storySkeletons.length).toBe(SKELETON_CARD_COUNT);
-    await matchCanvasSnapshot(canvasElement, 'epic-detail-loading');
+    await matchDomSnapshot(canvasElement, 'epic-detail-loading');
+    await matchPixelSnapshot(canvasElement, 'epic-detail-loading');
   },
 };
 
@@ -389,7 +391,8 @@ export const NotFound: EpicDetailStory = {
       .filter((link) => BACK_TO_EPIC_LIST_PATTERN.test(link.textContent || ''));
     await expect(backLinks.length).toBeGreaterThanOrEqual(1);
     await expect(backLinks[0]).toHaveAttribute('href', '/');
-    await matchCanvasSnapshot(canvasElement, 'epic-detail-not-found');
+    await matchDomSnapshot(canvasElement, 'epic-detail-not-found');
+    await matchPixelSnapshot(canvasElement, 'epic-detail-not-found');
   },
 };
 
@@ -461,7 +464,8 @@ export const Empty: EpicDetailStory = {
     await expect(canvas.getByText('0/0 stories completed')).toBeInTheDocument();
     await expect(canvas.getByText('No stories in this epic.')).toBeInTheDocument();
     await expect(canvas.getByText('/generate-stories')).toBeInTheDocument();
-    await matchCanvasSnapshot(canvasElement, 'epic-detail-empty');
+    await matchDomSnapshot(canvasElement, 'epic-detail-empty');
+    await matchPixelSnapshot(canvasElement, 'epic-detail-empty');
   },
 };
 
@@ -510,7 +514,8 @@ export const Populated: EpicDetailStory = {
       .getAllByRole('link')
       .filter((link) => link.getAttribute('href')?.includes('/story/'));
     await expect(storyLinks.length).toBe(STORY_CARD_COUNT);
-    await matchCanvasSnapshot(canvasElement, 'epic-detail-populated');
+    await matchDomSnapshot(canvasElement, 'epic-detail-populated');
+    await matchPixelSnapshot(canvasElement, 'epic-detail-populated');
   },
 };
 

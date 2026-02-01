@@ -5,13 +5,13 @@
  *
  * 1. **DOM Snapshots** (`matchDomSnapshot`)
  *    - Captures HTML structure and CSS classes
- *    - Stored as strings in .snap files
+ *    - Stored as .snap files in snapshots/dom/
  *    - Catches: missing elements, wrong props, structural changes
  *    - Fast, runs on all stories by default
  *
  * 2. **Pixel Snapshots** (`matchPixelSnapshot`)
  *    - Captures actual rendered pixels as PNG images
- *    - Stored as .png files in __snapshots__/
+ *    - Stored as .png files in snapshots/pixel/{story}/
  *    - Catches: overlapping text, broken layouts, z-index issues
  *    - Use for components with complex positioning/layout
  *
@@ -111,54 +111,3 @@ export async function matchPixelSnapshot(
   await expect(canvasElement).toMatchScreenshot(`${snapshotName}.png`);
 }
 
-// ============================================================================
-// Legacy aliases (deprecated - use matchDomSnapshot instead)
-// ============================================================================
-
-/**
- * @deprecated Use `matchDomSnapshot` instead. This function will be removed in a future version.
- */
-export async function matchCanvasSnapshot(
-  canvasElement: HTMLElement,
-  snapshotName?: string,
-): Promise<void> {
-  if (!isVitestTest()) {
-    return;
-  }
-
-  const expect = globalThis.__vitest_expect__;
-  const html = normalizeHtml(canvasElement.innerHTML);
-
-  if (snapshotName) {
-    await expect(html).toMatchSnapshot(snapshotName);
-  } else {
-    await expect(html).toMatchSnapshot();
-  }
-}
-
-/**
- * @deprecated Use `matchDomSnapshot` with a specific element selector instead.
- */
-export async function matchElementSnapshot(
-  canvasElement: HTMLElement,
-  testId: string,
-  snapshotName?: string,
-): Promise<void> {
-  if (!isVitestTest()) {
-    return;
-  }
-
-  const element = canvasElement.querySelector(`[data-testid="${testId}"]`);
-  if (!element) {
-    throw new Error(`Element with data-testid="${testId}" not found`);
-  }
-
-  const expect = globalThis.__vitest_expect__;
-  const html = normalizeHtml(element.outerHTML);
-
-  if (snapshotName) {
-    await expect(html).toMatchSnapshot(snapshotName);
-  } else {
-    await expect(html).toMatchSnapshot();
-  }
-}

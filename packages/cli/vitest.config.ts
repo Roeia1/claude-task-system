@@ -9,6 +9,24 @@ import viteConfig from './src/client/vite.config.ts';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Centralized snapshot directories
+const snapshotsDir = path.join(dirname, 'src/client/src/snapshots');
+const domSnapshotsDir = path.join(snapshotsDir, 'dom');
+const pixelSnapshotsDir = path.join(snapshotsDir, 'pixel');
+
+// Custom DOM snapshot path resolver - routes story files to snapshots/dom/
+const resolveSnapshotPath = (testPath: string, snapExtension: string) => {
+  // Only route .stories.tsx files to the centralized snapshots directory
+  if (testPath.includes('.stories.')) {
+    const fileName = path.basename(testPath);
+    return path.join(domSnapshotsDir, `${fileName}${snapExtension}`);
+  }
+  // Other tests use default colocated __snapshots__ directory
+  const testDir = path.dirname(testPath);
+  const fileName = path.basename(testPath);
+  return path.join(testDir, '__snapshots__', `${fileName}${snapExtension}`);
+};
+
 // Common browser configuration for visual snapshot testing
 const browserConfig = {
   enabled: true,
@@ -16,7 +34,7 @@ const browserConfig = {
   provider: playwright(),
   instances: [{ browser: 'chromium' as const }],
   // Visual snapshot testing configuration
-  screenshotDirectory: '__snapshots__',
+  screenshotDirectory: pixelSnapshotsDir,
   expect: {
     toMatchScreenshot: {
       comparatorName: 'pixelmatch' as const,
@@ -26,6 +44,21 @@ const browserConfig = {
         // Allow up to 0.5% pixel mismatch for anti-aliasing differences
         allowedMismatchedPixelRatio: 0.005,
       },
+      // Custom path resolution - all pixel snapshots go to snapshots/pixel/
+      resolveScreenshotPath: ({
+        arg,
+        browserName,
+        ext,
+        testFileName,
+      }: {
+        arg: string;
+        browserName: string;
+        ext: string;
+        testFileName: string;
+      }) => {
+        const fileName = path.basename(testFileName);
+        return path.join(pixelSnapshotsDir, fileName, `${arg}-${browserName}${ext}`);
+      },
     },
   },
 };
@@ -34,6 +67,8 @@ const config = defineConfig({
   test: {
     // Stop on first failure to fail fast
     bail: 1,
+    // Global snapshot path resolver - routes story files to centralized snapshots/dom/
+    resolveSnapshotPath,
     projects: [
       // Unit tests project - runs in Node environment from package root
       {
@@ -55,8 +90,11 @@ const config = defineConfig({
         },
       }),
       // Storybook tests project - runs in browser with client's vite config
-      mergeConfig(viteConfig, {
+      // Note: Using spread instead of mergeConfig to preserve function references
+      {
+        ...viteConfig,
         plugins: [
+          ...(viteConfig.plugins || []),
           storybookTest({
             configDir: path.join(dirname, 'src/client/.storybook'),
             storybookScript: 'pnpm storybook --no-open',
@@ -67,7 +105,7 @@ const config = defineConfig({
           browser: browserConfig,
           setupFiles: [path.join(dirname, 'src/client/.storybook/vitest.setup.ts')],
         },
-      }),
+      },
     ],
   },
 });
