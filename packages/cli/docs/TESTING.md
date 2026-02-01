@@ -20,15 +20,26 @@ Comprehensive testing guidance for the `@saga-ai/cli` package.
 | React component in isolation | Component unit test | `src/client/src/**/*.test.tsx` |
 | UI workflow with mocked API | Playwright integration | `src/client/tests/integration/*.spec.ts` |
 | Full dashboard with real backend | E2E test | `src/client/e2e/*.spec.ts` |
-| Visual component appearance | Storybook visual test | `src/client/src/**/*.stories.tsx` |
+| Component states & variations | Storybook stories | `src/client/src/**/*.stories.tsx` |
+| Visual layout correctness | Storybook visual snapshot | `src/client/src/**/*.stories.tsx` (with `play` function) |
 
 **Note:** Multiple test types often apply. Work down the table - if your change touches multiple layers, write tests at each level.
 
+### Storybook Snapshot Types
+
+- **DOM snapshots** - All stories get these automatically. Catches missing elements and wrong props.
+- **Visual snapshots** - Add these when layout matters. Catches overlapping text, broken positioning, z-index issues.
+
+DOM snapshots only see HTML structure, not how it renders. If a component has positioning, z-index, or complex layout, add a visual snapshot.
+
+**Important:** When any snapshot is created or updated, manually verify it looks correct before committing.
+
 **Examples:**
 - **New CLI command** → Unit test (arg parsing) + CLI integration test (full command)
-- **New dashboard feature** → Component test + Storybook visual + Playwright integration + E2E if critical path
+- **New dashboard feature** → Component test + Storybook story + Visual screenshot (if complex layout) + Playwright integration + E2E if critical path
 - **New WebSocket event** → Server integration test + E2E test for real-time UI updates
 - **New API endpoint** → Server integration test + Playwright integration if UI consumes it
+- **New component with positioning/layout** → Component test + Storybook story + Visual screenshot test
 - **Bug fix** → Add test at the layer where the bug existed (prevents regression)
 - **Refactor** → Existing tests should pass; add tests only if coverage gaps found
 - **Change to existing functionality** → Update affected tests + add tests for new behavior
@@ -43,15 +54,17 @@ Comprehensive testing guidance for the `@saga-ai/cli` package.
 | Integration tests | `*.spec.ts` | `src/client/tests/integration/` |
 | E2E tests | `*.spec.ts` | `src/client/e2e/` |
 | Storybook stories | `*.stories.tsx` | Co-located with component |
+| Visual screenshot baselines | `*.png` | `src/client/src/**/__screenshots__/` (co-located) |
 
 ## Commands Reference
 
 ```bash
-pnpm test              # Full suite (build + unit + integration + e2e)
+pnpm test              # Full suite (build + unit + integration + e2e + storybook)
 pnpm test:watch        # Unit tests in watch mode
 pnpm test:integration  # Playwright integration tests (mocked API)
 pnpm test:e2e          # Playwright E2E tests (real backend)
-pnpm test:storybook    # Storybook visual tests
+pnpm test:storybook    # Storybook tests (DOM + visual snapshots)
+pnpm test:storybook:update # Update Storybook snapshots - VERIFY OUTPUT MANUALLY!
 ```
 
 ## Test Configuration
@@ -60,7 +73,7 @@ The project uses a multi-project Vitest setup (`vitest.config.ts`):
 
 - **`unit`** - Backend unit tests in Node environment
 - **`client`** - React component tests in jsdom environment
-- **`storybook`** - Visual tests in browser environment
+- **`storybook`** - DOM snapshot tests in browser environment
 
 Playwright has two configurations:
 
@@ -242,6 +255,66 @@ describe('MyComponent', () => {
 });
 ```
 
+### Visual Screenshot Testing Pattern
+
+Add visual snapshots directly in Storybook stories using the `play` function:
+
+```typescript
+// log-viewer.stories.tsx
+import type { Meta, StoryObj } from '@storybook/react';
+import { expect } from '@storybook/test';
+import { LogViewer } from './log-viewer.tsx';
+
+const meta: Meta<typeof LogViewer> = {
+  component: LogViewer,
+  title: 'Components/LogViewer',
+};
+export default meta;
+
+type Story = StoryObj<typeof LogViewer>;
+
+export const Showcase: Story = {
+  args: {
+    content: 'Example log output...',
+    isStreaming: false,
+  },
+  play: async ({ canvasElement }) => {
+    // Wait for any async rendering to complete
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Visual snapshot comparison
+    await expect(canvasElement).toMatchImageSnapshot({
+      // Allow small differences for anti-aliasing
+      failureThreshold: 0.01,
+      failureThresholdType: 'percent',
+    });
+  },
+};
+
+// For stories showing multiple states, add visual snapshot to catch layout issues
+export const AllStates: Story = {
+  render: () => (
+    <div className="space-y-4">
+      <LogViewer content="Streaming..." isStreaming={true} />
+      <LogViewer content="Complete" isStreaming={false} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await expect(canvasElement).toMatchImageSnapshot();
+  },
+};
+```
+
+**Key points:**
+
+- Visual snapshots live in the story's `play` function alongside other assertions
+- Screenshots are stored in `__screenshots__/` directory next to the story file
+- Run `pnpm test:storybook:update` to create/update baselines after intentional changes
+- Use `failureThreshold` to handle minor anti-aliasing differences
+
+**Verifying snapshots:** When creating or updating snapshots, always open the image and confirm it looks correct. Never blindly run `--update` to make tests pass.
+
 ---
 
 ## Fixtures & Test Data
@@ -329,3 +402,4 @@ await expect(page.locator('[data-ws-connected="true"]')).toBeVisible({ timeout: 
 | `src/client/tests/utils/mock-api.ts` | Mock data factories for Playwright |
 | `src/client/e2e/fixtures-utils.ts` | E2E fixture file utilities |
 | `src/client/src/test-setup.ts` | React Testing Library setup |
+| `src/client/src/**/__screenshots__/` | Visual snapshot baselines (co-located with stories) |
