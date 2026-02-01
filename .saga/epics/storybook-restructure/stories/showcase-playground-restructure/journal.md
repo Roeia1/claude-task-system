@@ -629,3 +629,37 @@ The previous session (9) created journal entries without timestamp overrides, ca
 
 **Next steps:**
 - Task t17: Delete obsolete files and verify build
+
+## Session 18: 2026-02-01
+
+### Task: t17 - Delete obsolete files and verify build
+
+**What was done:**
+- Deleted `packages/cli/src/client/src/components/layout.stories.tsx` and its snapshot file
+- Evaluated `theme-test.stories.tsx` for deletion - **kept it** as it serves a unique purpose (documenting color tokens in Foundation category)
+- Verified Storybook build succeeds (no errors)
+- Verified all 52 visual snapshot tests pass
+- Verified lint passes (126 files checked, no issues)
+
+**Final story count:**
+- **Core Showcase + Playground stories**: 28 (14 components × 2)
+- **Visual regression stories**: 24 (additional page state stories preserved for snapshot testing)
+- **Total**: 52 stories (reduced from 50+ original, with better organization)
+
+**Final sidebar hierarchy:**
+- **Foundation**: Color Tokens (1 component, 2 stories)
+- **Atoms**: StatusBadge, Breadcrumb, TaskItem (3 components, 6 stories)
+- **Components**: ActiveSessions, EpicCard, EpicContent, JournalEntry, LogViewer, SessionCard, StoryCard (7 components, 20 stories)
+- **Pages**: EpicDetail, EpicList, StoryDetail (3 components, 24 stories including visual regression)
+
+**Decisions:**
+- Kept theme-test.stories.tsx as it documents color tokens (not redundant)
+- Layout component stories removed (now demonstrated through PageWrapper in all page stories)
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 52/52 storybook tests pass
+
+**Task completed.** All story tasks (t1-t17) are now complete.
