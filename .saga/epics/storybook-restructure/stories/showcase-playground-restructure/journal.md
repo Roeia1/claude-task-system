@@ -263,3 +263,38 @@
 
 **Next steps:**
 - Task t8: Rewrite TaskItem stories to Showcase + Playground pattern
+
+## Session 8: 2026-02-01
+
+### Task: t8 - Rewrite TaskItem stories
+
+**What was done:**
+- Created new `packages/cli/src/client/src/components/task-item.stories.tsx` with Showcase + Playground pattern
+- Updated title to `'Atoms/TaskItem'` (matching story's guidance for Atoms category)
+- Created Showcase story displaying:
+  - Task States section: Pending, In Progress, Completed task items
+  - Edge Cases section: Long title, Special characters
+  - Status Icons Reference section: All 3 icon variants (pending, in-progress, completed)
+- Created Playground story with:
+  - `preset` control (select) for task preset: pending, in-progress, completed
+  - `title` control (text) for overriding task title
+  - Displays preset info above the card
+- Used `createMockTask()` factory function from t1 for generating mock data
+- Exported both `TaskItem` and `TaskStatusIcon` from StoryDetail for use in stories
+- Created new visual snapshot: `task-item-showcase`
+
+**Decisions:**
+- Created separate story file for TaskItem component under Atoms/ hierarchy (not Components/ since tasks are atomic elements)
+- Included TaskStatusIcon examples in Showcase as reference for icon variants
+- Used `getAllByText` for badges that appear multiple times (in progress appears 2x due to long title edge case)
+- Kept TaskItem stories in `story-detail.stories.tsx` for now - they will be removed in a later cleanup pass (t17)
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 689/690 tests pass (1 pre-existing timeout failure unrelated to this work)
+- New story file adds 2 stories (Showcase + Playground) for TaskItem
+
+**Next steps:**
+- Task t9: Rewrite JournalEntry stories to Showcase + Playground pattern
