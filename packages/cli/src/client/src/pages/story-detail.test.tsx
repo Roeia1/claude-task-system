@@ -37,12 +37,24 @@ function renderStoryDetail(epicSlug = 'test-epic', storySlug = 'test-story', que
 
 describe('StoryDetail Sessions Tab', () => {
   beforeEach(() => {
-    // Mock successful story fetch
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () => Promise.resolve(mockStory),
-    } as Response);
+    // Mock successful story and sessions fetch
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url: RequestInfo | URL) => {
+      const urlString = url.toString();
+      if (urlString.includes('/api/sessions')) {
+        // Return empty sessions array for sessions API
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve([]),
+        } as Response);
+      }
+      // Return mock story for story API
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(mockStory),
+      } as Response);
+    });
   });
 
   afterEach(() => {
@@ -113,6 +125,71 @@ describe('StoryDetail Sessions Tab', () => {
       await waitFor(() => {
         expect(screen.getByRole('tab', { name: JOURNAL_TAB_PATTERN })).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('URL query parameter tab selection', () => {
+    it('navigates to Sessions tab when ?tab=sessions is in URL', async () => {
+      renderStoryDetail('test-epic', 'test-story', '?tab=sessions');
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Sessions' })).toBeInTheDocument();
+      });
+
+      // Sessions tab should be active
+      expect(screen.getByRole('tab', { name: 'Sessions' })).toHaveAttribute('data-state', 'active');
+      // Tasks tab should not be active
+      expect(screen.getByRole('tab', { name: 'Tasks' })).toHaveAttribute('data-state', 'inactive');
+    });
+
+    it('navigates to Journal tab when ?tab=journal is in URL', async () => {
+      renderStoryDetail('test-epic', 'test-story', '?tab=journal');
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: JOURNAL_TAB_PATTERN })).toBeInTheDocument();
+      });
+
+      // Journal tab should be active
+      expect(screen.getByRole('tab', { name: JOURNAL_TAB_PATTERN })).toHaveAttribute(
+        'data-state',
+        'active',
+      );
+    });
+
+    it('navigates to Story Content tab when ?tab=content is in URL', async () => {
+      renderStoryDetail('test-epic', 'test-story', '?tab=content');
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Story Content' })).toBeInTheDocument();
+      });
+
+      // Story Content tab should be active
+      expect(screen.getByRole('tab', { name: 'Story Content' })).toHaveAttribute(
+        'data-state',
+        'active',
+      );
+    });
+
+    it('defaults to Tasks tab when no query parameter is present', async () => {
+      renderStoryDetail('test-epic', 'test-story');
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Tasks' })).toBeInTheDocument();
+      });
+
+      // Tasks tab should be active by default
+      expect(screen.getByRole('tab', { name: 'Tasks' })).toHaveAttribute('data-state', 'active');
+    });
+
+    it('defaults to Tasks tab when ?tab has invalid value', async () => {
+      renderStoryDetail('test-epic', 'test-story', '?tab=invalid');
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: 'Tasks' })).toBeInTheDocument();
+      });
+
+      // Tasks tab should be active for invalid tab value
+      expect(screen.getByRole('tab', { name: 'Tasks' })).toHaveAttribute('data-state', 'active');
     });
   });
 });
