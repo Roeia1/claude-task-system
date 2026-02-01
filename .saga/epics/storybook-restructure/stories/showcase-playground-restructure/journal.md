@@ -360,3 +360,44 @@ The previous session (9) created journal entries without timestamp overrides, ca
 
 **Next steps:**
 - Task t10: Rewrite LogViewer stories to Showcase + Playground pattern
+
+## Session 11: 2026-02-01
+
+### Task: t10 - Rewrite LogViewer stories
+
+**What was done:**
+- Transformed `log-viewer.stories.tsx` from 10 stories to Showcase + Playground pattern
+- Title remains as `'Components/LogViewer'` (already correct hierarchy)
+- Created Showcase story displaying:
+  - Log States section: Empty, Short, Long (10K lines virtualized) logs
+  - ANSI Color Support section: Demonstrates color code rendering
+  - Status Indicators section: Streaming vs Complete side-by-side
+  - Edge Cases section: Output Unavailable state
+- Created Playground story with:
+  - `preset` control (select) for log presets: empty, short, long, ansi-colors, streaming, complete, unavailable
+  - `customContent` control (text) for custom log content override
+  - Displays preset info above the log viewer
+- Created helper functions:
+  - `getLogContentForPreset()` - returns log content for each preset
+  - `getStatusForPreset()` - returns running/completed status per preset
+  - `isOutputAvailableForPreset()` - returns output availability per preset
+  - `presetToLabel()` - converts preset to display label
+- Extracted section components (`LogStatesSection`, `AnsiColorsSection`, `StatusIndicatorsSection`, `EdgeCasesSection`) to organize the Showcase
+- Removed 9 obsolete snapshots (Default, Loading, Streaming, Complete, Unavailable, LargeLog, EmptyContent, StatusComparison, AllStates)
+- Created new visual snapshot: `log-viewer-showcase`
+
+**Decisions:**
+- Included ANSI color demonstration in Showcase since it's a key LogViewer feature
+- Used `satisfies never` pattern for exhaustive switch statements
+- Created `LogPreset` type union for type-safe preset handling
+- Preserved virtualization testing in Playground for 'long' preset
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 93/93 storybook tests pass
+- Story count reduced: from 10 LogViewer stories to 2 (Showcase + Playground)
+
+**Next steps:**
+- Task t11: Rewrite EpicContent stories to Showcase + Playground pattern
