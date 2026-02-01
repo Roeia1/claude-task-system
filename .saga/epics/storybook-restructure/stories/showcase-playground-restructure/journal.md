@@ -180,3 +180,49 @@
 
 **Next steps:**
 - Task t6: Rewrite StoryCard stories to Showcase + Playground pattern
+
+## Session 6: 2026-02-01
+
+### Task: t6 - Rewrite StoryCard stories
+
+**What was done:**
+- Created new `packages/cli/src/client/src/components/story-card.stories.tsx` with Showcase + Playground pattern
+- Updated title to `'Components/StoryCard'`
+- Created Showcase story displaying:
+  - All 5 story preset states: Ready, In Progress, Blocked, Almost Done, Completed
+  - Edge cases: Long title, No tasks
+- Created Playground story with:
+  - `preset` control (select) for story presets
+  - `title` control (text) for overriding story title
+  - Displays preset info above the card
+- Used `createMockStory()` factory function from t1 for generating mock data
+- Created helper component `StoryCardWithRouter` to wrap StoryCard with MemoryRouter
+- Rewrote `epic-detail.stories.tsx` to:
+  - Remove redundant StoryCard stories (now in separate file - Card, CardReady, CardBlocked, CardCompleted, CardLongTitle, CardGrid)
+  - Remove redundant StatusBadge stories (already covered in status-badge.stories.tsx)
+  - Remove redundant skeleton meta definitions (now only one meta)
+  - Keep only EpicDetail page stories with Showcase + Playground pattern
+  - Showcase displays Loading, Not Found, Empty, and Populated states
+  - Individual stories (Loading, NotFound, ErrorState, Empty, Populated, AllCompleted, WithBlockers) preserved for visual regression testing
+- Fixed biome lint issues:
+  - Extracted regex to constant `PRESET_LABEL_PATTERN`
+  - Used `satisfies never` for exhaustive switch statement
+  - Fixed import order
+- Created new visual snapshot: `story-card-showcase`
+- Updated `epic-detail-showcase` snapshot
+
+**Decisions:**
+- Created separate story file for StoryCard component under Components/ hierarchy
+- Kept EpicDetail page stories in pages/ directory for proper hierarchy (Pages/EpicDetail)
+- Used `getAllByText` for status badges that appear multiple times (preset label + badge)
+- Preserved all individual page state stories for visual regression testing
+
+**Test baseline:**
+- Build passes
+- Lint passes
+- Storybook builds successfully
+- 693/694 tests pass (1 pre-existing timeout failure unrelated to this work)
+- Story count reduced: StoryCard stories consolidated from 6+ to 2, EpicDetail stories restructured
+
+**Next steps:**
+- Task t7: Rewrite SessionCard stories to Showcase + Playground pattern
