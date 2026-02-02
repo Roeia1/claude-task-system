@@ -13,7 +13,8 @@
     "lint:fix": "biome check --write ."
   },
   "dependencies": {
-    "@saga-ai/types": "workspace:*"
+    "@saga-ai/types": "workspace:*",
+    "fuse.js": "^7.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

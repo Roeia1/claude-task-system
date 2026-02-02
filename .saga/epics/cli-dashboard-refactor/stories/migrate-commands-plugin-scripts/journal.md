@@ -30,3 +30,39 @@
 - Task t5: Migrate and split implement.ts
 - Task t6: Update all imports to use saga-types
 - Task t7: Migrate and extend tests
+
+## Session: 2026-02-03T00:06:00Z
+
+### Task: t2 - Migrate find.ts and finder.ts
+
+**What was done:**
+- Created `packages/plugin-scripts/src/find/` directory structure:
+  - `find/index.ts` - CLI entry point with argument parsing and main logic
+  - `find/finder.ts` - fuzzy search logic using Fuse.js
+  - `find/saga-scanner.ts` - directory scanning utilities for finding stories/epics
+- Created `packages/plugin-scripts/src/find.ts` - esbuild entry point that imports the find module
+- Created `packages/plugin-scripts/src/find.test.ts` - CLI integration tests
+- Created `packages/plugin-scripts/src/find/finder.test.ts` - unit tests for finder logic
+- Added `fuse.js` as a dependency for fuzzy matching
+- Removed `gray-matter` dependency - used simple frontmatter parser instead (sufficient for finder's needs)
+
+**Decisions:**
+- Used simple `parseFrontmatter()` function instead of `gray-matter` library. The original code used gray-matter for complex YAML parsing (tasks arrays), but the finder only needs simple fields (id, slug, title, status). This avoids ESM/CJS bundling issues with gray-matter.
+- Created a directory structure (`find/`) with the entry point importing from subdirectory. This allows modular organization while maintaining the esbuild entry point pattern (top-level `.ts` files).
+- Inlined `resolveProjectPath` (same pattern as worktree.ts) - keeps scripts self-contained.
+- Added `--status` filter option to allow filtering stories by status.
+
+**Test results:**
+- 31 finder unit tests passing (parseFrontmatter, extractContext, findEpic, findStory)
+- 11 command integration tests passing
+- All 61 plugin-scripts tests passing
+- Build successfully produces `plugin/scripts/find.js`
+- `node plugin/scripts/find.js --help` shows correct usage
+- Verified real queries work against this project
+
+**Next steps:**
+- Task t3: Migrate scope-validator.ts
+- Task t4: Migrate sessions-kill.ts
+- Task t5: Migrate and split implement.ts
+- Task t6: Update all imports to use saga-types
+- Task t7: Migrate and extend tests
