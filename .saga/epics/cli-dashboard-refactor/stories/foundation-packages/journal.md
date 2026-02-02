@@ -189,3 +189,49 @@ All acceptance criteria met:
 - Vitest is configured and `pnpm test` runs successfully in both packages
 - Both packages are included in pnpm workspace
 - Placeholder script demonstrates full build pipeline
+
+## Session: 2026-02-02T20:14:00Z
+
+### Post-implementation: Align schemas with actual file structures
+
+**What was done:**
+- Fixed Zod schemas to match actual `.saga/` file structures after testing against real data:
+  - `StoryFrontmatterSchema`: added required `id`, `epic`, `tasks` fields; changed to snake_case `status`
+  - Added new `TaskSchema` for story tasks with `id`, `title`, `status` fields
+  - `EpicSchema`: removed frontmatter (epics use markdown headings), added `storyCounts`
+  - `SessionSchema`: aligned with dashboard API (`epicSlug`, `storySlug`, `outputFile`, etc.)
+- Updated all tests to reflect actual data structures
+
+**Why:**
+Initial schemas were based on epic specification but needed adjustment to match real file formats discovered during integration.
+
+## Session: 2026-02-02T20:15:00Z
+
+### Post-implementation: Clean up TypeScript configuration
+
+**What was done:**
+- Removed unused `dist/` build config from both tsconfigs (packages export source directly)
+- Added `noEmit: true` to make typecheck-only intent explicit
+- Added `@types/node` to plugin-scripts for Node.js type definitions
+
+## Session: 2026-02-02T20:16:00Z
+
+### Post-implementation: Add strict Biome linting
+
+**What was done:**
+- Added `lint` and `lint:fix` scripts to both packages
+- Added `vitest.config.ts` to existing `noDefaultExport` override in biome.json
+- Added new packages to existing Node.js/console override (same as CLI backend)
+- Removed barrel exports (`index.ts` files deleted)
+- Updated `package.json` exports to expose source files directly
+- Restructured code for `useExportsLast` (exports at end of files)
+- Fixed `forEach` to `for...of` in `esbuild.config.mjs`
+- Used named import for esbuild build function
+- Added `allowImportingTsExtensions` to tsconfigs for `.ts` import extensions
+- Auto-fixed import sorting, extensions, and formatting
+
+## PR Merged: 2026-02-02T20:17:34Z
+
+**PR #57** merged to master via squash commit `505d282`.
+
+Story complete. ✅
