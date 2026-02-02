@@ -162,7 +162,10 @@ function SessionDetailCard({ session, defaultExpanded = false }: SessionDetailCa
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card data-testid="session-detail-card">
         <CollapsibleTrigger asChild={true}>
-          <CardHeader className="cursor-pointer hover:bg-bg-light/50 transition-colors py-3">
+          <CardHeader
+            data-testid="session-card-trigger"
+            className="cursor-pointer hover:bg-bg-light/50 transition-colors py-3"
+          >
             <div className="flex items-center gap-3">
               {isOpen ? (
                 <ChevronDown className="w-4 h-4 text-text-muted" />

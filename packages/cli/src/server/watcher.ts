@@ -7,6 +7,7 @@
 
 import { EventEmitter } from 'node:events';
 import { join, relative, sep } from 'node:path';
+import process from 'node:process';
 import chokidar, { type FSWatcher } from 'chokidar';
 
 // ============================================================================
@@ -27,6 +28,15 @@ const STORY_FILE_PARTS = 6;
 
 /** Debounce delay in milliseconds for file events */
 const DEBOUNCE_DELAY_MS = 100;
+
+/**
+ * Check if native file watching should be used instead of polling.
+ * Native watching is faster and more reliable but may have platform-specific issues.
+ * Set SAGA_USE_NATIVE_WATCHER=1 to enable native file watching (e.g., for e2e tests).
+ */
+function shouldUseNativeWatcher(): boolean {
+  return process.env.SAGA_USE_NATIVE_WATCHER === '1';
+}
 
 // ============================================================================
 // Types (internal - not exported)
@@ -286,17 +296,23 @@ function createChokidarWatcher(sagaRoot: string): FSWatcher {
   const epicsDir = join(sagaRoot, '.saga', 'epics');
   const archiveDir = join(sagaRoot, '.saga', 'archive');
 
+  const useNativeWatcher = shouldUseNativeWatcher();
+
   return chokidar.watch([epicsDir, archiveDir], {
     persistent: true,
     ignoreInitial: true,
-    usePolling: true,
+    // Use polling by default for cross-platform reliability.
+    // Native file watching is faster but may have platform-specific issues.
+    usePolling: !useNativeWatcher,
     interval: DEBOUNCE_DELAY_MS,
     // Wait for writes to finish before emitting events - prevents missing
     // rapid file changes when polling
-    awaitWriteFinish: {
-      stabilityThreshold: 50,
-      pollInterval: 50,
-    },
+    awaitWriteFinish: useNativeWatcher
+      ? false
+      : {
+          stabilityThreshold: 50,
+          pollInterval: 50,
+        },
   });
 }
 

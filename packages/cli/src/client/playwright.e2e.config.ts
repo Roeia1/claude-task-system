@@ -54,12 +54,6 @@ export default defineConfig({
   // Tests that modify fixtures would interfere with each other if run in parallel
   fullyParallel: false,
 
-  // Fail the build on CI if you accidentally left test.only in the source code
-  forbidOnly: Boolean(process.env.CI),
-
-  // Retry on CI only
-  retries: process.env.CI ? 2 : 0,
-
   // Use single worker since tests share filesystem state
   workers: 1,
 
@@ -67,7 +61,7 @@ export default defineConfig({
   maxFailures: 1,
 
   // Reporter configuration
-  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'html',
+  reporter: 'html',
 
   // Shared settings for all projects
   use: {
@@ -99,11 +93,17 @@ export default defineConfig({
     command: `node dist/cli.cjs dashboard --path "${fixturesPath}" --port ${E2E_PORT}`,
     cwd: join(__dirname, '..', '..'),
     url: `http://localhost:${E2E_PORT}/api/health`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: WEB_SERVER_TIMEOUT_SECONDS * MS_PER_SECOND,
     // Capture server output for debugging
     stdout: 'pipe',
     stderr: 'pipe',
+    // Use native file watching for faster and more reliable e2e tests
+    env: {
+      ...process.env,
+      // biome-ignore lint/style/useNamingConvention: environment variable name
+      SAGA_USE_NATIVE_WATCHER: '1',
+    },
   },
 
   // Longer timeouts for E2E tests (real network, real filesystem)

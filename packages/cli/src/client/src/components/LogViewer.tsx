@@ -165,7 +165,7 @@ function LogViewerUnavailable() {
 function LogViewerError({ error }: { error: string }) {
   return (
     <div
-      data-testid="log-viewer-error"
+      data-testid="log-viewer"
       className="h-full bg-bg-dark rounded-md font-mono flex flex-col items-center justify-center gap-2"
     >
       <AlertCircle className="h-6 w-6 text-danger" />

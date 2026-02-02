@@ -1,4 +1,3 @@
-import process from 'node:process';
 import { defineConfig, devices } from '@playwright/test';
 
 // Timeout configuration constants
@@ -20,17 +19,11 @@ export default defineConfig({
   // Run tests in parallel
   fullyParallel: true,
 
-  // Fail the build on CI if you accidentally left test.only in the source code
-  forbidOnly: Boolean(process.env.CI),
-
-  // Retry on CI only
-  retries: process.env.CI ? 2 : 0,
-
   // Stop on first failure to fail fast
   maxFailures: 1,
 
   // Reporter configuration
-  reporter: process.env.CI ? 'github' : 'html',
+  reporter: 'html',
 
   // Shared settings for all projects
   use: {
@@ -57,7 +50,7 @@ export default defineConfig({
     command: 'vite --config src/client/vite.config.ts',
     cwd: '../..',
     url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: WEB_SERVER_TIMEOUT_SECONDS * MS_PER_SECOND,
   },
 

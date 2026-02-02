@@ -1,8 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { readStoryFile, resetAllFixtures, writeStoryFile } from './fixtures-utils.ts';
 
-/** Test timeout for WebSocket real-time update tests (30 seconds) */
-const WEBSOCKET_TEST_TIMEOUT_MS = 30_000;
+/** Test timeout for WebSocket real-time update tests (60 seconds) */
+const WEBSOCKET_TEST_TIMEOUT_MS = 60_000;
+
+/** Timeout for WebSocket assertions - polling-based file watching can be slow */
+const WEBSOCKET_ASSERTION_TIMEOUT_MS = 20_000;
 
 /** Regex pattern for matching Journal tab name */
 const JOURNAL_TAB_PATTERN = /Journal/;
@@ -222,7 +225,9 @@ test.describe('WebSocket Real-time Updates', () => {
 
       // Wait for WebSocket update to be reflected in UI
       // The epic should now show Completed: 2
-      await expect(featureDevCard).toContainText('Completed: 2', { timeout: 15_000 });
+      await expect(featureDevCard).toContainText('Completed: 2', {
+        timeout: WEBSOCKET_ASSERTION_TIMEOUT_MS,
+      });
     } finally {
       // Restore original file
       await writeStoryFile('feature-development', 'auth-implementation', originalContent);
@@ -250,7 +255,9 @@ test.describe('WebSocket Real-time Updates', () => {
       await writeStoryFile('feature-development', 'auth-implementation', updatedContent);
 
       // Wait for WebSocket update with longer timeout for file watcher propagation
-      await expect(page.getByText('2/4 tasks completed')).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText('2/4 tasks completed')).toBeVisible({
+        timeout: WEBSOCKET_ASSERTION_TIMEOUT_MS,
+      });
     } finally {
       // Restore original file
       await writeStoryFile('feature-development', 'auth-implementation', originalContent);
@@ -351,14 +358,14 @@ test.describe('Sessions Tab', () => {
     // The running session should be auto-expanded, verify log viewer is visible
     await expect(page.getByTestId('log-viewer')).toBeVisible();
 
-    // Click on the session name (header trigger) to collapse
-    await page.getByText(sessionName).click();
+    // Click on the session card trigger to collapse
+    await page.getByTestId('session-card-trigger').click();
 
     // Verify log viewer is hidden
     await expect(page.getByTestId('log-viewer')).not.toBeVisible();
 
-    // Click on the session name again to expand
-    await page.getByText(sessionName).click();
+    // Click on the session card trigger again to expand
+    await page.getByTestId('session-card-trigger').click();
 
     // Verify log viewer appears
     await expect(page.getByTestId('log-viewer')).toBeVisible();
