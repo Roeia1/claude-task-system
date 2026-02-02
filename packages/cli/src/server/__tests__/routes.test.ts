@@ -340,11 +340,13 @@ Archived.
 
       const blocker = res.body.journal.find((e: { type: string }) => e.type === 'blocker');
       expect(blocker).toBeDefined();
-      expect(blocker.content).toContain('Need API clarification');
+      expect(blocker.title).toBe('Need API clarification');
+      expect(blocker.content).toContain('Waiting for API spec confirmation');
 
       const resolution = res.body.journal.find((e: { type: string }) => e.type === 'resolution');
       expect(resolution).toBeDefined();
-      expect(resolution.content).toContain('API spec confirmed');
+      expect(resolution.title).toBe('API spec confirmed');
+      expect(resolution.content).toContain('Got confirmation');
     });
 
     it('should not include journal property when no journal.md exists', async () => {

@@ -513,7 +513,7 @@ function StoryDetail() {
     return <StoryLoadingState />;
   }
 
-  const { blockers } = groupJournalEntries(currentStory.journal);
+  const { blockers } = groupJournalEntries(currentStory.journal ?? []);
 
   return (
     <div className="space-y-6">
@@ -537,7 +537,7 @@ function StoryDetail() {
           <ContentTabContent content={currentStory.content} />
         </TabsContent>
         <TabsContent value="journal" className="space-y-4">
-          <JournalTabContent journal={currentStory.journal} />
+          <JournalTabContent journal={currentStory.journal ?? []} />
         </TabsContent>
         <TabsContent value="sessions" className="space-y-4">
           <SessionsPanel epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />
