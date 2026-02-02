@@ -424,19 +424,192 @@ function buildScopeSettings(): Record<string, unknown> {
 }
 
 /**
+ * Truncate a string to a maximum length, adding ellipsis if truncated
+ */
+function truncateString(str: string, maxLength: number): string {
+  if (str.length <= maxLength) {
+    return str;
+  }
+  return `${str.slice(0, maxLength)}...`;
+}
+
+/**
+ * Format a single input value for display
+ */
+function formatInputValue(value: unknown, maxLength: number): string {
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+  if (typeof value === 'string') {
+    // Replace newlines with spaces for single-line display
+    const singleLine = value.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+    return truncateString(singleLine, maxLength);
+  }
+  if (typeof value === 'boolean' || typeof value === 'number') {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return truncateString(JSON.stringify(value), maxLength);
+  }
+  if (typeof value === 'object') {
+    return truncateString(JSON.stringify(value), maxLength);
+  }
+  return String(value);
+}
+
+/**
+ * Format all input fields for unknown tools (default fallback)
+ */
+function formatAllInputFields(input: Record<string, unknown>): string {
+  const maxValueLength = 100;
+
+  const entries = Object.entries(input);
+  if (entries.length === 0) {
+    return '';
+  }
+
+  return entries
+    .map(([key, value]) => `${key}=${formatInputValue(value, maxValueLength)}`)
+    .join(', ');
+}
+
+/**
+ * Format tool usage with curated info for known tools, all fields for unknown
+ * Wrapped in try-catch to ensure parsing errors don't crash the process
+ */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: switch statement for tool formatting is inherently complex but readable
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: each case is simple, splitting would reduce readability
+function formatToolUsage(name: string, input: Record<string, unknown>): string {
+  try {
+    const safeInput = input || {};
+    const maxLength = 100;
+
+    switch (name) {
+      // File operations - show path
+      case 'Read': {
+        const path = safeInput.file_path || 'unknown';
+        const extras: string[] = [];
+        if (safeInput.offset) {
+          extras.push(`offset=${safeInput.offset}`);
+        }
+        if (safeInput.limit) {
+          extras.push(`limit=${safeInput.limit}`);
+        }
+        const suffix = extras.length > 0 ? ` (${extras.join(', ')})` : '';
+        return `[Tool Used: Read] ${path}${suffix}`;
+      }
+      case 'Write':
+        return `[Tool Used: Write] ${safeInput.file_path || 'unknown'}`;
+      case 'Edit': {
+        const file = safeInput.file_path || 'unknown';
+        const replaceAll = safeInput.replace_all ? ' (replace_all)' : '';
+        return `[Tool Used: Edit] ${file}${replaceAll}`;
+      }
+
+      // Shell command - show command and description
+      case 'Bash': {
+        const cmd = truncateString(String(safeInput.command || ''), maxLength);
+        const desc = safeInput.description
+          ? ` - ${truncateString(String(safeInput.description), 60)}`
+          : '';
+        return `[Tool Used: Bash] ${cmd}${desc}`;
+      }
+
+      // Search operations - show pattern and path
+      case 'Glob': {
+        const pattern = safeInput.pattern || 'unknown';
+        const path = safeInput.path ? ` in ${safeInput.path}` : '';
+        return `[Tool Used: Glob] ${pattern}${path}`;
+      }
+      case 'Grep': {
+        const pattern = truncateString(String(safeInput.pattern || ''), 60);
+        const path = safeInput.path ? ` in ${safeInput.path}` : '';
+        const mode = safeInput.output_mode ? ` (${safeInput.output_mode})` : '';
+        return `[Tool Used: Grep] "${pattern}"${path}${mode}`;
+      }
+
+      // Agent task - show description and type
+      case 'Task': {
+        const desc = truncateString(
+          String(safeInput.description || safeInput.prompt || ''),
+          maxLength,
+        );
+        const agentType = safeInput.subagent_type ? ` [${safeInput.subagent_type}]` : '';
+        return `[Tool Used: Task]${agentType} ${desc}`;
+      }
+
+      // Todo operations
+      case 'TodoWrite': {
+        const todos = safeInput.todos;
+        if (todos && Array.isArray(todos)) {
+          const subjects = todos
+            .map((t: unknown) => {
+              if (t && typeof t === 'object' && 'subject' in t) {
+                return String((t as { subject: unknown }).subject || 'untitled');
+              }
+              return 'untitled';
+            })
+            .join(', ');
+          return `[Tool Used: TodoWrite] ${truncateString(subjects, maxLength)}`;
+        }
+        return '[Tool Used: TodoWrite]';
+      }
+
+      // Structured output - show status
+      case 'StructuredOutput': {
+        const status = safeInput.status || 'unknown';
+        const summary = safeInput.summary
+          ? ` - ${truncateString(String(safeInput.summary), maxLength)}`
+          : '';
+        return `[Tool Used: StructuredOutput] ${status}${summary}`;
+      }
+
+      // Unknown tools - show all fields
+      default: {
+        const fields = formatAllInputFields(safeInput);
+        return fields ? `[Tool Used: ${name}] ${fields}` : `[Tool Used: ${name}]`;
+      }
+    }
+  } catch {
+    // Fallback if any parsing fails
+    return `[Tool Used: ${name}]`;
+  }
+}
+
+/**
  * Format assistant message content blocks
+ * Wrapped in try-catch to ensure malformed content doesn't crash the process
  */
 function formatAssistantContent(content: unknown[]): string | null {
-  for (const block of content) {
-    const blockData = block as { type?: string; text?: string; name?: string };
-    if (blockData.type === 'text' && blockData.text) {
-      return blockData.text;
+  try {
+    if (!(content && Array.isArray(content))) {
+      return null;
     }
-    if (blockData.type === 'tool_use') {
-      return `[Tool: ${blockData.name}]`;
+
+    for (const block of content) {
+      if (!block || typeof block !== 'object') {
+        continue;
+      }
+
+      const blockData = block as {
+        type?: string;
+        text?: string;
+        name?: string;
+        input?: Record<string, unknown>;
+      };
+
+      if (blockData.type === 'text' && blockData.text) {
+        return `${blockData.text}\n`;
+      }
+      if (blockData.type === 'tool_use' && blockData.name) {
+        return `${formatToolUsage(blockData.name, blockData.input || {})}\n`;
+      }
     }
+    return null;
+  } catch {
+    // Silently fail on malformed content
+    return null;
   }
-  return null;
 }
 
 /**
