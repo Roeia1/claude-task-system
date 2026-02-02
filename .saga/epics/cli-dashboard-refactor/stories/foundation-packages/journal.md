@@ -50,3 +50,31 @@
 **Next steps:**
 - t3: Implement directory structure types
 - t4-t7: Create plugin-scripts package with build infrastructure
+
+## Session: 2026-02-02T20:03:00Z
+
+### Task: t3 - Implement directory structure types
+
+**What was done:**
+- Created comprehensive tests for directory structure types (10 tests):
+  - `src/directory.test.ts` - tests for SagaPaths, EpicPaths, StoryPaths, WorktreePaths, ArchivePaths
+- Implemented directory structure types and path builder functions:
+  - `src/directory.ts` - types and factory functions for all directory paths
+- Types cover the full .saga/ directory structure:
+  - `SagaPaths` - root-level paths (saga, epics, worktrees, archive)
+  - `EpicPaths` - epic directory paths (epicDir, epicMd, storiesDir)
+  - `StoryPaths` - story directory paths (storyDir, storyMd, journalMd)
+  - `WorktreePaths` - worktree paths including nested .saga structure
+  - `ArchivePaths` - archive paths for epics and stories
+- Updated `src/index.ts` to re-export all directory types and functions
+- All 30 tests pass and TypeScript compiles without errors
+
+**Decisions:**
+- Used TDD workflow: wrote failing tests first, then implemented types
+- Created factory functions (createSagaPaths, createEpicPaths, etc.) rather than bare path construction for consistency and encapsulation
+- Handled trailing slash normalization in project root paths
+- Modeled worktree's nested .saga structure accurately (story.md lives inside worktree's own .saga/epics/{epic}/stories/{story}/ directory)
+- Made storySlug optional in ArchivePaths to support both epic-level and story-level archives
+
+**Next steps:**
+- t4-t7: Create plugin-scripts package with build infrastructure

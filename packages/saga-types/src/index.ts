@@ -26,3 +26,17 @@ export {
   type SessionStatus,
   type Session,
 } from './session';
+
+// Directory structure types
+export {
+  createSagaPaths,
+  createEpicPaths,
+  createStoryPaths,
+  createWorktreePaths,
+  createArchivePaths,
+  type SagaPaths,
+  type EpicPaths,
+  type StoryPaths,
+  type WorktreePaths,
+  type ArchivePaths,
+} from './directory';
