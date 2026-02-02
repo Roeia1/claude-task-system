@@ -1,6 +1,6 @@
 import type { VirtualItem, Virtualizer } from '@tanstack/react-virtual';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArrowDownToLine, CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, Lock, Unlock } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getWebSocketSend,
@@ -78,10 +78,6 @@ function LogViewerHeader({
   autoScroll: boolean;
   onToggleAutoScroll: () => void;
 }) {
-  const title = autoScroll
-    ? 'Auto-scroll enabled (click to disable)'
-    : 'Auto-scroll disabled (click to enable)';
-
   return (
     <div className="flex items-center justify-between px-4 py-2 border-b border-bg-light">
       <StatusIndicator status={status} />
@@ -90,17 +86,18 @@ function LogViewerHeader({
         data-testid="auto-scroll-toggle"
         onClick={onToggleAutoScroll}
         aria-pressed={autoScroll}
-        className={`p-1.5 rounded-md transition-colors ${
+        className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md transition-colors ${
           autoScroll
-            ? 'bg-bg-light hover:bg-bg-lighter text-primary'
-            : 'bg-bg-light hover:bg-bg-lighter text-text-muted'
+            ? 'bg-success/20 text-success hover:bg-success/30'
+            : 'bg-bg-light text-text-muted hover:bg-bg-lighter'
         }`}
-        title={title}
       >
-        <ArrowDownToLine
-          className="h-4 w-4"
-          data-testid={autoScroll ? 'autoscroll-icon-enabled' : 'autoscroll-icon-disabled'}
-        />
+        {autoScroll ? (
+          <Lock className="h-3.5 w-3.5" data-testid="autoscroll-icon-enabled" />
+        ) : (
+          <Unlock className="h-3.5 w-3.5" data-testid="autoscroll-icon-disabled" />
+        )}
+        <span>Autoscroll</span>
       </button>
     </div>
   );
