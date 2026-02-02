@@ -1,21 +1,25 @@
 // SAGA Types - Shared Zod schemas for .saga/ directory structure
 // This package is internal and not published to npm
 
-// Story types
+// Story and Task types
 export {
   StoryStatusSchema,
+  TaskStatusSchema,
+  TaskSchema,
   StoryFrontmatterSchema,
   StorySchema,
   type StoryStatus,
+  type TaskStatus,
+  type Task,
   type StoryFrontmatter,
   type Story,
 } from './story';
 
 // Epic types
 export {
-  EpicFrontmatterSchema,
+  StoryCountsSchema,
   EpicSchema,
-  type EpicFrontmatter,
+  type StoryCounts,
   type Epic,
 } from './epic';
 
