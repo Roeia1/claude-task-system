@@ -169,6 +169,7 @@ export interface Task {
 export interface JournalEntry {
   timestamp: string;
   type: 'session' | 'blocker' | 'resolution';
+  title: string;
   content: string;
 }
 
@@ -326,6 +327,7 @@ export async function parseJournal(journalPath: string): Promise<JournalEntry[]>
         entries.push({
           timestamp,
           type: 'session',
+          title: `Session ${timestamp}`,
           content: sectionContent,
         });
       } else if (headerLine.toLowerCase().startsWith('blocker:')) {
@@ -333,14 +335,16 @@ export async function parseJournal(journalPath: string): Promise<JournalEntry[]>
         entries.push({
           timestamp: '', // Blockers may not have timestamps
           type: 'blocker',
-          content: `${title}\n\n${sectionContent}`.trim(),
+          title,
+          content: sectionContent,
         });
       } else if (headerLine.toLowerCase().startsWith('resolution:')) {
         const title = headerLine.substring('resolution:'.length).trim();
         entries.push({
           timestamp: '', // Resolutions may not have timestamps
           type: 'resolution',
-          content: `${title}\n\n${sectionContent}`.trim(),
+          title,
+          content: sectionContent,
         });
       }
       // Other headers are ignored

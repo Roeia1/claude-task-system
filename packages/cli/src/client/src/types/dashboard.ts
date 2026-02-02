@@ -51,7 +51,7 @@ export interface StoryDetail {
   status: StoryStatus;
   epicSlug: string;
   tasks: Task[];
-  journal: JournalEntry[];
+  journal?: JournalEntry[];
   content?: string;
 }
 
