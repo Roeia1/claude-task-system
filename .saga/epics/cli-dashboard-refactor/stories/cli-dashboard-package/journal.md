@@ -61,3 +61,50 @@
 
 **Next steps:**
 - t3: Remove non-dashboard commands from CLI entry point
+
+## Session 3: 2026-02-03
+
+### Task: t3 - Remove non-dashboard commands from CLI entry point
+
+**What was done:**
+- Updated `src/cli.ts` to remove imports and command registrations for: `init`, `implement`, `find`, `worktree`, `scope-validator`
+- Updated `src/commands/sessions/index.ts` to remove `kill` subcommand (kept `list`, `status`, `logs`)
+- Deleted command files: `implement.ts`, `scope-validator.ts`, `find.ts`, `worktree.ts`, `init.ts` and their tests
+- Deleted `utils/finder.ts` and `utils/finder.test.ts` (only used by removed commands)
+- Updated `src/cli.test.ts` with tests for retained commands and tests verifying removed commands show "unknown command" errors
+- Updated `src/commands/sessions/index.test.ts` to remove kill command tests
+
+**Files deleted (via git rm):**
+- packages/dashboard/src/commands/implement.ts
+- packages/dashboard/src/commands/implement.test.ts
+- packages/dashboard/src/commands/scope-validator.ts
+- packages/dashboard/src/commands/scope-validator.test.ts
+- packages/dashboard/src/commands/find.ts
+- packages/dashboard/src/commands/find.test.ts
+- packages/dashboard/src/commands/worktree.ts
+- packages/dashboard/src/commands/worktree.test.ts
+- packages/dashboard/src/commands/init.ts
+- packages/dashboard/src/commands/init.test.ts
+- packages/dashboard/src/utils/finder.ts
+- packages/dashboard/src/utils/finder.test.ts
+
+**Files modified:**
+- packages/dashboard/src/cli.ts
+- packages/dashboard/src/cli.test.ts
+- packages/dashboard/src/commands/sessions/index.ts
+- packages/dashboard/src/commands/sessions/index.test.ts
+
+**Verification:**
+- Build passes: `pnpm build` succeeds (CLI bundle reduced from 99.6kb to 53.6kb)
+- `saga dashboard --help` works
+- `saga sessions list|status|logs` commands work
+- `saga init`, `saga implement`, `saga find`, `saga worktree`, `saga scope-validator` all show "unknown command" errors
+- `saga sessions kill` shows "unknown command" error
+- Unit tests pass (557 tests pass, 4 pre-existing storybook snapshot failures)
+
+**Notes:**
+- Pre-existing storybook snapshot test failures remain (4 tests) - not related to this task
+- The CLI is now focused solely on dashboard and session monitoring functionality
+
+**Next steps:**
+- t4: Remove SAGA_* environment variable dependencies

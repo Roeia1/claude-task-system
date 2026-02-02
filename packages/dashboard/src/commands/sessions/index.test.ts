@@ -1,30 +1,23 @@
 /**
  * Tests for sessions CLI subcommands
  *
- * Tests the CLI commands: sessions list, sessions status, sessions logs, sessions kill
+ * Tests the CLI commands: sessions list, sessions status, sessions logs
  */
 
-import process from "node:process";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import process from 'node:process';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getSessionStatus, listSessions, streamLogs } from '../../lib/sessions.ts';
 import {
-	getSessionStatus,
-	killSession,
-	listSessions,
-	streamLogs,
-} from "../../lib/sessions.ts";
-import {
-	sessionsKillCommand,
-	sessionsListCommand,
-	sessionsLogsCommand,
-	sessionsStatusCommand,
-} from "./index.ts";
+  sessionsListCommand,
+  sessionsLogsCommand,
+  sessionsStatusCommand,
+} from './index.ts';
 
 // Mock the sessions library module
-vi.mock("../../lib/sessions.js", () => ({
-	listSessions: vi.fn(),
-	getSessionStatus: vi.fn(),
-	streamLogs: vi.fn(),
-	killSession: vi.fn(),
+vi.mock('../../lib/sessions.js', () => ({
+  listSessions: vi.fn(),
+  getSessionStatus: vi.fn(),
+  streamLogs: vi.fn(),
 }));
 
 describe("sessions CLI subcommands", () => {
@@ -145,42 +138,6 @@ describe("sessions CLI subcommands", () => {
 
 			errorSpy.mockRestore();
 			exitSpy.mockRestore();
-		});
-	});
-
-	describe("sessionsKillCommand", () => {
-		it("should call killSession and output JSON", async () => {
-			vi.mocked(killSession).mockResolvedValue({ killed: true });
-
-			const logSpy = vi.spyOn(console, "log").mockImplementation(() => {
-				// Suppress console output in tests
-			});
-
-			await sessionsKillCommand("saga__epic__story__1234");
-
-			expect(killSession).toHaveBeenCalledWith("saga__epic__story__1234");
-			expect(logSpy).toHaveBeenCalledWith(
-				JSON.stringify({ killed: true }, null, 2),
-			);
-
-			logSpy.mockRestore();
-		});
-
-		it("should output killed: false for non-existent session", async () => {
-			vi.mocked(killSession).mockResolvedValue({ killed: false });
-
-			const logSpy = vi.spyOn(console, "log").mockImplementation(() => {
-				// Suppress console output in tests
-			});
-
-			await sessionsKillCommand("saga__nonexistent__1234");
-
-			expect(killSession).toHaveBeenCalledWith("saga__nonexistent__1234");
-			expect(logSpy).toHaveBeenCalledWith(
-				JSON.stringify({ killed: false }, null, 2),
-			);
-
-			logSpy.mockRestore();
 		});
 	});
 });

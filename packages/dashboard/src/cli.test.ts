@@ -31,27 +31,35 @@ function runCli(args: string[]): {
 	};
 }
 
-describe("CLI entry point", () => {
-	describe("--help", () => {
-		it("shows help with available commands", () => {
-			const { stdout, exitCode } = runCli(["--help"]);
-			expect(exitCode).toBe(0);
-			expect(stdout).toContain("Usage:");
-			expect(stdout).toContain("init");
-			expect(stdout).toContain("implement");
-			expect(stdout).toContain("dashboard");
-		});
+describe('CLI entry point', () => {
+  describe('--help', () => {
+    it('shows help with available commands', () => {
+      const { stdout, exitCode } = runCli(['--help']);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('Usage:');
+      expect(stdout).toContain('dashboard');
+      expect(stdout).toContain('sessions');
+    });
 
 		it("shows global --path option", () => {
 			const { stdout } = runCli(["--help"]);
 			expect(stdout).toContain("--path");
 		});
 
-		it("shows --version option", () => {
-			const { stdout } = runCli(["--help"]);
-			expect(stdout).toContain("--version");
-		});
-	});
+    it('shows --version option', () => {
+      const { stdout } = runCli(['--help']);
+      expect(stdout).toContain('--version');
+    });
+
+    it('does not show removed commands', () => {
+      const { stdout } = runCli(['--help']);
+      expect(stdout).not.toContain('init');
+      expect(stdout).not.toContain('implement');
+      expect(stdout).not.toContain('find');
+      expect(stdout).not.toContain('worktree');
+      expect(stdout).not.toContain('scope-validator');
+    });
+  });
 
 	describe("--version", () => {
 		it("shows version number", () => {
@@ -62,78 +70,31 @@ describe("CLI entry point", () => {
 		});
 	});
 
-	describe("help command", () => {
-		it("saga help shows main help", () => {
-			const { stdout, exitCode } = runCli(["help"]);
-			expect(exitCode).toBe(0);
-			expect(stdout).toContain("Usage:");
-			expect(stdout).toContain("init");
-			expect(stdout).toContain("implement");
-			expect(stdout).toContain("dashboard");
-		});
+  describe('help command', () => {
+    it('saga help shows main help', () => {
+      const { stdout, exitCode } = runCli(['help']);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('Usage:');
+      expect(stdout).toContain('dashboard');
+      expect(stdout).toContain('sessions');
+    });
 
-		it("saga help init shows init command help", () => {
-			const { stdout, exitCode } = runCli(["help", "init"]);
-			expect(exitCode).toBe(0);
-			expect(stdout).toContain("init");
-			expect(stdout).toContain("--dry-run");
-		});
+    it('saga help dashboard shows dashboard command help', () => {
+      const { stdout, exitCode } = runCli(['help', 'dashboard']);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('dashboard');
+      expect(stdout).toContain('--port');
+    });
 
-		it("saga help implement shows implement command help", () => {
-			const { stdout, exitCode } = runCli(["help", "implement"]);
-			expect(exitCode).toBe(0);
-			expect(stdout).toContain("implement");
-			expect(stdout).toContain("story-slug");
-			expect(stdout).toContain("--max-cycles");
-		});
-
-		it("saga help dashboard shows dashboard command help", () => {
-			const { stdout, exitCode } = runCli(["help", "dashboard"]);
-			expect(exitCode).toBe(0);
-			expect(stdout).toContain("dashboard");
-			expect(stdout).toContain("--port");
-		});
-	});
-
-	describe("init command", () => {
-		it("has init subcommand", () => {
-			const { stdout, exitCode } = runCli(["init", "--help"]);
-			expect(exitCode).toBe(0);
-			expect(stdout).toContain("init");
-		});
-
-		it("init uses global --path option", () => {
-			// --path is a global option shown in main help
-			const { stdout } = runCli(["--help"]);
-			expect(stdout).toContain("--path");
-		});
-	});
-
-	describe("implement command", () => {
-		it("has implement subcommand", () => {
-			const { stdout, exitCode } = runCli(["implement", "--help"]);
-			expect(exitCode).toBe(0);
-			expect(stdout).toContain("implement");
-		});
-
-		it("implement --help shows story-slug argument", () => {
-			const { stdout } = runCli(["implement", "--help"]);
-			expect(stdout).toContain("story-slug");
-		});
-
-		it("implement --help shows command-specific options", () => {
-			const { stdout } = runCli(["implement", "--help"]);
-			expect(stdout).toContain("--max-cycles");
-			expect(stdout).toContain("--max-time");
-			expect(stdout).toContain("--model");
-		});
-
-		it("implement uses global --path option", () => {
-			// --path is a global option shown in main help
-			const { stdout } = runCli(["--help"]);
-			expect(stdout).toContain("--path");
-		});
-	});
+    it('saga help sessions shows sessions command help', () => {
+      const { stdout, exitCode } = runCli(['help', 'sessions']);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('sessions');
+      expect(stdout).toContain('list');
+      expect(stdout).toContain('status');
+      expect(stdout).toContain('logs');
+    });
+  });
 
 	describe("dashboard command", () => {
 		it("has dashboard subcommand", () => {
@@ -154,11 +115,63 @@ describe("CLI entry point", () => {
 		});
 	});
 
-	describe("unknown commands", () => {
-		it("shows error for unknown command", () => {
-			const { stderr, exitCode } = runCli(["unknowncommand"]);
-			expect(exitCode).toBe(1);
-			expect(stderr).toContain("unknown command");
-		});
-	});
+  describe('sessions command', () => {
+    it('has sessions subcommand', () => {
+      const { stdout, exitCode } = runCli(['sessions', '--help']);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('sessions');
+    });
+
+    it('sessions --help shows list, status, logs subcommands', () => {
+      const { stdout } = runCli(['sessions', '--help']);
+      expect(stdout).toContain('list');
+      expect(stdout).toContain('status');
+      expect(stdout).toContain('logs');
+    });
+
+    it('sessions --help does not show kill subcommand', () => {
+      const { stdout } = runCli(['sessions', '--help']);
+      expect(stdout).not.toContain('kill');
+    });
+  });
+
+  describe('removed commands', () => {
+    it('shows error for removed init command', () => {
+      const { stderr, exitCode } = runCli(['init']);
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain('unknown command');
+    });
+
+    it('shows error for removed implement command', () => {
+      const { stderr, exitCode } = runCli(['implement']);
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain('unknown command');
+    });
+
+    it('shows error for removed find command', () => {
+      const { stderr, exitCode } = runCli(['find']);
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain('unknown command');
+    });
+
+    it('shows error for removed worktree command', () => {
+      const { stderr, exitCode } = runCli(['worktree']);
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain('unknown command');
+    });
+
+    it('shows error for removed scope-validator command', () => {
+      const { stderr, exitCode } = runCli(['scope-validator']);
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain('unknown command');
+    });
+  });
+
+  describe('unknown commands', () => {
+    it('shows error for unknown command', () => {
+      const { stderr, exitCode } = runCli(['unknowncommand']);
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain('unknown command');
+    });
+  });
 });

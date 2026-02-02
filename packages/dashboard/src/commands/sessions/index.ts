@@ -5,16 +5,10 @@
  *   saga sessions list           List all SAGA sessions
  *   saga sessions status <name>  Show session status
  *   saga sessions logs <name>    Stream session output
- *   saga sessions kill <name>    Terminate session
  */
 
-import process from "node:process";
-import {
-	getSessionStatus,
-	killSession,
-	listSessions,
-	streamLogs,
-} from "../../lib/sessions.ts";
+import process from 'node:process';
+import { getSessionStatus, listSessions, streamLogs } from '../../lib/sessions.ts';
 
 /**
  * List all SAGA sessions
@@ -53,15 +47,4 @@ export async function sessionsLogsCommand(sessionName: string): Promise<void> {
 		);
 		process.exit(1);
 	}
-}
-
-/**
- * Kill a session
- * Outputs JSON object with killed boolean
- *
- * @param sessionName - The session name to kill
- */
-export async function sessionsKillCommand(sessionName: string): Promise<void> {
-	const result = await killSession(sessionName);
-	console.log(JSON.stringify(result, null, 2));
 }
