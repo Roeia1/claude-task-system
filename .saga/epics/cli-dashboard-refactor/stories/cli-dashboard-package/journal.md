@@ -192,3 +192,38 @@ The Session type is the same in both (uses `'running' | 'completed'`), so it can
 
 **Next steps:**
 - t6: Convert init.ts to plugin skill
+
+## Session 6: 2026-02-03
+
+### Task: t6 - Convert init.ts to plugin skill
+
+**What was done:**
+- Updated `plugin/skills/init/SKILL.md` to be a standalone skill that doesn't rely on CLI commands
+- Removed the `npx @saga-ai/cli@latest init` command call (the CLI init command was deleted in t3)
+- Skill now instructs Claude to directly:
+  1. Check if `.saga/` already exists (idempotent)
+  2. Create directory structure: `.saga/epics`, `.saga/archive`, `.saga/worktrees`
+  3. Update `.gitignore` to include `.saga/worktrees/` pattern
+  4. Report success with next steps
+
+**Design decisions:**
+- Made skill idempotent - running `/init` on an already-initialized project reports existing structure instead of erroring
+- Skill uses `disable-model-invocation: true` since it's user-invoked only
+- Skill uses allowed-tools: `Read, Bash(mkdir:*, ls:*, grep:*), Edit` - minimal permissions for the task
+- No TypeScript needed - skill describes what Claude should do via markdown instructions
+
+**Files modified:**
+- plugin/skills/init/SKILL.md
+
+**Verification:**
+- Skill file exists at correct location
+- Skill describes creating `.saga/epics/`, `.saga/archive/`, `.saga/worktrees/`
+- No manifest update needed (plugin.json uses `"skills": "./skills/"` for auto-discovery)
+- Unit tests pass (557 tests pass, same 4 pre-existing storybook snapshot failures)
+
+**Notes:**
+- The previous skill called `npx @saga-ai/cli@latest init` which no longer exists
+- The new skill follows the same structure as `/create-epic` with YAML frontmatter and task table
+
+**Next steps:**
+- t7: Update and verify tests
