@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
-  StoryStatusSchema,
-  TaskStatusSchema,
-  TaskSchema,
+  type Story,
+  type StoryFrontmatter,
   StoryFrontmatterSchema,
   StorySchema,
   type StoryStatus,
-  type TaskStatus,
+  StoryStatusSchema,
   type Task,
-  type StoryFrontmatter,
-  type Story,
-} from './story';
+  TaskSchema,
+  type TaskStatus,
+  TaskStatusSchema,
+} from './story.ts';
 
 describe('StoryStatusSchema', () => {
   it('accepts valid status values', () => {
@@ -76,9 +76,7 @@ describe('StoryFrontmatterSchema', () => {
     title: 'Test Story',
     status: 'ready',
     epic: 'my-epic',
-    tasks: [
-      { id: 't1', title: 'Task 1', status: 'pending' },
-    ],
+    tasks: [{ id: 't1', title: 'Task 1', status: 'pending' }],
   };
 
   it('parses valid frontmatter', () => {
@@ -112,25 +110,50 @@ describe('StoryFrontmatterSchema', () => {
   });
 
   it('requires all fields', () => {
-    expect(() => StoryFrontmatterSchema.parse({
-      title: 'Test', status: 'ready', epic: 'my-epic', tasks: [],
-    })).toThrow(); // missing id
+    expect(() =>
+      StoryFrontmatterSchema.parse({
+        title: 'Test',
+        status: 'ready',
+        epic: 'my-epic',
+        tasks: [],
+      }),
+    ).toThrow(); // missing id
 
-    expect(() => StoryFrontmatterSchema.parse({
-      id: 'test', status: 'ready', epic: 'my-epic', tasks: [],
-    })).toThrow(); // missing title
+    expect(() =>
+      StoryFrontmatterSchema.parse({
+        id: 'test',
+        status: 'ready',
+        epic: 'my-epic',
+        tasks: [],
+      }),
+    ).toThrow(); // missing title
 
-    expect(() => StoryFrontmatterSchema.parse({
-      id: 'test', title: 'Test', epic: 'my-epic', tasks: [],
-    })).toThrow(); // missing status
+    expect(() =>
+      StoryFrontmatterSchema.parse({
+        id: 'test',
+        title: 'Test',
+        epic: 'my-epic',
+        tasks: [],
+      }),
+    ).toThrow(); // missing status
 
-    expect(() => StoryFrontmatterSchema.parse({
-      id: 'test', title: 'Test', status: 'ready', tasks: [],
-    })).toThrow(); // missing epic
+    expect(() =>
+      StoryFrontmatterSchema.parse({
+        id: 'test',
+        title: 'Test',
+        status: 'ready',
+        tasks: [],
+      }),
+    ).toThrow(); // missing epic
 
-    expect(() => StoryFrontmatterSchema.parse({
-      id: 'test', title: 'Test', status: 'ready', epic: 'my-epic',
-    })).toThrow(); // missing tasks
+    expect(() =>
+      StoryFrontmatterSchema.parse({
+        id: 'test',
+        title: 'Test',
+        status: 'ready',
+        epic: 'my-epic',
+      }),
+    ).toThrow(); // missing tasks
   });
 });
 
@@ -143,9 +166,7 @@ describe('StorySchema', () => {
       title: 'Test Story',
       status: 'ready',
       epic: 'my-epic',
-      tasks: [
-        { id: 't1', title: 'Task 1', status: 'pending' },
-      ],
+      tasks: [{ id: 't1', title: 'Task 1', status: 'pending' }],
     },
     content: '## Context\n\nThis is the story content.',
   };
@@ -160,9 +181,7 @@ describe('StorySchema', () => {
       frontmatter: {
         ...validStory.frontmatter,
         status: 'completed',
-        tasks: [
-          { id: 't1', title: 'Task 1', status: 'completed' },
-        ],
+        tasks: [{ id: 't1', title: 'Task 1', status: 'completed' }],
       },
     };
     expect(StorySchema.parse(completedStory)).toEqual(completedStory);
@@ -175,7 +194,7 @@ describe('StorySchema', () => {
         path: '/path',
         frontmatter: validStory.frontmatter,
         // missing content
-      })
+      }),
     ).toThrow();
 
     expect(() =>
@@ -184,7 +203,7 @@ describe('StorySchema', () => {
         path: '/path',
         content: 'content',
         // missing frontmatter
-      })
+      }),
     ).toThrow();
   });
 });

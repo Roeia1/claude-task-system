@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { StorySchema } from './story';
+import { StorySchema } from './story.ts';
 
 /**
  * Story counts by status for epic summaries.

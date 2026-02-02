@@ -24,14 +24,10 @@
  *             └── story.md
  */
 
-// ============================================================================
-// Path Types
-// ============================================================================
-
 /**
  * Root-level SAGA directory paths
  */
-export interface SagaPaths {
+interface SagaPaths {
   /** Project root directory (parent of .saga/) */
   root: string;
   /** .saga directory path */
@@ -47,7 +43,7 @@ export interface SagaPaths {
 /**
  * Epic directory paths
  */
-export interface EpicPaths {
+interface EpicPaths {
   /** Epic slug identifier */
   epicSlug: string;
   /** Epic directory: .saga/epics/{epic-slug}/ */
@@ -61,7 +57,7 @@ export interface EpicPaths {
 /**
  * Story directory paths (within epics)
  */
-export interface StoryPaths {
+interface StoryPaths {
   /** Epic slug identifier */
   epicSlug: string;
   /** Story slug identifier */
@@ -77,7 +73,7 @@ export interface StoryPaths {
 /**
  * Worktree directory paths
  */
-export interface WorktreePaths {
+interface WorktreePaths {
   /** Epic slug identifier */
   epicSlug: string;
   /** Story slug identifier */
@@ -93,7 +89,7 @@ export interface WorktreePaths {
 /**
  * Archive directory paths
  */
-export interface ArchivePaths {
+interface ArchivePaths {
   /** Epic slug identifier */
   epicSlug: string;
   /** Story slug identifier (optional, for story-level archives) */
@@ -105,10 +101,6 @@ export interface ArchivePaths {
   /** Archived story.md: .saga/archive/{epic-slug}/{story-slug}/story.md */
   archiveStoryMd?: string;
 }
-
-// ============================================================================
-// Path Builders
-// ============================================================================
 
 /**
  * Normalize a project root path by removing trailing slashes
@@ -123,7 +115,7 @@ function normalizeRoot(projectRoot: string): string {
  * @param projectRoot - Path to the project root directory
  * @returns SagaPaths object with all root-level paths
  */
-export function createSagaPaths(projectRoot: string): SagaPaths {
+function createSagaPaths(projectRoot: string): SagaPaths {
   const root = normalizeRoot(projectRoot);
   const saga = `${root}/.saga`;
 
@@ -143,7 +135,7 @@ export function createSagaPaths(projectRoot: string): SagaPaths {
  * @param epicSlug - Epic slug identifier
  * @returns EpicPaths object with all epic-level paths
  */
-export function createEpicPaths(projectRoot: string, epicSlug: string): EpicPaths {
+function createEpicPaths(projectRoot: string, epicSlug: string): EpicPaths {
   const { epics } = createSagaPaths(projectRoot);
   const epicDir = `${epics}/${epicSlug}`;
 
@@ -163,11 +155,7 @@ export function createEpicPaths(projectRoot: string, epicSlug: string): EpicPath
  * @param storySlug - Story slug identifier
  * @returns StoryPaths object with all story-level paths
  */
-export function createStoryPaths(
-  projectRoot: string,
-  epicSlug: string,
-  storySlug: string,
-): StoryPaths {
+function createStoryPaths(projectRoot: string, epicSlug: string, storySlug: string): StoryPaths {
   const { storiesDir } = createEpicPaths(projectRoot, epicSlug);
   const storyDir = `${storiesDir}/${storySlug}`;
 
@@ -191,7 +179,7 @@ export function createStoryPaths(
  * @param storySlug - Story slug identifier
  * @returns WorktreePaths object with all worktree-level paths
  */
-export function createWorktreePaths(
+function createWorktreePaths(
   projectRoot: string,
   epicSlug: string,
   storySlug: string,
@@ -199,7 +187,6 @@ export function createWorktreePaths(
   const { worktrees } = createSagaPaths(projectRoot);
   const worktreeDir = `${worktrees}/${epicSlug}/${storySlug}`;
 
-  // Inside worktree, there's a nested .saga structure
   const nestedStoryDir = `${worktreeDir}/.saga/epics/${epicSlug}/stories/${storySlug}`;
 
   return {
@@ -219,7 +206,7 @@ export function createWorktreePaths(
  * @param storySlug - Optional story slug identifier for story-level archives
  * @returns ArchivePaths object with all archive-level paths
  */
-export function createArchivePaths(
+function createArchivePaths(
   projectRoot: string,
   epicSlug: string,
   storySlug?: string,
@@ -241,3 +228,16 @@ export function createArchivePaths(
 
   return result;
 }
+
+export {
+  type ArchivePaths,
+  type EpicPaths,
+  type SagaPaths,
+  type StoryPaths,
+  type WorktreePaths,
+  createArchivePaths,
+  createEpicPaths,
+  createSagaPaths,
+  createStoryPaths,
+  createWorktreePaths,
+};

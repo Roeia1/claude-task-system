@@ -1,12 +1,13 @@
-import * as esbuild from "esbuild";
-import { readdirSync, mkdirSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
+import { build } from 'esbuild';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Output directory: plugin/scripts/ relative to repo root
-const outDir = join(__dirname, "..", "..", "plugin", "scripts");
+const outDir = join(__dirname, '..', '..', 'plugin', 'scripts');
 
 // Ensure output directory exists
 if (!existsSync(outDir)) {
@@ -14,37 +15,39 @@ if (!existsSync(outDir)) {
 }
 
 // Find all TypeScript entry points in src/ (excluding test files and index.ts)
-const srcDir = join(__dirname, "src");
+const srcDir = join(__dirname, 'src');
 const entryPoints = readdirSync(srcDir)
   .filter(
     (file) =>
-      file.endsWith(".ts") &&
-      !file.endsWith(".test.ts") &&
-      !file.endsWith(".d.ts") &&
-      file !== "index.ts"
+      file.endsWith('.ts') &&
+      !file.endsWith('.test.ts') &&
+      !file.endsWith('.d.ts') &&
+      file !== 'index.ts',
   )
   .map((file) => join(srcDir, file));
 
 if (entryPoints.length === 0) {
-  console.log("No entry points found to build.");
+  console.log('No entry points found to build.');
   process.exit(0);
 }
 
 console.log(`Building ${entryPoints.length} script(s)...`);
-entryPoints.forEach((entry) => console.log(`  - ${entry}`));
+for (const entry of entryPoints) {
+  console.log(`  - ${entry}`);
+}
 
-await esbuild.build({
+await build({
   entryPoints,
   outdir: outDir,
   bundle: true,
-  platform: "node",
-  format: "esm",
-  target: "node18",
+  platform: 'node',
+  format: 'esm',
+  target: 'node18',
   banner: {
-    js: "#!/usr/bin/env node",
+    js: '#!/usr/bin/env node',
   },
   // Bundle all dependencies except Node built-ins
-  packages: "bundle",
+  packages: 'bundle',
   sourcemap: false,
   minify: false, // Keep readable for debugging
 });

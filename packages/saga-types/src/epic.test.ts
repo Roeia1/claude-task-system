@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  StoryCountsSchema,
-  EpicSchema,
-  type StoryCounts,
-  type Epic,
-} from './epic';
-import type { Story } from './story';
+import { type Epic, EpicSchema, type StoryCounts, StoryCountsSchema } from './epic.ts';
+import type { Story } from './story.ts';
 
 describe('StoryCountsSchema', () => {
   it('parses valid story counts', () => {
@@ -32,11 +27,11 @@ describe('StoryCountsSchema', () => {
 
   it('requires all fields', () => {
     expect(() =>
-      StoryCountsSchema.parse({ total: 5, ready: 2, inProgress: 1, blocked: 1 })
+      StoryCountsSchema.parse({ total: 5, ready: 2, inProgress: 1, blocked: 1 }),
     ).toThrow(); // missing completed
 
     expect(() =>
-      StoryCountsSchema.parse({ ready: 2, inProgress: 1, blocked: 1, completed: 1 })
+      StoryCountsSchema.parse({ ready: 2, inProgress: 1, blocked: 1, completed: 1 }),
     ).toThrow(); // missing total
   });
 });
@@ -50,9 +45,7 @@ describe('EpicSchema', () => {
       title: 'Test Story',
       status: 'ready',
       epic: 'my-epic',
-      tasks: [
-        { id: 't1', title: 'Task 1', status: 'pending' },
-      ],
+      tasks: [{ id: 't1', title: 'Task 1', status: 'pending' }],
     },
     content: '## Context\n\nThis is the story content.',
   };
@@ -134,7 +127,7 @@ describe('EpicSchema', () => {
         title: 'Test',
         content: 'content',
         // missing storyCounts and stories
-      })
+      }),
     ).toThrow();
 
     expect(() =>
@@ -145,7 +138,7 @@ describe('EpicSchema', () => {
         storyCounts: sampleStoryCounts,
         stories: [],
         // missing content
-      })
+      }),
     ).toThrow();
   });
 });

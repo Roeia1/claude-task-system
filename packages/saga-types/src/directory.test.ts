@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
-  type SagaPaths,
-  type EpicPaths,
-  type StoryPaths,
-  type WorktreePaths,
   type ArchivePaths,
-  createSagaPaths,
+  createArchivePaths,
   createEpicPaths,
+  createSagaPaths,
   createStoryPaths,
   createWorktreePaths,
-  createArchivePaths,
-} from './directory';
+  type EpicPaths,
+  type SagaPaths,
+  type StoryPaths,
+  type WorktreePaths,
+} from './directory.ts';
 
 describe('SagaPaths', () => {
   const projectRoot = '/path/to/project';
@@ -60,7 +60,9 @@ describe('StoryPaths', () => {
     expect(paths.storySlug).toBe('my-story');
     expect(paths.storyDir).toBe('/path/to/project/.saga/epics/my-epic/stories/my-story');
     expect(paths.storyMd).toBe('/path/to/project/.saga/epics/my-epic/stories/my-story/story.md');
-    expect(paths.journalMd).toBe('/path/to/project/.saga/epics/my-epic/stories/my-story/journal.md');
+    expect(paths.journalMd).toBe(
+      '/path/to/project/.saga/epics/my-epic/stories/my-story/journal.md',
+    );
   });
 
   it('handles story with different epic', () => {
@@ -86,10 +88,10 @@ describe('WorktreePaths', () => {
 
     // Inside worktree, the .saga structure is nested
     expect(paths.storyMdInWorktree).toBe(
-      '/path/to/project/.saga/worktrees/my-epic/my-story/.saga/epics/my-epic/stories/my-story/story.md'
+      '/path/to/project/.saga/worktrees/my-epic/my-story/.saga/epics/my-epic/stories/my-story/story.md',
     );
     expect(paths.journalMdInWorktree).toBe(
-      '/path/to/project/.saga/worktrees/my-epic/my-story/.saga/epics/my-epic/stories/my-story/journal.md'
+      '/path/to/project/.saga/worktrees/my-epic/my-story/.saga/epics/my-epic/stories/my-story/journal.md',
     );
   });
 });

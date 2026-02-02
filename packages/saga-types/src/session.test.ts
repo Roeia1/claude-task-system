@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  SessionStatusSchema,
-  SessionSchema,
-  type SessionStatus,
-  type Session,
-} from './session';
+import { type Session, SessionSchema, type SessionStatus, SessionStatusSchema } from './session.ts';
 
 describe('SessionStatusSchema', () => {
   it('accepts valid status values', () => {
@@ -73,7 +68,7 @@ describe('SessionSchema', () => {
         outputFile: '/tmp/output.out',
         outputAvailable: true,
         startTime: '2026-02-02T12:00:00Z',
-      })
+      }),
     ).toThrow();
 
     // missing epicSlug
@@ -85,7 +80,7 @@ describe('SessionSchema', () => {
         outputFile: '/tmp/output.out',
         outputAvailable: true,
         startTime: '2026-02-02T12:00:00Z',
-      })
+      }),
     ).toThrow();
 
     // missing storySlug
@@ -97,7 +92,7 @@ describe('SessionSchema', () => {
         outputFile: '/tmp/output.out',
         outputAvailable: true,
         startTime: '2026-02-02T12:00:00Z',
-      })
+      }),
     ).toThrow();
 
     // missing status
@@ -109,7 +104,7 @@ describe('SessionSchema', () => {
         outputFile: '/tmp/output.out',
         outputAvailable: true,
         startTime: '2026-02-02T12:00:00Z',
-      })
+      }),
     ).toThrow();
 
     // missing outputFile
@@ -121,7 +116,7 @@ describe('SessionSchema', () => {
         status: 'running',
         outputAvailable: true,
         startTime: '2026-02-02T12:00:00Z',
-      })
+      }),
     ).toThrow();
 
     // missing outputAvailable
@@ -133,7 +128,7 @@ describe('SessionSchema', () => {
         status: 'running',
         outputFile: '/tmp/output.out',
         startTime: '2026-02-02T12:00:00Z',
-      })
+      }),
     ).toThrow();
 
     // missing startTime
@@ -145,7 +140,7 @@ describe('SessionSchema', () => {
         status: 'running',
         outputFile: '/tmp/output.out',
         outputAvailable: true,
-      })
+      }),
     ).toThrow();
   });
 });
