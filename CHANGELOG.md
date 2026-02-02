@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.0] - 2026-02-02
+
+### Added
+
+- **dashboard**: Sessions tab on story detail page for viewing and managing tmux sessions
+- **cli**: Improved tool usage display during story execution with curated details (file paths, commands, patterns)
+
+### Fixed
+
+- **cli**: Resolved lint errors in dashboard components (magic numbers, hook dependencies, formatting)
+
 ## [2.16.0] - 2026-02-01
 
 ### Added
