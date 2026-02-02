@@ -66,3 +66,37 @@
 - Task t5: Migrate and split implement.ts
 - Task t6: Update all imports to use saga-types
 - Task t7: Migrate and extend tests
+
+## Session: 2026-02-03T00:10:00Z
+
+### Task: t3 - Migrate scope-validator.ts
+
+**What was done:**
+- Created `packages/plugin-scripts/src/scope-validator.ts` - migrated from `packages/cli/src/commands/scope-validator.ts`
+- Created `packages/plugin-scripts/src/scope-validator.test.ts` - adapted tests from CLI to work with plugin-scripts
+- The script reads tool input JSON from stdin and validates file paths against story scope
+- Validates three rules: within worktree, not in archive, and within assigned story scope
+- Exit codes: 0 = allowed, 2 = blocked (with formatted error message to stderr)
+- Build produces `plugin/scripts/scope-validator.js`
+
+**Decisions:**
+- Kept the implementation identical to CLI version - the scope validation logic is critical and shouldn't change during migration
+- Maintained the same box-formatted error output to stderr for consistency with existing hook integration
+- No dependencies needed beyond Node built-ins (path, process)
+- Tests mirror the internal validation logic directly since the command reads from stdin
+
+**Test results:**
+- 27 scope-validator tests passing (isWithinWorktree, file path extraction, normalizePath, isArchiveAccess, checkStoryAccess, validatePath)
+- All 88 plugin-scripts tests passing
+- Build successfully produces `plugin/scripts/scope-validator.js`
+- Verified with manual testing:
+  - Valid worktree paths → exit code 0
+  - Paths outside worktree → exit code 2 with violation message
+  - Archive paths → exit code 2 with violation message
+  - Other story paths → exit code 2 with violation message
+
+**Next steps:**
+- Task t4: Migrate sessions-kill.ts
+- Task t5: Migrate and split implement.ts
+- Task t6: Update all imports to use saga-types
+- Task t7: Migrate and extend tests
