@@ -100,3 +100,34 @@
 - Task t5: Migrate and split implement.ts
 - Task t6: Update all imports to use saga-types
 - Task t7: Migrate and extend tests
+
+## Session: 2026-02-03T00:13:00Z
+
+### Task: t4 - Migrate sessions-kill.ts
+
+**What was done:**
+- Created `packages/plugin-scripts/src/sessions-kill.ts` - extracted kill functionality from `packages/cli/src/lib/sessions.ts`
+- Created `packages/plugin-scripts/src/sessions-kill.test.ts` - CLI integration tests
+- The script is a focused, single-purpose tool that terminates tmux sessions
+- Uses `tmux kill-session -t <name>` to terminate sessions
+- JSON output format: `{ "killed": boolean }`
+- Exit code 0 for success (killed or not found), exit code 1 for argument errors
+
+**Decisions:**
+- Extracted only the `killSession` function from the sessions library - list/status/logs stay in the dashboard CLI
+- Kept the JSON output format identical to the CLI version: `{ killed: boolean }`
+- Used simple argument parsing (same pattern as other scripts) rather than commander
+- CLI integration tests only - no mocking needed since the function is simple (just wraps `spawnSync`)
+- The function returns `killed: false` for non-existent sessions (not an error) - matches original behavior
+
+**Test results:**
+- 8 sessions-kill tests passing (--help, -h, argument validation, kill functionality, JSON output format)
+- All 96 plugin-scripts tests passing
+- Build successfully produces `plugin/scripts/sessions-kill.js`
+- `node plugin/scripts/sessions-kill.js --help` shows correct usage
+- `node plugin/scripts/sessions-kill.js saga__fake__fake__1234` returns `{ "killed": false }`
+
+**Next steps:**
+- Task t5: Migrate and split implement.ts
+- Task t6: Update all imports to use saga-types
+- Task t7: Migrate and extend tests
