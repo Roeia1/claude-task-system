@@ -5,8 +5,9 @@ import { DashboardProvider } from '@/context/dashboard-context';
 import type { SessionInfo } from '@/types/dashboard';
 import { SessionsPanel, SessionsPanelSkeleton } from './SessionsPanel.tsx';
 
-// Regex patterns for session name matching (defined at top level for performance)
+// Regex patterns (defined at top level for performance per biome lint rules)
 const NEWER_SESSION_PATTERN = /newer/;
+const RETRY_BUTTON_PATTERN = /retry/i;
 
 // API endpoint for sessions
 // biome-ignore lint/security/noSecrets: this is a test API endpoint, not a secret
@@ -198,7 +199,7 @@ describe('SessionsPanel', () => {
 
       expect(screen.getByTestId('sessions-panel-error')).toBeInTheDocument();
       expect(screen.getByText('Failed to load sessions')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: RETRY_BUTTON_PATTERN })).toBeInTheDocument();
     });
 
     it('shows error state when fetch throws error', async () => {
@@ -234,7 +235,7 @@ describe('SessionsPanel', () => {
       });
 
       // Click retry button
-      const retryButton = screen.getByRole('button', { name: /retry/i });
+      const retryButton = screen.getByRole('button', { name: RETRY_BUTTON_PATTERN });
       retryButton.click();
 
       // Should show loading, then empty state on success

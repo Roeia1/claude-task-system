@@ -25,6 +25,9 @@ const ESTIMATED_LINE_HEIGHT = 24;
 /** Number of items to render above/below visible area */
 const VIRTUALIZER_OVERSCAN = 5;
 
+/** Threshold in pixels for detecting if user is at bottom of scroll container */
+const SCROLL_BOTTOM_THRESHOLD = 50;
+
 /**
  * Status indicator component showing streaming or complete state
  */
@@ -267,7 +270,9 @@ function useAutoScroll(
     }
 
     // Check if user has scrolled away from the bottom
-    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+    const isAtBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      SCROLL_BOTTOM_THRESHOLD;
     if (!isAtBottom && autoScroll) {
       setAutoScroll(false);
     }
@@ -306,6 +311,7 @@ function useLines(displayContent: string) {
  * Uses monospace font and SAGA theme colors for a familiar terminal experience.
  * Implements virtual scrolling for performance with large log files.
  */
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: component has clear structure with hooks and conditional rendering
 export function LogViewer({
   sessionName,
   status,

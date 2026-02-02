@@ -2,8 +2,16 @@
  * SessionsPanel - Displays sessions for a specific story in the story detail page.
  * Fetches sessions from the API and displays them with real-time WebSocket updates.
  */
-import { AlertCircle, CheckCircle, ChevronDown, ChevronRight, Play, RefreshCw, Terminal } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  Play,
+  RefreshCw,
+  Terminal,
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -240,6 +248,7 @@ function getAutoExpandSessionName(sessions: SessionInfo[]): string | null {
 /**
  * SessionsPanel displays all sessions for a specific story
  */
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: component has clear structure with hooks and conditional rendering
 function SessionsPanel({ epicSlug, storySlug }: SessionsPanelProps) {
   // Read sessions from context for WebSocket updates (don't write to avoid conflicts)
   const { sessions: contextSessions } = useDashboard();
@@ -252,9 +261,7 @@ function SessionsPanel({ epicSlug, storySlug }: SessionsPanelProps) {
 
   // Filter context sessions for this story (WebSocket updates contain all sessions)
   const storyContextSessions = useMemo(() => {
-    return contextSessions.filter(
-      (s) => s.epicSlug === epicSlug && s.storySlug === storySlug,
-    );
+    return contextSessions.filter((s) => s.epicSlug === epicSlug && s.storySlug === storySlug);
   }, [contextSessions, epicSlug, storySlug]);
 
   // Use context sessions if available (for real-time updates), otherwise use local fetch
@@ -274,7 +281,7 @@ function SessionsPanel({ epicSlug, storySlug }: SessionsPanelProps) {
   const autoExpandSessionName = autoExpandSessionNameRef.current ?? null;
 
   // Fetch sessions function (reusable for retry)
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     setIsLoading(true);
     setError(false);
     try {
@@ -292,12 +299,12 @@ function SessionsPanel({ epicSlug, storySlug }: SessionsPanelProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [epicSlug, storySlug]);
 
-  // Fetch sessions on mount
+  // Fetch sessions on mount and when slugs change
   useEffect(() => {
     fetchSessions();
-  }, [epicSlug, storySlug]);
+  }, [fetchSessions]);
 
   if (isLoading) {
     return <SessionsPanelSkeleton />;
