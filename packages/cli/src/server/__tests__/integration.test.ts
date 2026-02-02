@@ -25,6 +25,8 @@ const WS_CONNECTION_TIMEOUT_MS = 5000;
 const SHORT_DELAY_MS = 100;
 const MEDIUM_DELAY_MS = 200;
 const WATCHER_DELAY_MS = 500;
+/** Delay after server starts to let watcher settle (polling mode is predictable) */
+const WATCHER_SETTLE_DELAY_MS = 150;
 const EVENT_TIMEOUT_MS = 1000;
 const HTTP_OK = 200;
 const HTTP_NOT_FOUND = 404;
@@ -143,6 +145,8 @@ describe('integration', () => {
     tempDir = await createTempSagaDir();
     port = getRandomPort();
     server = await startServer({ sagaRoot: tempDir, port });
+    // Wait for watcher to settle and process any initial events from file creation
+    await new Promise((resolve) => setTimeout(resolve, WATCHER_SETTLE_DELAY_MS));
   });
 
   afterEach(async () => {

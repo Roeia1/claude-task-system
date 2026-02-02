@@ -1,24 +1,14 @@
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Source fixtures (checked into git)
+/** Source fixtures (checked into git) */
 const SOURCE_FIXTURES = join(__dirname, 'fixtures');
 
-// Temp fixtures path - must match playwright.e2e.config.ts
-const FIXTURES_PATH = join(tmpdir(), 'saga-e2e-fixtures');
-
-// Path to the .saga directory within fixtures
-const SAGA_PATH = join(FIXTURES_PATH, '.saga');
-
-// Path to epics directory
-const EPICS_PATH = join(SAGA_PATH, 'epics');
-
 /** Delay in ms after file write to allow file watcher to detect changes.
- * With native file watching this is typically much faster than polling. */
+ * With polling mode enabled for tests, this can be shorter. */
 const FILE_WATCHER_SETTLE_DELAY_MS = 100;
 
 /**
@@ -29,94 +19,113 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Get path to a specific epic
+ * Fixture utilities bound to a specific fixtures directory.
+ * Each parallel worker gets its own instance with its own directory.
  */
-function getEpicPath(epicSlug: string): string {
-  return join(EPICS_PATH, epicSlug);
+interface FixtureUtils {
+  /** Base path to the fixtures directory */
+  fixturesPath: string;
+  /** Path to the .saga directory within fixtures */
+  sagaPath: string;
+  /** Path to epics directory */
+  epicsPath: string;
+
+  /** Get path to a specific epic */
+  getEpicPath(epicSlug: string): string;
+  /** Get path to a specific story */
+  getStoryPath(epicSlug: string, storySlug: string): string;
+  /** Get path to a story.md file */
+  getStoryFilePath(epicSlug: string, storySlug: string): string;
+  /** Get path to a journal.md file */
+  getJournalFilePath(epicSlug: string, storySlug: string): string;
+  /** Read a story file */
+  readStoryFile(epicSlug: string, storySlug: string): Promise<string>;
+  /** Write a story file with flush and settle delay */
+  writeStoryFile(epicSlug: string, storySlug: string, content: string): Promise<void>;
+  /** Delete an epic directory */
+  deleteEpic(epicSlug: string): Promise<void>;
+  /** Delete all epics */
+  deleteAllEpics(): Promise<void>;
+  /** Create a minimal epic */
+  createEpic(epicSlug: string, title: string): Promise<void>;
+  /** Create a minimal story */
+  createStory(epicSlug: string, storySlug: string, title: string, status?: string): Promise<void>;
+  /** Reset all fixtures by re-copying from source */
+  resetAllFixtures(): Promise<void>;
 }
 
-/**
- * Get path to a specific story
- */
-function getStoryPath(epicSlug: string, storySlug: string): string {
-  return join(EPICS_PATH, epicSlug, 'stories', storySlug);
+// Path helper functions
+function makeGetEpicPath(epicsPath: string) {
+  return (epicSlug: string): string => join(epicsPath, epicSlug);
 }
 
-/**
- * Get path to a story.md file
- */
-function getStoryFilePath(epicSlug: string, storySlug: string): string {
-  return join(getStoryPath(epicSlug, storySlug), 'story.md');
+function makeGetStoryPath(epicsPath: string) {
+  return (epicSlug: string, storySlug: string): string =>
+    join(epicsPath, epicSlug, 'stories', storySlug);
 }
 
-/**
- * Get path to a journal.md file
- */
-function getJournalFilePath(epicSlug: string, storySlug: string): string {
-  return join(getStoryPath(epicSlug, storySlug), 'journal.md');
+function makeGetStoryFilePath(getStoryPath: (e: string, s: string) => string) {
+  return (epicSlug: string, storySlug: string): string =>
+    join(getStoryPath(epicSlug, storySlug), 'story.md');
 }
 
-/**
- * Read a story file
- */
-function readStoryFile(epicSlug: string, storySlug: string): Promise<string> {
-  return readFile(getStoryFilePath(epicSlug, storySlug), 'utf-8');
+function makeGetJournalFilePath(getStoryPath: (e: string, s: string) => string) {
+  return (epicSlug: string, storySlug: string): string =>
+    join(getStoryPath(epicSlug, storySlug), 'journal.md');
 }
 
-/**
- * Write a story file with flush to ensure file watcher detects the change.
- * Includes a small delay to allow the file watcher to detect the change.
- */
-async function writeStoryFile(epicSlug: string, storySlug: string, content: string): Promise<void> {
-  await writeFile(getStoryFilePath(epicSlug, storySlug), content, { flush: true });
-  // Allow file watcher to detect the change
-  await sleep(FILE_WATCHER_SETTLE_DELAY_MS);
+// File operation functions
+function makeReadStoryFile(getStoryFilePath: (e: string, s: string) => string) {
+  return (epicSlug: string, storySlug: string): Promise<string> =>
+    readFile(getStoryFilePath(epicSlug, storySlug), 'utf-8');
 }
 
-/**
- * Delete an epic directory
- */
-async function deleteEpic(epicSlug: string): Promise<void> {
-  await rm(getEpicPath(epicSlug), { recursive: true, force: true });
+function makeWriteStoryFile(getStoryFilePath: (e: string, s: string) => string) {
+  return async (epicSlug: string, storySlug: string, content: string): Promise<void> => {
+    await writeFile(getStoryFilePath(epicSlug, storySlug), content, { flush: true });
+    await sleep(FILE_WATCHER_SETTLE_DELAY_MS);
+  };
 }
 
-/**
- * Delete all epics
- */
-async function deleteAllEpics(): Promise<void> {
-  await rm(EPICS_PATH, { recursive: true, force: true });
-  await mkdir(EPICS_PATH, { recursive: true });
+function makeDeleteEpic(getEpicPath: (e: string) => string) {
+  return async (epicSlug: string): Promise<void> => {
+    await rm(getEpicPath(epicSlug), { recursive: true, force: true });
+  };
 }
 
-/**
- * Create a minimal epic
- */
-async function createEpic(epicSlug: string, title: string): Promise<void> {
-  const epicPath = getEpicPath(epicSlug);
-  await mkdir(join(epicPath, 'stories'), { recursive: true });
-  await writeFile(
-    join(epicPath, 'epic.md'),
-    `# ${title}
+function makeDeleteAllEpics(epicsPath: string) {
+  return async (): Promise<void> => {
+    await rm(epicsPath, { recursive: true, force: true });
+    await mkdir(epicsPath, { recursive: true });
+  };
+}
+
+function makeCreateEpic(getEpicPath: (e: string) => string) {
+  return async (epicSlug: string, title: string): Promise<void> => {
+    const epicPath = getEpicPath(epicSlug);
+    await mkdir(join(epicPath, 'stories'), { recursive: true });
+    await writeFile(
+      join(epicPath, 'epic.md'),
+      `# ${title}
 
 This epic was created dynamically for testing.
 `,
-  );
+    );
+  };
 }
 
-/**
- * Create a minimal story
- */
-async function createStory(
-  epicSlug: string,
-  storySlug: string,
-  title: string,
-  status = 'ready',
-): Promise<void> {
-  const storyPath = getStoryPath(epicSlug, storySlug);
-  await mkdir(storyPath, { recursive: true });
-  await writeFile(
-    join(storyPath, 'story.md'),
-    `---
+function makeCreateStory(getStoryPath: (e: string, s: string) => string) {
+  return async (
+    epicSlug: string,
+    storySlug: string,
+    title: string,
+    status = 'ready',
+  ): Promise<void> => {
+    const storyPath = getStoryPath(epicSlug, storySlug);
+    await mkdir(storyPath, { recursive: true });
+    await writeFile(
+      join(storyPath, 'story.md'),
+      `---
 id: ${storySlug}
 title: ${title}
 status: ${status}
@@ -128,33 +137,47 @@ tasks: []
 
 ${title} story.
 `,
-  );
+    );
+  };
+}
+
+function makeResetAllFixtures(fixturesPath: string) {
+  return async (): Promise<void> => {
+    await rm(fixturesPath, { recursive: true, force: true });
+    await cp(SOURCE_FIXTURES, fixturesPath, { recursive: true });
+  };
 }
 
 /**
- * Reset all fixtures by re-copying from source.
- * Use this in beforeEach to ensure tests start with a clean state.
+ * Create fixture utilities bound to a specific fixtures directory.
+ * Use this to get isolated utilities for each parallel worker.
  */
-async function resetAllFixtures(): Promise<void> {
-  await rm(FIXTURES_PATH, { recursive: true, force: true });
-  await cp(SOURCE_FIXTURES, FIXTURES_PATH, { recursive: true });
+function createFixtureUtils(fixturesPath: string): FixtureUtils {
+  const sagaPath = join(fixturesPath, '.saga');
+  const epicsPath = join(sagaPath, 'epics');
+
+  const getEpicPath = makeGetEpicPath(epicsPath);
+  const getStoryPath = makeGetStoryPath(epicsPath);
+  const getStoryFilePath = makeGetStoryFilePath(getStoryPath);
+  const getJournalFilePath = makeGetJournalFilePath(getStoryPath);
+
+  return {
+    fixturesPath,
+    sagaPath,
+    epicsPath,
+    getEpicPath,
+    getStoryPath,
+    getStoryFilePath,
+    getJournalFilePath,
+    readStoryFile: makeReadStoryFile(getStoryFilePath),
+    writeStoryFile: makeWriteStoryFile(getStoryFilePath),
+    deleteEpic: makeDeleteEpic(getEpicPath),
+    deleteAllEpics: makeDeleteAllEpics(epicsPath),
+    createEpic: makeCreateEpic(getEpicPath),
+    createStory: makeCreateStory(getStoryPath),
+    resetAllFixtures: makeResetAllFixtures(fixturesPath),
+  };
 }
 
-// All exports at the end of the module
-export {
-  SOURCE_FIXTURES,
-  FIXTURES_PATH,
-  SAGA_PATH,
-  EPICS_PATH,
-  getEpicPath,
-  getStoryPath,
-  getStoryFilePath,
-  getJournalFilePath,
-  readStoryFile,
-  writeStoryFile,
-  deleteEpic,
-  deleteAllEpics,
-  createEpic,
-  createStory,
-  resetAllFixtures,
-};
+export { SOURCE_FIXTURES, createFixtureUtils };
+export type { FixtureUtils };

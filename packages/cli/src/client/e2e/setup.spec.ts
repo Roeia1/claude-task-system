@@ -1,5 +1,9 @@
-import { expect, test } from '@playwright/test';
-import { resetAllFixtures } from './fixtures-utils.ts';
+import { expect, test } from './test-fixture.ts';
+
+// Reset fixtures before each test to ensure clean state
+test.beforeEach(async ({ fixtureUtils }) => {
+  await fixtureUtils.resetAllFixtures();
+});
 
 /** Expected number of fixture epics */
 const EXPECTED_EPIC_COUNT = 3;
@@ -10,11 +14,6 @@ const EXPECTED_EPIC_COUNT = 3;
  * These tests verify that the Playwright E2E configuration works correctly
  * with the real backend server and test fixtures.
  */
-
-// Reset all fixtures before each test to ensure clean state
-test.beforeEach(async () => {
-  await resetAllFixtures();
-});
 
 test.describe('E2E Setup Verification', () => {
   test('backend server is running and healthy', async ({ request }) => {

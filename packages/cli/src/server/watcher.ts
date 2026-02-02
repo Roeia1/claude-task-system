@@ -30,12 +30,12 @@ const STORY_FILE_PARTS = 6;
 const DEBOUNCE_DELAY_MS = 100;
 
 /**
- * Check if native file watching should be used instead of polling.
- * Native watching is faster and more reliable but may have platform-specific issues.
- * Set SAGA_USE_NATIVE_WATCHER=1 to enable native file watching (e.g., for e2e tests).
+ * Check if polling should be used instead of native file watching.
+ * Polling is slower but more reliable for tests.
+ * Set SAGA_USE_POLLING=1 to enable polling mode.
  */
-function shouldUseNativeWatcher(): boolean {
-  return process.env.SAGA_USE_NATIVE_WATCHER === '1';
+function shouldUsePolling(): boolean {
+  return process.env.SAGA_USE_POLLING === '1';
 }
 
 // ============================================================================
@@ -296,23 +296,21 @@ function createChokidarWatcher(sagaRoot: string): FSWatcher {
   const epicsDir = join(sagaRoot, '.saga', 'epics');
   const archiveDir = join(sagaRoot, '.saga', 'archive');
 
-  const useNativeWatcher = shouldUseNativeWatcher();
+  const usePolling = shouldUsePolling();
 
   return chokidar.watch([epicsDir, archiveDir], {
     persistent: true,
     ignoreInitial: true,
-    // Use polling by default for cross-platform reliability.
-    // Native file watching is faster but may have platform-specific issues.
-    usePolling: !useNativeWatcher,
-    interval: DEBOUNCE_DELAY_MS,
-    // Wait for writes to finish before emitting events - prevents missing
-    // rapid file changes when polling
-    awaitWriteFinish: useNativeWatcher
-      ? false
-      : {
+    // Use polling for tests (reliable) or native watching for production (fast)
+    usePolling,
+    interval: usePolling ? DEBOUNCE_DELAY_MS : undefined,
+    // Wait for writes to finish when polling
+    awaitWriteFinish: usePolling
+      ? {
           stabilityThreshold: 50,
           pollInterval: 50,
-        },
+        }
+      : false,
   });
 }
 

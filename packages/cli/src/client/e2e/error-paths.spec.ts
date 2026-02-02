@@ -1,11 +1,9 @@
-import { expect, test } from '@playwright/test';
-import {
-  createEpic,
-  createStory,
-  deleteAllEpics,
-  deleteEpic,
-  resetAllFixtures,
-} from './fixtures-utils.ts';
+import { expect, test } from './test-fixture.ts';
+
+// Reset fixtures before each test to ensure clean state
+test.beforeEach(async ({ fixtureUtils }) => {
+  await fixtureUtils.resetAllFixtures();
+});
 
 /** Regex pattern for matching socket.io routes */
 const SOCKET_IO_ROUTE_PATTERN = /\/socket\.io\//;
@@ -21,13 +19,8 @@ const API_EPICS_ROUTE_PATTERN = /\/api\/epics$/;
  * - Empty state when no epics exist
  * - WebSocket disconnection behavior
  *
- * Fixtures are reset before each test to ensure a clean state.
+ * Each worker has its own isolated fixtures and server instance.
  */
-
-// Reset all fixtures before each test to ensure clean state
-test.beforeEach(async () => {
-  await resetAllFixtures();
-});
 
 test.describe('404 Error Handling', () => {
   test('displays error message for non-existent epic', async ({ page }) => {
@@ -83,9 +76,9 @@ test.describe('404 Error Handling', () => {
 });
 
 test.describe('Empty State Handling', () => {
-  test('displays no epics message when saga directory is empty', async ({ page }) => {
+  test('displays no epics message when saga directory is empty', async ({ page, fixtureUtils }) => {
     // Delete all epics from the temp fixtures directory
-    await deleteAllEpics();
+    await fixtureUtils.deleteAllEpics();
 
     await page.goto('/');
 
@@ -103,10 +96,10 @@ test.describe('Empty State Handling', () => {
     await expect(page.getByText('/generate-stories')).toBeVisible();
   });
 
-  test('epic with deleted stories shows empty state', async ({ page }) => {
+  test('epic with deleted stories shows empty state', async ({ page, fixtureUtils }) => {
     // Delete all stories from feature-development by recreating it as empty
-    await deleteEpic('feature-development');
-    await createEpic('feature-development', 'Feature Development');
+    await fixtureUtils.deleteEpic('feature-development');
+    await fixtureUtils.createEpic('feature-development', 'Feature Development');
 
     await page.goto('/epic/feature-development');
 
@@ -116,10 +109,10 @@ test.describe('Empty State Handling', () => {
 });
 
 test.describe('API Error Handling', () => {
-  test('handles network error gracefully on epic list', async ({ page }) => {
+  test('handles network error gracefully on epic list', async ({ page, fixtureUtils }) => {
     // First delete all epics so there's no data even if a request slips through
     // This handles the race condition with React StrictMode double-renders
-    await deleteAllEpics();
+    await fixtureUtils.deleteAllEpics();
 
     // Intercept ALL requests to /api/epics and abort them
     // Use regex pattern to ensure exact match (not matching /api/epics/*)
@@ -245,7 +238,7 @@ test.describe('Dynamic Content Changes', () => {
   // These tests verify the dashboard reflects file system changes correctly
   // (after page refresh, since WebSocket auto-connect is not implemented)
 
-  test('newly created epic appears after refresh', async ({ page }) => {
+  test('newly created epic appears after refresh', async ({ page, fixtureUtils }) => {
     await page.goto('/');
     await expect(page.locator('a[href="/epic/feature-development"]')).toBeVisible();
 
@@ -253,7 +246,7 @@ test.describe('Dynamic Content Changes', () => {
     await expect(page.locator('a[href="/epic/dynamic-epic"]')).toHaveCount(0);
 
     // Create a new epic
-    await createEpic('dynamic-epic', 'Dynamic Epic');
+    await fixtureUtils.createEpic('dynamic-epic', 'Dynamic Epic');
 
     // Refresh the page
     await page.reload();
@@ -264,9 +257,14 @@ test.describe('Dynamic Content Changes', () => {
     await expect(epicCard).toContainText('Dynamic Epic');
   });
 
-  test('newly created story appears after refresh', async ({ page }) => {
+  test('newly created story appears after refresh', async ({ page, fixtureUtils }) => {
     // Create a new story in an existing epic
-    await createStory('feature-development', 'new-story', 'New Dynamic Story', 'ready');
+    await fixtureUtils.createStory(
+      'feature-development',
+      'new-story',
+      'New Dynamic Story',
+      'ready',
+    );
 
     await page.goto('/epic/feature-development');
 
@@ -274,14 +272,14 @@ test.describe('Dynamic Content Changes', () => {
     await expect(page.getByText('New Dynamic Story')).toBeVisible();
   });
 
-  test('deleted epic disappears after refresh', async ({ page }) => {
+  test('deleted epic disappears after refresh', async ({ page, fixtureUtils }) => {
     await page.goto('/');
 
     // Verify empty-epic exists
     await expect(page.locator('a[href="/epic/empty-epic"]')).toBeVisible();
 
     // Delete the epic
-    await deleteEpic('empty-epic');
+    await fixtureUtils.deleteEpic('empty-epic');
 
     // Refresh the page
     await page.reload();

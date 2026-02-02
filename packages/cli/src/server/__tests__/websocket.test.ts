@@ -29,6 +29,8 @@ const MESSAGE_TIMEOUT_MS = 3000;
 const FILE_WATCH_TIMEOUT_MS = 5000;
 const LONG_TEST_TIMEOUT_MS = 10_000;
 const VERY_LONG_TEST_TIMEOUT_MS = 15_000;
+/** Delay after server starts to let watcher settle (polling mode is predictable) */
+const WATCHER_SETTLE_DELAY_MS = 150;
 
 // Counter for unique port allocation per test
 let portCounter = 0;
@@ -144,6 +146,8 @@ describe('websocket', () => {
     tempDir = await createTempSagaDir();
     port = getRandomPort();
     server = await startServer({ sagaRoot: tempDir, port });
+    // Wait for watcher to settle and process any initial events from file creation
+    await new Promise((resolve) => setTimeout(resolve, WATCHER_SETTLE_DELAY_MS));
   });
 
   afterEach(async () => {

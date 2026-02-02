@@ -77,6 +77,11 @@ const config = defineConfig({
           root: dirname,
           include: ['src/**/*.test.ts'],
           exclude: ['src/client/**'],
+          // Use polling for file watcher tests (slower but reliable)
+          env: {
+            // biome-ignore lint/style/useNamingConvention: env var
+            SAGA_USE_POLLING: '1',
+          },
         },
       },
       // Client component tests project - runs in jsdom with React Testing Library

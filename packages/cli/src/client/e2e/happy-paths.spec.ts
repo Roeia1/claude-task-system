@@ -1,5 +1,9 @@
-import { expect, test } from '@playwright/test';
-import { readStoryFile, resetAllFixtures, writeStoryFile } from './fixtures-utils.ts';
+import { expect, test } from './test-fixture.ts';
+
+// Reset fixtures before each test to ensure clean state
+test.beforeEach(async ({ fixtureUtils }) => {
+  await fixtureUtils.resetAllFixtures();
+});
 
 /** Test timeout for WebSocket real-time update tests (60 seconds) */
 const WEBSOCKET_TEST_TIMEOUT_MS = 60_000;
@@ -22,13 +26,8 @@ const SESSIONS_TAB_PATTERN = /Sessions/;
  * - Story detail navigation and display (with tasks, journal entries)
  * - Real-time updates via WebSocket when files change
  *
- * Fixtures are reset before each test to ensure a clean state.
+ * Each worker has its own isolated fixtures and server instance.
  */
-
-// Reset all fixtures before each test to ensure clean state
-test.beforeEach(async () => {
-  await resetAllFixtures();
-});
 
 test.describe('Epic List', () => {
   test('displays all fixture epics with correct information', async ({ page }) => {
@@ -205,7 +204,7 @@ test.describe('WebSocket Real-time Updates', () => {
   test.describe.configure({ mode: 'serial' });
   test.setTimeout(WEBSOCKET_TEST_TIMEOUT_MS);
 
-  test('epic list updates when story status changes', async ({ page }) => {
+  test('epic list updates when story status changes', async ({ page, fixtureUtils }) => {
     await page.goto('/');
 
     // Wait for WebSocket connection to be established before modifying files
@@ -216,12 +215,19 @@ test.describe('WebSocket Real-time Updates', () => {
     await expect(featureDevCard).toContainText('Completed: 1');
 
     // Modify the auth-implementation story to be completed
-    const originalContent = await readStoryFile('feature-development', 'auth-implementation');
+    const originalContent = await fixtureUtils.readStoryFile(
+      'feature-development',
+      'auth-implementation',
+    );
 
     try {
       // Update story status to completed
       const updatedContent = originalContent.replace('status: in_progress', 'status: completed');
-      await writeStoryFile('feature-development', 'auth-implementation', updatedContent);
+      await fixtureUtils.writeStoryFile(
+        'feature-development',
+        'auth-implementation',
+        updatedContent,
+      );
 
       // Wait for WebSocket update to be reflected in UI
       // The epic should now show Completed: 2
@@ -230,11 +236,15 @@ test.describe('WebSocket Real-time Updates', () => {
       });
     } finally {
       // Restore original file
-      await writeStoryFile('feature-development', 'auth-implementation', originalContent);
+      await fixtureUtils.writeStoryFile(
+        'feature-development',
+        'auth-implementation',
+        originalContent,
+      );
     }
   });
 
-  test('story detail updates when story file changes', async ({ page }) => {
+  test('story detail updates when story file changes', async ({ page, fixtureUtils }) => {
     await page.goto('/epic/feature-development/story/auth-implementation');
 
     // Wait for WebSocket connection to be established before modifying files
@@ -244,7 +254,10 @@ test.describe('WebSocket Real-time Updates', () => {
     await expect(page.getByText('1/4 tasks completed')).toBeVisible();
 
     // Modify the story to have 2 tasks completed
-    const originalContent = await readStoryFile('feature-development', 'auth-implementation');
+    const originalContent = await fixtureUtils.readStoryFile(
+      'feature-development',
+      'auth-implementation',
+    );
 
     try {
       // Change t2 (login endpoint) from in_progress to completed
@@ -252,7 +265,11 @@ test.describe('WebSocket Real-time Updates', () => {
         '- id: t2\n    title: Implement login endpoint\n    status: in_progress',
         '- id: t2\n    title: Implement login endpoint\n    status: completed',
       );
-      await writeStoryFile('feature-development', 'auth-implementation', updatedContent);
+      await fixtureUtils.writeStoryFile(
+        'feature-development',
+        'auth-implementation',
+        updatedContent,
+      );
 
       // Wait for WebSocket update with longer timeout for file watcher propagation
       await expect(page.getByText('2/4 tasks completed')).toBeVisible({
@@ -260,7 +277,11 @@ test.describe('WebSocket Real-time Updates', () => {
       });
     } finally {
       // Restore original file
-      await writeStoryFile('feature-development', 'auth-implementation', originalContent);
+      await fixtureUtils.writeStoryFile(
+        'feature-development',
+        'auth-implementation',
+        originalContent,
+      );
     }
   });
 });

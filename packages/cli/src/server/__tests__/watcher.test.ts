@@ -15,13 +15,16 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createSagaWatcher, type WatcherEvent } from '../watcher.ts';
 
-/** Delay in ms to wait for watcher to be ready */
+/**
+ * Delay in ms to wait for watcher to be ready after creation.
+ * With polling mode, timing is predictable.
+ */
 const WATCHER_READY_DELAY_MS = 100;
 
 /**
  * Delay in ms to wait for debounced events.
- * Accounts for: polling interval (100ms) + awaitWriteFinish stabilization (50ms)
- * + debounce delay (100ms) + buffer for system variance
+ * Accounts for: polling interval (100ms) + awaitWriteFinish (50ms)
+ * + debounce delay (100ms) + buffer.
  */
 const DEBOUNCE_WAIT_MS = 400;
 
@@ -316,8 +319,11 @@ tasks: []
         events.push(event);
       });
 
-      // Wait for watcher to be ready
+      // Wait for watcher to be ready and any initial events to settle
       await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
+
+      // Clear any events that happened during watcher initialization
+      events.length = 0;
 
       // Create a non-md file
       await writeFile(join(sagaRoot, '.saga', 'epics', 'test-epic', 'notes.txt'), 'Some notes');
