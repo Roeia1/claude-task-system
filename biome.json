@@ -68,7 +68,9 @@
       "includes": [
         "packages/cli/src/**",
         "!packages/cli/src/client/src/**",
-        "packages/cli/*.config.ts"
+        "packages/cli/*.config.ts",
+        "packages/saga-types/**",
+        "packages/plugin-scripts/**"
       ],
       "linter": {
         "rules": {
@@ -90,7 +92,9 @@
         "**/global-teardown.ts",
         "**/jest.config.mjs",
         "packages/cli/src/client/vite.config.ts",
-        "packages/cli/vitest.config.ts"
+        "packages/cli/vitest.config.ts",
+        "packages/saga-types/vitest.config.ts",
+        "packages/plugin-scripts/vitest.config.ts"
       ],
       "linter": {
         "rules": {

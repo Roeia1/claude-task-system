@@ -304,7 +304,8 @@ This is the epic overview.
 
       expect(entries).toHaveLength(1);
       expect(entries[0].type).toBe('blocker');
-      expect(entries[0].content).toContain('Authentication Issue');
+      expect(entries[0].title).toBe('Authentication Issue');
+      expect(entries[0].content).toContain('Implement OAuth flow');
     });
 
     it('should parse resolution entries', async () => {
@@ -325,7 +326,8 @@ After team discussion, we decided to use Google OAuth because:
 
       expect(entries).toHaveLength(1);
       expect(entries[0].type).toBe('resolution');
-      expect(entries[0].content).toContain('Google OAuth');
+      expect(entries[0].title).toBe('Use Google OAuth');
+      expect(entries[0].content).toContain('Better user experience');
     });
 
     it('should parse multiple entries of different types', async () => {
