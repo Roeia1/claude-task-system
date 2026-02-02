@@ -215,9 +215,11 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
 
 /**
  * Custom hook for managing auto-scroll behavior
+ * Uses requestAnimationFrame to ensure DOM has updated before scrolling
  */
 function useAutoScroll(
   scrollContainerRef: React.RefObject<HTMLDivElement | null>,
+  virtualizerRef: React.MutableRefObject<Virtualizer<HTMLDivElement, Element> | null>,
   status: 'running' | 'completed',
   lineCount: number,
 ) {
@@ -225,14 +227,18 @@ function useAutoScroll(
   const prevLineCountRef = useRef<number>(0);
 
   useEffect(() => {
-    if (autoScroll && lineCount > prevLineCountRef.current && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        top: scrollContainerRef.current.scrollHeight,
-        behavior: 'smooth',
+    if (autoScroll && lineCount > prevLineCountRef.current) {
+      // Use requestAnimationFrame to ensure virtualizer has updated the DOM
+      requestAnimationFrame(() => {
+        if (virtualizerRef.current && scrollContainerRef.current) {
+          // Get the total size from virtualizer and scroll to it
+          const totalSize = virtualizerRef.current.getTotalSize();
+          scrollContainerRef.current.scrollTop = totalSize;
+        }
       });
     }
     prevLineCountRef.current = lineCount;
-  }, [lineCount, autoScroll, scrollContainerRef]);
+  }, [lineCount, autoScroll, virtualizerRef, scrollContainerRef]);
 
   const handleScroll = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -240,7 +246,8 @@ function useAutoScroll(
       return;
     }
 
-    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+    // Check if user has scrolled away from the bottom
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
     if (!isAtBottom && autoScroll) {
       setAutoScroll(false);
     }
@@ -248,15 +255,18 @@ function useAutoScroll(
 
   const toggleAutoScroll = useCallback(() => {
     setAutoScroll((prev) => {
-      if (!prev && scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({
-          top: scrollContainerRef.current.scrollHeight,
-          behavior: 'smooth',
+      if (!prev) {
+        // Scroll to bottom when re-enabling auto-scroll
+        requestAnimationFrame(() => {
+          if (virtualizerRef.current && scrollContainerRef.current) {
+            const totalSize = virtualizerRef.current.getTotalSize();
+            scrollContainerRef.current.scrollTop = totalSize;
+          }
         });
       }
       return !prev;
     });
-  }, [scrollContainerRef]);
+  }, [virtualizerRef, scrollContainerRef]);
 
   return { autoScroll, handleScroll, toggleAutoScroll };
 }
@@ -283,14 +293,10 @@ export function LogViewer({
   initialContent = '',
 }: LogViewerProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const virtualizerRef = useRef<Virtualizer<HTMLDivElement, Element> | null>(null);
   const { content: wsContent, isLoading } = useLogSubscription(sessionName, outputAvailable);
   const displayContent = initialContent || wsContent;
   const lines = useLines(displayContent);
-  const { autoScroll, handleScroll, toggleAutoScroll } = useAutoScroll(
-    scrollContainerRef,
-    status,
-    lines.length,
-  );
 
   const virtualizer = useVirtualizer({
     count: lines.length,
@@ -298,6 +304,16 @@ export function LogViewer({
     estimateSize: () => ESTIMATED_LINE_HEIGHT,
     overscan: VIRTUALIZER_OVERSCAN,
   });
+
+  // Keep virtualizerRef updated for use in auto-scroll hook
+  virtualizerRef.current = virtualizer;
+
+  const { autoScroll, handleScroll, toggleAutoScroll } = useAutoScroll(
+    scrollContainerRef,
+    virtualizerRef,
+    status,
+    lines.length,
+  );
 
   if (!outputAvailable) {
     return <LogViewerUnavailable />;
