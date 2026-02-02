@@ -200,3 +200,56 @@
 
 **Next steps:**
 - Task t7: Migrate and extend tests (including new unit tests for implement modules)
+
+## Session: 2026-02-03T00:30:00Z
+
+### Task: t7 - Migrate and extend tests
+
+**What was done:**
+- Created `packages/plugin-scripts/src/implement/scope-config.test.ts` (7 tests)
+  - Tests for `buildScopeSettings()` function
+  - Verifies hook configuration structure, matcher format, and command string
+- Created `packages/plugin-scripts/src/implement/output-parser.test.ts` (66 tests)
+  - Tests for `WORKER_OUTPUT_SCHEMA` structure
+  - Tests for `formatToolUsage()` - all tool types (Read, Write, Edit, Bash, Glob, Grep, Task, TodoWrite, StructuredOutput, unknown)
+  - Tests for `formatAssistantContent()` - text blocks, tool_use blocks, edge cases
+  - Tests for `formatStreamLine()` - assistant messages, system init, result messages
+  - Tests for `extractStructuredOutputFromToolCall()` - finding StructuredOutput in tool calls
+  - Tests for `validateAndExtractOutput()` - status validation, output extraction
+  - Tests for `processResultLine()` - structured_output extraction, error handling
+  - Tests for `parseStreamingResult()` - complete streaming output parsing
+- Created `packages/plugin-scripts/src/implement/session-manager.test.ts` (42 tests)
+  - Tests for `shellEscape()` - quoting, special characters, embedded quotes
+  - Tests for `shellEscapeArgs()` - array escaping and joining
+  - Tests for `validateSlug()` - valid/invalid slug patterns
+  - Tests for `buildDetachedCommand()` - command building with various options
+- Created `packages/plugin-scripts/src/implement/orchestrator.test.ts` (24 tests)
+  - Tests for `getSkillRoot()` - path computation
+  - Tests for `computeStoryPath()` - story.md path computation
+  - Tests for `getWorktreePath()` - worktree path computation
+  - Tests for `validateStoryFiles()` - worktree and story.md validation
+  - Tests for `loadWorkerPrompt()` - prompt file loading
+  - Tests for `createErrorResult()` - error result construction
+  - Tests for `validateLoopResources()` - combined resource validation
+  - Tests for `buildLoopResult()` - final loop result construction
+
+**Decisions:**
+- Created comprehensive unit tests for all exported functions in the implement modules
+- Tests cover happy paths, edge cases, and error conditions
+- Used temporary directories for file system tests (cleaned up in afterEach hooks)
+- Tests verify behavior of the actual implementation, not just coverage
+
+**Test results:**
+- 139 new tests added (7 + 66 + 42 + 24)
+- All 235 plugin-scripts tests passing (96 existing + 139 new)
+- Build continues to work correctly
+
+**Story completion:**
+All 7 tasks in story t1-t7 are now complete:
+- t1: worktree.ts migrated with tests ✓
+- t2: find.ts and finder.ts migrated with tests ✓
+- t3: scope-validator.ts migrated with tests ✓
+- t4: sessions-kill.ts migrated with tests ✓
+- t5: implement.ts split into modules ✓
+- t6: imports updated to use saga-types ✓
+- t7: unit tests added for implement modules ✓
