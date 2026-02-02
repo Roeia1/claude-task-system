@@ -1,6 +1,6 @@
 import type { VirtualItem, Virtualizer } from '@tanstack/react-virtual';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { CheckCircle, Loader2, Lock, Unlock } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2, Lock, Unlock } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getWebSocketSend,
@@ -86,6 +86,7 @@ function LogViewerHeader({
         data-testid="auto-scroll-toggle"
         onClick={onToggleAutoScroll}
         aria-pressed={autoScroll}
+        title={autoScroll ? 'Autoscroll locked to bottom' : 'Autoscroll unlocked'}
         className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md transition-colors ${
           autoScroll
             ? 'bg-success/20 text-success hover:bg-success/30'
@@ -156,12 +157,30 @@ function LogViewerUnavailable() {
 }
 
 /**
+ * Error state when log subscription fails
+ */
+function LogViewerError({ error }: { error: string }) {
+  return (
+    <div
+      data-testid="log-viewer-error"
+      className="h-full bg-bg-dark rounded-md font-mono flex flex-col items-center justify-center gap-2"
+    >
+      <AlertCircle className="h-6 w-6 text-danger" />
+      <span className="text-danger text-sm">Failed to load logs</span>
+      <span className="text-text-muted text-xs max-w-xs text-center">{error}</span>
+    </div>
+  );
+}
+
+/**
  * Custom hook for managing WebSocket log subscription
  * Subscribes to logs on mount, unsubscribes on unmount or sessionName change
  */
 function useLogSubscription(sessionName: string, outputAvailable: boolean) {
   const [content, setContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [streamComplete, setStreamComplete] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!outputAvailable) {
@@ -178,16 +197,20 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
     // Register callback to receive log data for this session
     subscribeToLogData(
       sessionName,
-      (data: string, isInitial: boolean, _isComplete: boolean) => {
+      (data: string, isInitial: boolean, isComplete: boolean) => {
         if (isInitial) {
           setContent(data);
           setIsLoading(false);
         } else {
           setContent((prev) => prev + data);
         }
+        // Mark stream as complete when server signals session finished
+        if (isComplete) {
+          setStreamComplete(true);
+        }
       },
-      (_error: string) => {
-        // Handle errors by stopping the loading state
+      (errorMessage: string) => {
+        setError(errorMessage);
         setIsLoading(false);
       },
     );
@@ -207,7 +230,7 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
     };
   }, [sessionName, outputAvailable]);
 
-  return { content, isLoading };
+  return { content, isLoading, streamComplete, error };
 }
 
 /**
@@ -291,9 +314,17 @@ export function LogViewer({
 }: LogViewerProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const virtualizerRef = useRef<Virtualizer<HTMLDivElement, Element> | null>(null);
-  const { content: wsContent, isLoading } = useLogSubscription(sessionName, outputAvailable);
+  const {
+    content: wsContent,
+    isLoading,
+    streamComplete,
+    error,
+  } = useLogSubscription(sessionName, outputAvailable);
   const displayContent = initialContent || wsContent;
   const lines = useLines(displayContent);
+
+  // Use server's completion signal to override status prop (more authoritative)
+  const effectiveStatus = streamComplete ? 'completed' : status;
 
   const virtualizer = useVirtualizer({
     count: lines.length,
@@ -308,12 +339,16 @@ export function LogViewer({
   const { autoScroll, handleScroll, toggleAutoScroll } = useAutoScroll(
     scrollContainerRef,
     virtualizerRef,
-    status,
+    effectiveStatus,
     lines.length,
   );
 
   if (!outputAvailable) {
     return <LogViewerUnavailable />;
+  }
+
+  if (error) {
+    return <LogViewerError error={error} />;
   }
 
   const showLoading = isLoading && !initialContent;
@@ -322,7 +357,7 @@ export function LogViewer({
   return (
     <div data-testid="log-viewer" className="flex flex-col h-full bg-bg-dark rounded-md">
       <LogViewerHeader
-        status={status}
+        status={effectiveStatus}
         autoScroll={autoScroll}
         onToggleAutoScroll={toggleAutoScroll}
       />

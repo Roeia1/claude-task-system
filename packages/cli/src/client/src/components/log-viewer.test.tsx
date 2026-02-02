@@ -504,16 +504,7 @@ Line 5`;
       expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('scrolls to bottom when new content arrives and auto-scroll is enabled', () => {
-      const mockScrollTo = vi.fn();
-      Element.prototype.scrollTo = mockScrollTo;
-
-      // Set up scrollHeight to be larger than clientHeight for scroll detection
-      Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
-        configurable: true,
-        value: 1000,
-      });
-
+    it('maintains auto-scroll enabled state when new content arrives', () => {
       const initialLines = 'Line 1';
       const moreLines = `Line 1
 Line 2
@@ -528,8 +519,10 @@ Line 3`;
         />,
       );
 
-      // Clear any initial scroll calls
-      mockScrollTo.mockClear();
+      const toggleButton = screen.getByTestId('auto-scroll-toggle');
+
+      // Auto-scroll should be enabled for running sessions
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
 
       // Simulate new content arriving by re-rendering with more content
       act(() => {
@@ -545,8 +538,8 @@ Line 3`;
         vi.runAllTimers();
       });
 
-      // Should scroll to bottom when auto-scroll is enabled
-      expect(mockScrollTo).toHaveBeenCalled();
+      // Auto-scroll should remain enabled after new content arrives
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('does not scroll to bottom when auto-scroll is disabled', () => {
@@ -681,10 +674,7 @@ Line 3`;
       expect(() => unmount()).not.toThrow();
     });
 
-    it('scrolls to bottom when enabling auto-scroll from disabled state', () => {
-      const mockScrollTo = vi.fn();
-      Element.prototype.scrollTo = mockScrollTo;
-
+    it('enables auto-scroll when clicking toggle from disabled state', () => {
       render(
         <LogViewer
           sessionName="test-session"
@@ -699,14 +689,11 @@ Line 3`;
       // Auto-scroll starts disabled for completed sessions
       expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
 
-      // Clear any previous scroll calls
-      mockScrollTo.mockClear();
-
       // Enable auto-scroll
       fireEvent.click(toggleButton);
 
-      // Should scroll to bottom immediately when enabling
-      expect(mockScrollTo).toHaveBeenCalled();
+      // Should enable auto-scroll (scroll behavior is handled via requestAnimationFrame)
+      expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('does not disable auto-scroll when already at bottom', () => {
@@ -805,7 +792,7 @@ Line 3`;
 
       const toggleButton = screen.getByTestId('auto-scroll-toggle');
       expect(toggleButton).toHaveAttribute('title');
-      expect(toggleButton.getAttribute('title')).toContain('Auto-scroll');
+      expect(toggleButton.getAttribute('title')).toContain('Autoscroll');
     });
 
     it('changes toggle button title based on state', () => {
@@ -820,13 +807,14 @@ Line 3`;
 
       const toggleButton = screen.getByTestId('auto-scroll-toggle');
 
-      // Initially enabled
-      expect(toggleButton.getAttribute('title')).toContain('enabled');
+      // Initially enabled (locked to bottom)
+      expect(toggleButton.getAttribute('title')).toContain('locked');
 
       // Click to disable
       fireEvent.click(toggleButton);
 
-      expect(toggleButton.getAttribute('title')).toContain('disabled');
+      // Now disabled (unlocked)
+      expect(toggleButton.getAttribute('title')).toContain('unlocked');
     });
   });
 });

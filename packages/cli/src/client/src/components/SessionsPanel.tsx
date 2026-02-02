@@ -2,9 +2,10 @@
  * SessionsPanel - Displays sessions for a specific story in the story detail page.
  * Fetches sessions from the API and displays them with real-time WebSocket updates.
  */
-import { CheckCircle, ChevronDown, ChevronRight, Play, Terminal } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, CheckCircle, ChevronDown, ChevronRight, Play, RefreshCw, Terminal } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useDashboard } from '@/context/dashboard-context';
@@ -199,6 +200,23 @@ function SessionsPanelEmpty() {
 }
 
 /**
+ * Error state when session loading fails
+ */
+function SessionsPanelError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div data-testid="sessions-panel-error" className="text-center py-8">
+      <AlertCircle className="w-8 h-8 text-danger mx-auto mb-2" />
+      <p className="text-danger font-medium mb-1">Failed to load sessions</p>
+      <p className="text-text-muted text-sm mb-4">Something went wrong while fetching sessions.</p>
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        <RefreshCw className="w-4 h-4 mr-2" />
+        Retry
+      </Button>
+    </div>
+  );
+}
+
+/**
  * Determine which session should be auto-expanded:
  * 1. Most recent running session
  * 2. If no running sessions, most recent completed session
@@ -223,9 +241,24 @@ function getAutoExpandSessionName(sessions: SessionInfo[]): string | null {
  * SessionsPanel displays all sessions for a specific story
  */
 function SessionsPanel({ epicSlug, storySlug }: SessionsPanelProps) {
-  const { setSessions } = useDashboard();
-  const [sessions, setLocalSessions] = useState<SessionInfo[]>([]);
+  // Read sessions from context for WebSocket updates (don't write to avoid conflicts)
+  const { sessions: contextSessions } = useDashboard();
+  const [localSessions, setLocalSessions] = useState<SessionInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<boolean>(false);
+
+  // Track if initial auto-expand has been determined (only calculate once)
+  const autoExpandSessionNameRef = useRef<string | null | undefined>(undefined);
+
+  // Filter context sessions for this story (WebSocket updates contain all sessions)
+  const storyContextSessions = useMemo(() => {
+    return contextSessions.filter(
+      (s) => s.epicSlug === epicSlug && s.storySlug === storySlug,
+    );
+  }, [contextSessions, epicSlug, storySlug]);
+
+  // Use context sessions if available (for real-time updates), otherwise use local fetch
+  const sessions = storyContextSessions.length > 0 ? storyContextSessions : localSessions;
 
   // Sort sessions by startTime descending (most recent first)
   const sortedSessions = useMemo(() => {
@@ -234,36 +267,48 @@ function SessionsPanel({ epicSlug, storySlug }: SessionsPanelProps) {
     });
   }, [sessions]);
 
-  // Determine auto-expand session (only on initial load)
-  const autoExpandSessionName = useMemo(() => {
-    return getAutoExpandSessionName(sortedSessions);
-  }, [sortedSessions]);
+  // Determine auto-expand session only on initial load (not on subsequent updates)
+  if (autoExpandSessionNameRef.current === undefined && sortedSessions.length > 0) {
+    autoExpandSessionNameRef.current = getAutoExpandSessionName(sortedSessions);
+  }
+  const autoExpandSessionName = autoExpandSessionNameRef.current ?? null;
+
+  // Fetch sessions function (reusable for retry)
+  const fetchSessions = async () => {
+    setIsLoading(true);
+    setError(false);
+    try {
+      const response = await fetch(`/api/sessions?epicSlug=${epicSlug}&storySlug=${storySlug}`);
+      if (response.ok) {
+        const data: SessionInfo[] = await response.json();
+        setLocalSessions(data);
+      } else {
+        setError(true);
+        setLocalSessions([]);
+      }
+    } catch {
+      setError(true);
+      setLocalSessions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Fetch sessions on mount
   useEffect(() => {
-    const fetchSessions = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/sessions?epicSlug=${epicSlug}&storySlug=${storySlug}`);
-        if (response.ok) {
-          const data: SessionInfo[] = await response.json();
-          setLocalSessions(data);
-          setSessions(data);
-        } else {
-          setLocalSessions([]);
-        }
-      } catch {
-        setLocalSessions([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchSessions();
-  }, [epicSlug, storySlug, setSessions]);
+  }, [epicSlug, storySlug]);
 
   if (isLoading) {
     return <SessionsPanelSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div data-testid="sessions-panel">
+        <SessionsPanelError onRetry={fetchSessions} />
+      </div>
+    );
   }
 
   if (sortedSessions.length === 0) {
@@ -292,5 +337,6 @@ export {
   SessionsPanelSkeleton,
   SessionDetailCard,
   SessionsPanelEmpty,
+  SessionsPanelError,
   SessionStatusBadge,
 };

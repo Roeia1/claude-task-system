@@ -184,7 +184,7 @@ describe('SessionsPanel', () => {
   });
 
   describe('error handling', () => {
-    it('shows empty state when API returns error', async () => {
+    it('shows error state when API returns error', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
@@ -196,10 +196,12 @@ describe('SessionsPanel', () => {
         expect(screen.queryByTestId('sessions-panel-skeleton')).not.toBeInTheDocument();
       });
 
-      expect(screen.getByTestId('sessions-panel-empty')).toBeInTheDocument();
+      expect(screen.getByTestId('sessions-panel-error')).toBeInTheDocument();
+      expect(screen.getByText('Failed to load sessions')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
     });
 
-    it('shows empty state when fetch throws error', async () => {
+    it('shows error state when fetch throws error', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
       renderWithProviders(<SessionsPanel epicSlug="test-epic" storySlug="test-story" />);
@@ -208,7 +210,40 @@ describe('SessionsPanel', () => {
         expect(screen.queryByTestId('sessions-panel-skeleton')).not.toBeInTheDocument();
       });
 
-      expect(screen.getByTestId('sessions-panel-empty')).toBeInTheDocument();
+      expect(screen.getByTestId('sessions-panel-error')).toBeInTheDocument();
+      expect(screen.getByText('Failed to load sessions')).toBeInTheDocument();
+    });
+
+    it('retries fetching when retry button is clicked', async () => {
+      // First call fails
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      });
+
+      renderWithProviders(<SessionsPanel epicSlug="test-epic" storySlug="test-story" />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('sessions-panel-error')).toBeInTheDocument();
+      });
+
+      // Set up successful response for retry
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      });
+
+      // Click retry button
+      const retryButton = screen.getByRole('button', { name: /retry/i });
+      retryButton.click();
+
+      // Should show loading, then empty state on success
+      await waitFor(() => {
+        expect(screen.getByTestId('sessions-panel-empty')).toBeInTheDocument();
+      });
+
+      // Should have called fetch twice
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
   });
 });
