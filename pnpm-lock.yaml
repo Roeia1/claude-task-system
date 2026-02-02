@@ -184,6 +184,22 @@ importers:
         specifier: ^5.26.0
         version: 5.26.0
 
+  packages/plugin-scripts:
+    dependencies:
+      '@saga-ai/types':
+        specifier: workspace:*
+        version: link:../saga-types
+    devDependencies:
+      esbuild:
+        specifier: ^0.27.2
+        version: 0.27.2
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.1.0)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.30.2)
+
   packages/saga-types:
     dependencies:
       zod:
