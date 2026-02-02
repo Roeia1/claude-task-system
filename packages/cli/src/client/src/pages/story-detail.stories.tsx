@@ -4,12 +4,18 @@ import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router';
 import remarkGfm from 'remark-gfm';
 import { expect, within } from 'storybook/test';
+import { SessionDetailCard, SessionsPanelEmpty } from '@/components/SessionsPanel';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageWrapper } from '@/test-utils/storybook-page-wrapper';
 import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
-import type { JournalEntry, StoryDetail as StoryDetailType, Task } from '@/types/dashboard';
+import type {
+  JournalEntry,
+  SessionInfo,
+  StoryDetail as StoryDetailType,
+  Task,
+} from '@/types/dashboard';
 import {
   ContentSkeleton,
   HeaderSkeleton,
@@ -137,6 +143,34 @@ const storyWithBlocker: StoryDetailType = {
   ],
   journal: [blockerEntry, sessionEntry],
 };
+
+// ============================================================================
+// Sample Session Data
+// ============================================================================
+
+const sampleSessions: SessionInfo[] = [
+  {
+    name: 'saga__dashboard-restructure__storybook-setup__12345',
+    epicSlug: 'dashboard-restructure',
+    storySlug: 'storybook-setup-component-stories',
+    status: 'running',
+    outputFile: '/tmp/saga/sessions/12345.log',
+    outputAvailable: true,
+    startTime: '2026-01-28T02:00:00Z',
+    outputPreview: 'Running task t7...\nCreating stories...',
+  },
+  {
+    name: 'saga__dashboard-restructure__storybook-setup__67890',
+    epicSlug: 'dashboard-restructure',
+    storySlug: 'storybook-setup-component-stories',
+    status: 'completed',
+    outputFile: '/tmp/saga/sessions/67890.log',
+    outputAvailable: true,
+    startTime: '2026-01-28T01:00:00Z',
+    endTime: '2026-01-28T01:45:00Z',
+    outputPreview: 'Tasks t1-t6 completed.',
+  },
+];
 
 const completedStory: StoryDetailType = {
   slug: 'setup-project',
@@ -318,6 +352,21 @@ function JournalTabContent({
   );
 }
 
+/** Renders the Sessions tab content */
+function SessionsTabContent({ sessions }: { sessions: SessionInfo[] }) {
+  if (sessions.length === 0) {
+    return <SessionsPanelEmpty />;
+  }
+
+  return (
+    <div data-testid="sessions-panel" className="space-y-4">
+      {sessions.map((session, index) => (
+        <SessionDetailCard key={session.name} session={session} defaultExpanded={index === 0} />
+      ))}
+    </div>
+  );
+}
+
 // ============================================================================
 // Showcase Section Components
 // ============================================================================
@@ -381,6 +430,7 @@ function EmptyStateSection() {
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="content">Story Content</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
+            <TabsTrigger value="sessions">Sessions</TabsTrigger>
           </TabsList>
           <TabsContent value="tasks">
             <TasksTabContent tasks={[]} />
@@ -405,6 +455,7 @@ function PopulatedStateSection() {
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="content">Story Content</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
+            <TabsTrigger value="sessions">Sessions</TabsTrigger>
           </TabsList>
           <TabsContent value="tasks">
             <TasksTabContent tasks={sampleStory.tasks} />
@@ -432,6 +483,7 @@ function BlockedStateSection() {
               Journal
               <Badge className="ml-2 bg-danger/20 text-danger text-xs">1</Badge>
             </TabsTrigger>
+            <TabsTrigger value="sessions">Sessions</TabsTrigger>
           </TabsList>
           <TabsContent value="journal">
             <JournalTabContent journal={storyWithBlocker.journal} hasBlocker={true} />
@@ -456,6 +508,7 @@ function CompletedStateSection() {
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="content">Story Content</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
+            <TabsTrigger value="sessions">Sessions</TabsTrigger>
           </TabsList>
           <TabsContent value="tasks">
             <TasksTabContent tasks={completedStory.tasks} />
@@ -582,6 +635,7 @@ export const Playground: StoryDetailStory = {
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="content">Story Content</TabsTrigger>
           <TabsTrigger value="journal">Journal</TabsTrigger>
+          <TabsTrigger value="sessions">Sessions</TabsTrigger>
         </TabsList>
         <TabsContent value="tasks">
           <TasksTabContent tasks={sampleStory.tasks} />
@@ -591,6 +645,9 @@ export const Playground: StoryDetailStory = {
         </TabsContent>
         <TabsContent value="journal">
           <JournalTabContent journal={sampleStory.journal} />
+        </TabsContent>
+        <TabsContent value="sessions">
+          <SessionsTabContent sessions={sampleSessions} />
         </TabsContent>
       </Tabs>
     </div>
@@ -611,6 +668,7 @@ export const Playground: StoryDetailStory = {
     await expect(canvas.getByRole('tab', { name: 'Tasks' })).toBeInTheDocument();
     await expect(canvas.getByRole('tab', { name: 'Story Content' })).toBeInTheDocument();
     await expect(canvas.getByRole('tab', { name: 'Journal' })).toBeInTheDocument();
+    await expect(canvas.getByRole('tab', { name: 'Sessions' })).toBeInTheDocument();
 
     // Verify epic link (appears in both breadcrumb and story header)
     const epicLinks = canvas
@@ -748,6 +806,7 @@ export const Populated: StoryDetailStory = {
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="content">Story Content</TabsTrigger>
           <TabsTrigger value="journal">Journal</TabsTrigger>
+          <TabsTrigger value="sessions">Sessions</TabsTrigger>
         </TabsList>
         <TabsContent value="tasks">
           <TasksTabContent tasks={sampleStory.tasks} />
@@ -784,6 +843,7 @@ export const Populated: StoryDetailStory = {
     await expect(canvas.getByRole('tab', { name: 'Tasks' })).toBeInTheDocument();
     await expect(canvas.getByRole('tab', { name: 'Story Content' })).toBeInTheDocument();
     await expect(canvas.getByRole('tab', { name: 'Journal' })).toBeInTheDocument();
+    await expect(canvas.getByRole('tab', { name: 'Sessions' })).toBeInTheDocument();
 
     // Verify some task items are rendered
     await expect(canvas.getByText('Install and configure Storybook 10.x')).toBeInTheDocument();
@@ -817,6 +877,7 @@ export const EmptyTasks: StoryDetailStory = {
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="content">Story Content</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
+            <TabsTrigger value="sessions">Sessions</TabsTrigger>
           </TabsList>
           <TabsContent value="tasks">
             <TasksTabContent tasks={[]} />
@@ -862,6 +923,7 @@ export const WithBlocker: StoryDetailStory = {
             Journal
             <Badge className="ml-2 bg-danger/20 text-danger text-xs">1</Badge>
           </TabsTrigger>
+          <TabsTrigger value="sessions">Sessions</TabsTrigger>
         </TabsList>
         <TabsContent value="journal">
           <JournalTabContent journal={storyWithBlocker.journal} hasBlocker={true} />
@@ -916,6 +978,7 @@ export const Completed: StoryDetailStory = {
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="content">Story Content</TabsTrigger>
           <TabsTrigger value="journal">Journal</TabsTrigger>
+          <TabsTrigger value="sessions">Sessions</TabsTrigger>
         </TabsList>
         <TabsContent value="tasks">
           <TasksTabContent tasks={completedStory.tasks} />
@@ -964,6 +1027,7 @@ export const WithContent: StoryDetailStory = {
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="content">Story Content</TabsTrigger>
           <TabsTrigger value="journal">Journal</TabsTrigger>
+          <TabsTrigger value="sessions">Sessions</TabsTrigger>
         </TabsList>
         <TabsContent value="content">
           <ContentTabContent content={sampleStory.content} />
@@ -1024,6 +1088,7 @@ export const EmptyJournal: StoryDetailStory = {
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="content">Story Content</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
+            <TabsTrigger value="sessions">Sessions</TabsTrigger>
           </TabsList>
           <TabsContent value="journal">
             <JournalTabContent journal={[]} />
@@ -1054,6 +1119,101 @@ export const EmptyJournal: StoryDetailStory = {
 
     // Verify empty journal message
     await expect(canvas.getByText('No journal entries yet.')).toBeInTheDocument();
+  },
+};
+
+/**
+ * Story showing the Sessions tab with running and completed sessions.
+ */
+export const WithSessions: StoryDetailStory = {
+  render: () => (
+    <div className="space-y-6">
+      <StoryHeader story={sampleStory} />
+      <Tabs defaultValue="sessions" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="content">Story Content</TabsTrigger>
+          <TabsTrigger value="journal">Journal</TabsTrigger>
+          <TabsTrigger value="sessions">Sessions</TabsTrigger>
+        </TabsList>
+        <TabsContent value="sessions">
+          <SessionsTabContent sessions={sampleSessions} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
+
+    // Verify story title
+    await expect(canvas.getByText('Storybook Setup and Component Stories')).toBeInTheDocument();
+
+    // Verify Sessions tab is active
+    const sessionsTab = canvas.getByRole('tab', { name: 'Sessions' });
+    await expect(sessionsTab).toBeInTheDocument();
+
+    // Verify sessions panel is rendered
+    await expect(canvas.getByTestId('sessions-panel')).toBeInTheDocument();
+
+    // Verify session cards are rendered
+    const sessionCards = canvas.getAllByTestId('session-detail-card');
+    await expect(sessionCards.length).toBe(2);
+
+    // Verify status badges
+    await expect(canvas.getByText('Running')).toBeInTheDocument();
+    await expect(canvas.getByText('Completed')).toBeInTheDocument();
+
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'story-detail-with-sessions');
+    await matchPixelSnapshot(canvasElement, 'story-detail-with-sessions');
+  },
+};
+
+/**
+ * Story showing the Sessions tab with no sessions (empty state).
+ */
+export const EmptySessions: StoryDetailStory = {
+  render: () => (
+    <div className="space-y-6">
+      <StoryHeader story={sampleStory} />
+      <Tabs defaultValue="sessions" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="content">Story Content</TabsTrigger>
+          <TabsTrigger value="journal">Journal</TabsTrigger>
+          <TabsTrigger value="sessions">Sessions</TabsTrigger>
+        </TabsList>
+        <TabsContent value="sessions">
+          <SessionsTabContent sessions={[]} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // Verify Layout header with SAGA Dashboard
+    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
+    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
+
+    // Verify story title
+    await expect(canvas.getByText('Storybook Setup and Component Stories')).toBeInTheDocument();
+
+    // Verify Sessions tab is active
+    const sessionsTab = canvas.getByRole('tab', { name: 'Sessions' });
+    await expect(sessionsTab).toBeInTheDocument();
+
+    // Verify empty sessions message
+    await expect(canvas.getByTestId('sessions-panel-empty')).toBeInTheDocument();
+    await expect(canvas.getByText('No sessions found for this story')).toBeInTheDocument();
+
+    // Visual snapshot tests
+    await matchDomSnapshot(canvasElement, 'story-detail-empty-sessions');
+    await matchPixelSnapshot(canvasElement, 'story-detail-empty-sessions');
   },
 };
 

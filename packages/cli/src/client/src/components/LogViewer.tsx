@@ -1,8 +1,12 @@
 import type { VirtualItem, Virtualizer } from '@tanstack/react-virtual';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArrowDownToLine, CheckCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2, Lock, Unlock } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getWebSocketSend } from '@/machines/dashboardMachine';
+import {
+  getWebSocketSend,
+  subscribeToLogData,
+  unsubscribeFromLogData,
+} from '@/machines/dashboardMachine';
 
 interface LogViewerProps {
   /** The name of the session to display logs for */
@@ -29,7 +33,7 @@ function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
     return (
       <div
         data-testid="status-indicator-streaming"
-        className="flex items-center gap-1.5 text-success text-sm"
+        className="flex items-center gap-1.5 text-primary text-sm"
       >
         <Loader2 className="h-3.5 w-3.5 animate-spin" data-testid="status-icon-loader" />
         <span>Streaming</span>
@@ -40,7 +44,7 @@ function StatusIndicator({ status }: { status: 'running' | 'completed' }) {
   return (
     <div
       data-testid="status-indicator-complete"
-      className="flex items-center gap-1.5 text-text-muted text-sm"
+      className="flex items-center gap-1.5 text-success text-sm"
     >
       <CheckCircle className="h-3.5 w-3.5" data-testid="status-icon-complete" />
       <span>Complete</span>
@@ -74,10 +78,6 @@ function LogViewerHeader({
   autoScroll: boolean;
   onToggleAutoScroll: () => void;
 }) {
-  const title = autoScroll
-    ? 'Auto-scroll enabled (click to disable)'
-    : 'Auto-scroll disabled (click to enable)';
-
   return (
     <div className="flex items-center justify-between px-4 py-2 border-b border-bg-light">
       <StatusIndicator status={status} />
@@ -86,17 +86,19 @@ function LogViewerHeader({
         data-testid="auto-scroll-toggle"
         onClick={onToggleAutoScroll}
         aria-pressed={autoScroll}
-        className={`p-1.5 rounded-md transition-colors ${
+        title={autoScroll ? 'Autoscroll locked to bottom' : 'Autoscroll unlocked'}
+        className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md transition-colors ${
           autoScroll
-            ? 'bg-bg-light hover:bg-bg-lighter text-success'
-            : 'bg-bg-light hover:bg-bg-lighter text-text-muted'
+            ? 'bg-success/20 text-success hover:bg-success/30'
+            : 'bg-bg-light text-text-muted hover:bg-bg-lighter'
         }`}
-        title={title}
       >
-        <ArrowDownToLine
-          className="h-4 w-4"
-          data-testid={autoScroll ? 'autoscroll-icon-enabled' : 'autoscroll-icon-disabled'}
-        />
+        {autoScroll ? (
+          <Lock className="h-3.5 w-3.5" data-testid="autoscroll-icon-enabled" />
+        ) : (
+          <Unlock className="h-3.5 w-3.5" data-testid="autoscroll-icon-disabled" />
+        )}
+        <span>Autoscroll</span>
       </button>
     </div>
   );
@@ -155,22 +157,30 @@ function LogViewerUnavailable() {
 }
 
 /**
+ * Error state when log subscription fails
+ */
+function LogViewerError({ error }: { error: string }) {
+  return (
+    <div
+      data-testid="log-viewer-error"
+      className="h-full bg-bg-dark rounded-md font-mono flex flex-col items-center justify-center gap-2"
+    >
+      <AlertCircle className="h-6 w-6 text-danger" />
+      <span className="text-danger text-sm">Failed to load logs</span>
+      <span className="text-text-muted text-xs max-w-xs text-center">{error}</span>
+    </div>
+  );
+}
+
+/**
  * Custom hook for managing WebSocket log subscription
  * Subscribes to logs on mount, unsubscribes on unmount or sessionName change
  */
 function useLogSubscription(sessionName: string, outputAvailable: boolean) {
   const [content, setContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // Handle incoming log data
-  const handleLogData = useCallback((data: string, isInitial: boolean) => {
-    if (isInitial) {
-      setContent(data);
-      setIsLoading(false);
-    } else {
-      setContent((prev) => prev + data);
-    }
-  }, []);
+  const [streamComplete, setStreamComplete] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!outputAvailable) {
@@ -184,9 +194,35 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
       return;
     }
 
+    // Register callback to receive log data for this session
+    subscribeToLogData(
+      sessionName,
+      (data: string, isInitial: boolean, isComplete: boolean) => {
+        if (isInitial) {
+          setContent(data);
+          setIsLoading(false);
+        } else {
+          setContent((prev) => prev + data);
+        }
+        // Mark stream as complete when server signals session finished
+        if (isComplete) {
+          setStreamComplete(true);
+        }
+      },
+      (errorMessage: string) => {
+        setError(errorMessage);
+        setIsLoading(false);
+      },
+    );
+
+    // Send subscription request to server
     send({ event: 'subscribe:logs', data: { sessionName } });
 
     return () => {
+      // Unregister callback
+      unsubscribeFromLogData(sessionName);
+
+      // Send unsubscription request to server
       const currentSend = getWebSocketSend();
       if (currentSend) {
         currentSend({ event: 'unsubscribe:logs', data: { sessionName } });
@@ -194,14 +230,16 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
     };
   }, [sessionName, outputAvailable]);
 
-  return { content, isLoading, handleLogData };
+  return { content, isLoading, streamComplete, error };
 }
 
 /**
  * Custom hook for managing auto-scroll behavior
+ * Uses requestAnimationFrame to ensure DOM has updated before scrolling
  */
 function useAutoScroll(
   scrollContainerRef: React.RefObject<HTMLDivElement | null>,
+  virtualizerRef: React.MutableRefObject<Virtualizer<HTMLDivElement, Element> | null>,
   status: 'running' | 'completed',
   lineCount: number,
 ) {
@@ -209,14 +247,18 @@ function useAutoScroll(
   const prevLineCountRef = useRef<number>(0);
 
   useEffect(() => {
-    if (autoScroll && lineCount > prevLineCountRef.current && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        top: scrollContainerRef.current.scrollHeight,
-        behavior: 'smooth',
+    if (autoScroll && lineCount > prevLineCountRef.current) {
+      // Use requestAnimationFrame to ensure virtualizer has updated the DOM
+      requestAnimationFrame(() => {
+        if (virtualizerRef.current && scrollContainerRef.current) {
+          // Get the total size from virtualizer and scroll to it
+          const totalSize = virtualizerRef.current.getTotalSize();
+          scrollContainerRef.current.scrollTop = totalSize;
+        }
       });
     }
     prevLineCountRef.current = lineCount;
-  }, [lineCount, autoScroll, scrollContainerRef]);
+  }, [lineCount, autoScroll, virtualizerRef, scrollContainerRef]);
 
   const handleScroll = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -224,7 +266,8 @@ function useAutoScroll(
       return;
     }
 
-    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+    // Check if user has scrolled away from the bottom
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
     if (!isAtBottom && autoScroll) {
       setAutoScroll(false);
     }
@@ -232,15 +275,18 @@ function useAutoScroll(
 
   const toggleAutoScroll = useCallback(() => {
     setAutoScroll((prev) => {
-      if (!prev && scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({
-          top: scrollContainerRef.current.scrollHeight,
-          behavior: 'smooth',
+      if (!prev) {
+        // Scroll to bottom when re-enabling auto-scroll
+        requestAnimationFrame(() => {
+          if (virtualizerRef.current && scrollContainerRef.current) {
+            const totalSize = virtualizerRef.current.getTotalSize();
+            scrollContainerRef.current.scrollTop = totalSize;
+          }
         });
       }
       return !prev;
     });
-  }, [scrollContainerRef]);
+  }, [virtualizerRef, scrollContainerRef]);
 
   return { autoScroll, handleScroll, toggleAutoScroll };
 }
@@ -267,14 +313,18 @@ export function LogViewer({
   initialContent = '',
 }: LogViewerProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { content: wsContent, isLoading } = useLogSubscription(sessionName, outputAvailable);
+  const virtualizerRef = useRef<Virtualizer<HTMLDivElement, Element> | null>(null);
+  const {
+    content: wsContent,
+    isLoading,
+    streamComplete,
+    error,
+  } = useLogSubscription(sessionName, outputAvailable);
   const displayContent = initialContent || wsContent;
   const lines = useLines(displayContent);
-  const { autoScroll, handleScroll, toggleAutoScroll } = useAutoScroll(
-    scrollContainerRef,
-    status,
-    lines.length,
-  );
+
+  // Use server's completion signal to override status prop (more authoritative)
+  const effectiveStatus = streamComplete ? 'completed' : status;
 
   const virtualizer = useVirtualizer({
     count: lines.length,
@@ -283,8 +333,22 @@ export function LogViewer({
     overscan: VIRTUALIZER_OVERSCAN,
   });
 
+  // Keep virtualizerRef updated for use in auto-scroll hook
+  virtualizerRef.current = virtualizer;
+
+  const { autoScroll, handleScroll, toggleAutoScroll } = useAutoScroll(
+    scrollContainerRef,
+    virtualizerRef,
+    effectiveStatus,
+    lines.length,
+  );
+
   if (!outputAvailable) {
     return <LogViewerUnavailable />;
+  }
+
+  if (error) {
+    return <LogViewerError error={error} />;
   }
 
   const showLoading = isLoading && !initialContent;
@@ -293,7 +357,7 @@ export function LogViewer({
   return (
     <div data-testid="log-viewer" className="flex flex-col h-full bg-bg-dark rounded-md">
       <LogViewerHeader
-        status={status}
+        status={effectiveStatus}
         autoScroll={autoScroll}
         onToggleAutoScroll={toggleAutoScroll}
       />

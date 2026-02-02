@@ -7,6 +7,9 @@ const WEBSOCKET_TEST_TIMEOUT_MS = 30_000;
 /** Regex pattern for matching Journal tab name */
 const JOURNAL_TAB_PATTERN = /Journal/;
 
+/** Regex pattern for matching Sessions tab name */
+const SESSIONS_TAB_PATTERN = /Sessions/;
+
 /**
  * Happy path E2E tests for the SAGA dashboard.
  *
@@ -252,5 +255,194 @@ test.describe('WebSocket Real-time Updates', () => {
       // Restore original file
       await writeStoryFile('feature-development', 'auth-implementation', originalContent);
     }
+  });
+});
+
+test.describe('Sessions Tab', () => {
+  test('displays Sessions tab in story detail page', async ({ page }) => {
+    await page.goto('/epic/feature-development/story/auth-implementation');
+
+    // Verify Sessions tab is present
+    await expect(page.getByRole('tab', { name: SESSIONS_TAB_PATTERN })).toBeVisible();
+  });
+
+  test('switches to Sessions tab and shows content', async ({ page }) => {
+    // Mock sessions API with test data
+    await page.route('**/api/sessions*', async (route) => {
+      const url = new URL(route.request().url());
+      const epicSlug = url.searchParams.get('epicSlug') || 'feature-development';
+      const storySlug = url.searchParams.get('storySlug') || 'auth-implementation';
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            name: `saga__${epicSlug}__${storySlug}__12345`,
+            epicSlug,
+            storySlug,
+            status: 'running',
+            startTime: new Date().toISOString(),
+            outputFile: '/tmp/output.txt',
+            outputAvailable: true,
+            outputPreview: 'Running tests...',
+          },
+        ]),
+      });
+    });
+
+    await page.goto('/epic/feature-development/story/auth-implementation');
+
+    // Click Sessions tab
+    await page.getByRole('tab', { name: SESSIONS_TAB_PATTERN }).click();
+
+    // Verify Sessions tab is active and content is shown
+    await expect(page.getByRole('tab', { name: SESSIONS_TAB_PATTERN })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+    await expect(page.getByTestId('session-detail-card')).toBeVisible();
+    await expect(page.getByText('Running')).toBeVisible();
+  });
+
+  test('navigates to Sessions tab via URL query parameter', async ({ page }) => {
+    // Mock sessions API
+    await page.route('**/api/sessions*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    });
+
+    await page.goto('/epic/feature-development/story/auth-implementation?tab=sessions');
+
+    // Verify Sessions tab is active
+    await expect(page.getByRole('tab', { name: SESSIONS_TAB_PATTERN })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+  });
+
+  test('expands session card to show log viewer', async ({ page }) => {
+    const sessionName = 'saga__feature-development__auth-implementation__12345';
+    // Mock sessions with outputAvailable: true
+    await page.route('**/api/sessions*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            name: sessionName,
+            epicSlug: 'feature-development',
+            storySlug: 'auth-implementation',
+            status: 'running',
+            startTime: new Date().toISOString(),
+            outputFile: '/tmp/output.txt',
+            outputAvailable: true,
+            outputPreview: 'Test output...',
+          },
+        ]),
+      });
+    });
+
+    await page.goto('/epic/feature-development/story/auth-implementation?tab=sessions');
+
+    // The running session should be auto-expanded, verify log viewer is visible
+    await expect(page.getByTestId('log-viewer')).toBeVisible();
+
+    // Click on the session name (header trigger) to collapse
+    await page.getByText(sessionName).click();
+
+    // Verify log viewer is hidden
+    await expect(page.getByTestId('log-viewer')).not.toBeVisible();
+
+    // Click on the session name again to expand
+    await page.getByText(sessionName).click();
+
+    // Verify log viewer appears
+    await expect(page.getByTestId('log-viewer')).toBeVisible();
+  });
+
+  test('shows empty state when no sessions exist', async ({ page }) => {
+    // Mock sessions API with empty response
+    await page.route('**/api/sessions*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    });
+
+    await page.goto('/epic/feature-development/story/auth-implementation?tab=sessions');
+
+    // Verify empty state is shown
+    await expect(page.getByTestId('sessions-panel-empty')).toBeVisible();
+    await expect(page.getByText('No sessions found for this story')).toBeVisible();
+  });
+});
+
+test.describe('ActiveSessions on Home Page', () => {
+  test('shows ActiveSessions section when running sessions exist', async ({ page }) => {
+    // Mock sessions API with running session
+    await page.route('**/api/sessions*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            name: 'saga__feature-development__auth-implementation__12345',
+            epicSlug: 'feature-development',
+            storySlug: 'auth-implementation',
+            status: 'running',
+            startTime: new Date().toISOString(),
+            outputFile: '/tmp/output.txt',
+            outputAvailable: true,
+            outputPreview: 'Working...',
+          },
+        ]),
+      });
+    });
+
+    await page.goto('/');
+
+    // Verify ActiveSessions section is visible with running session
+    await expect(page.getByTestId('active-sessions')).toBeVisible();
+    await expect(page.getByText('Active Sessions')).toBeVisible();
+    await expect(page.getByText('auth-implementation')).toBeVisible();
+  });
+
+  test('clicking session card navigates to story with sessions tab', async ({ page }) => {
+    // Mock sessions API with running session
+    await page.route('**/api/sessions*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            name: 'saga__feature-development__auth-implementation__12345',
+            epicSlug: 'feature-development',
+            storySlug: 'auth-implementation',
+            status: 'running',
+            startTime: new Date().toISOString(),
+            outputFile: '/tmp/output.txt',
+            outputAvailable: true,
+          },
+        ]),
+      });
+    });
+
+    await page.goto('/');
+
+    // Wait for sessions to load
+    await expect(page.getByTestId('active-sessions')).toBeVisible();
+
+    // Click on the session card (story slug link)
+    await page.getByText('auth-implementation').click();
+
+    // Verify navigation to story detail with sessions tab
+    await expect(page).toHaveURL(
+      '/epic/feature-development/story/auth-implementation?tab=sessions',
+    );
   });
 });

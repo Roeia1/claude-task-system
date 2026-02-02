@@ -75,12 +75,81 @@ type DashboardEvent =
 /** WebSocket send function type for external access */
 type WebSocketSendFn = (message: object) => void;
 
+/** Callback type for log data handlers */
+type LogDataCallback = (data: string, isInitial: boolean, isComplete: boolean) => void;
+
+/** Callback type for log error handlers */
+type LogErrorCallback = (error: string) => void;
+
 /** Global reference to WebSocket send function (set by actor) */
 let wsSendFn: WebSocketSendFn | null = null;
+
+/** Registry of log data callbacks by session name */
+const logDataCallbacks = new Map<string, LogDataCallback>();
+
+/** Registry of log error callbacks by session name */
+const logErrorCallbacks = new Map<string, LogErrorCallback>();
 
 /** Get the current WebSocket send function */
 function getWebSocketSend(): WebSocketSendFn | null {
   return wsSendFn;
+}
+
+/** Register a callback to receive log data for a session */
+function subscribeToLogData(
+  sessionName: string,
+  onData: LogDataCallback,
+  onError?: LogErrorCallback,
+): void {
+  logDataCallbacks.set(sessionName, onData);
+  if (onError) {
+    logErrorCallbacks.set(sessionName, onError);
+  }
+}
+
+/** Unregister callbacks for a session */
+function unsubscribeFromLogData(sessionName: string): void {
+  logDataCallbacks.delete(sessionName);
+  logErrorCallbacks.delete(sessionName);
+}
+
+/** Route log-related messages to registered callbacks */
+function handleLogMessage(
+  messageType: string,
+  data: {
+    sessionName: string;
+    data?: string;
+    isInitial?: boolean;
+    isComplete?: boolean;
+    error?: string;
+  },
+): void {
+  if (messageType === 'logs:data') {
+    const callback = logDataCallbacks.get(data.sessionName);
+    if (callback && data.data !== undefined) {
+      callback(data.data, data.isInitial ?? false, data.isComplete ?? false);
+    }
+  } else if (messageType === 'logs:error') {
+    const callback = logErrorCallbacks.get(data.sessionName);
+    if (callback && data.error) {
+      callback(data.error);
+    }
+  }
+}
+
+/** Route state update messages to the machine */
+function handleStateMessage(
+  messageType: string,
+  data: unknown,
+  sendBack: (event: DashboardEvent) => void,
+): void {
+  if (messageType === 'epics:updated') {
+    sendBack({ type: 'EPICS_UPDATED', epics: data as EpicSummary[] });
+  } else if (messageType === 'story:updated') {
+    sendBack({ type: 'STORY_UPDATED', story: data as StoryDetail });
+  } else if (messageType === 'sessions:updated') {
+    sendBack({ type: 'SESSIONS_UPDATED', sessions: data as SessionInfo[] });
+  }
 }
 
 /** Helper to handle WebSocket messages */
@@ -91,18 +160,21 @@ function handleWebSocketMessage(
 ): void {
   try {
     const message = JSON.parse(wsEvent.data);
-    // Server sends messages with 'event' property (e.g., { event: 'epics:updated', data: ... })
     const messageType = message.event || message.type;
+
     if (messageType === 'pong') {
       lastPongRef.value = Date.now();
       return;
     }
-    if (messageType === 'epics:updated' && message.data) {
-      sendBack({ type: 'EPICS_UPDATED', epics: message.data });
-    } else if (messageType === 'story:updated' && message.data) {
-      sendBack({ type: 'STORY_UPDATED', story: message.data });
-    } else if (messageType === 'sessions:updated' && message.data) {
-      sendBack({ type: 'SESSIONS_UPDATED', sessions: message.data });
+
+    if (!message.data) {
+      return;
+    }
+
+    if (messageType === 'logs:data' || messageType === 'logs:error') {
+      handleLogMessage(messageType, message.data);
+    } else {
+      handleStateMessage(messageType, message.data, sendBack);
     }
   } catch {
     // Ignore malformed messages
@@ -557,5 +629,12 @@ const dashboardMachine = setup({
 
 type DashboardMachine = typeof dashboardMachine;
 
-export { dashboardMachine, getWebSocketSend };
-export type { StorySubscription, DashboardContext, DashboardEvent, DashboardMachine };
+export { dashboardMachine, getWebSocketSend, subscribeToLogData, unsubscribeFromLogData };
+export type {
+  StorySubscription,
+  DashboardContext,
+  DashboardEvent,
+  DashboardMachine,
+  LogDataCallback,
+  LogErrorCallback,
+};

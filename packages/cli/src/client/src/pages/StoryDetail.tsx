@@ -1,8 +1,9 @@
 import { AlertCircle, CheckCircle, ChevronDown, ChevronRight, Circle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import remarkGfm from 'remark-gfm';
+import { SessionsPanel } from '@/components/SessionsPanel';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -19,6 +20,19 @@ import type {
 
 /** HTTP 404 Not Found status code */
 const HTTP_NOT_FOUND = 404;
+
+/** Valid tab values for URL query parameter */
+const VALID_TABS = ['tasks', 'content', 'journal', 'sessions'] as const;
+type ValidTab = (typeof VALID_TABS)[number];
+
+/** Get the initial tab value from URL query parameter */
+function getInitialTabFromQuery(searchParams: URLSearchParams): ValidTab {
+  const tabParam = searchParams.get('tab');
+  if (tabParam && VALID_TABS.includes(tabParam as ValidTab)) {
+    return tabParam as ValidTab;
+  }
+  return 'tasks';
+}
 
 /** Skeleton loading component for the story header */
 function HeaderSkeleton() {
@@ -485,7 +499,9 @@ function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefin
 
 function StoryDetail() {
   const { epicSlug, storySlug } = useParams<{ epicSlug: string; storySlug: string }>();
+  const [searchParams] = useSearchParams();
   const { currentStory, loading, notFound, error } = useStoryFetch(epicSlug, storySlug);
+  const initialTab = getInitialTabFromQuery(searchParams);
 
   if (notFound) {
     return <StoryNotFoundState epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />;
@@ -502,7 +518,7 @@ function StoryDetail() {
   return (
     <div className="space-y-6">
       <StoryHeader story={currentStory} epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />
-      <Tabs defaultValue="tasks" className="w-full">
+      <Tabs defaultValue={initialTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="content">Story Content</TabsTrigger>
@@ -512,6 +528,7 @@ function StoryDetail() {
               <Badge className="ml-2 bg-danger/20 text-danger text-xs">{blockers.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="sessions">Sessions</TabsTrigger>
         </TabsList>
         <TabsContent value="tasks" className="space-y-4">
           <TasksTabContent tasks={currentStory.tasks} />
@@ -521,6 +538,9 @@ function StoryDetail() {
         </TabsContent>
         <TabsContent value="journal" className="space-y-4">
           <JournalTabContent journal={currentStory.journal} />
+        </TabsContent>
+        <TabsContent value="sessions" className="space-y-4">
+          <SessionsPanel epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />
         </TabsContent>
       </Tabs>
     </div>

@@ -5,13 +5,45 @@ import {
   createMockJournalEntry,
   createMockStoryDetail,
   createMockTask,
+  type MockSession,
   mockEpicDetail,
+  mockSessions,
   mockStoryDetail,
 } from '../utils/mock-api.ts';
 
 // Top-level regex patterns for tab names
 const REGEX_JOURNAL = /Journal/;
 const REGEX_SESSIONS = /Sessions/;
+
+// Session test data constants
+const RUNNING_SESSION: MockSession = {
+  name: 'saga__session-epic__session-story__12345',
+  epicSlug: 'session-epic',
+  storySlug: 'session-story',
+  status: 'running',
+  startTime: '2026-01-30T10:00:00Z',
+  outputAvailable: true,
+  outputPreview: 'Running tests...\nAll tests passed.',
+};
+
+const COMPLETED_SESSION: MockSession = {
+  name: 'saga__session-epic__session-story__67890',
+  epicSlug: 'session-epic',
+  storySlug: 'session-story',
+  status: 'completed',
+  startTime: '2026-01-30T08:00:00Z',
+  outputAvailable: true,
+  outputPreview: 'Build complete.',
+};
+
+const OUTPUT_UNAVAILABLE_SESSION: MockSession = {
+  name: 'saga__session-epic__session-story__11111',
+  epicSlug: 'session-epic',
+  storySlug: 'session-story',
+  status: 'completed',
+  startTime: '2026-01-30T06:00:00Z',
+  outputAvailable: false,
+};
 
 /**
  * Story detail interaction tests for the dashboard.
@@ -349,6 +381,324 @@ test.describe('Story Detail Interactions', () => {
       await page.getByText('Session B').click();
       await expect(page.getByText('Content A')).toBeVisible();
       await expect(page.getByText('Content B')).toBeVisible();
+    });
+  });
+
+  test.describe('Sessions Tab', () => {
+    test('should switch to Sessions tab and display empty state when no sessions', async ({
+      page,
+    }) => {
+      const epicDetail = createMockEpic({
+        slug: 'session-epic',
+        title: 'Session Epic',
+        stories: [],
+      });
+      const storyDetail = createMockStoryDetail({
+        slug: 'session-story',
+        title: 'Session Story',
+        status: 'in_progress',
+        epicSlug: 'session-epic',
+        tasks: [],
+        journal: [],
+      });
+
+      await mockEpicDetail(page, epicDetail);
+      await mockStoryDetail(page, storyDetail);
+      await mockSessions(page, []);
+
+      await page.goto('/epic/session-epic/story/session-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+
+      // Click Sessions tab
+      await page.getByRole('tab', { name: REGEX_SESSIONS }).click();
+      await expect(page.getByRole('tab', { name: REGEX_SESSIONS })).toHaveAttribute(
+        'data-state',
+        'active',
+      );
+
+      // Verify empty state
+      await expect(page.getByTestId('sessions-panel-empty')).toBeVisible();
+      await expect(page.getByText('No sessions found for this story')).toBeVisible();
+    });
+
+    test('should display session cards when sessions exist', async ({ page }) => {
+      const epicDetail = createMockEpic({
+        slug: 'session-epic',
+        title: 'Session Epic',
+        stories: [],
+      });
+      const storyDetail = createMockStoryDetail({
+        slug: 'session-story',
+        title: 'Session Story',
+        status: 'in_progress',
+        epicSlug: 'session-epic',
+        tasks: [],
+        journal: [],
+      });
+
+      await mockEpicDetail(page, epicDetail);
+      await mockStoryDetail(page, storyDetail);
+      await mockSessions(page, [RUNNING_SESSION, COMPLETED_SESSION]);
+
+      await page.goto('/epic/session-epic/story/session-story');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+
+      // Click Sessions tab
+      await page.getByRole('tab', { name: REGEX_SESSIONS }).click();
+      await expect(page.getByRole('tab', { name: REGEX_SESSIONS })).toHaveAttribute(
+        'data-state',
+        'active',
+      );
+
+      // Verify session cards are displayed
+      await expect(page.getByTestId('session-detail-card')).toHaveCount(2);
+    });
+
+    test('should navigate to Sessions tab via URL query parameter ?tab=sessions', async ({
+      page,
+    }) => {
+      const epicDetail = createMockEpic({
+        slug: 'session-epic',
+        title: 'Session Epic',
+        stories: [],
+      });
+      const storyDetail = createMockStoryDetail({
+        slug: 'session-story',
+        title: 'Session Story',
+        status: 'in_progress',
+        epicSlug: 'session-epic',
+        tasks: [],
+        journal: [],
+      });
+
+      await mockEpicDetail(page, epicDetail);
+      await mockStoryDetail(page, storyDetail);
+      await mockSessions(page, [RUNNING_SESSION]);
+
+      // Navigate directly with query parameter
+      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+
+      // Verify Sessions tab is active
+      await expect(page.getByRole('tab', { name: REGEX_SESSIONS })).toHaveAttribute(
+        'data-state',
+        'active',
+      );
+      await expect(page.getByTestId('sessions-panel')).toBeVisible();
+    });
+
+    test('should show running session with Running status badge', async ({ page }) => {
+      const epicDetail = createMockEpic({
+        slug: 'session-epic',
+        title: 'Session Epic',
+        stories: [],
+      });
+      const storyDetail = createMockStoryDetail({
+        slug: 'session-story',
+        title: 'Session Story',
+        status: 'in_progress',
+        epicSlug: 'session-epic',
+        tasks: [],
+        journal: [],
+      });
+
+      await mockEpicDetail(page, epicDetail);
+      await mockStoryDetail(page, storyDetail);
+      await mockSessions(page, [RUNNING_SESSION]);
+
+      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+
+      // Verify Running badge is displayed
+      const sessionCard = page.getByTestId('session-detail-card');
+      await expect(sessionCard.getByText('Running')).toBeVisible();
+    });
+
+    test('should show completed session with Completed status badge', async ({ page }) => {
+      const epicDetail = createMockEpic({
+        slug: 'session-epic',
+        title: 'Session Epic',
+        stories: [],
+      });
+      const storyDetail = createMockStoryDetail({
+        slug: 'session-story',
+        title: 'Session Story',
+        status: 'in_progress',
+        epicSlug: 'session-epic',
+        tasks: [],
+        journal: [],
+      });
+
+      await mockEpicDetail(page, epicDetail);
+      await mockStoryDetail(page, storyDetail);
+      await mockSessions(page, [COMPLETED_SESSION]);
+
+      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+
+      // Verify Completed badge is displayed
+      const sessionCard = page.getByTestId('session-detail-card');
+      await expect(sessionCard.getByText('Completed')).toBeVisible();
+    });
+
+    test('should expand session card to show log viewer on click', async ({ page }) => {
+      const epicDetail = createMockEpic({
+        slug: 'session-epic',
+        title: 'Session Epic',
+        stories: [],
+      });
+      const storyDetail = createMockStoryDetail({
+        slug: 'session-story',
+        title: 'Session Story',
+        status: 'in_progress',
+        epicSlug: 'session-epic',
+        tasks: [],
+        journal: [],
+      });
+
+      // Create two sessions - the older one won't be auto-expanded
+      // Only the most recent one (by startTime) is auto-expanded
+      const olderSession: MockSession = {
+        ...COMPLETED_SESSION,
+        name: 'saga__session-epic__session-story__older',
+        startTime: '2026-01-30T06:00:00Z', // Older
+      };
+      const newerSession: MockSession = {
+        ...COMPLETED_SESSION,
+        name: 'saga__session-epic__session-story__newer',
+        startTime: '2026-01-30T10:00:00Z', // Newer (will be auto-expanded)
+      };
+
+      await mockEpicDetail(page, epicDetail);
+      await mockStoryDetail(page, storyDetail);
+      await mockSessions(page, [olderSession, newerSession]);
+
+      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+
+      // The newer session is auto-expanded, older one is collapsed
+      // Find the older session card (second in list since sorted by startTime descending)
+      const sessionCards = page.getByTestId('session-detail-card');
+      const olderSessionCard = sessionCards.nth(1); // Second card (older session)
+
+      // Verify log viewer is NOT visible for the older session (collapsed)
+      await expect(olderSessionCard.getByTestId('log-viewer')).not.toBeVisible();
+
+      // Click to expand the older session
+      await olderSessionCard.click();
+
+      // Verify log viewer is now visible for the older session
+      await expect(olderSessionCard.getByTestId('log-viewer')).toBeVisible();
+    });
+
+    test('should collapse session card when clicked again', async ({ page }) => {
+      const epicDetail = createMockEpic({
+        slug: 'session-epic',
+        title: 'Session Epic',
+        stories: [],
+      });
+      const storyDetail = createMockStoryDetail({
+        slug: 'session-story',
+        title: 'Session Story',
+        status: 'in_progress',
+        epicSlug: 'session-epic',
+        tasks: [],
+        journal: [],
+      });
+
+      await mockEpicDetail(page, epicDetail);
+      await mockStoryDetail(page, storyDetail);
+      await mockSessions(page, [RUNNING_SESSION]);
+
+      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+
+      // The running session should be auto-expanded
+      await expect(page.getByTestId('log-viewer')).toBeVisible();
+
+      // Click on the session name (inside the header/trigger) to collapse
+      await page.getByText(RUNNING_SESSION.name).click();
+
+      // Verify log viewer is hidden
+      await expect(page.getByTestId('log-viewer')).not.toBeVisible();
+    });
+
+    test('should show "Output unavailable" for sessions without output', async ({ page }) => {
+      const epicDetail = createMockEpic({
+        slug: 'session-epic',
+        title: 'Session Epic',
+        stories: [],
+      });
+      const storyDetail = createMockStoryDetail({
+        slug: 'session-story',
+        title: 'Session Story',
+        status: 'in_progress',
+        epicSlug: 'session-epic',
+        tasks: [],
+        journal: [],
+      });
+
+      await mockEpicDetail(page, epicDetail);
+      await mockStoryDetail(page, storyDetail);
+      await mockSessions(page, [OUTPUT_UNAVAILABLE_SESSION]);
+
+      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+
+      // Verify "Output unavailable" message is displayed
+      await expect(page.getByText('Output unavailable')).toBeVisible();
+    });
+
+    test('should auto-expand most recent running session', async ({ page }) => {
+      const epicDetail = createMockEpic({
+        slug: 'session-epic',
+        title: 'Session Epic',
+        stories: [],
+      });
+      const storyDetail = createMockStoryDetail({
+        slug: 'session-story',
+        title: 'Session Story',
+        status: 'in_progress',
+        epicSlug: 'session-epic',
+        tasks: [],
+        journal: [],
+      });
+
+      // Create sessions with different timestamps
+      const olderRunningSession: MockSession = {
+        name: 'saga__session-epic__session-story__11111',
+        epicSlug: 'session-epic',
+        storySlug: 'session-story',
+        status: 'running',
+        startTime: '2026-01-30T08:00:00Z',
+        outputAvailable: true,
+        outputPreview: 'Older session...',
+      };
+      const newerRunningSession: MockSession = {
+        name: 'saga__session-epic__session-story__22222',
+        epicSlug: 'session-epic',
+        storySlug: 'session-story',
+        status: 'running',
+        startTime: '2026-01-30T12:00:00Z',
+        outputAvailable: true,
+        outputPreview: 'Newer session...',
+      };
+
+      await mockEpicDetail(page, epicDetail);
+      await mockStoryDetail(page, storyDetail);
+      await mockSessions(page, [olderRunningSession, newerRunningSession, COMPLETED_SESSION]);
+
+      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, { timeout: 10_000 });
+
+      // Verify there's exactly one log viewer visible (auto-expanded)
+      await expect(page.getByTestId('log-viewer')).toHaveCount(1);
+
+      // The most recent running session (newer) should be expanded
+      // It's the first card in the list since sessions are sorted by startTime descending
+      const sessionCards = page.getByTestId('session-detail-card');
+      const firstCard = sessionCards.first();
+      await expect(firstCard.getByText(newerRunningSession.name)).toBeVisible();
     });
   });
 });
