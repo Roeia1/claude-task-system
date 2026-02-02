@@ -103,3 +103,30 @@
 - t5: Configure esbuild to output to plugin/scripts/
 - t6: Set up vitest test configuration for plugin-scripts
 - t7: Add placeholder script to verify build pipeline
+
+## Session: 2026-02-02T20:08:00Z
+
+### Task: t5 - Configure esbuild to output to plugin/scripts/
+
+**What was done:**
+- Created `packages/plugin-scripts/esbuild.config.mjs` with full build configuration
+- Configuration features:
+  - Automatically finds all `.ts` entry points in `src/` (excluding tests, `.d.ts`, and `index.ts`)
+  - Outputs bundled files to `plugin/scripts/` relative to repo root
+  - Bundles all dependencies (only Node built-ins are external)
+  - Adds shebang (`#!/usr/bin/env node`) to all output files
+  - Uses ESM format targeting Node.js 18+
+  - Creates output directory if it doesn't exist
+  - No minification for easier debugging
+- Verified `pnpm build` runs successfully (reports no entry points when none exist)
+- package.json already had `"build": "node esbuild.config.mjs"` script from t4
+
+**Decisions:**
+- Used `packages: "bundle"` option to bundle all npm dependencies, making scripts standalone
+- Used ESM format (`.js` output) to match the `"type": "module"` package configuration
+- Excluded `index.ts` from entry points since it's for internal module exports, not CLI scripts
+- Did not minify output to keep scripts readable for debugging plugin issues
+
+**Next steps:**
+- t6: Set up vitest test configuration for plugin-scripts
+- t7: Add placeholder script to verify build pipeline
