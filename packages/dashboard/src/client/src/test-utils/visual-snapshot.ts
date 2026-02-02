@@ -34,18 +34,24 @@ function isVitestTest(): boolean {
  * Removes dynamic attributes that change between runs.
  */
 function normalizeHtml(html: string): string {
-	return (
-		html
-			// Remove data-state attributes that may be dynamic
-			.replace(/data-state="[^"]*"/g, 'data-state="..."')
-			// Remove style attributes with dynamic values
-			.replace(/style="[^"]*"/g, 'style="..."')
-			// Normalize Radix UI generated IDs (e.g., radix-:r8:, radix-:rk:)
-			.replace(/radix-:[a-z0-9]+:/g, "radix-:id:")
-			// Normalize whitespace
-			.replace(/\s+/g, " ")
-			.trim()
-	);
+  return (
+    html
+      // Remove data-state attributes that may be dynamic
+      .replace(/data-state="[^"]*"/g, 'data-state="..."')
+      // Remove style attributes with dynamic values
+      .replace(/style="[^"]*"/g, 'style="..."')
+      // Normalize Radix UI generated IDs (e.g., radix-:r8:, radix-:rk:)
+      .replace(/radix-:[a-z0-9]+:/g, 'radix-:id:')
+      // Normalize duration strings from formatDuration utility (e.g., "5d 15h", "1h 30m", "45m 0s")
+      // These change based on when the test runs relative to session start times
+      // Note: Don't match CSS time values like "0s" in animation-duration
+      .replace(/\d+d \d+h/g, '[duration]')
+      .replace(/\d+h \d+m/g, '[duration]')
+      .replace(/\d+m \d+s/g, '[duration]')
+      // Normalize whitespace
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 }
 
 // ============================================================================

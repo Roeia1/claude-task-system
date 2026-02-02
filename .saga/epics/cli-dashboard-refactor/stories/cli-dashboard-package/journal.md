@@ -227,3 +227,49 @@ The Session type is the same in both (uses `'running' | 'completed'`), so it can
 
 **Next steps:**
 - t7: Update and verify tests
+
+## Session 7: 2026-02-03
+
+### Task: t7 - Update and verify tests
+
+**What was done:**
+- Fixed storybook snapshot test failures caused by dynamic duration values
+- Updated `src/client/src/test-utils/visual-snapshot.ts` to normalize duration strings in DOM snapshots
+- Added regex patterns to replace `Xd Yh`, `Xh Ym`, and `Xm Ys` duration formats with `[duration]` placeholder
+- Regenerated all affected snapshot files using `pnpm test:storybook:update`
+
+**Root cause:**
+The SessionDetailCard component calculates duration relative to `Date.now()` for running sessions. Since the sample session data has fixed start times (e.g., `2026-01-28T02:00:00Z`), the displayed duration changes each time the test runs (e.g., "5d 15h" vs "5d 20h").
+
+**Solution:**
+Added duration normalization to the `normalizeHtml` function in visual-snapshot.ts:
+```javascript
+.replace(/\d+d \d+h/g, '[duration]')
+.replace(/\d+h \d+m/g, '[duration]')
+.replace(/\d+m \d+s/g, '[duration]')
+```
+
+This ensures duration strings are always normalized in snapshots, making tests deterministic regardless of when they run.
+
+**Files modified:**
+- packages/dashboard/src/client/src/test-utils/visual-snapshot.ts
+- packages/dashboard/src/client/src/snapshots/dom/active-sessions.stories.tsx.snap
+- packages/dashboard/src/client/src/snapshots/dom/session-card.stories.tsx.snap
+- packages/dashboard/src/client/src/snapshots/dom/sessions-panel.stories.tsx.snap
+- packages/dashboard/src/client/src/snapshots/dom/story-detail.stories.tsx.snap
+- packages/dashboard/src/client/src/snapshots/pixel/*.png (several updated)
+
+**Verification:**
+- `pnpm test` passes completely (561 tests pass, 38 e2e tests pass)
+- No test files reference removed commands
+- Coverage maintained for retained functionality (dashboard, sessions list/status/logs)
+
+**Story completed:**
+All tasks (t1-t7) have been completed:
+- [x] t1: Directory renamed from `packages/cli/` to `packages/dashboard/`
+- [x] t2: Package name is `@saga-ai/dashboard`
+- [x] t3: Removed non-dashboard commands, kept dashboard and session viewing
+- [x] t4: No SAGA plugin environment variable dependencies
+- [x] t5: Imported session types from `@saga-ai/types`
+- [x] t6: Converted init.ts to plugin skill at `plugin/skills/init/SKILL.md`
+- [x] t7: All tests passing
