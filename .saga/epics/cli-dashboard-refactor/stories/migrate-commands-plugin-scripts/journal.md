@@ -131,3 +131,37 @@
 - Task t5: Migrate and split implement.ts
 - Task t6: Update all imports to use saga-types
 - Task t7: Migrate and extend tests
+
+## Session: 2026-02-03T00:20:00Z
+
+### Task: t5 - Migrate and split implement.ts
+
+**What was done:**
+- Created `packages/plugin-scripts/src/implement/` directory structure with 6 modules:
+  - `types.ts` - local types (ImplementOptions, StoryInfo, LoopResult, WorkerOutput, etc.) and constants
+  - `scope-config.ts` - buildScopeSettings() for PreToolUse hook configuration
+  - `output-parser.ts` - formatToolUsage(), formatStreamLine(), parseStreamingResult() and JSON validation
+  - `session-manager.ts` - createSession(), spawnWorkerAsync(), buildDetachedCommand(), shellEscape utilities
+  - `orchestrator.ts` - runLoop() main orchestration, validateStoryFiles(), loadWorkerPrompt()
+  - `index.ts` - CLI entry point with argument parsing, dry-run, mode handlers
+- Created `packages/plugin-scripts/src/implement.ts` - esbuild entry point
+- All modules are independently importable and testable
+- Build produces `plugin/scripts/implement.js` that works correctly
+
+**Decisions:**
+- Split the monolithic implement.ts (1214 lines) into 6 focused modules as specified in the story
+- Kept implementation logic identical, just reorganized into modules
+- Used the same pattern as other scripts: top-level entry point imports from subdirectory module
+- Inlined resolveProjectPath again (same pattern as other scripts)
+- Session-manager contains both tmux session creation (createSession) and worker spawning (spawnWorkerAsync)
+- Output-parser contains all streaming JSON parsing and tool usage formatting
+
+**Test results:**
+- All 96 existing plugin-scripts tests still pass
+- Build successfully produces `plugin/scripts/implement.js`
+- `node plugin/scripts/implement.js --help` shows correct usage with all options
+- Note: Unit tests for the split modules will be added in task t7
+
+**Next steps:**
+- Task t6: Update all imports to use saga-types
+- Task t7: Migrate and extend tests (including new unit tests for implement modules)

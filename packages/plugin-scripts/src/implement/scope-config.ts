@@ -1,0 +1,38 @@
+/**
+ * Scope configuration builder for worker sessions
+ *
+ * Builds the settings JSON for scope enforcement hooks.
+ * The scope validator hook prevents workers from accessing files
+ * outside their assigned story's scope.
+ */
+
+// Tool names that require scope validation (file system operations)
+const SCOPE_VALIDATED_TOOLS = ['Read', 'Write', 'Edit', 'Glob', 'Grep'];
+
+// Claude Code hook API uses PascalCase for hook names
+const HOOK_PRE_TOOL_USE = 'PreToolUse';
+
+/**
+ * Build the settings JSON for scope enforcement hooks
+ *
+ * Creates a hook configuration that calls the scope-validator script
+ * for file system operations.
+ *
+ * @returns Settings object with hook configuration
+ */
+export function buildScopeSettings(): Record<string, unknown> {
+  // Use npx to run the CLI's scope-validator command
+  // This avoids dependency on Python and keeps everything in TypeScript
+  const hookCommand = 'npx @saga-ai/cli scope-validator';
+
+  return {
+    hooks: {
+      [HOOK_PRE_TOOL_USE]: [
+        {
+          matcher: SCOPE_VALIDATED_TOOLS.join('|'),
+          hooks: [hookCommand],
+        },
+      ],
+    },
+  };
+}
