@@ -7,11 +7,7 @@
 import process from 'node:process';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getSessionStatus, listSessions, streamLogs } from '../../lib/sessions.ts';
-import {
-  sessionsListCommand,
-  sessionsLogsCommand,
-  sessionsStatusCommand,
-} from './index.ts';
+import { sessionsListCommand, sessionsLogsCommand, sessionsStatusCommand } from './index.ts';
 
 // Mock the sessions library module
 vi.mock('../../lib/sessions.js', () => ({
@@ -133,11 +129,11 @@ describe("sessions CLI subcommands", () => {
 				sessionsLogsCommand("saga__nonexistent__1234"),
 			).rejects.toThrow("process.exit called");
 
-			expect(errorSpy).toHaveBeenCalledWith("Error: Output file not found");
-			expect(exitSpy).toHaveBeenCalledWith(1);
+      expect(errorSpy).toHaveBeenCalledWith('Error: Output file not found');
+      expect(exitSpy).toHaveBeenCalledWith(1);
 
-			errorSpy.mockRestore();
-			exitSpy.mockRestore();
-		});
-	});
+      errorSpy.mockRestore();
+      exitSpy.mockRestore();
+    });
+  });
 });
