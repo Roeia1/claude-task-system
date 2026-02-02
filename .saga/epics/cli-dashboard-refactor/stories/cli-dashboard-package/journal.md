@@ -33,3 +33,31 @@
 **Next steps:**
 - t2: Update package.json for @saga-ai/dashboard (change package name, description)
 - Subsequent tasks will remove non-dashboard commands and SAGA_* dependencies
+
+## Session 2: 2026-02-03
+
+### Task: t2 - Update package.json for @saga-ai/dashboard
+
+**What was done:**
+- Changed package name from `@saga-ai/cli` to `@saga-ai/dashboard`
+- Updated description to "Dashboard and session monitoring for SAGA - Structured Autonomous Goal Achievement"
+- Updated keywords from `["claude", "saga", "cli", "workflow", "automation"]` to `["claude", "saga", "dashboard", "monitoring", "sessions"]`
+- Added `@saga-ai/types` workspace dependency (the actual package name, not `saga-types`)
+- Ran `pnpm install` to update lockfile
+- Verified build succeeds with new package name
+
+**Files modified:**
+- packages/dashboard/package.json
+- pnpm-lock.yaml (regenerated)
+
+**Verification:**
+- Build passes: `pnpm build` in packages/dashboard succeeds
+- Package name is now `@saga-ai/dashboard`
+- `@saga-ai/types` is in dependencies
+
+**Notes:**
+- The story mentioned `@saga-ai/saga-types` but the actual package created by foundation story is `@saga-ai/types`
+- Pre-existing test failures remain (tmux test, storybook snapshot tests) - not related to this task
+
+**Next steps:**
+- t3: Remove non-dashboard commands from CLI entry point
