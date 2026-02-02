@@ -3,11 +3,15 @@
  * These match the API responses from the backend server
  */
 
-/** Task status values */
-export type TaskStatus = "pending" | "inProgress" | "completed";
+// Re-export session types from @saga-ai/types
+// Session type matches the API response format with string dates
+export type { Session as SessionInfo, SessionStatus } from '@saga-ai/types/session.ts';
 
-/** Story status values */
-export type StoryStatus = "ready" | "inProgress" | "blocked" | "completed";
+/** Task status values (camelCase for API response format) */
+export type TaskStatus = 'pending' | 'inProgress' | 'completed';
+
+/** Story status values (camelCase for API response format) */
+export type StoryStatus = 'ready' | 'inProgress' | 'blocked' | 'completed';
 
 /** Journal entry types */
 export type JournalEntryType = "session" | "blocker" | "resolution";
@@ -63,32 +67,4 @@ export interface Epic {
 	stories: StoryDetail[];
 	storyCounts: StoryCounts;
 	isArchived?: boolean;
-}
-
-/** Session status values */
-export type SessionStatus = "running" | "completed";
-
-/**
- * Session info from the dashboard API
- * Matches the backend DetailedSessionInfo type with JSON-serialized dates
- */
-export interface SessionInfo {
-	/** Unique session name (saga__<epic>__<story>__<pid>) */
-	name: string;
-	/** Epic slug extracted from session name */
-	epicSlug: string;
-	/** Story slug extracted from session name */
-	storySlug: string;
-	/** Current session status */
-	status: SessionStatus;
-	/** Path to the output file */
-	outputFile: string;
-	/** Whether the output file exists and is readable */
-	outputAvailable: boolean;
-	/** Session start time (ISO 8601 string) */
-	startTime: string;
-	/** Session end time (ISO 8601 string), only present for completed sessions */
-	endTime?: string;
-	/** Preview of the last 5 lines of output (max 500 chars) */
-	outputPreview?: string;
 }

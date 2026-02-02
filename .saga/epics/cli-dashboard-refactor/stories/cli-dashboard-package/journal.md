@@ -159,3 +159,36 @@ Two SAGA_* references remain in the code, but these are NOT plugin dependencies:
 
 **Next steps:**
 - t5: Update imports to use saga-types
+
+## Session 5: 2026-02-03
+
+### Task: t5 - Update imports to use saga-types
+
+**What was done:**
+- Updated `src/client/src/types/dashboard.ts` to import session types from `@saga-ai/types/session.ts`
+- Replaced local `SessionInfo` interface with re-export of `Session` type from saga-types
+- Replaced local `SessionStatus` type with re-export from saga-types
+- Both types were direct matches - saga-types uses `'running' | 'completed'` which matches dashboard API
+
+**Design decision:**
+The saga-types package uses snake_case for story/task status values (`'in_progress'`) to match the raw YAML file format. The dashboard uses camelCase (`'inProgress'`) for its API responses. These are intentionally different:
+- saga-types: Raw file format types for parsing .saga/ files
+- dashboard: API response types (converted from snake_case to camelCase by parser.ts)
+
+The Session type is the same in both (uses `'running' | 'completed'`), so it can be shared directly.
+
+**Files modified:**
+- packages/dashboard/src/client/src/types/dashboard.ts
+
+**Verification:**
+- Build passes: `pnpm build` succeeds
+- Unit tests pass (557 tests pass, same 4 pre-existing storybook snapshot failures)
+- TypeScript compiles correctly through build tools (esbuild, vite)
+
+**Notes:**
+- The story mentioned `@saga-ai/saga-types` but the actual package created by foundation story is `@saga-ai/types`
+- Story/Epic types intentionally differ (camelCase API vs snake_case YAML) - not duplicates
+- Session types are now imported from shared package
+
+**Next steps:**
+- t6: Convert init.ts to plugin skill
