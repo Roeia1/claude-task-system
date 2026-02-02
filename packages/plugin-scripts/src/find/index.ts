@@ -20,6 +20,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
+import type { StoryStatus } from '@saga-ai/types';
 import { findEpic, findStory } from './finder.ts';
 
 // ============================================================================
@@ -168,7 +169,7 @@ async function main(): Promise<void> {
   if (type === 'epic') {
     result = findEpic(projectPath, args.query);
   } else {
-    result = await findStory(projectPath, args.query, { status: args.status });
+    result = await findStory(projectPath, args.query, { status: args.status as StoryStatus });
   }
 
   // Output JSON result

@@ -9,7 +9,8 @@
 
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import Fuse from 'fuse.js';
+import type { StoryStatus } from '@saga-ai/types';
+import Fuse, { type FuseResult } from 'fuse.js';
 import {
   epicsDirectoryExists,
   type ScannedStory,
@@ -28,7 +29,7 @@ interface EpicInfo {
 interface StoryInfo {
   slug: string;
   title: string;
-  status: string;
+  status: StoryStatus;
   context: string;
   epicSlug: string;
   storyPath: string;
@@ -41,7 +42,7 @@ type FindResult<T> =
   | { found: false; error: string };
 
 interface FindStoryOptions {
-  status?: string;
+  status?: StoryStatus;
 }
 
 // ============================================================================
@@ -132,7 +133,7 @@ function toStoryInfo(story: ScannedStory): StoryInfo {
 /**
  * Process fuzzy search results and determine the best match or return ambiguous matches
  */
-function processFuzzyResults<T>(results: Fuse.FuseResult<T>[]): FindResult<T> {
+function processFuzzyResults<T>(results: FuseResult<T>[]): FindResult<T> {
   // If only one match, return it
   if (results.length === 1) {
     return { found: true, data: results[0].item };

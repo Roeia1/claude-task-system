@@ -5,6 +5,7 @@
   "description": "Shared Zod schemas for SAGA .saga/ directory structure",
   "type": "module",
   "exports": {
+    ".": "./src/index.ts",
     "./story.ts": "./src/story.ts",
     "./epic.ts": "./src/epic.ts",
     "./session.ts": "./src/session.ts",

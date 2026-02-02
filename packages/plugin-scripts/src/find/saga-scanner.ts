@@ -8,6 +8,7 @@
 import { existsSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { StoryStatus } from '@saga-ai/types';
 
 // ============================================================================
 // Constants
@@ -41,7 +42,7 @@ interface ScannedStory {
   /** Story title from frontmatter */
   title: string;
   /** Story status from frontmatter */
-  status: string;
+  status: StoryStatus;
   /** Parent epic slug */
   epicSlug: string;
   /** Full path to story.md */
@@ -192,7 +193,7 @@ async function parseStoryFile(
     return {
       slug: (frontmatter.id as string) || (frontmatter.slug as string) || dirName,
       title: (frontmatter.title as string) || dirName,
-      status: (frontmatter.status as string) || 'ready',
+      status: (frontmatter.status as StoryStatus) || 'ready',
       epicSlug,
       storyPath,
       worktreePath: options.worktreePath,

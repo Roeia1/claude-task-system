@@ -165,3 +165,38 @@
 **Next steps:**
 - Task t6: Update all imports to use saga-types
 - Task t7: Migrate and extend tests (including new unit tests for implement modules)
+
+## Session: 2026-02-03T00:25:00Z
+
+### Task: t6 - Update all imports to use saga-types
+
+**What was done:**
+- Created `packages/saga-types/src/index.ts` - barrel export for all types (Story, Epic, Session, StoryStatus, etc.)
+- Added barrel export `"."` to `packages/saga-types/package.json` exports
+- Updated `packages/plugin-scripts/src/find/saga-scanner.ts`:
+  - Import `StoryStatus` from `@saga-ai/types`
+  - Changed `status: string` to `status: StoryStatus` in `ScannedStory` interface
+- Updated `packages/plugin-scripts/src/find/finder.ts`:
+  - Import `StoryStatus` from `@saga-ai/types`
+  - Import `FuseResult` type from `fuse.js` (fixed existing type reference issue)
+  - Changed `status: string` to `status: StoryStatus` in `StoryInfo` interface
+  - Changed `status?: string` to `status?: StoryStatus` in `FindStoryOptions` interface
+- Updated `packages/plugin-scripts/src/find/index.ts`:
+  - Import `StoryStatus` from `@saga-ai/types`
+  - Cast CLI status argument appropriately when calling `findStory()`
+
+**Decisions:**
+- The local types (`EpicInfo`, `StoryInfo`, `ScannedStory`, `ScannedEpic`) are intentionally different from saga-types full types. They are internal simplified types for search results, not duplicates.
+- Only `StoryStatus` was shared since `status` fields benefit from the enum type safety
+- The full `Story`, `Epic`, `Session` types from saga-types have different shapes than the internal types (e.g., `Story` has `frontmatter.status` not just `status`)
+- Fixed a pre-existing Fuse.js type import issue (`Fuse.FuseResult` → `FuseResult`)
+
+**Verification:**
+- TypeScript compiles without errors (`pnpm typecheck`)
+- All 96 tests pass (`pnpm test`)
+- Build produces working scripts (`pnpm build`)
+- `@saga-ai/types` is already in plugin-scripts dependencies
+- No duplicate Epic/Story/Session/StoryStatus type definitions in plugin-scripts
+
+**Next steps:**
+- Task t7: Migrate and extend tests (including new unit tests for implement modules)
