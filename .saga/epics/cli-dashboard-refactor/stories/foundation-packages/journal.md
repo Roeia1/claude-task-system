@@ -78,3 +78,28 @@
 
 **Next steps:**
 - t4-t7: Create plugin-scripts package with build infrastructure
+
+## Session: 2026-02-02T20:06:00Z
+
+### Task: t4 - Create packages/plugin-scripts package structure
+
+**What was done:**
+- Created `packages/plugin-scripts/` directory structure
+- Added `package.json` with name `@saga-ai/plugin-scripts`, marked as private (internal only)
+- Configured workspace dependency on `@saga-ai/types`
+- Set up ESM module format with `"type": "module"`
+- Created `tsconfig.json` following existing CLI package conventions
+- Added placeholder `src/index.ts`
+- Added dev dependencies: `esbuild`, `typescript`, `vitest`
+- Verified `pnpm install` succeeds and recognizes the workspace package
+- Verified package can import from `@saga-ai/types` (TypeScript compiles successfully)
+
+**Decisions:**
+- Used `"private": true` to ensure package is not accidentally published
+- Matched TypeScript and package.json configuration to saga-types for consistency
+- Added esbuild to devDependencies in anticipation of t5 (build configuration)
+
+**Next steps:**
+- t5: Configure esbuild to output to plugin/scripts/
+- t6: Set up vitest test configuration for plugin-scripts
+- t7: Add placeholder script to verify build pipeline
