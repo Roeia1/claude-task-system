@@ -15,16 +15,14 @@
  * Input: Tool input JSON is read from stdin
  * Exit codes:
  *   0 = allowed (operation can proceed)
- *   1 = configuration error (missing environment variables)
- *   2 = blocked (scope violation, with error message to stderr)
+ *   2 = blocked (scope violation or configuration error, with error message to stderr)
  */
 
 import { relative, resolve } from 'node:path';
 import process from 'node:process';
 
-// Exit codes
+// Exit codes per Claude Code hooks specification
 const EXIT_ALLOWED = 0;
-const EXIT_CONFIG_ERROR = 1;
 const EXIT_BLOCKED = 2;
 
 // Box formatting constants for scope violation message
@@ -213,8 +211,11 @@ function getScopeEnvironment(): {
 
   if (missing.length > 0) {
     process.stderr.write(
-      `scope-validator: Missing required environment variables: ${missing.join(', ')}\n` +
-        'This hook requires worker environment variables set by the orchestrator.\n',
+      `scope-validator: Missing required environment variables: ${missing.join(', ')}\n\n` +
+        'The scope validator cannot verify file access without these variables.\n' +
+        'This is a configuration error - the orchestrator should set these variables.\n\n' +
+        'You MUST exit with status BLOCKED and set blocker to:\n' +
+        `"Scope validator misconfigured: missing ${missing.join(', ')}"\n`,
     );
     return null;
   }
@@ -264,8 +265,8 @@ function validatePath(
 async function main(): Promise<void> {
   const env = getScopeEnvironment();
   if (!env) {
-    // Missing required environment variables - configuration error
-    process.exit(EXIT_CONFIG_ERROR);
+    // Missing required environment variables - block operation and instruct worker to fail
+    process.exit(EXIT_BLOCKED);
   }
 
   const toolInput = await readStdinInput();

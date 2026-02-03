@@ -4,7 +4,6 @@
 import { relative, resolve } from "node:path";
 import process from "node:process";
 var EXIT_ALLOWED = 0;
-var EXIT_CONFIG_ERROR = 1;
 var EXIT_BLOCKED = 2;
 var FILE_PATH_WIDTH = 50;
 var EPIC_STORY_WIDTH = 43;
@@ -94,7 +93,12 @@ function getScopeEnvironment() {
   if (missing.length > 0) {
     process.stderr.write(
       `scope-validator: Missing required environment variables: ${missing.join(", ")}
-This hook requires worker environment variables set by the orchestrator.
+
+The scope validator cannot verify file access without these variables.
+This is a configuration error - the orchestrator should set these variables.
+
+You MUST exit with status BLOCKED and set blocker to:
+"Scope validator misconfigured: missing ${missing.join(", ")}"
 `
     );
     return null;
@@ -117,7 +121,7 @@ function validatePath(filePath, worktreePath, epicSlug, storySlug) {
 async function main() {
   const env = getScopeEnvironment();
   if (!env) {
-    process.exit(EXIT_CONFIG_ERROR);
+    process.exit(EXIT_BLOCKED);
   }
   const toolInput = await readStdinInput();
   const filePath = getFilePathFromInput(toolInput);

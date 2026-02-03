@@ -4207,7 +4207,12 @@ function buildScopeSettings() {
       [HOOK_PRE_TOOL_USE]: [
         {
           matcher: SCOPE_VALIDATED_TOOLS.join("|"),
-          hooks: [hookCommand]
+          hooks: [
+            {
+              type: "command",
+              command: hookCommand
+            }
+          ]
         }
       ]
     }
