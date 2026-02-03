@@ -273,3 +273,23 @@ All tasks (t1-t7) have been completed:
 - [x] t5: Imported session types from `@saga-ai/types`
 - [x] t6: Converted init.ts to plugin skill at `plugin/skills/init/SKILL.md`
 - [x] t7: All tests passing
+
+## Session 8: 2026-02-03
+
+### Maintenance: Rebase onto master
+
+**What was done:**
+- Rebased all 8 branch commits onto latest `origin/master` using `git pull origin master --rebase`
+- Resolved merge conflicts across 6 rebase steps:
+  1. **biome.json + package.json** (commit 2/8): Merged master's new config (e.g., `!!plugin/scripts` exclude, `saga-types/src/index.ts` barrel file override) with branch's dashboard rename and formatter settings
+  2. **Deleted files vs master edits** (commit 4/8): 12 modify/delete conflicts where branch deleted commands (`find`, `implement`, `init`, `worktree`, `scope-validator`, `finder`) that master had modified — resolved by accepting deletions
+  3. **cli.ts, cli.test.ts, sessions/index.ts, sessions/index.test.ts** (commit 4/8): Content conflicts from formatting differences and removed commands — resolved by taking branch version
+  4. **sessions/index.test.ts** (commit 5/8): Minor formatting conflict in test assertions — resolved by taking branch version
+  5. **dashboard.ts types** (commit 6/8): Branch imports session types from `@saga-ai/types` vs master's inline definitions — resolved by taking branch version
+  6. **Snapshot files + visual-snapshot.ts** (commit 8/8): DOM/pixel snapshots and duration normalization logic — resolved by taking branch version with dynamic duration fixes
+- Force-pushed rebased branch to remote
+
+**Verification:**
+- All 8 commits preserved with correct content
+- Branch is now based on latest master
+- Updated story.md frontmatter: all task statuses changed from `pending` to `completed`, story status changed from `ready` to `completed`

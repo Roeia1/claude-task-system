@@ -1,30 +1,30 @@
 ---
 id: cli-dashboard-package
 title: Refactor CLI to standalone dashboard package
-status: ready
+status: completed
 epic: cli-dashboard-refactor
 tasks:
   - id: t1
     title: Rename packages/cli to packages/dashboard
-    status: pending
+    status: completed
   - id: t2
     title: Update package.json for @saga-ai/dashboard
-    status: pending
+    status: completed
   - id: t3
     title: Remove non-dashboard commands from CLI entry point
-    status: pending
+    status: completed
   - id: t4
     title: Remove SAGA_* environment variable dependencies
-    status: pending
+    status: completed
   - id: t5
     title: Update imports to use saga-types
-    status: pending
+    status: completed
   - id: t6
     title: Convert init.ts to plugin skill
-    status: pending
+    status: completed
   - id: t7
     title: Update and verify tests
-    status: pending
+    status: completed
 ---
 
 ## Context
