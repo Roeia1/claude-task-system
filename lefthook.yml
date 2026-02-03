@@ -7,4 +7,12 @@ pre-commit:
 
     - name: protect-biome-config
       glob: "biome.json*"
-      run: echo "❌ Changes to biome configuration are not allowed. Remove biome.json from your commit." && exit 1
+      run: |
+        echo ""
+        echo "biome.json changes detected."
+        echo ""
+        echo "Fix biome issues in the code, not by changing the configuration."
+        echo "If a config change is truly necessary, explain it to the user and"
+        echo "get their approval before committing with LEFTHOOK=0 git commit."
+        echo ""
+        exit 1
