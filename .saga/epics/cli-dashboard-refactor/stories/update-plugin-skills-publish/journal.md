@@ -1,0 +1,136 @@
+# Execution Journal
+
+## Session 1: 2026-02-04
+
+### Task: t1 - Update plugin skills to use plugin-scripts
+
+**What was done:**
+- Replaced all `npx @saga-ai/cli` references in plugin SKILL.md files with appropriate alternatives:
+  - `execute-story/SKILL.md`: Changed `npx @saga-ai/cli --path ... find` to `node $SAGA_PLUGIN_ROOT/scripts/find.js` and `npx @saga-ai/cli@latest implement` to `node $SAGA_PLUGIN_ROOT/scripts/implement.js`
+  - `generate-stories/SKILL.md`: Changed `npx @saga-ai/cli --path ... find` to `node $SAGA_PLUGIN_ROOT/scripts/find.js`
+  - `resolve-blocker/SKILL.md`: Changed `npx @saga-ai/cli --path ... find` to `node $SAGA_PLUGIN_ROOT/scripts/find.js`
+  - `list-sessions/SKILL.md`: Changed `npx @saga-ai/cli sessions list` to `npx @saga-ai/dashboard sessions list` (sessions list stays in dashboard package per migration design)
+  - `dashboard/SKILL.md`: Changed `npx @saga-ai/cli@latest dashboard` to `npx @saga-ai/dashboard@latest`
+- Updated `generate-stories/SKILL.md` allowed-tools from `Bash(npx:*)` to `Bash(node:*)` since the find command now uses `node` instead of `npx`
+- Updated inline documentation in execute-story to say "script" instead of "CLI" where appropriate
+- Removed `--path "$SAGA_PROJECT_DIR"` from find.js calls since the script reads `SAGA_PROJECT_DIR` from environment directly
+- `init/SKILL.md` was already native (no CLI references) — no changes needed
+
+**Decisions:**
+- `sessions list` command stays in dashboard package (per migration design: monitoring = dashboard concern, orchestration = plugin concern), so it uses `npx @saga-ai/dashboard`
+- No `--path` flag needed for find.js/implement.js scripts — they read `SAGA_PROJECT_DIR` from environment
+
+**Verification:**
+- Grep for `npx @saga-ai/cli` in plugin SKILL.md files returns zero results
+- Dashboard and list-sessions skills correctly use `npx @saga-ai/dashboard`
+
+**Next steps:**
+- t2: Update generate-story agent to use plugin-scripts
+
+## Session 2: 2026-02-04
+
+### Task: t2 - Update generate-story agent to use plugin-scripts
+
+**What was done:**
+- Updated `plugin/agents/generate-story.md` to replace `npx @saga-ai/cli worktree "<epic_slug>" "<generated-slug>" --path "${SAGA_PROJECT_DIR}"` with `node $SAGA_PLUGIN_ROOT/scripts/worktree.js "<epic_slug>" "<generated-slug>"`
+- Removed `--path` flag consistent with t1 decision (scripts read `SAGA_PROJECT_DIR` from environment)
+
+**Verification:**
+- Grep for `npx @saga-ai/cli` in entire `plugin/` directory returns zero results
+- The worktree command invocation is syntactically correct with same argument structure
+
+**Next steps:**
+- t3: Update CHANGELOG.md for v3.0.0 release
+
+## Session 3: 2026-02-04
+
+### Task: t3 - Update CHANGELOG.md for v3.0.0 release
+
+**What was done:**
+- Added comprehensive v3.0.0 entry at the top of CHANGELOG.md
+- Included Breaking Changes section documenting: package rename, plugin skill invocation change, dashboard standalone operation
+- Added section covering new packages: plugin-scripts, plugin/scripts/ artifacts, saga-types, dashboard package
+- Changed section documents: architecture separation, session management split, all skill updates, agent updates, publish workflow
+- Removed section documents: @saga-ai/cli deprecation, CLI orchestration commands moved to plugin, SAGA_PLUGIN_ROOT dependency removal
+
+**Decisions:**
+- Used 2026-02-04 as the release date (today's date, will be adjusted during actual publish if needed)
+- Kept descriptions specific and referenced actual file/package names rather than vague summaries
+- Structured Breaking Changes as a separate top-level section for visibility (per Keep a Changelog convention)
+
+**Next steps:**
+- t4: Update version numbers across packages
+
+## Session 4: 2026-02-04
+
+### Task: t4 - Update version numbers across packages
+
+**What was done:**
+- Updated `plugin/.claude-plugin/plugin.json` version from "2.17.1" to "3.0.0"
+- Updated `packages/dashboard/package.json` version from "2.17.1" to "3.0.0"
+- Verified `packages/saga-types/package.json` exists with version "0.0.0" and `"private": true` — appropriate for internal workspace package
+- Verified `packages/plugin-scripts/package.json` exists with version "0.0.0" and `"private": true` — appropriate for internal workspace package
+- Verified `packages/statusline/package.json` (`@saga/statusline` v1.1.0) is a separate package not in scope for this version bump
+
+**Decisions:**
+- Private workspace packages (`saga-types`, `plugin-scripts`) keep version "0.0.0" since they are never published to npm independently — they are consumed via `workspace:*` references
+- Only the two published packages (plugin and dashboard) are bumped to 3.0.0
+
+**Verification:**
+- plugin.json version is "3.0.0"
+- dashboard package.json version is "3.0.0"
+- All package versions are consistent and appropriate
+
+**Next steps:**
+- t5: Update root publish skill for @saga-ai/dashboard
+
+## Session 5: 2026-02-04
+
+### Task: t5 - Update root publish skill for @saga-ai/dashboard
+
+**What was done:**
+- Updated `.claude/skills/publish/SKILL.md` to replace all references to `@saga-ai/cli` with `@saga-ai/dashboard`
+- Updated description frontmatter: "plugin + CLI" → "plugin + dashboard", "publishes CLI to npm" → "publishes dashboard to npm"
+- Updated intro paragraph to reference `@saga-ai/dashboard` npm package
+- Updated task table:
+  - "Gather changes" description: "CLI-related" → "dashboard-related"
+  - "Update CHANGELOG" description: "plugin and CLI changes" → "plugin and dashboard changes"
+  - "Update documentation" description: removed "CLI" from "CLI commands"
+  - Renamed "Update CLI package.json" → "Update dashboard package.json" (subject, active form, and all dependency references)
+  - Renamed "Publish CLI to npm" → "Publish dashboard to npm" (subject, active form, and all dependency references)
+  - Updated "Verify release": `npm view @saga-ai/cli` → `npm view @saga-ai/dashboard`, npm URL updated, installation command updated to `npx @saga-ai/dashboard@latest`
+- Updated Quick Reference: `npm view @saga-ai/cli` → `npm view @saga-ai/dashboard`
+- Updated Troubleshooting: "@saga-ai scope" → "@saga-ai/dashboard"
+
+**Verification:**
+- Grep for `@saga-ai/cli` in `.claude/skills/publish/SKILL.md` returns zero results
+- All npm publish, verify, and documentation references use `@saga-ai/dashboard`
+- Task dependency chains are internally consistent after renaming
+
+**Next steps:**
+- t6: Delete @saga-ai/cli from npm
+
+## Session 6: 2026-02-04
+
+### Task: t6 - Delete @saga-ai/cli from npm
+
+**What was done:**
+- Deprecated `@saga-ai/cli` on npm with message: "This package has been replaced by @saga-ai/dashboard. Please use npx @saga-ai/dashboard instead."
+- Attempted `npm unpublish` but received 422 error (package published beyond 72-hour unpublish window)
+- Verified deprecation is live via `npm view @saga-ai/cli --json` showing the deprecated field
+
+**Decisions:**
+- Deprecation is the correct approach since the package is beyond the 72-hour unpublish window
+- Deprecation message clearly directs users to the replacement package
+
+**Verification:**
+- `npm view @saga-ai/cli --json` shows `"deprecated": "This package has been replaced by @saga-ai/dashboard. Please use npx @saga-ai/dashboard instead."`
+- Users installing `@saga-ai/cli` will see the deprecation warning
+
+**All story tasks completed:**
+- t1: Plugin skills updated to use plugin-scripts ✓
+- t2: Generate-story agent updated to use plugin-scripts ✓
+- t3: CHANGELOG.md updated with v3.0.0 entry ✓
+- t4: Version numbers updated to 3.0.0 ✓
+- t5: Root publish skill updated for @saga-ai/dashboard ✓
+- t6: @saga-ai/cli deprecated on npm ✓

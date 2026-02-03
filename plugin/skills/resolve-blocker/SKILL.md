@@ -16,7 +16,7 @@ allowed-tools:
 
 # Resolve Blocker Skill
 
-!`npx @saga-ai/cli --path "${SAGA_PROJECT_DIR}" find "$0" --type story`
+!`node $SAGA_PLUGIN_ROOT/scripts/find.js "$0" --type story`
 
 ## Process
 

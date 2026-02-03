@@ -16,7 +16,7 @@ Open the SAGA dashboard to visualize epics, stories, and execution progress.
 1. Start the dashboard server using Bash tool with `run_in_background: true`:
 
 ```bash
-npx @saga-ai/cli@latest dashboard
+npx @saga-ai/dashboard@latest
 ```
 
 2. Open the dashboard in the user's default browser:

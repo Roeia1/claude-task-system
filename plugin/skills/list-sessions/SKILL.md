@@ -9,7 +9,7 @@ allowed-tools:
 
 # List Sessions
 
-!`npx @saga-ai/cli sessions list`
+!`npx @saga-ai/dashboard sessions list`
 
 ## Process
 
