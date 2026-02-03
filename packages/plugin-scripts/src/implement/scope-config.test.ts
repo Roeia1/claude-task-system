@@ -30,7 +30,7 @@ describe('scope-config', () => {
       const settings = buildScopeSettings();
       const hooks = settings.hooks as Record<string, unknown[]>;
       const preToolUse = hooks.PreToolUse;
-      const config = preToolUse[0] as { matcher: string; hooks: string[] };
+      const config = preToolUse[0] as { matcher: string; hooks: Array<{ type: string; command: string }> };
 
       // Should include all file system tools
       expect(config.matcher).toContain('Read');
@@ -50,15 +50,19 @@ describe('scope-config', () => {
       expect(config.matcher).toBe('Read|Write|Edit|Glob|Grep');
     });
 
-    it('hooks array contains the scope-validator command', () => {
+    it('hooks array contains the scope-validator command with correct format', () => {
       const settings = buildScopeSettings();
       const hooks = settings.hooks as Record<string, unknown[]>;
       const preToolUse = hooks.PreToolUse;
-      const config = preToolUse[0] as { hooks: string[] };
+      const config = preToolUse[0] as { hooks: Array<{ type: string; command: string }> };
 
       expect(Array.isArray(config.hooks)).toBe(true);
       expect(config.hooks.length).toBe(1);
-      expect(config.hooks[0]).toBe('node $SAGA_PLUGIN_ROOT/scripts/scope-validator.js');
+
+      // Claude Code hooks require objects with type and command fields
+      const hook = config.hooks[0];
+      expect(hook).toHaveProperty('type', 'command');
+      expect(hook).toHaveProperty('command', 'node $SAGA_PLUGIN_ROOT/scripts/scope-validator.js');
     });
 
     it('returns consistent results on multiple calls', () => {

@@ -18,6 +18,11 @@ const HOOK_PRE_TOOL_USE = 'PreToolUse';
  * Creates a hook configuration that calls the scope-validator script
  * for file system operations.
  *
+ * The hook format follows the Claude Code hooks specification:
+ * - Each hook must be an object with `type` and `command` fields
+ * - Exit code 0 allows the operation
+ * - Exit code 2 blocks the operation (stderr is shown to Claude)
+ *
  * @returns Settings object with hook configuration
  */
 export function buildScopeSettings(): Record<string, unknown> {
@@ -30,7 +35,12 @@ export function buildScopeSettings(): Record<string, unknown> {
       [HOOK_PRE_TOOL_USE]: [
         {
           matcher: SCOPE_VALIDATED_TOOLS.join('|'),
-          hooks: [hookCommand],
+          hooks: [
+            {
+              type: 'command',
+              command: hookCommand,
+            },
+          ],
         },
       ],
     },
