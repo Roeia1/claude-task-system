@@ -147,6 +147,16 @@
       }
     },
     {
+      "includes": ["**/e2e/test-fixture.ts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noEmptyPattern": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["packages/dashboard/src/client/.storybook/vitest.setup.ts"],
       "linter": {
         "rules": {

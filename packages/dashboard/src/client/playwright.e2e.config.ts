@@ -1,4 +1,4 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices } from '@playwright/test';
 
 // Timeout configuration constants
 const MS_PER_SECOND = 1000;
@@ -19,46 +19,46 @@ const EXPECT_TIMEOUT_SECONDS = 10;
  */
 
 export default defineConfig({
-	// Test directory relative to this config file
-	testDir: "./e2e",
+  // Test directory relative to this config file
+  testDir: './e2e',
 
-	// Run tests in parallel - each worker has isolated fixtures and server
-	fullyParallel: true,
+  // Run tests in parallel - each worker has isolated fixtures and server
+  fullyParallel: true,
 
-	// Retry once on failure (polling mode should be reliable)
-	retries: 1,
+  // Retry once on failure (polling mode should be reliable)
+  retries: 1,
 
-	// Reporter configuration
-	reporter: "html",
+  // Reporter configuration
+  reporter: 'html',
 
-	// Shared settings for all projects
-	use: {
-		// Collect trace on first retry for debugging
-		trace: "on-first-retry",
+  // Shared settings for all projects
+  use: {
+    // Collect trace on first retry for debugging
+    trace: 'on-first-retry',
 
-		// Screenshot on failure
-		screenshot: "only-on-failure",
+    // Screenshot on failure
+    screenshot: 'only-on-failure',
 
-		// Video on failure (helpful for E2E debugging)
-		video: "on-first-retry",
-	},
+    // Video on failure (helpful for E2E debugging)
+    video: 'on-first-retry',
+  },
 
-	// Configure projects for single browser (Chromium only for speed)
-	projects: [
-		{
-			name: "chromium",
-			use: { ...devices["Desktop Chrome"] },
-		},
-	],
+  // Configure projects for single browser (Chromium only for speed)
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
 
-	// No global webServer - each worker starts its own server via test-fixture.ts
+  // No global webServer - each worker starts its own server via test-fixture.ts
 
-	// Longer timeouts for E2E tests (real network, real filesystem)
-	timeout: TEST_TIMEOUT_SECONDS * MS_PER_SECOND,
-	expect: {
-		timeout: EXPECT_TIMEOUT_SECONDS * MS_PER_SECOND,
-	},
+  // Longer timeouts for E2E tests (real network, real filesystem)
+  timeout: TEST_TIMEOUT_SECONDS * MS_PER_SECOND,
+  expect: {
+    timeout: EXPECT_TIMEOUT_SECONDS * MS_PER_SECOND,
+  },
 
-	// Output directory for test artifacts
-	outputDir: "./e2e/test-results",
+  // Output directory for test artifacts
+  outputDir: './e2e/test-results',
 });

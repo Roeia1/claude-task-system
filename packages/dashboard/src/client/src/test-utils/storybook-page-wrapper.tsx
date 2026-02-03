@@ -1,24 +1,24 @@
-import type { ReactNode } from "react";
-import { MemoryRouter, Route, Routes } from "react-router";
-import { Layout } from "@/components/Layout";
-import { DashboardProvider } from "@/context/dashboard-context";
-import { dashboardMachine } from "@/machines/dashboardMachine";
+import type { ReactNode } from 'react';
+import { MemoryRouter, Route, Routes } from 'react-router';
+import { Layout } from '@/components/Layout';
+import { DashboardProvider } from '@/context/dashboard-context';
+import { dashboardMachine } from '@/machines/dashboardMachine';
 
 interface PageWrapperProps {
-	/**
-	 * The children to render inside the Layout's main content area.
-	 */
-	children: ReactNode;
-	/**
-	 * The initial route for the MemoryRouter.
-	 * This determines the breadcrumb context.
-	 * Examples:
-	 * - "/" for EpicList page
-	 * - "/epic/my-epic" for EpicDetail page
-	 * - "/epic/my-epic/story/my-story" for StoryDetail page
-	 * @default "/"
-	 */
-	route?: string;
+  /**
+   * The children to render inside the Layout's main content area.
+   */
+  children: ReactNode;
+  /**
+   * The initial route for the MemoryRouter.
+   * This determines the breadcrumb context.
+   * Examples:
+   * - "/" for EpicList page
+   * - "/epic/my-epic" for EpicDetail page
+   * - "/epic/my-epic/story/my-story" for StoryDetail page
+   * @default "/"
+   */
+  route?: string;
 }
 
 /**
@@ -50,32 +50,32 @@ interface PageWrapperProps {
  * </PageWrapper>
  * ```
  */
-function PageWrapper({ children, route = "/" }: PageWrapperProps) {
-	// The content to render inside the outlet
-	const content = <>{children}</>;
+function PageWrapper({ children, route = '/' }: PageWrapperProps) {
+  // The content to render inside the outlet
+  const content = <>{children}</>;
 
-	return (
-		<DashboardProvider logic={dashboardMachine}>
-			<MemoryRouter initialEntries={[route]}>
-				<Routes>
-					{/* Root route */}
-					<Route path="/" element={<Layout />}>
-						<Route index={true} element={content} />
-					</Route>
+  return (
+    <DashboardProvider logic={dashboardMachine}>
+      <MemoryRouter initialEntries={[route]}>
+        <Routes>
+          {/* Root route */}
+          <Route path="/" element={<Layout />}>
+            <Route index={true} element={content} />
+          </Route>
 
-					{/* Epic detail route */}
-					<Route path="/epic/:slug" element={<Layout />}>
-						<Route index={true} element={content} />
-					</Route>
+          {/* Epic detail route */}
+          <Route path="/epic/:slug" element={<Layout />}>
+            <Route index={true} element={content} />
+          </Route>
 
-					{/* Story detail route */}
-					<Route path="/epic/:epicSlug/story/:storySlug" element={<Layout />}>
-						<Route index={true} element={content} />
-					</Route>
-				</Routes>
-			</MemoryRouter>
-		</DashboardProvider>
-	);
+          {/* Story detail route */}
+          <Route path="/epic/:epicSlug/story/:storySlug" element={<Layout />}>
+            <Route index={true} element={content} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    </DashboardProvider>
+  );
 }
 
 export { PageWrapper };

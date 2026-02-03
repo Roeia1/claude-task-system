@@ -1,4 +1,4 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices } from '@playwright/test';
 
 // Timeout configuration constants
 const MS_PER_SECOND = 1000;
@@ -13,50 +13,50 @@ const EXPECT_TIMEOUT_SECONDS = 5;
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-	// Test directory relative to this config file
-	testDir: "./tests/integration",
+  // Test directory relative to this config file
+  testDir: './tests/integration',
 
-	// Run tests in parallel
-	fullyParallel: true,
+  // Run tests in parallel
+  fullyParallel: true,
 
-	// Stop on first failure to fail fast
-	maxFailures: 1,
+  // Stop on first failure to fail fast
+  maxFailures: 1,
 
-	// Reporter configuration
-	reporter: "html",
+  // Reporter configuration
+  reporter: 'html',
 
-	// Shared settings for all projects
-	use: {
-		// Base URL for navigation (Playwright API uses baseURL)
-		baseURL: "http://localhost:5173",
+  // Shared settings for all projects
+  use: {
+    // Base URL for navigation (Playwright API uses baseURL)
+    baseURL: 'http://localhost:5173',
 
-		// Collect trace on first retry
-		trace: "on-first-retry",
+    // Collect trace on first retry
+    trace: 'on-first-retry',
 
-		// Screenshot on failure
-		screenshot: "only-on-failure",
-	},
+    // Screenshot on failure
+    screenshot: 'only-on-failure',
+  },
 
-	// Configure projects for single browser (Chromium only for speed)
-	projects: [
-		{
-			name: "chromium",
-			use: { ...devices["Desktop Chrome"] },
-		},
-	],
+  // Configure projects for single browser (Chromium only for speed)
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
 
-	// Web server configuration - starts Vite dev server before tests
-	webServer: {
-		command: "vite --config src/client/vite.config.ts",
-		cwd: "../..",
-		url: "http://localhost:5173",
-		reuseExistingServer: true,
-		timeout: WEB_SERVER_TIMEOUT_SECONDS * MS_PER_SECOND,
-	},
+  // Web server configuration - starts Vite dev server before tests
+  webServer: {
+    command: 'vite --config src/client/vite.config.ts',
+    cwd: '../..',
+    url: 'http://localhost:5173',
+    reuseExistingServer: true,
+    timeout: WEB_SERVER_TIMEOUT_SECONDS * MS_PER_SECOND,
+  },
 
-	// Test timeouts
-	timeout: TEST_TIMEOUT_SECONDS * MS_PER_SECOND,
-	expect: {
-		timeout: EXPECT_TIMEOUT_SECONDS * MS_PER_SECOND,
-	},
+  // Test timeouts
+  timeout: TEST_TIMEOUT_SECONDS * MS_PER_SECOND,
+  expect: {
+    timeout: EXPECT_TIMEOUT_SECONDS * MS_PER_SECOND,
+  },
 });

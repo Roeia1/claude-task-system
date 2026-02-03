@@ -5,9 +5,9 @@
  * similar to how git discovers the .git/ directory.
  */
 
-import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import process from "node:process";
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import process from 'node:process';
 
 /**
  * Find the project root by walking up from startDir looking for .saga/
@@ -15,25 +15,25 @@ import process from "node:process";
  * @returns The directory containing .saga/, or null if not found
  */
 export function findProjectRoot(startDir?: string): string | null {
-	let currentDir = startDir ?? process.cwd();
+  let currentDir = startDir ?? process.cwd();
 
-	// Walk up the directory tree
-	while (true) {
-		const sagaDir = join(currentDir, ".saga");
-		if (existsSync(sagaDir)) {
-			return currentDir;
-		}
+  // Walk up the directory tree
+  while (true) {
+    const sagaDir = join(currentDir, '.saga');
+    if (existsSync(sagaDir)) {
+      return currentDir;
+    }
 
-		// Get parent directory
-		const parentDir = dirname(currentDir);
+    // Get parent directory
+    const parentDir = dirname(currentDir);
 
-		// Stop if we've reached the filesystem root
-		if (parentDir === currentDir) {
-			return null;
-		}
+    // Stop if we've reached the filesystem root
+    if (parentDir === currentDir) {
+      return null;
+    }
 
-		currentDir = parentDir;
-	}
+    currentDir = parentDir;
+  }
 }
 
 /**
@@ -43,27 +43,27 @@ export function findProjectRoot(startDir?: string): string | null {
  * @throws Error if project not found
  */
 export function resolveProjectPath(explicitPath?: string): string {
-	if (explicitPath) {
-		// Check if the explicit path contains .saga/
-		const sagaDir = join(explicitPath, ".saga");
-		if (!existsSync(sagaDir)) {
-			throw new Error(
-				`No .saga/ directory found at specified path: ${explicitPath}\n` +
-					"Make sure the path points to a SAGA project root.",
-			);
-		}
-		return explicitPath;
-	}
+  if (explicitPath) {
+    // Check if the explicit path contains .saga/
+    const sagaDir = join(explicitPath, '.saga');
+    if (!existsSync(sagaDir)) {
+      throw new Error(
+        `No .saga/ directory found at specified path: ${explicitPath}\n` +
+          'Make sure the path points to a SAGA project root.',
+      );
+    }
+    return explicitPath;
+  }
 
-	// Use discovery from cwd
-	const projectRoot = findProjectRoot();
-	if (!projectRoot) {
-		throw new Error(
-			"Could not find a SAGA project.\n" +
-				"No .saga/ directory found in the current directory or any parent.\n" +
-				'Run "saga init" to initialize a new project, or use --path to specify the project location.',
-		);
-	}
+  // Use discovery from cwd
+  const projectRoot = findProjectRoot();
+  if (!projectRoot) {
+    throw new Error(
+      'Could not find a SAGA project.\n' +
+        'No .saga/ directory found in the current directory or any parent.\n' +
+        'Run "saga init" to initialize a new project, or use --path to specify the project location.',
+    );
+  }
 
-	return projectRoot;
+  return projectRoot;
 }

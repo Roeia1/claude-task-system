@@ -7,13 +7,13 @@
  * - GET /api/stories/:epicSlug/:storySlug - returns StoryDetail with parsed journal
  */
 
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import request from "supertest";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { type ServerInstance, startServer } from "../index.ts";
-import type { EpicSummary, StoryDetail } from "../parser.ts";
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import request from 'supertest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { type ServerInstance, startServer } from '../index.ts';
+import type { EpicSummary, StoryDetail } from '../parser.ts';
 
 // HTTP status codes
 const HTTP_OK = 200;
@@ -36,47 +36,47 @@ const JSON_CONTENT_TYPE_PATTERN = /application\/json/;
  * Generate a random port within the test range
  */
 function getRandomPort(): number {
-	return PORT_BASE + Math.floor(Math.random() * PORT_RANGE);
+  return PORT_BASE + Math.floor(Math.random() * PORT_RANGE);
 }
 
-describe("routes", () => {
-	let testDir: string;
-	let server: ServerInstance;
+describe('routes', () => {
+  let testDir: string;
+  let server: ServerInstance;
 
-	// Create test fixtures
-	async function createTestFixtures() {
-		const sagaDir = join(testDir, ".saga");
-		const epicsDir = join(sagaDir, "epics");
-		const archiveDir = join(sagaDir, "archive");
+  // Create test fixtures
+  async function createTestFixtures() {
+    const sagaDir = join(testDir, '.saga');
+    const epicsDir = join(sagaDir, 'epics');
+    const archiveDir = join(sagaDir, 'archive');
 
-		// Create directories
-		await mkdir(join(epicsDir, "epic-one", "stories", "story-alpha"), {
-			recursive: true,
-		});
-		await mkdir(join(epicsDir, "epic-one", "stories", "story-beta"), {
-			recursive: true,
-		});
-		await mkdir(join(epicsDir, "epic-two", "stories", "story-gamma"), {
-			recursive: true,
-		});
-		await mkdir(join(archiveDir, "epic-one", "story-archived"), {
-			recursive: true,
-		});
+    // Create directories
+    await mkdir(join(epicsDir, 'epic-one', 'stories', 'story-alpha'), {
+      recursive: true,
+    });
+    await mkdir(join(epicsDir, 'epic-one', 'stories', 'story-beta'), {
+      recursive: true,
+    });
+    await mkdir(join(epicsDir, 'epic-two', 'stories', 'story-gamma'), {
+      recursive: true,
+    });
+    await mkdir(join(archiveDir, 'epic-one', 'story-archived'), {
+      recursive: true,
+    });
 
-		// Create epic.md files
-		await writeFile(
-			join(epicsDir, "epic-one", "epic.md"),
-			"# First Epic\n\nThis is the first epic.",
-		);
-		await writeFile(
-			join(epicsDir, "epic-two", "epic.md"),
-			"# Second Epic\n\nThis is the second epic.",
-		);
+    // Create epic.md files
+    await writeFile(
+      join(epicsDir, 'epic-one', 'epic.md'),
+      '# First Epic\n\nThis is the first epic.',
+    );
+    await writeFile(
+      join(epicsDir, 'epic-two', 'epic.md'),
+      '# Second Epic\n\nThis is the second epic.',
+    );
 
-		// Create story.md files
-		await writeFile(
-			join(epicsDir, "epic-one", "stories", "story-alpha", "story.md"),
-			`---
+    // Create story.md files
+    await writeFile(
+      join(epicsDir, 'epic-one', 'stories', 'story-alpha', 'story.md'),
+      `---
 id: story-alpha
 title: Story Alpha
 status: ready
@@ -92,11 +92,11 @@ tasks:
 ## Description
 This is story alpha.
 `,
-		);
+    );
 
-		await writeFile(
-			join(epicsDir, "epic-one", "stories", "story-beta", "story.md"),
-			`---
+    await writeFile(
+      join(epicsDir, 'epic-one', 'stories', 'story-beta', 'story.md'),
+      `---
 id: story-beta
 title: Story Beta
 status: in_progress
@@ -109,12 +109,12 @@ tasks:
 ## Description
 This is story beta.
 `,
-		);
+    );
 
-		// Create journal for story-beta
-		await writeFile(
-			join(epicsDir, "epic-one", "stories", "story-beta", "journal.md"),
-			`# Journal: story-beta
+    // Create journal for story-beta
+    await writeFile(
+      join(epicsDir, 'epic-one', 'stories', 'story-beta', 'journal.md'),
+      `# Journal: story-beta
 
 ## Session: 2026-01-26T10:00:00Z
 
@@ -131,11 +131,11 @@ Waiting for API spec confirmation.
 
 Got confirmation, proceeding with REST endpoints.
 `,
-		);
+    );
 
-		await writeFile(
-			join(epicsDir, "epic-two", "stories", "story-gamma", "story.md"),
-			`---
+    await writeFile(
+      join(epicsDir, 'epic-two', 'stories', 'story-gamma', 'story.md'),
+      `---
 id: story-gamma
 title: Story Gamma
 status: completed
@@ -147,12 +147,12 @@ tasks:
 
 Completed story.
 `,
-		);
+    );
 
-		// Create archived story
-		await writeFile(
-			join(archiveDir, "epic-one", "story-archived", "story.md"),
-			`---
+    // Create archived story
+    await writeFile(
+      join(archiveDir, 'epic-one', 'story-archived', 'story.md'),
+      `---
 id: story-archived
 title: Archived Story
 status: completed
@@ -164,274 +164,244 @@ tasks:
 
 Archived.
 `,
-		);
-	}
+    );
+  }
 
-	beforeAll(async () => {
-		// Create temp directory
-		testDir = join(tmpdir(), `saga-routes-test-${Date.now()}`);
-		await mkdir(testDir, { recursive: true });
-		await createTestFixtures();
+  beforeAll(async () => {
+    // Create temp directory
+    testDir = join(tmpdir(), `saga-routes-test-${Date.now()}`);
+    await mkdir(testDir, { recursive: true });
+    await createTestFixtures();
 
-		// Start server with random port
-		server = await startServer({ sagaRoot: testDir, port: getRandomPort() });
-	});
+    // Start server with random port
+    server = await startServer({ sagaRoot: testDir, port: getRandomPort() });
+  });
 
-	afterAll(async () => {
-		if (server) {
-			await server.close();
-		}
-		await rm(testDir, { recursive: true, force: true });
-	});
+  afterAll(async () => {
+    if (server) {
+      await server.close();
+    }
+    await rm(testDir, { recursive: true, force: true });
+  });
 
-	describe("GET /api/epics", () => {
-		it("should return list of epic summaries", async () => {
-			const res = await request(server.app).get("/api/epics");
+  describe('GET /api/epics', () => {
+    it('should return list of epic summaries', async () => {
+      const res = await request(server.app).get('/api/epics');
 
-			expect(res.status).toBe(HTTP_OK);
-			expect(Array.isArray(res.body)).toBe(true);
-			expect(res.body.length).toBe(EXPECTED_EPIC_COUNT);
-		});
+      expect(res.status).toBe(HTTP_OK);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBe(EXPECTED_EPIC_COUNT);
+    });
 
-		it("should return epic summaries with correct structure", async () => {
-			const res = await request(server.app).get("/api/epics");
+    it('should return epic summaries with correct structure', async () => {
+      const res = await request(server.app).get('/api/epics');
 
-			const epic1 = res.body.find((e: EpicSummary) => e.slug === "epic-one");
-			expect(epic1).toBeDefined();
-			expect(epic1.title).toBe("First Epic");
-			expect(epic1.storyCounts).toBeDefined();
-			expect(epic1.storyCounts.total).toBe(EXPECTED_EPIC_ONE_STORY_COUNT);
-			expect(epic1.path).toBeDefined();
-		});
+      const epic1 = res.body.find((e: EpicSummary) => e.slug === 'epic-one');
+      expect(epic1).toBeDefined();
+      expect(epic1.title).toBe('First Epic');
+      expect(epic1.storyCounts).toBeDefined();
+      expect(epic1.storyCounts.total).toBe(EXPECTED_EPIC_ONE_STORY_COUNT);
+      expect(epic1.path).toBeDefined();
+    });
 
-		it("should calculate story counts correctly", async () => {
-			const res = await request(server.app).get("/api/epics");
+    it('should calculate story counts correctly', async () => {
+      const res = await request(server.app).get('/api/epics');
 
-			const epic1 = res.body.find((e: EpicSummary) => e.slug === "epic-one");
-			expect(epic1.storyCounts.ready).toBe(1); // story-alpha
-			expect(epic1.storyCounts.inProgress).toBe(1); // story-beta
-			expect(epic1.storyCounts.completed).toBe(1); // archived
-			expect(epic1.storyCounts.blocked).toBe(0);
-		});
+      const epic1 = res.body.find((e: EpicSummary) => e.slug === 'epic-one');
+      expect(epic1.storyCounts.ready).toBe(1); // story-alpha
+      expect(epic1.storyCounts.inProgress).toBe(1); // story-beta
+      expect(epic1.storyCounts.completed).toBe(1); // archived
+      expect(epic1.storyCounts.blocked).toBe(0);
+    });
 
-		it("should not include full story list in epic summaries", async () => {
-			const res = await request(server.app).get("/api/epics");
+    it('should not include full story list in epic summaries', async () => {
+      const res = await request(server.app).get('/api/epics');
 
-			const epic1 = res.body.find((e: EpicSummary) => e.slug === "epic-one");
-			// EpicSummary should not have stories property
-			expect(epic1).not.toHaveProperty("stories");
-			expect(epic1).not.toHaveProperty("content");
-		});
+      const epic1 = res.body.find((e: EpicSummary) => e.slug === 'epic-one');
+      // EpicSummary should not have stories property
+      expect(epic1).not.toHaveProperty('stories');
+      expect(epic1).not.toHaveProperty('content');
+    });
 
-		it("should return empty array when no epics exist", async () => {
-			// Create server with empty directory
-			const emptyDir = join(tmpdir(), `saga-routes-empty-${Date.now()}`);
-			await mkdir(emptyDir, { recursive: true });
+    it('should return empty array when no epics exist', async () => {
+      // Create server with empty directory
+      const emptyDir = join(tmpdir(), `saga-routes-empty-${Date.now()}`);
+      await mkdir(emptyDir, { recursive: true });
 
-			const emptyServer = await startServer({
-				sagaRoot: emptyDir,
-				port: getRandomPort(),
-			});
+      const emptyServer = await startServer({
+        sagaRoot: emptyDir,
+        port: getRandomPort(),
+      });
 
-			try {
-				const res = await request(emptyServer.app).get("/api/epics");
-				expect(res.status).toBe(HTTP_OK);
-				expect(res.body).toEqual([]);
-			} finally {
-				await emptyServer.close();
-				await rm(emptyDir, { recursive: true, force: true });
-			}
-		});
-	});
+      try {
+        const res = await request(emptyServer.app).get('/api/epics');
+        expect(res.status).toBe(HTTP_OK);
+        expect(res.body).toEqual([]);
+      } finally {
+        await emptyServer.close();
+        await rm(emptyDir, { recursive: true, force: true });
+      }
+    });
+  });
 
-	describe("GET /api/epics/:slug", () => {
-		it("should return epic detail with full story list", async () => {
-			const res = await request(server.app).get("/api/epics/epic-one");
+  describe('GET /api/epics/:slug', () => {
+    it('should return epic detail with full story list', async () => {
+      const res = await request(server.app).get('/api/epics/epic-one');
 
-			expect(res.status).toBe(HTTP_OK);
-			expect(res.body.slug).toBe("epic-one");
-			expect(res.body.title).toBe("First Epic");
-			expect(Array.isArray(res.body.stories)).toBe(true);
-			expect(res.body.stories.length).toBe(EXPECTED_EPIC_ONE_STORY_COUNT);
-		});
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.slug).toBe('epic-one');
+      expect(res.body.title).toBe('First Epic');
+      expect(Array.isArray(res.body.stories)).toBe(true);
+      expect(res.body.stories.length).toBe(EXPECTED_EPIC_ONE_STORY_COUNT);
+    });
 
-		it("should include epic content", async () => {
-			const res = await request(server.app).get("/api/epics/epic-one");
+    it('should include epic content', async () => {
+      const res = await request(server.app).get('/api/epics/epic-one');
 
-			expect(res.body.content).toContain("# First Epic");
-			expect(res.body.content).toContain("This is the first epic.");
-		});
+      expect(res.body.content).toContain('# First Epic');
+      expect(res.body.content).toContain('This is the first epic.');
+    });
 
-		it("should include story details with tasks", async () => {
-			const res = await request(server.app).get("/api/epics/epic-one");
+    it('should include story details with tasks', async () => {
+      const res = await request(server.app).get('/api/epics/epic-one');
 
-			const storyAlpha = res.body.stories.find(
-				(s: StoryDetail) => s.slug === "story-alpha",
-			);
-			expect(storyAlpha).toBeDefined();
-			expect(storyAlpha.title).toBe("Story Alpha");
-			expect(storyAlpha.status).toBe("ready");
-			expect(storyAlpha.tasks).toHaveLength(2);
-			expect(storyAlpha.tasks[0].id).toBe("t1");
-		});
+      const storyAlpha = res.body.stories.find((s: StoryDetail) => s.slug === 'story-alpha');
+      expect(storyAlpha).toBeDefined();
+      expect(storyAlpha.title).toBe('Story Alpha');
+      expect(storyAlpha.status).toBe('ready');
+      expect(storyAlpha.tasks).toHaveLength(2);
+      expect(storyAlpha.tasks[0].id).toBe('t1');
+    });
 
-		it("should include archived stories with archived flag", async () => {
-			const res = await request(server.app).get("/api/epics/epic-one");
+    it('should include archived stories with archived flag', async () => {
+      const res = await request(server.app).get('/api/epics/epic-one');
 
-			const archivedStory = res.body.stories.find(
-				(s: StoryDetail) => s.slug === "story-archived",
-			);
-			expect(archivedStory).toBeDefined();
-			expect(archivedStory.archived).toBe(true);
-		});
+      const archivedStory = res.body.stories.find((s: StoryDetail) => s.slug === 'story-archived');
+      expect(archivedStory).toBeDefined();
+      expect(archivedStory.archived).toBe(true);
+    });
 
-		it("should return 404 for non-existent epic", async () => {
-			const res = await request(server.app).get("/api/epics/non-existent");
+    it('should return 404 for non-existent epic', async () => {
+      const res = await request(server.app).get('/api/epics/non-existent');
 
-			expect(res.status).toBe(HTTP_NOT_FOUND);
-			expect(res.body.error).toBeDefined();
-		});
+      expect(res.status).toBe(HTTP_NOT_FOUND);
+      expect(res.body.error).toBeDefined();
+    });
 
-		it("should use relative paths in story paths", async () => {
-			const res = await request(server.app).get("/api/epics/epic-one");
+    it('should use relative paths in story paths', async () => {
+      const res = await request(server.app).get('/api/epics/epic-one');
 
-			const storyAlpha = res.body.stories.find(
-				(s: StoryDetail) => s.slug === "story-alpha",
-			);
-			expect(storyAlpha.paths.storyMd).not.toContain(testDir);
-			expect(storyAlpha.paths.storyMd).toMatch(SAGA_PATH_PATTERN);
-		});
-	});
+      const storyAlpha = res.body.stories.find((s: StoryDetail) => s.slug === 'story-alpha');
+      expect(storyAlpha.paths.storyMd).not.toContain(testDir);
+      expect(storyAlpha.paths.storyMd).toMatch(SAGA_PATH_PATTERN);
+    });
+  });
 
-	describe("GET /api/stories/:epicSlug/:storySlug", () => {
-		it("should return story detail", async () => {
-			const res = await request(server.app).get(
-				"/api/stories/epic-one/story-alpha",
-			);
+  describe('GET /api/stories/:epicSlug/:storySlug', () => {
+    it('should return story detail', async () => {
+      const res = await request(server.app).get('/api/stories/epic-one/story-alpha');
 
-			expect(res.status).toBe(HTTP_OK);
-			expect(res.body.slug).toBe("story-alpha");
-			expect(res.body.epicSlug).toBe("epic-one");
-			expect(res.body.title).toBe("Story Alpha");
-			expect(res.body.status).toBe("ready");
-		});
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.slug).toBe('story-alpha');
+      expect(res.body.epicSlug).toBe('epic-one');
+      expect(res.body.title).toBe('Story Alpha');
+      expect(res.body.status).toBe('ready');
+    });
 
-		it("should include tasks", async () => {
-			const res = await request(server.app).get(
-				"/api/stories/epic-one/story-alpha",
-			);
+    it('should include tasks', async () => {
+      const res = await request(server.app).get('/api/stories/epic-one/story-alpha');
 
-			expect(res.body.tasks).toHaveLength(2);
-			expect(res.body.tasks[0]).toEqual({
-				id: "t1",
-				title: "Task 1",
-				status: "pending",
-			});
-			expect(res.body.tasks[1]).toEqual({
-				id: "t2",
-				title: "Task 2",
-				status: "completed",
-			});
-		});
+      expect(res.body.tasks).toHaveLength(2);
+      expect(res.body.tasks[0]).toEqual({
+        id: 't1',
+        title: 'Task 1',
+        status: 'pending',
+      });
+      expect(res.body.tasks[1]).toEqual({
+        id: 't2',
+        title: 'Task 2',
+        status: 'completed',
+      });
+    });
 
-		it("should include story content (body after frontmatter)", async () => {
-			const res = await request(server.app).get(
-				"/api/stories/epic-one/story-alpha",
-			);
+    it('should include story content (body after frontmatter)', async () => {
+      const res = await request(server.app).get('/api/stories/epic-one/story-alpha');
 
-			expect(res.status).toBe(HTTP_OK);
-			expect(res.body.content).toBeDefined();
-			expect(res.body.content).toContain("## Description");
-			expect(res.body.content).toContain("This is story alpha.");
-		});
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.content).toBeDefined();
+      expect(res.body.content).toContain('## Description');
+      expect(res.body.content).toContain('This is story alpha.');
+    });
 
-		it("should include parsed journal when present", async () => {
-			const res = await request(server.app).get(
-				"/api/stories/epic-one/story-beta",
-			);
+    it('should include parsed journal when present', async () => {
+      const res = await request(server.app).get('/api/stories/epic-one/story-beta');
 
-			expect(res.body.journal).toBeDefined();
-			expect(Array.isArray(res.body.journal)).toBe(true);
-			expect(res.body.journal.length).toBe(EXPECTED_JOURNAL_ENTRIES);
-		});
+      expect(res.body.journal).toBeDefined();
+      expect(Array.isArray(res.body.journal)).toBe(true);
+      expect(res.body.journal.length).toBe(EXPECTED_JOURNAL_ENTRIES);
+    });
 
-		it("should parse journal entries with correct types", async () => {
-			const res = await request(server.app).get(
-				"/api/stories/epic-one/story-beta",
-			);
+    it('should parse journal entries with correct types', async () => {
+      const res = await request(server.app).get('/api/stories/epic-one/story-beta');
 
-			const session = res.body.journal.find(
-				(e: { type: string }) => e.type === "session",
-			);
-			expect(session).toBeDefined();
-			expect(session.timestamp).toBe("2026-01-26T10:00:00Z");
-			expect(session.content).toContain("Started working on task 1");
+      const session = res.body.journal.find((e: { type: string }) => e.type === 'session');
+      expect(session).toBeDefined();
+      expect(session.timestamp).toBe('2026-01-26T10:00:00Z');
+      expect(session.content).toContain('Started working on task 1');
 
-			const blocker = res.body.journal.find(
-				(e: { type: string }) => e.type === "blocker",
-			);
-			expect(blocker).toBeDefined();
-			expect(blocker.title).toBe("Need API clarification");
-			expect(blocker.content).toContain("Waiting for API spec confirmation");
+      const blocker = res.body.journal.find((e: { type: string }) => e.type === 'blocker');
+      expect(blocker).toBeDefined();
+      expect(blocker.title).toBe('Need API clarification');
+      expect(blocker.content).toContain('Waiting for API spec confirmation');
 
-			const resolution = res.body.journal.find(
-				(e: { type: string }) => e.type === "resolution",
-			);
-			expect(resolution).toBeDefined();
-			expect(resolution.title).toBe("API spec confirmed");
-			expect(resolution.content).toContain("Got confirmation");
-		});
+      const resolution = res.body.journal.find((e: { type: string }) => e.type === 'resolution');
+      expect(resolution).toBeDefined();
+      expect(resolution.title).toBe('API spec confirmed');
+      expect(resolution.content).toContain('Got confirmation');
+    });
 
-		it("should not include journal property when no journal.md exists", async () => {
-			const res = await request(server.app).get(
-				"/api/stories/epic-one/story-alpha",
-			);
+    it('should not include journal property when no journal.md exists', async () => {
+      const res = await request(server.app).get('/api/stories/epic-one/story-alpha');
 
-			// Story without journal should not have journal property
-			expect(res.body.journal).toBeUndefined();
-		});
+      // Story without journal should not have journal property
+      expect(res.body.journal).toBeUndefined();
+    });
 
-		it("should return 404 for non-existent story", async () => {
-			const res = await request(server.app).get(
-				"/api/stories/epic-one/non-existent",
-			);
+    it('should return 404 for non-existent story', async () => {
+      const res = await request(server.app).get('/api/stories/epic-one/non-existent');
 
-			expect(res.status).toBe(HTTP_NOT_FOUND);
-			expect(res.body.error).toBeDefined();
-		});
+      expect(res.status).toBe(HTTP_NOT_FOUND);
+      expect(res.body.error).toBeDefined();
+    });
 
-		it("should return 404 for non-existent epic", async () => {
-			const res = await request(server.app).get(
-				"/api/stories/non-existent/story-alpha",
-			);
+    it('should return 404 for non-existent epic', async () => {
+      const res = await request(server.app).get('/api/stories/non-existent/story-alpha');
 
-			expect(res.status).toBe(HTTP_NOT_FOUND);
-			expect(res.body.error).toBeDefined();
-		});
+      expect(res.status).toBe(HTTP_NOT_FOUND);
+      expect(res.body.error).toBeDefined();
+    });
 
-		it("should return archived story with archived flag", async () => {
-			const res = await request(server.app).get(
-				"/api/stories/epic-one/story-archived",
-			);
+    it('should return archived story with archived flag', async () => {
+      const res = await request(server.app).get('/api/stories/epic-one/story-archived');
 
-			expect(res.status).toBe(HTTP_OK);
-			expect(res.body.slug).toBe("story-archived");
-			expect(res.body.archived).toBe(true);
-		});
-	});
+      expect(res.status).toBe(HTTP_OK);
+      expect(res.body.slug).toBe('story-archived');
+      expect(res.body.archived).toBe(true);
+    });
+  });
 
-	describe("error handling", () => {
-		it("should return 404 for unknown API routes", async () => {
-			const res = await request(server.app).get("/api/unknown");
+  describe('error handling', () => {
+    it('should return 404 for unknown API routes', async () => {
+      const res = await request(server.app).get('/api/unknown');
 
-			expect(res.status).toBe(HTTP_NOT_FOUND);
-		});
+      expect(res.status).toBe(HTTP_NOT_FOUND);
+    });
 
-		it("should return JSON error responses", async () => {
-			const res = await request(server.app).get("/api/epics/non-existent");
+    it('should return JSON error responses', async () => {
+      const res = await request(server.app).get('/api/epics/non-existent');
 
-			expect(res.headers["content-type"]).toMatch(JSON_CONTENT_TYPE_PATTERN);
-			expect(res.body).toHaveProperty("error");
-		});
-	});
+      expect(res.headers['content-type']).toMatch(JSON_CONTENT_TYPE_PATTERN);
+      expect(res.body).toHaveProperty('error');
+    });
+  });
 });

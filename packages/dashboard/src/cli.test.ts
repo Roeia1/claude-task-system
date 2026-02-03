@@ -3,11 +3,11 @@
  * Verifies that the CLI correctly parses arguments and routes to commands
  */
 
-import { spawnSync } from "node:child_process";
-import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 
-const CLI_PATH = join(import.meta.dirname, "..", "dist", "cli.cjs");
+const CLI_PATH = join(import.meta.dirname, '..', 'dist', 'cli.cjs');
 
 /** Regex pattern for semantic version (e.g., 0.1.0) */
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
@@ -16,19 +16,19 @@ const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
  * Run the CLI with given arguments and return stdout
  */
 function runCli(args: string[]): {
-	stdout: string;
-	stderr: string;
-	exitCode: number;
+  stdout: string;
+  stderr: string;
+  exitCode: number;
 } {
-	const result = spawnSync("node", [CLI_PATH, ...args], {
-		encoding: "utf-8",
-		timeout: 5000,
-	});
-	return {
-		stdout: result.stdout || "",
-		stderr: result.stderr || "",
-		exitCode: result.status ?? 1,
-	};
+  const result = spawnSync('node', [CLI_PATH, ...args], {
+    encoding: 'utf-8',
+    timeout: 5000,
+  });
+  return {
+    stdout: result.stdout || '',
+    stderr: result.stderr || '',
+    exitCode: result.status ?? 1,
+  };
 }
 
 describe('CLI entry point', () => {
@@ -41,10 +41,10 @@ describe('CLI entry point', () => {
       expect(stdout).toContain('sessions');
     });
 
-		it("shows global --path option", () => {
-			const { stdout } = runCli(["--help"]);
-			expect(stdout).toContain("--path");
-		});
+    it('shows global --path option', () => {
+      const { stdout } = runCli(['--help']);
+      expect(stdout).toContain('--path');
+    });
 
     it('shows --version option', () => {
       const { stdout } = runCli(['--help']);
@@ -61,14 +61,14 @@ describe('CLI entry point', () => {
     });
   });
 
-	describe("--version", () => {
-		it("shows version number", () => {
-			const { stdout, exitCode } = runCli(["--version"]);
-			expect(exitCode).toBe(0);
-			// Should be semantic version like 0.1.0
-			expect(stdout.trim()).toMatch(SEMVER_PATTERN);
-		});
-	});
+  describe('--version', () => {
+    it('shows version number', () => {
+      const { stdout, exitCode } = runCli(['--version']);
+      expect(exitCode).toBe(0);
+      // Should be semantic version like 0.1.0
+      expect(stdout.trim()).toMatch(SEMVER_PATTERN);
+    });
+  });
 
   describe('help command', () => {
     it('saga help shows main help', () => {
@@ -96,24 +96,24 @@ describe('CLI entry point', () => {
     });
   });
 
-	describe("dashboard command", () => {
-		it("has dashboard subcommand", () => {
-			const { stdout, exitCode } = runCli(["dashboard", "--help"]);
-			expect(exitCode).toBe(0);
-			expect(stdout).toContain("dashboard");
-		});
+  describe('dashboard command', () => {
+    it('has dashboard subcommand', () => {
+      const { stdout, exitCode } = runCli(['dashboard', '--help']);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('dashboard');
+    });
 
-		it("dashboard --help shows port option", () => {
-			const { stdout } = runCli(["dashboard", "--help"]);
-			expect(stdout).toContain("--port");
-		});
+    it('dashboard --help shows port option', () => {
+      const { stdout } = runCli(['dashboard', '--help']);
+      expect(stdout).toContain('--port');
+    });
 
-		it("dashboard uses global --path option", () => {
-			// --path is a global option shown in main help
-			const { stdout } = runCli(["--help"]);
-			expect(stdout).toContain("--path");
-		});
-	});
+    it('dashboard uses global --path option', () => {
+      // --path is a global option shown in main help
+      const { stdout } = runCli(['--help']);
+      expect(stdout).toContain('--path');
+    });
+  });
 
   describe('sessions command', () => {
     it('has sessions subcommand', () => {

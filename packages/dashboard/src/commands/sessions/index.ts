@@ -15,8 +15,8 @@ import { getSessionStatus, listSessions, streamLogs } from '../../lib/sessions.t
  * Outputs JSON array of sessions
  */
 export async function sessionsListCommand(): Promise<void> {
-	const sessions = await listSessions();
-	console.log(JSON.stringify(sessions, null, 2));
+  const sessions = await listSessions();
+  console.log(JSON.stringify(sessions, null, 2));
 }
 
 /**
@@ -25,11 +25,9 @@ export async function sessionsListCommand(): Promise<void> {
  *
  * @param sessionName - The session name to check
  */
-export async function sessionsStatusCommand(
-	sessionName: string,
-): Promise<void> {
-	const status = await getSessionStatus(sessionName);
-	console.log(JSON.stringify(status, null, 2));
+export async function sessionsStatusCommand(sessionName: string): Promise<void> {
+  const status = await getSessionStatus(sessionName);
+  console.log(JSON.stringify(status, null, 2));
 }
 
 /**
@@ -39,12 +37,10 @@ export async function sessionsStatusCommand(
  * @param sessionName - The session name to stream logs from
  */
 export async function sessionsLogsCommand(sessionName: string): Promise<void> {
-	try {
-		await streamLogs(sessionName);
-	} catch (error) {
-		console.error(
-			`Error: ${error instanceof Error ? error.message : String(error)}`,
-		);
-		process.exit(1);
-	}
+  try {
+    await streamLogs(sessionName);
+  } catch (error) {
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
 }
