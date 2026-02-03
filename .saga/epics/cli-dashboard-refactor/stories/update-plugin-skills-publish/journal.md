@@ -83,3 +83,29 @@
 
 **Next steps:**
 - t5: Update root publish skill for @saga-ai/dashboard
+
+## Session 5: 2026-02-04
+
+### Task: t5 - Update root publish skill for @saga-ai/dashboard
+
+**What was done:**
+- Updated `.claude/skills/publish/SKILL.md` to replace all references to `@saga-ai/cli` with `@saga-ai/dashboard`
+- Updated description frontmatter: "plugin + CLI" → "plugin + dashboard", "publishes CLI to npm" → "publishes dashboard to npm"
+- Updated intro paragraph to reference `@saga-ai/dashboard` npm package
+- Updated task table:
+  - "Gather changes" description: "CLI-related" → "dashboard-related"
+  - "Update CHANGELOG" description: "plugin and CLI changes" → "plugin and dashboard changes"
+  - "Update documentation" description: removed "CLI" from "CLI commands"
+  - Renamed "Update CLI package.json" → "Update dashboard package.json" (subject, active form, and all dependency references)
+  - Renamed "Publish CLI to npm" → "Publish dashboard to npm" (subject, active form, and all dependency references)
+  - Updated "Verify release": `npm view @saga-ai/cli` → `npm view @saga-ai/dashboard`, npm URL updated, installation command updated to `npx @saga-ai/dashboard@latest`
+- Updated Quick Reference: `npm view @saga-ai/cli` → `npm view @saga-ai/dashboard`
+- Updated Troubleshooting: "@saga-ai scope" → "@saga-ai/dashboard"
+
+**Verification:**
+- Grep for `@saga-ai/cli` in `.claude/skills/publish/SKILL.md` returns zero results
+- All npm publish, verify, and documentation references use `@saga-ai/dashboard`
+- Task dependency chains are internally consistent after renaming
+
+**Next steps:**
+- t6: Delete @saga-ai/cli from npm
