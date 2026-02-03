@@ -18,9 +18,8 @@
  */
 
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import process from 'node:process';
-import type { StoryStatus } from '@saga-ai/types';
+import { type StoryStatus, createSagaPaths } from '@saga-ai/types';
 import { findEpic, findStory } from './finder.ts';
 
 // ============================================================================
@@ -41,23 +40,27 @@ interface FindOptions {
 // ============================================================================
 
 /**
- * Resolve the project path, using explicit path or cwd
- * @param explicitPath - Explicit path to use (optional)
- * @returns The resolved project path
- * @throws Error if project not found
+ * Get SAGA_PROJECT_DIR from environment
+ * @throws Error if not set or invalid
  */
-function resolveProjectPath(explicitPath?: string): string {
-  const targetPath = explicitPath ?? process.cwd();
-
-  // Check if the path contains .saga/
-  const sagaDir = join(targetPath, '.saga');
-  if (!existsSync(sagaDir)) {
+function getProjectDir(): string {
+  const projectDir = process.env.SAGA_PROJECT_DIR;
+  if (!projectDir) {
     throw new Error(
-      `No .saga/ directory found at specified path: ${targetPath}\n` +
-        'Make sure the path points to a SAGA project root.',
+      'SAGA_PROJECT_DIR environment variable is not set.\n' +
+        'This script must be run from a SAGA session where env vars are set.',
     );
   }
-  return targetPath;
+
+  const sagaPaths = createSagaPaths(projectDir);
+  if (!existsSync(sagaPaths.saga)) {
+    throw new Error(
+      `No .saga/ directory found at SAGA_PROJECT_DIR: ${projectDir}\n` +
+        'Make sure SAGA_PROJECT_DIR points to a SAGA project root.',
+    );
+  }
+
+  return projectDir;
 }
 
 // ============================================================================
@@ -75,8 +78,10 @@ Arguments:
 Options:
   --type <type>      Type to search: "epic" or "story" (default: "story")
   --status <status>  Filter stories by status (e.g., "ready", "in_progress")
-  --path <path>      Path to the SAGA project (defaults to current directory)
   --help             Show this help message
+
+Environment (required):
+  SAGA_PROJECT_DIR   Project root directory
 
 Output (JSON):
   { "found": true, "data": {...} }           # Single match found
@@ -94,14 +99,12 @@ function parseArgs(args: string[]): {
   query?: string;
   type?: 'epic' | 'story';
   status?: string;
-  path?: string;
   help: boolean;
 } {
   const result: {
     query?: string;
     type?: 'epic' | 'story';
     status?: string;
-    path?: string;
     help: boolean;
   } = { help: false };
   const positional: string[] = [];
@@ -110,8 +113,6 @@ function parseArgs(args: string[]): {
     const arg = args[i];
     if (arg === '--help' || arg === '-h') {
       result.help = true;
-    } else if (arg === '--path') {
-      result.path = args[++i];
     } else if (arg === '--type') {
       const typeArg = args[++i];
       if (typeArg === 'epic' || typeArg === 'story') {
@@ -150,10 +151,10 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Resolve project path
+  // Get project path from environment
   let projectPath: string;
   try {
-    projectPath = resolveProjectPath(args.path);
+    projectPath = getProjectDir();
   } catch (error) {
     const result = {
       found: false,

@@ -8,7 +8,14 @@
 import { existsSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { StoryStatus } from '@saga-ai/types';
+import {
+  type StoryStatus,
+  createSagaPaths,
+  createEpicPaths,
+  createStoryPaths,
+  createWorktreePaths,
+  createArchivePaths,
+} from '@saga-ai/types';
 
 // ============================================================================
 // Constants
@@ -213,16 +220,16 @@ async function parseStoryFile(
  * Structure: .saga/worktrees/<epic>/<story>/.saga/epics/<epic>/stories/<story>/story.md
  */
 async function scanWorktrees(sagaRoot: string): Promise<ScannedStory[]> {
-  const worktreesDir = join(sagaRoot, '.saga', 'worktrees');
+  const sagaPaths = createSagaPaths(sagaRoot);
 
-  if (!(await isDirectory(worktreesDir))) {
+  if (!(await isDirectory(sagaPaths.worktrees))) {
     return [];
   }
 
-  const epicEntries = await readdir(worktreesDir);
+  const epicEntries = await readdir(sagaPaths.worktrees);
 
   const epicPromises = epicEntries.map(async (epicSlug) => {
-    const epicWorktreesDir = join(worktreesDir, epicSlug);
+    const epicWorktreesDir = join(sagaPaths.worktrees, epicSlug);
 
     if (!(await isDirectory(epicWorktreesDir))) {
       return [];
@@ -231,23 +238,15 @@ async function scanWorktrees(sagaRoot: string): Promise<ScannedStory[]> {
     const storyEntries = await readdir(epicWorktreesDir);
 
     const storyPromises = storyEntries.map(async (storySlug) => {
-      const worktreePath = join(epicWorktreesDir, storySlug);
+      const worktreePaths = createWorktreePaths(sagaRoot, epicSlug, storySlug);
 
-      if (!(await isDirectory(worktreePath))) {
+      if (!(await isDirectory(worktreePaths.worktreeDir))) {
         return null;
       }
 
-      const storyPath = join(
-        worktreePath,
-        '.saga',
-        'epics',
-        epicSlug,
-        'stories',
-        storySlug,
-        'story.md',
-      );
-
-      return await parseStoryFile(storyPath, epicSlug, { worktreePath });
+      return await parseStoryFile(worktreePaths.storyMdInWorktree, epicSlug, {
+        worktreePath: worktreePaths.worktreeDir,
+      });
     });
 
     const stories = await Promise.all(storyPromises);
@@ -264,32 +263,31 @@ async function scanWorktrees(sagaRoot: string): Promise<ScannedStory[]> {
  * Structure: .saga/epics/<epic>/stories/<story>/story.md
  */
 async function scanEpicsStories(sagaRoot: string): Promise<ScannedStory[]> {
-  const epicsDir = join(sagaRoot, '.saga', 'epics');
+  const sagaPaths = createSagaPaths(sagaRoot);
 
-  if (!(await isDirectory(epicsDir))) {
+  if (!(await isDirectory(sagaPaths.epics))) {
     return [];
   }
 
-  const epicEntries = await readdir(epicsDir);
+  const epicEntries = await readdir(sagaPaths.epics);
 
   const epicPromises = epicEntries.map(async (epicSlug) => {
-    const storiesDir = join(epicsDir, epicSlug, 'stories');
+    const epicPaths = createEpicPaths(sagaRoot, epicSlug);
 
-    if (!(await isDirectory(storiesDir))) {
+    if (!(await isDirectory(epicPaths.storiesDir))) {
       return [];
     }
 
-    const storyEntries = await readdir(storiesDir);
+    const storyEntries = await readdir(epicPaths.storiesDir);
 
     const storyPromises = storyEntries.map(async (storySlug) => {
-      const storyDir = join(storiesDir, storySlug);
+      const storyPaths = createStoryPaths(sagaRoot, epicSlug, storySlug);
 
-      if (!(await isDirectory(storyDir))) {
+      if (!(await isDirectory(storyPaths.storyDir))) {
         return null;
       }
 
-      const storyPath = join(storyDir, 'story.md');
-      return await parseStoryFile(storyPath, epicSlug);
+      return await parseStoryFile(storyPaths.storyMd, epicSlug);
     });
 
     const stories = await Promise.all(storyPromises);
@@ -306,32 +304,35 @@ async function scanEpicsStories(sagaRoot: string): Promise<ScannedStory[]> {
  * Structure: .saga/archive/<epic>/<story>/story.md
  */
 async function scanArchive(sagaRoot: string): Promise<ScannedStory[]> {
-  const archiveDir = join(sagaRoot, '.saga', 'archive');
+  const sagaPaths = createSagaPaths(sagaRoot);
 
-  if (!(await isDirectory(archiveDir))) {
+  if (!(await isDirectory(sagaPaths.archive))) {
     return [];
   }
 
-  const epicEntries = await readdir(archiveDir);
+  const epicEntries = await readdir(sagaPaths.archive);
 
   const epicPromises = epicEntries.map(async (epicSlug) => {
-    const epicArchiveDir = join(archiveDir, epicSlug);
+    const archivePaths = createArchivePaths(sagaRoot, epicSlug);
 
-    if (!(await isDirectory(epicArchiveDir))) {
+    if (!(await isDirectory(archivePaths.archiveEpicDir))) {
       return [];
     }
 
-    const storyEntries = await readdir(epicArchiveDir);
+    const storyEntries = await readdir(archivePaths.archiveEpicDir);
 
     const storyPromises = storyEntries.map(async (storySlug) => {
-      const storyDir = join(epicArchiveDir, storySlug);
+      const storyArchivePaths = createArchivePaths(sagaRoot, epicSlug, storySlug);
 
-      if (!(await isDirectory(storyDir))) {
+      if (!storyArchivePaths.archiveStoryDir || !(await isDirectory(storyArchivePaths.archiveStoryDir))) {
         return null;
       }
 
-      const storyPath = join(storyDir, 'story.md');
-      return await parseStoryFile(storyPath, epicSlug, { archived: true });
+      if (!storyArchivePaths.archiveStoryMd) {
+        return null;
+      }
+
+      return await parseStoryFile(storyArchivePaths.archiveStoryMd, epicSlug, { archived: true });
     });
 
     const stories = await Promise.all(storyPromises);
@@ -396,27 +397,26 @@ async function scanAllStories(sagaRoot: string): Promise<ScannedStory[]> {
  * Scan epics directory for epic metadata
  */
 async function scanEpics(sagaRoot: string): Promise<ScannedEpic[]> {
-  const epicsDir = join(sagaRoot, '.saga', 'epics');
+  const sagaPaths = createSagaPaths(sagaRoot);
 
-  if (!(await isDirectory(epicsDir))) {
+  if (!(await isDirectory(sagaPaths.epics))) {
     return [];
   }
 
-  const epicEntries = await readdir(epicsDir);
+  const epicEntries = await readdir(sagaPaths.epics);
 
   const epicPromises = epicEntries.map(async (epicSlug) => {
-    const epicPath = join(epicsDir, epicSlug);
+    const epicPaths = createEpicPaths(sagaRoot, epicSlug);
 
-    if (!(await isDirectory(epicPath))) {
+    if (!(await isDirectory(epicPaths.epicDir))) {
       return null;
     }
 
-    const epicMdPath = join(epicPath, 'epic.md');
     let content = '';
     let title = epicSlug;
 
     try {
-      content = await readFile(epicMdPath, 'utf-8');
+      content = await readFile(epicPaths.epicMd, 'utf-8');
       title = extractEpicTitle(content) || epicSlug;
     } catch {
       // No epic.md, use slug as title
@@ -425,8 +425,8 @@ async function scanEpics(sagaRoot: string): Promise<ScannedEpic[]> {
     return {
       slug: epicSlug,
       title,
-      epicPath,
-      epicMdPath,
+      epicPath: epicPaths.epicDir,
+      epicMdPath: epicPaths.epicMd,
       content,
     };
   });
@@ -439,21 +439,24 @@ async function scanEpics(sagaRoot: string): Promise<ScannedEpic[]> {
  * Check if .saga directory exists
  */
 function sagaDirectoryExists(projectPath: string): boolean {
-  return existsSync(join(projectPath, '.saga'));
+  const sagaPaths = createSagaPaths(projectPath);
+  return existsSync(sagaPaths.saga);
 }
 
 /**
  * Check if worktrees directory exists
  */
 function worktreesDirectoryExists(projectPath: string): boolean {
-  return existsSync(join(projectPath, '.saga', 'worktrees'));
+  const sagaPaths = createSagaPaths(projectPath);
+  return existsSync(sagaPaths.worktrees);
 }
 
 /**
  * Check if epics directory exists
  */
 function epicsDirectoryExists(projectPath: string): boolean {
-  return existsSync(join(projectPath, '.saga', 'epics'));
+  const sagaPaths = createSagaPaths(projectPath);
+  return existsSync(sagaPaths.epics);
 }
 
 export {

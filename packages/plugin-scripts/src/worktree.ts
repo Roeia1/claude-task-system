@@ -16,8 +16,9 @@
 
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname } from 'node:path';
 import process from 'node:process';
+import { createSagaPaths, createWorktreePaths } from '@saga-ai/types';
 
 // ============================================================================
 // Types
@@ -38,23 +39,27 @@ interface WorktreeResult {
 // ============================================================================
 
 /**
- * Resolve the project path, using explicit path or cwd
- * @param explicitPath - Explicit path to use (optional)
- * @returns The resolved project path
- * @throws Error if project not found
+ * Get SAGA_PROJECT_DIR from environment
+ * @throws Error if not set or invalid
  */
-function resolveProjectPath(explicitPath?: string): string {
-  const targetPath = explicitPath ?? process.cwd();
-
-  // Check if the path contains .saga/
-  const sagaDir = join(targetPath, '.saga');
-  if (!existsSync(sagaDir)) {
+function getProjectDir(): string {
+  const projectDir = process.env.SAGA_PROJECT_DIR;
+  if (!projectDir) {
     throw new Error(
-      `No .saga/ directory found at specified path: ${targetPath}\n` +
-        'Make sure the path points to a SAGA project root.',
+      'SAGA_PROJECT_DIR environment variable is not set.\n' +
+        'This script must be run from a SAGA session where env vars are set.',
     );
   }
-  return targetPath;
+
+  const sagaPaths = createSagaPaths(projectDir);
+  if (!existsSync(sagaPaths.saga)) {
+    throw new Error(
+      `No .saga/ directory found at SAGA_PROJECT_DIR: ${projectDir}\n` +
+        'Make sure SAGA_PROJECT_DIR points to a SAGA project root.',
+    );
+  }
+
+  return projectDir;
 }
 
 // ============================================================================
@@ -107,7 +112,7 @@ function getMainBranch(cwd: string): string {
  */
 function createWorktree(projectPath: string, epicSlug: string, storySlug: string): WorktreeResult {
   const branchName = `story-${storySlug}-epic-${epicSlug}`;
-  const worktreePath = join(projectPath, '.saga', 'worktrees', epicSlug, storySlug);
+  const worktreePaths = createWorktreePaths(projectPath, epicSlug, storySlug);
 
   // Check if branch already exists
   if (branchExists(branchName, projectPath)) {
@@ -118,10 +123,10 @@ function createWorktree(projectPath: string, epicSlug: string, storySlug: string
   }
 
   // Check if worktree directory already exists
-  if (existsSync(worktreePath)) {
+  if (existsSync(worktreePaths.worktreeDir)) {
     return {
       success: false,
-      error: `Worktree directory already exists: ${worktreePath}`,
+      error: `Worktree directory already exists: ${worktreePaths.worktreeDir}`,
     };
   }
 
@@ -144,12 +149,12 @@ function createWorktree(projectPath: string, epicSlug: string, storySlug: string
   }
 
   // Create parent directory for worktree
-  const worktreeParent = join(projectPath, '.saga', 'worktrees', epicSlug);
+  const worktreeParent = dirname(worktreePaths.worktreeDir);
   mkdirSync(worktreeParent, { recursive: true });
 
   // Create the worktree
   const createWorktreeResult = runGitCommand(
-    ['worktree', 'add', worktreePath, branchName],
+    ['worktree', 'add', worktreePaths.worktreeDir, branchName],
     projectPath,
   );
   if (!createWorktreeResult.success) {
@@ -161,7 +166,7 @@ function createWorktree(projectPath: string, epicSlug: string, storySlug: string
 
   return {
     success: true,
-    worktreePath,
+    worktreePath: worktreePaths.worktreeDir,
     branch: branchName,
   };
 }
@@ -171,7 +176,7 @@ function createWorktree(projectPath: string, epicSlug: string, storySlug: string
 // ============================================================================
 
 function printHelp(): void {
-  console.log(`Usage: worktree <epic-slug> <story-slug> [options]
+  console.log(`Usage: worktree <epic-slug> <story-slug>
 
 Create a git worktree for story isolation.
 
@@ -180,8 +185,10 @@ Arguments:
   story-slug   The story identifier
 
 Options:
-  --path <path>  Path to the SAGA project (defaults to current directory)
-  --help         Show this help message
+  --help       Show this help message
+
+Environment (required):
+  SAGA_PROJECT_DIR   Project root directory
 
 Output (JSON):
   { "success": true, "worktreePath": "...", "branch": "..." }
@@ -189,20 +196,17 @@ Output (JSON):
 
 Examples:
   worktree my-epic my-story
-  worktree my-epic my-story --path /path/to/project
 `);
 }
 
-function parseArgs(args: string[]): { epicSlug?: string; storySlug?: string; path?: string; help: boolean } {
-  const result: { epicSlug?: string; storySlug?: string; path?: string; help: boolean } = { help: false };
+function parseArgs(args: string[]): { epicSlug?: string; storySlug?: string; help: boolean } {
+  const result: { epicSlug?: string; storySlug?: string; help: boolean } = { help: false };
   const positional: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--help' || arg === '-h') {
       result.help = true;
-    } else if (arg === '--path') {
-      result.path = args[++i];
     } else if (!arg.startsWith('-')) {
       positional.push(arg);
     }
@@ -232,10 +236,10 @@ function main(): void {
     process.exit(1);
   }
 
-  // Resolve project path
+  // Get project path from environment
   let projectPath: string;
   try {
-    projectPath = resolveProjectPath(args.path);
+    projectPath = getProjectDir();
   } catch (error) {
     const result: WorktreeResult = {
       success: false,

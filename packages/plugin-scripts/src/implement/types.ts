@@ -9,7 +9,6 @@
  * Options for the implement command
  */
 export interface ImplementOptions {
-  path?: string;
   maxCycles?: number;
   maxTime?: number;
   model?: string;

@@ -8,6 +8,8 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import process from 'node:process';
+import { createWorktreePaths } from '@saga-ai/types';
 
 import type { LoopResult, LoopState, StoryInfo, WorkerLoopConfig } from './types.ts';
 import {
@@ -20,34 +22,69 @@ import {
 import { buildScopeSettings } from './scope-config.ts';
 import { spawnWorkerAsync } from './session-manager.ts';
 
+// ============================================================================
+// Environment Variable Helpers
+// ============================================================================
+
+/**
+ * Get SAGA_PROJECT_DIR from environment
+ * @throws Error if not set
+ */
+function getProjectDir(): string {
+  const projectDir = process.env.SAGA_PROJECT_DIR;
+  if (!projectDir) {
+    throw new Error(
+      'SAGA_PROJECT_DIR environment variable is not set.\n' +
+        'This script must be run from a SAGA session where env vars are set.',
+    );
+  }
+  return projectDir;
+}
+
+/**
+ * Get SAGA_PLUGIN_ROOT from environment
+ * @throws Error if not set
+ */
+function getPluginRoot(): string {
+  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
+  if (!pluginRoot) {
+    throw new Error(
+      'SAGA_PLUGIN_ROOT environment variable is not set.\n' +
+        'This script must be run from a SAGA session where env vars are set.',
+    );
+  }
+  return pluginRoot;
+}
+
+// ============================================================================
+// Path Helpers
+// ============================================================================
+
 /**
  * Get the execute-story skill root directory
  */
-export function getSkillRoot(pluginRoot: string): string {
+export function getSkillRoot(): string {
+  const pluginRoot = getPluginRoot();
   return join(pluginRoot, 'skills', 'execute-story');
 }
 
 /**
- * Compute the path to story.md within a worktree
- */
-export function computeStoryPath(worktree: string, epicSlug: string, storySlug: string): string {
-  return join(worktree, '.saga', 'epics', epicSlug, 'stories', storySlug, 'story.md');
-}
-
-/**
  * Validate that the worktree and story.md exist
+ * Uses SAGA_PROJECT_DIR from environment
  */
 export function validateStoryFiles(
-  worktree: string,
   epicSlug: string,
   storySlug: string,
-): { valid: boolean; error?: string } {
+): { valid: boolean; error?: string; worktreePaths?: ReturnType<typeof createWorktreePaths> } {
+  const projectDir = getProjectDir();
+  const worktreePaths = createWorktreePaths(projectDir, epicSlug, storySlug);
+
   // Check worktree exists
-  if (!existsSync(worktree)) {
+  if (!existsSync(worktreePaths.worktreeDir)) {
     return {
       valid: false,
       error:
-        `Worktree not found at ${worktree}\n\n` +
+        `Worktree not found at ${worktreePaths.worktreeDir}\n\n` +
         'The story worktree has not been created yet. This can happen if:\n' +
         `1. The story was generated but the worktree wasn't set up\n` +
         '2. The worktree was deleted or moved\n\n' +
@@ -56,26 +93,26 @@ export function validateStoryFiles(
   }
 
   // Check story.md exists
-  const storyPath = computeStoryPath(worktree, epicSlug, storySlug);
-  if (!existsSync(storyPath)) {
+  if (!existsSync(worktreePaths.storyMdInWorktree)) {
     return {
       valid: false,
       error:
         'story.md not found in worktree.\n\n' +
-        `Expected location: ${storyPath}\n\n` +
+        `Expected location: ${worktreePaths.storyMdInWorktree}\n\n` +
         'The worktree exists but the story definition file is missing.\n' +
         'This may indicate an incomplete story setup.',
     };
   }
 
-  return { valid: true };
+  return { valid: true, worktreePaths };
 }
 
 /**
  * Load the worker prompt template
+ * Uses SAGA_PLUGIN_ROOT from environment
  */
-export function loadWorkerPrompt(pluginRoot: string): string {
-  const skillRoot = getSkillRoot(pluginRoot);
+export function loadWorkerPrompt(): string {
+  const skillRoot = getSkillRoot();
   const promptPath = join(skillRoot, WORKER_PROMPT_RELATIVE);
 
   if (!existsSync(promptPath)) {
@@ -108,21 +145,20 @@ export function createErrorResult(
 
 /**
  * Validate and load resources for the orchestration loop
+ * Uses SAGA_PROJECT_DIR and SAGA_PLUGIN_ROOT from environment
  */
 export function validateLoopResources(
-  worktree: string,
   epicSlug: string,
   storySlug: string,
-  pluginRoot: string,
-): { valid: true; workerPrompt: string } | { valid: false; error: string } {
-  const validation = validateStoryFiles(worktree, epicSlug, storySlug);
+): { valid: true; workerPrompt: string; worktreeDir: string } | { valid: false; error: string } {
+  const validation = validateStoryFiles(epicSlug, storySlug);
   if (!validation.valid) {
     return { valid: false, error: validation.error || 'Story validation failed' };
   }
 
   try {
-    const workerPrompt = loadWorkerPrompt(pluginRoot);
-    return { valid: true, workerPrompt };
+    const workerPrompt = loadWorkerPrompt();
+    return { valid: true, workerPrompt, worktreeDir: validation.worktreePaths!.worktreeDir };
   } catch (e) {
     return { valid: false, error: e instanceof Error ? e.message : String(e) };
   }
@@ -255,6 +291,7 @@ function executeWorkerLoop(
 
 /**
  * Main orchestration loop that spawns workers until completion
+ * Uses SAGA_PROJECT_DIR and SAGA_PLUGIN_ROOT from environment
  */
 export async function runLoop(
   epicSlug: string,
@@ -262,12 +299,8 @@ export async function runLoop(
   maxCycles: number,
   maxTime: number,
   model: string,
-  projectDir: string,
-  pluginRoot: string,
 ): Promise<LoopResult> {
-  const worktree = join(projectDir, '.saga', 'worktrees', epicSlug, storySlug);
-
-  const resources = validateLoopResources(worktree, epicSlug, storySlug, pluginRoot);
+  const resources = validateLoopResources(epicSlug, storySlug);
   if (!resources.valid) {
     return createErrorResult(epicSlug, storySlug, resources.error, 0, 0);
   }
@@ -280,7 +313,7 @@ export async function runLoop(
     resources.workerPrompt,
     model,
     settings,
-    worktree,
+    resources.worktreeDir,
     maxCycles,
     maxTimeMs,
     startTime,
@@ -309,10 +342,13 @@ export async function runLoop(
 }
 
 /**
- * Compute worktree path from project dir and slugs
+ * Compute worktree path from slugs
+ * Uses SAGA_PROJECT_DIR from environment
  */
-export function getWorktreePath(projectDir: string, epicSlug: string, storySlug: string): string {
-  return join(projectDir, '.saga', 'worktrees', epicSlug, storySlug);
+export function getWorktreePath(epicSlug: string, storySlug: string): string {
+  const projectDir = getProjectDir();
+  const worktreePaths = createWorktreePaths(projectDir, epicSlug, storySlug);
+  return worktreePaths.worktreeDir;
 }
 
 // Re-export types for convenience

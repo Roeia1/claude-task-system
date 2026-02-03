@@ -3,6 +3,9 @@
 // src/scope-validator.ts
 import { relative, resolve } from "node:path";
 import process from "node:process";
+var EXIT_ALLOWED = 0;
+var EXIT_CONFIG_ERROR = 1;
+var EXIT_BLOCKED = 2;
 var FILE_PATH_WIDTH = 50;
 var EPIC_STORY_WIDTH = 43;
 var REASON_WIDTH = 56;
@@ -105,18 +108,18 @@ function validatePath(filePath, worktreePath, epicSlug, storySlug) {
 async function main() {
   const env = getScopeEnvironment();
   if (!env) {
-    process.exit(2);
+    process.exit(EXIT_CONFIG_ERROR);
   }
   const toolInput = await readStdinInput();
   const filePath = getFilePathFromInput(toolInput);
   if (!filePath) {
-    process.exit(0);
+    process.exit(EXIT_ALLOWED);
   }
   const violation = validatePath(filePath, env.worktreePath, env.epicSlug, env.storySlug);
   if (violation) {
     printScopeViolation(filePath, env.epicSlug, env.storySlug, env.worktreePath, violation);
-    process.exit(2);
+    process.exit(EXIT_BLOCKED);
   }
-  process.exit(0);
+  process.exit(EXIT_ALLOWED);
 }
 main();

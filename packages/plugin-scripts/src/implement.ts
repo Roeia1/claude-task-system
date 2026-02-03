@@ -10,12 +10,16 @@
  *   story-slug    The slug of the story to implement
  *
  * Options:
- *   --path <path>       Path to SAGA project (default: auto-detect)
  *   --max-cycles <n>    Maximum worker cycles (default: 10)
  *   --max-time <n>      Maximum time in minutes (default: 60)
  *   --model <model>     Model to use (default: opus)
  *   --dry-run           Validate environment without running
  *   --help, -h          Show this help message
+ *
+ * Environment (required):
+ *   SAGA_PROJECT_DIR       Project root directory
+ *   SAGA_PLUGIN_ROOT       Plugin root directory
+ *   SAGA_INTERNAL_SESSION  Set to "1" when running inside tmux session
  *
  * Output: Depends on mode
  *   - Detached mode: JSON with { sessionName, outputFile }
@@ -47,12 +51,16 @@ Arguments:
   story-slug    The slug of the story to implement
 
 Options:
-  --path <path>       Path to SAGA project (default: auto-detect)
   --max-cycles <n>    Maximum worker cycles (default: 10)
   --max-time <n>      Maximum time in minutes (default: 60)
   --model <model>     Model to use (default: opus)
   --dry-run           Validate environment without running
   --help, -h          Show this help message
+
+Environment (required):
+  SAGA_PROJECT_DIR       Project root directory
+  SAGA_PLUGIN_ROOT       Plugin root directory
+  SAGA_INTERNAL_SESSION  Set to "1" when running inside tmux session
 
 Examples:
   # Implement a story (runs in detached tmux session)
@@ -63,14 +71,6 @@ Examples:
 
   # Run with custom options
   node implement.js add-user-auth --max-cycles 5 --model sonnet
-
-  # Specify project path
-  node implement.js add-user-auth --path /path/to/project
-
-Environment:
-  SAGA_PROJECT_DIR    Project directory (optional if --path provided)
-  SAGA_PLUGIN_ROOT    Plugin root directory (required)
-  SAGA_INTERNAL_SESSION=1  Indicates running inside tmux session
 `.trim();
 
   console.log(usage);
@@ -98,18 +98,6 @@ function parseArgs(args: string[]): { storySlug: string; options: ImplementOptio
     if (arg === '--help' || arg === '-h') {
       printUsage();
       process.exit(0);
-    }
-
-    // Handle --path
-    if (arg === '--path') {
-      i++;
-      if (i >= args.length) {
-        printError('--path requires a value');
-        return null;
-      }
-      options.path = args[i];
-      i++;
-      continue;
     }
 
     // Handle --max-cycles

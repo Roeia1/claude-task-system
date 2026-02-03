@@ -4,10 +4,11 @@
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import process from 'node:process';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createWorktreePaths } from '@saga-ai/types';
 import {
   buildLoopResult,
-  computeStoryPath,
   createErrorResult,
   getSkillRoot,
   getWorktreePath,
@@ -17,35 +18,40 @@ import {
 } from './orchestrator.ts';
 
 describe('orchestrator', () => {
-  describe('getSkillRoot', () => {
-    it('returns correct path under plugin root', () => {
-      const result = getSkillRoot('/path/to/plugin');
-      expect(result).toBe('/path/to/plugin/skills/execute-story');
-    });
+  const originalEnv = process.env;
 
-    it('handles plugin root with trailing slash', () => {
-      const result = getSkillRoot('/path/to/plugin/');
-      // join normalizes paths
-      expect(result).toBe('/path/to/plugin/skills/execute-story');
-    });
+  beforeEach(() => {
+    vi.resetModules();
+    process.env = { ...originalEnv };
   });
 
-  describe('computeStoryPath', () => {
-    it('computes correct path to story.md', () => {
-      const result = computeStoryPath('/worktree', 'my-epic', 'my-story');
-      expect(result).toBe('/worktree/.saga/epics/my-epic/stories/my-story/story.md');
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  describe('getSkillRoot', () => {
+    it('returns correct path under plugin root', () => {
+      process.env.SAGA_PLUGIN_ROOT = '/path/to/plugin';
+      const result = getSkillRoot();
+      expect(result).toBe('/path/to/plugin/skills/execute-story');
     });
 
-    it('handles worktree path with no trailing slash', () => {
-      const result = computeStoryPath('/project/worktree', 'epic', 'story');
-      expect(result).toBe('/project/worktree/.saga/epics/epic/stories/story/story.md');
+    it('throws when SAGA_PLUGIN_ROOT not set', () => {
+      delete process.env.SAGA_PLUGIN_ROOT;
+      expect(() => getSkillRoot()).toThrow('SAGA_PLUGIN_ROOT environment variable is not set');
     });
   });
 
   describe('getWorktreePath', () => {
     it('computes correct worktree path', () => {
-      const result = getWorktreePath('/project', 'my-epic', 'my-story');
+      process.env.SAGA_PROJECT_DIR = '/project';
+      const result = getWorktreePath('my-epic', 'my-story');
       expect(result).toBe('/project/.saga/worktrees/my-epic/my-story');
+    });
+
+    it('throws when SAGA_PROJECT_DIR not set', () => {
+      delete process.env.SAGA_PROJECT_DIR;
+      expect(() => getWorktreePath('epic', 'story')).toThrow('SAGA_PROJECT_DIR environment variable is not set');
     });
   });
 
@@ -56,6 +62,7 @@ describe('orchestrator', () => {
       if (existsSync(tempDir)) {
         rmSync(tempDir, { recursive: true });
       }
+      process.env.SAGA_PROJECT_DIR = '/nonexistent';
     });
 
     afterEach(() => {
@@ -65,38 +72,45 @@ describe('orchestrator', () => {
     });
 
     it('returns valid:false when worktree does not exist', () => {
-      const result = validateStoryFiles('/nonexistent/worktree', 'epic', 'story');
+      process.env.SAGA_PROJECT_DIR = '/nonexistent';
+      const result = validateStoryFiles('epic', 'story');
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Worktree not found');
     });
 
-    it('error message includes worktree path', () => {
-      const result = validateStoryFiles('/my/worktree/path', 'epic', 'story');
-      expect(result.error).toContain('/my/worktree/path');
-    });
-
     it('error message includes task-resume suggestion', () => {
-      const result = validateStoryFiles('/nonexistent', 'epic', 'my-story');
+      process.env.SAGA_PROJECT_DIR = '/nonexistent';
+      const result = validateStoryFiles('epic', 'my-story');
       expect(result.error).toContain('/task-resume my-story');
     });
 
     it('returns valid:false when story.md does not exist', () => {
-      // Create worktree but not story.md
-      mkdirSync(tempDir, { recursive: true });
-      const result = validateStoryFiles(tempDir, 'epic', 'story');
+      // Create worktree directory but not story.md
+      process.env.SAGA_PROJECT_DIR = tempDir;
+      const worktreePaths = createWorktreePaths(tempDir, 'epic', 'story');
+      mkdirSync(worktreePaths.worktreeDir, { recursive: true });
+
+      const result = validateStoryFiles('epic', 'story');
       expect(result.valid).toBe(false);
       expect(result.error).toContain('story.md not found');
     });
 
     it('returns valid:true when worktree and story.md exist', () => {
-      // Create worktree and story.md
-      const storyDir = join(tempDir, '.saga', 'epics', 'epic', 'stories', 'story');
+      // Create worktree and story.md at the correct location
+      process.env.SAGA_PROJECT_DIR = tempDir;
+      const worktreePaths = createWorktreePaths(tempDir, 'epic', 'story');
+      const storyDir = join(worktreePaths.worktreeDir, '.saga', 'epics', 'epic', 'stories', 'story');
       mkdirSync(storyDir, { recursive: true });
       writeFileSync(join(storyDir, 'story.md'), '# Story');
 
-      const result = validateStoryFiles(tempDir, 'epic', 'story');
+      const result = validateStoryFiles('epic', 'story');
       expect(result.valid).toBe(true);
       expect(result.error).toBeUndefined();
+    });
+
+    it('throws when SAGA_PROJECT_DIR not set', () => {
+      delete process.env.SAGA_PROJECT_DIR;
+      expect(() => validateStoryFiles('epic', 'story')).toThrow('SAGA_PROJECT_DIR environment variable is not set');
     });
   });
 
@@ -115,19 +129,24 @@ describe('orchestrator', () => {
       }
     });
 
+    it('throws when SAGA_PLUGIN_ROOT not set', () => {
+      delete process.env.SAGA_PLUGIN_ROOT;
+      expect(() => loadWorkerPrompt()).toThrow('SAGA_PLUGIN_ROOT environment variable is not set');
+    });
+
     it('throws when prompt file does not exist', () => {
-      expect(() => loadWorkerPrompt('/nonexistent/plugin')).toThrow(
-        'Worker prompt not found',
-      );
+      process.env.SAGA_PLUGIN_ROOT = '/nonexistent/plugin';
+      expect(() => loadWorkerPrompt()).toThrow('Worker prompt not found');
     });
 
     it('loads prompt from correct path', () => {
+      process.env.SAGA_PLUGIN_ROOT = tempDir;
       // Create prompt file
       const promptDir = join(tempDir, 'skills', 'execute-story');
       mkdirSync(promptDir, { recursive: true });
       writeFileSync(join(promptDir, 'worker-prompt.md'), '# Worker Prompt\nInstructions here');
 
-      const result = loadWorkerPrompt(tempDir);
+      const result = loadWorkerPrompt();
       expect(result).toBe('# Worker Prompt\nInstructions here');
     });
   });
@@ -169,36 +188,44 @@ describe('orchestrator', () => {
     });
 
     it('returns valid:false when worktree missing', () => {
-      const result = validateLoopResources('/nonexistent', 'epic', 'story', tempDir);
+      process.env.SAGA_PROJECT_DIR = '/nonexistent';
+      process.env.SAGA_PLUGIN_ROOT = tempDir;
+      const result = validateLoopResources('epic', 'story');
       expect(result.valid).toBe(false);
       expect(result).toHaveProperty('error');
     });
 
     it('returns valid:false when worker prompt missing', () => {
       // Create worktree and story.md but no prompt
-      const worktree = join(tempDir, 'worktree');
-      const storyDir = join(worktree, '.saga', 'epics', 'epic', 'stories', 'story');
+      process.env.SAGA_PROJECT_DIR = tempDir;
+      process.env.SAGA_PLUGIN_ROOT = join(tempDir, 'plugin');
+
+      const worktreePaths = createWorktreePaths(tempDir, 'epic', 'story');
+      const storyDir = join(worktreePaths.worktreeDir, '.saga', 'epics', 'epic', 'stories', 'story');
       mkdirSync(storyDir, { recursive: true });
       writeFileSync(join(storyDir, 'story.md'), '# Story');
 
-      const result = validateLoopResources(worktree, 'epic', 'story', tempDir);
+      const result = validateLoopResources('epic', 'story');
       expect(result.valid).toBe(false);
       expect((result as { error: string }).error).toContain('Worker prompt not found');
     });
 
     it('returns valid:true with workerPrompt when all resources exist', () => {
       // Create worktree, story.md, and prompt
-      const worktree = join(tempDir, 'worktree');
-      const storyDir = join(worktree, '.saga', 'epics', 'epic', 'stories', 'story');
+      process.env.SAGA_PROJECT_DIR = tempDir;
+      const pluginRoot = join(tempDir, 'plugin');
+      process.env.SAGA_PLUGIN_ROOT = pluginRoot;
+
+      const worktreePaths = createWorktreePaths(tempDir, 'epic', 'story');
+      const storyDir = join(worktreePaths.worktreeDir, '.saga', 'epics', 'epic', 'stories', 'story');
       mkdirSync(storyDir, { recursive: true });
       writeFileSync(join(storyDir, 'story.md'), '# Story');
 
-      const pluginRoot = join(tempDir, 'plugin');
       const promptDir = join(pluginRoot, 'skills', 'execute-story');
       mkdirSync(promptDir, { recursive: true });
       writeFileSync(join(promptDir, 'worker-prompt.md'), '# Worker');
 
-      const result = validateLoopResources(worktree, 'epic', 'story', pluginRoot);
+      const result = validateLoopResources('epic', 'story');
       expect(result.valid).toBe(true);
       expect((result as { workerPrompt: string }).workerPrompt).toBe('# Worker');
     });

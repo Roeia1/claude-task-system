@@ -8,8 +8,7 @@
  */
 
 import { readdirSync } from 'node:fs';
-import { join } from 'node:path';
-import type { StoryStatus } from '@saga-ai/types';
+import { type StoryStatus, createSagaPaths } from '@saga-ai/types';
 import Fuse, { type FuseResult } from 'fuse.js';
 import {
   epicsDirectoryExists,
@@ -168,8 +167,8 @@ function processFuzzyResults<T>(results: FuseResult<T>[]): FindResult<T> {
  * Get all epic slugs from the epics directory
  */
 function getEpicSlugs(projectPath: string): string[] {
-  const epicsDir = join(projectPath, '.saga', 'epics');
-  return readdirSync(epicsDir, { withFileTypes: true })
+  const sagaPaths = createSagaPaths(projectPath);
+  return readdirSync(sagaPaths.epics, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
 }

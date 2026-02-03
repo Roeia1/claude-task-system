@@ -60,13 +60,25 @@ These are set by the SAGA CLI for internal use. They are not set during normal i
 
 ### Detection Logic
 
-The SessionStart hook determines context based on filesystem:
+The SessionStart hook determines context by checking if `.git` is a file or directory:
 
-1. **Story Worktree**: If `.saga/epics/` exists AND git worktree path contains `/.saga/worktrees/`
+1. **Story Worktree**: If `.git` is a **file** (worktrees have a .git file that points to the main repo)
    - Sets: `SAGA_TASK_CONTEXT="story-worktree"`, `SAGA_EPIC_SLUG`, `SAGA_STORY_SLUG`, `SAGA_STORY_DIR`
+   - Epic and story slugs are extracted from the worktree path
 
-2. **Main Repository**: Otherwise
+2. **Main Repository**: If `.git` is a **directory** (main repo has .git directory)
    - Sets: `SAGA_TASK_CONTEXT="main"`
+
+```bash
+# Detection logic in session-init.sh
+if [ -f .git ]; then
+  # Worktree - .git is a file pointing to main repo
+  SAGA_TASK_CONTEXT="story-worktree"
+elif [ -d .git ]; then
+  # Main repo - .git is a directory
+  SAGA_TASK_CONTEXT="main"
+fi
+```
 
 ## Interactive vs Headless Mode
 

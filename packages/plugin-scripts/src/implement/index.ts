@@ -25,54 +25,46 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
+import { createWorktreePaths } from '@saga-ai/types';
 
 import type { DryRunCheck, DryRunResult, ImplementOptions, StoryInfo } from './types.ts';
 import { DEFAULT_MAX_CYCLES, DEFAULT_MAX_TIME, DEFAULT_MODEL, WORKER_PROMPT_RELATIVE } from './types.ts';
-import { runLoop, getSkillRoot, computeStoryPath, getWorktreePath } from './orchestrator.ts';
+import { runLoop, getSkillRoot, getWorktreePath } from './orchestrator.ts';
 import { createSession, buildDetachedCommand } from './session-manager.ts';
 import { findStory as finderFindStory } from '../find/finder.ts';
 
 // ============================================================================
-// Project Discovery
+// Environment Variable Helpers
 // ============================================================================
 
 /**
- * Resolve the project path from option or environment
- *
- * @param pathOption - Optional path from CLI argument
- * @returns Resolved project path
- * @throws Error if no valid project path found
+ * Get SAGA_PROJECT_DIR from environment
+ * @throws Error if not set
  */
-function resolveProjectPath(pathOption?: string): string {
-  // If path is provided, use it directly
-  if (pathOption) {
-    if (!existsSync(join(pathOption, '.saga'))) {
-      throw new Error(`Not a SAGA project: ${pathOption} (no .saga directory)`);
-    }
-    return pathOption;
+function getProjectDir(): string {
+  const projectDir = process.env.SAGA_PROJECT_DIR;
+  if (!projectDir) {
+    throw new Error(
+      'SAGA_PROJECT_DIR environment variable is not set.\n' +
+        'This script must be run from a SAGA session where env vars are set.',
+    );
   }
+  return projectDir;
+}
 
-  // Try SAGA_PROJECT_DIR environment variable
-  const envPath = process.env.SAGA_PROJECT_DIR;
-  if (envPath && existsSync(join(envPath, '.saga'))) {
-    return envPath;
+/**
+ * Get SAGA_PLUGIN_ROOT from environment
+ * @throws Error if not set
+ */
+function getPluginRoot(): string {
+  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
+  if (!pluginRoot) {
+    throw new Error(
+      'SAGA_PLUGIN_ROOT environment variable is not set.\n' +
+        'This script must be run from a SAGA session where env vars are set.',
+    );
   }
-
-  // Try current directory
-  if (existsSync(join(process.cwd(), '.saga'))) {
-    return process.cwd();
-  }
-
-  // Walk up the directory tree
-  let dir = process.cwd();
-  while (dir !== '/') {
-    if (existsSync(join(dir, '.saga'))) {
-      return dir;
-    }
-    dir = join(dir, '..');
-  }
-
-  throw new Error('SAGA project not found. Run saga init first or use --path option.');
+  return pluginRoot;
 }
 
 // ============================================================================
@@ -83,12 +75,14 @@ function resolveProjectPath(pathOption?: string): string {
  * Find a story by slug in the SAGA project
  *
  * Uses the shared finder utility to search through worktrees.
+ * Uses SAGA_PROJECT_DIR from environment.
  * Supports fuzzy matching by slug or title.
  *
  * Returns the story info if a single match is found, null otherwise.
  */
-async function findStory(projectPath: string, storySlug: string): Promise<StoryInfo | null> {
-  const result = await finderFindStory(projectPath, storySlug);
+async function findStory(storySlug: string): Promise<StoryInfo | null> {
+  const projectDir = getProjectDir();
+  const result = await finderFindStory(projectDir, storySlug);
 
   if (!result.found) {
     return null;
@@ -123,9 +117,21 @@ function checkCommandExists(command: string): { exists: boolean; path?: string }
 }
 
 /**
+ * Check SAGA_PROJECT_DIR environment variable
+ */
+function checkProjectDir(): DryRunCheck {
+  const projectDir = process.env.SAGA_PROJECT_DIR;
+  if (projectDir) {
+    return { name: 'SAGA_PROJECT_DIR', path: projectDir, passed: true };
+  }
+  return { name: 'SAGA_PROJECT_DIR', passed: false, error: 'Environment variable not set' };
+}
+
+/**
  * Check SAGA_PLUGIN_ROOT environment variable
  */
-function checkPluginRoot(pluginRoot: string | undefined): DryRunCheck {
+function checkPluginRoot(): DryRunCheck {
+  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
   if (pluginRoot) {
     return { name: 'SAGA_PLUGIN_ROOT', path: pluginRoot, passed: true };
   }
@@ -147,9 +153,14 @@ function checkClaudeCli(): DryRunCheck {
 
 /**
  * Check worker prompt file exists
+ * Uses SAGA_PLUGIN_ROOT from environment
  */
-function checkWorkerPrompt(pluginRoot: string): DryRunCheck {
-  const skillRoot = getSkillRoot(pluginRoot);
+function checkWorkerPrompt(): DryRunCheck {
+  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
+  if (!pluginRoot) {
+    return { name: 'Worker prompt', passed: false, error: 'SAGA_PLUGIN_ROOT not set' };
+  }
+  const skillRoot = getSkillRoot();
   const workerPromptPath = join(skillRoot, WORKER_PROMPT_RELATIVE);
   const exists = existsSync(workerPromptPath);
   return {
@@ -175,20 +186,21 @@ function checkWorktreeExists(worktreePath: string): DryRunCheck {
 
 /**
  * Check story.md file exists in worktree
+ * Uses SAGA_PROJECT_DIR from environment
  */
 function checkStoryMdExists(storyInfo: StoryInfo): DryRunCheck | null {
-  if (!existsSync(storyInfo.worktreePath)) {
+  const projectDir = process.env.SAGA_PROJECT_DIR;
+  if (!projectDir) {
     return null;
   }
-  const storyMdPath = computeStoryPath(
-    storyInfo.worktreePath,
-    storyInfo.epicSlug,
-    storyInfo.storySlug,
-  );
-  const exists = existsSync(storyMdPath);
+  const worktreePaths = createWorktreePaths(projectDir, storyInfo.epicSlug, storyInfo.storySlug);
+  if (!existsSync(worktreePaths.worktreeDir)) {
+    return null;
+  }
+  const exists = existsSync(worktreePaths.storyMdInWorktree);
   return {
     name: 'story.md in worktree',
-    path: storyMdPath,
+    path: worktreePaths.storyMdInWorktree,
     passed: exists,
     error: exists ? undefined : 'File not found',
   };
@@ -196,42 +208,47 @@ function checkStoryMdExists(storyInfo: StoryInfo): DryRunCheck | null {
 
 /**
  * Run dry-run validation to check all dependencies
+ * Uses SAGA_PROJECT_DIR and SAGA_PLUGIN_ROOT from environment
  */
-function runDryRun(
-  storyInfo: StoryInfo,
-  _projectPath: string,
-  pluginRoot: string | undefined,
-): DryRunResult {
+function runDryRun(storyInfo: StoryInfo): DryRunResult {
   const checks: DryRunCheck[] = [];
+  const projectDir = process.env.SAGA_PROJECT_DIR;
 
-  // Check 1: SAGA_PLUGIN_ROOT environment variable
-  checks.push(checkPluginRoot(pluginRoot));
+  // Check 1: SAGA_PROJECT_DIR environment variable
+  checks.push(checkProjectDir());
 
-  // Check 2: claude CLI is available
+  // Check 2: SAGA_PLUGIN_ROOT environment variable
+  checks.push(checkPluginRoot());
+
+  // Check 3: claude CLI is available
   checks.push(checkClaudeCli());
 
-  // Check 3: Worker prompt file
-  if (pluginRoot) {
-    checks.push(checkWorkerPrompt(pluginRoot));
-  }
+  // Check 4: Worker prompt file
+  checks.push(checkWorkerPrompt());
 
-  // Check 4: Story exists
+  // Check 5: Story exists
   checks.push({
     name: 'Story found',
     path: `${storyInfo.storySlug} (epic: ${storyInfo.epicSlug})`,
     passed: true,
   });
 
-  // Check 5: Worktree exists
-  checks.push(checkWorktreeExists(storyInfo.worktreePath));
+  // Check 6: Worktree exists
+  if (projectDir) {
+    const worktreePaths = createWorktreePaths(projectDir, storyInfo.epicSlug, storyInfo.storySlug);
+    checks.push(checkWorktreeExists(worktreePaths.worktreeDir));
 
-  // Check 6: story.md in worktree
-  const storyMdCheck = checkStoryMdExists(storyInfo);
-  if (storyMdCheck) {
-    checks.push(storyMdCheck);
+    // Check 7: story.md in worktree
+    const storyMdCheck = checkStoryMdExists(storyInfo);
+    if (storyMdCheck) {
+      checks.push(storyMdCheck);
+    }
   }
 
   const allPassed = checks.every((check) => check.passed);
+  const worktreePath = projectDir
+    ? createWorktreePaths(projectDir, storyInfo.epicSlug, storyInfo.storySlug).worktreeDir
+    : '';
 
   return {
     success: allPassed,
@@ -239,7 +256,7 @@ function runDryRun(
     story: {
       epicSlug: storyInfo.epicSlug,
       storySlug: storyInfo.storySlug,
-      worktreePath: storyInfo.worktreePath,
+      worktreePath,
     },
   };
 }
@@ -291,26 +308,23 @@ function printDryRunResults(result: DryRunResult): void {
 /**
  * Handle dry-run mode for implement command
  */
-function handleDryRun(
-  storyInfo: StoryInfo,
-  projectPath: string,
-  pluginRoot: string | undefined,
-): never {
-  const dryRunResult = runDryRun(storyInfo, projectPath, pluginRoot);
+function handleDryRun(storyInfo: StoryInfo): never {
+  const dryRunResult = runDryRun(storyInfo);
   printDryRunResults(dryRunResult);
   process.exit(dryRunResult.success ? 0 : 1);
 }
 
 /**
  * Handle detached mode - create tmux session
+ * Uses SAGA_PROJECT_DIR from environment
  */
 async function handleDetachedMode(
   storySlug: string,
   storyInfo: StoryInfo,
-  projectPath: string,
   options: ImplementOptions,
 ): Promise<void> {
-  const detachedCommand = buildDetachedCommand(storySlug, projectPath, {
+  const projectDir = getProjectDir();
+  const detachedCommand = buildDetachedCommand(storySlug, projectDir, {
     maxCycles: options.maxCycles,
     maxTime: options.maxTime,
     model: options.model,
@@ -334,11 +348,10 @@ async function handleDetachedMode(
 
 /**
  * Handle internal session mode - run the orchestration loop
+ * Uses SAGA_PROJECT_DIR and SAGA_PLUGIN_ROOT from environment
  */
 async function handleInternalSession(
   storyInfo: StoryInfo,
-  projectPath: string,
-  pluginRoot: string,
   options: ImplementOptions,
 ): Promise<void> {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
@@ -356,8 +369,6 @@ async function handleInternalSession(
     maxCycles,
     maxTime,
     model,
-    projectPath,
-    pluginRoot,
   );
 
   if (result.status === 'ERROR') {
@@ -374,45 +385,47 @@ async function handleInternalSession(
 
 /**
  * Execute the implement command
+ * Uses SAGA_PROJECT_DIR and SAGA_PLUGIN_ROOT from environment
  */
 export async function implementCommand(storySlug: string, options: ImplementOptions): Promise<void> {
-  let projectPath: string;
+  // Verify required env vars are set
   try {
-    projectPath = resolveProjectPath(options.path);
-  } catch (_error) {
-    console.error('Error: SAGA project not found. Run saga init first or use --path option.');
+    getProjectDir();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 
-  const storyInfo = await findStory(projectPath, storySlug);
+  const storyInfo = await findStory(storySlug);
   if (!storyInfo) {
     console.error(`Error: Story '${storySlug}' not found in project.`);
     console.error('Use /generate-stories to create stories for an epic first.');
     process.exit(1);
   }
 
-  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
-
   if (options.dryRun) {
-    handleDryRun(storyInfo, projectPath, pluginRoot);
+    handleDryRun(storyInfo);
   }
 
-  if (!pluginRoot) {
-    console.error('Error: SAGA_PLUGIN_ROOT environment variable is not set.');
-    console.error('This is required to find the worker prompt template.');
+  // Verify SAGA_PLUGIN_ROOT is set
+  try {
+    getPluginRoot();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 
-  if (!existsSync(storyInfo.worktreePath)) {
-    console.error(`Error: Worktree not found at ${storyInfo.worktreePath}`);
+  const worktreePath = getWorktreePath(storyInfo.epicSlug, storyInfo.storySlug);
+  if (!existsSync(worktreePath)) {
+    console.error(`Error: Worktree not found at ${worktreePath}`);
     process.exit(1);
   }
 
   const isInternalSession = process.env.SAGA_INTERNAL_SESSION === '1';
   if (isInternalSession) {
-    await handleInternalSession(storyInfo, projectPath, pluginRoot, options);
+    await handleInternalSession(storyInfo, options);
   } else {
-    await handleDetachedMode(storySlug, storyInfo, projectPath, options);
+    await handleDetachedMode(storySlug, storyInfo, options);
   }
 }
 
