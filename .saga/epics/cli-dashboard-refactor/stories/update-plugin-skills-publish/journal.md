@@ -60,3 +60,26 @@
 
 **Next steps:**
 - t4: Update version numbers across packages
+
+## Session 4: 2026-02-04
+
+### Task: t4 - Update version numbers across packages
+
+**What was done:**
+- Updated `plugin/.claude-plugin/plugin.json` version from "2.17.1" to "3.0.0"
+- Updated `packages/dashboard/package.json` version from "2.17.1" to "3.0.0"
+- Verified `packages/saga-types/package.json` exists with version "0.0.0" and `"private": true` — appropriate for internal workspace package
+- Verified `packages/plugin-scripts/package.json` exists with version "0.0.0" and `"private": true` — appropriate for internal workspace package
+- Verified `packages/statusline/package.json` (`@saga/statusline` v1.1.0) is a separate package not in scope for this version bump
+
+**Decisions:**
+- Private workspace packages (`saga-types`, `plugin-scripts`) keep version "0.0.0" since they are never published to npm independently — they are consumed via `workspace:*` references
+- Only the two published packages (plugin and dashboard) are bumped to 3.0.0
+
+**Verification:**
+- plugin.json version is "3.0.0"
+- dashboard package.json version is "3.0.0"
+- All package versions are consistent and appropriate
+
+**Next steps:**
+- t5: Update root publish skill for @saga-ai/dashboard
