@@ -293,3 +293,44 @@ All tasks (t1-t7) have been completed:
 - All 8 commits preserved with correct content
 - Branch is now based on latest master
 - Updated story.md frontmatter: all task statuses changed from `pending` to `completed`, story status changed from `ready` to `completed`
+
+## Session 9: 2026-02-04
+
+### Post-completion: Update docs and remove unused fuse.js
+
+**What was done:**
+- Rewrote `packages/dashboard/CLAUDE.md` for `@saga-ai/dashboard` scope — removed references to deleted commands (`init`, `find`, `worktree`, `implement`, `scope-validator`), replaced with dashboard server, session management, and client/server architecture sections
+- Rewrote `packages/dashboard/README.md` — removed all documentation for deleted commands, kept only `dashboard` and `sessions list|status|logs`
+- Updated root `README.md` — changed npm badge from `@saga-ai/cli` to `@saga-ai/dashboard`, replaced "CLI Package" section with "Dashboard Package" section listing only retained commands
+- Fixed `packages/dashboard/docs/TESTING.md` heading from `@saga-ai/cli` to `@saga-ai/dashboard`
+- Removed `fuse.js` dependency from `packages/dashboard/package.json` (was only used by deleted `finder.ts`)
+- Removed `--external:fuse.js` from esbuild build script since the dependency no longer exists
+
+**Files modified:**
+- README.md
+- packages/dashboard/CLAUDE.md
+- packages/dashboard/README.md
+- packages/dashboard/docs/TESTING.md
+- packages/dashboard/package.json
+
+**Notes:**
+- These docs were missed during t1-t3 since the focus was on code changes; the documentation still referenced the old CLI scope and commands
+
+## Session 10: 2026-02-04
+
+### Post-completion: Apply biome formatting and fix Playwright e2e fixture
+
+**What was done:**
+- Ran biome auto-format across 117 files in `packages/dashboard/` — converted double quotes to single quotes, normalized indentation (tabs to spaces), adjusted line spacing to match biome config
+- Fixed Playwright e2e fixture lint errors in `src/client/e2e/test-fixture.ts`:
+  - Replaced empty destructuring `_deps` parameter with `{}` (required by Playwright's fixture API)
+  - Added biome override in `biome.json` to allow `noEmptyPattern: "off"` for `**/e2e/test-fixture.ts`
+  - Used computed property keys for env var name (`const sagaUsePollingKey = 'SAGA_USE_POLLING'` → `[sagaUsePollingKey]: '1'`) and Playwright fixture name (`const baseUrlKey = 'baseURL'` → `[baseUrlKey]: async ...`) to satisfy biome's `useNamingConvention` rule
+
+**Files modified:**
+- biome.json (added e2e test-fixture override)
+- 116 files in packages/dashboard/ (formatting only)
+
+**Notes:**
+- The formatting changes are cosmetic only — no logic changes
+- The Playwright fixture requires an empty destructuring pattern `{}` in worker-scoped fixtures that don't depend on other fixtures; biome's `noEmptyPattern` rule flags this, hence the targeted override
