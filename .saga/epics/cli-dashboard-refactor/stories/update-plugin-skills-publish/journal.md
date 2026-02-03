@@ -41,3 +41,22 @@
 
 **Next steps:**
 - t3: Update CHANGELOG.md for v3.0.0 release
+
+## Session 3: 2026-02-04
+
+### Task: t3 - Update CHANGELOG.md for v3.0.0 release
+
+**What was done:**
+- Added comprehensive v3.0.0 entry at the top of CHANGELOG.md
+- Included Breaking Changes section documenting: package rename, plugin skill invocation change, dashboard standalone operation
+- Added section covering new packages: plugin-scripts, plugin/scripts/ artifacts, saga-types, dashboard package
+- Changed section documents: architecture separation, session management split, all skill updates, agent updates, publish workflow
+- Removed section documents: @saga-ai/cli deprecation, CLI orchestration commands moved to plugin, SAGA_PLUGIN_ROOT dependency removal
+
+**Decisions:**
+- Used 2026-02-04 as the release date (today's date, will be adjusted during actual publish if needed)
+- Kept descriptions specific and referenced actual file/package names rather than vague summaries
+- Structured Breaking Changes as a separate top-level section for visibility (per Keep a Changelog convention)
+
+**Next steps:**
+- t4: Update version numbers across packages

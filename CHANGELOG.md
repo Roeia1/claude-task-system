@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-02-04
+
+### Breaking Changes
+
+- **Package rename**: `@saga-ai/cli` is replaced by `@saga-ai/dashboard` — the CLI package is deprecated and removed from npm
+- **Plugin skills**: All skills now invoke `node $SAGA_PLUGIN_ROOT/scripts/<name>.js` instead of `npx @saga-ai/cli <command>` — existing plugin installations must update to v3.0.0
+- **Dashboard standalone**: `@saga-ai/dashboard` no longer depends on `SAGA_PLUGIN_ROOT` or other plugin environment variables — it reads `.saga/` directory directly
+
+### Added
+
+- **plugin-scripts**: New `packages/plugin-scripts/` package containing TypeScript source for all orchestration commands
+  - `implement.ts` — story execution orchestrator (refactored from monolithic 32KB file into focused modules)
+  - `find.ts` — fuzzy epic/story search
+  - `worktree.ts` — git worktree creation for story isolation
+  - `scope-validator.ts` — tool call scope enforcement
+  - `sessions-kill.ts` — tmux session termination
+- **plugin/scripts/**: Pre-built JavaScript artifacts committed to the plugin for direct execution (`node $SAGA_PLUGIN_ROOT/scripts/<name>.js`)
+- **saga-types**: New `packages/saga-types/` package with shared Zod schemas and inferred TypeScript types for the `.saga/` directory contract (Epic, Story, Session, StoryStatus, etc.)
+- **dashboard package**: New `packages/dashboard/` package (`@saga-ai/dashboard`) — standalone dashboard and session viewer that only reads `.saga/` directory
+
+### Changed
+
+- **Architecture**: Clear separation of concerns — plugin handles orchestration, dashboard handles monitoring
+  - Plugin skills call internal scripts instead of shelling out to an npm package
+  - Dashboard operates independently with no plugin dependency
+  - `.saga/` directory structure is the only interface contract between components
+- **Session management split**: Plugin handles session creation/killing (orchestration), dashboard handles session viewing (monitoring)
+- **Plugin skills**: All `npx @saga-ai/cli` invocations replaced with `node $SAGA_PLUGIN_ROOT/scripts/<name>.js`
+- **generate-story agent**: Uses `node $SAGA_PLUGIN_ROOT/scripts/worktree.js` instead of `npx @saga-ai/cli worktree`
+- **list-sessions skill**: Uses `npx @saga-ai/dashboard sessions list` instead of `npx @saga-ai/cli sessions list`
+- **dashboard skill**: Uses `npx @saga-ai/dashboard@latest` instead of `npx @saga-ai/cli@latest dashboard`
+- **Publish workflow**: Updated to publish `@saga-ai/dashboard` instead of `@saga-ai/cli`
+
+### Removed
+
+- **@saga-ai/cli**: Package deprecated and deleted from npm — replaced by `@saga-ai/dashboard` for monitoring and `plugin/scripts/` for orchestration
+- **CLI orchestration commands**: `implement`, `find`, `worktree`, `scope-validator`, `sessions kill` removed from dashboard package — these now live in plugin scripts
+- **SAGA_PLUGIN_ROOT dependency**: Dashboard no longer requires any SAGA environment variables
+
 ## [2.17.1] - 2026-02-02
 
 ### Fixed
