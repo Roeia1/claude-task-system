@@ -4,3 +4,7 @@ pre-commit:
     - name: biome
       glob: "*.{ts,tsx,js,jsx,json}"
       run: npx biome check --no-errors-on-unmatched {staged_files}
+
+    - name: protect-biome-config
+      glob: "biome.json*"
+      run: echo "❌ Changes to biome configuration are not allowed. Remove biome.json from your commit." && exit 1
