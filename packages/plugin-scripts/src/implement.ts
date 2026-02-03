@@ -32,7 +32,7 @@
  */
 
 import process from 'node:process';
-import { implementCommand, type ImplementOptions } from './implement/index.ts';
+import { type ImplementOptions, implementCommand } from './implement/index.ts';
 
 // ============================================================================
 // CLI Interface

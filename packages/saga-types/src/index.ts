@@ -4,46 +4,45 @@
  * Re-exports all types from the saga-types package for convenient importing.
  */
 
-// Story types
+// Directory path utilities
 export {
-  StoryStatusSchema,
-  type StoryStatus,
-  TaskStatusSchema,
-  type TaskStatus,
-  TaskSchema,
-  type Task,
-  StoryFrontmatterSchema,
-  type StoryFrontmatter,
-  StorySchema,
-  type Story,
-} from './story.ts';
+  type ArchivePaths,
+  createArchivePaths,
+  createEpicPaths,
+  createSagaPaths,
+  createStoryPaths,
+  createWorktreePaths,
+  type EpicPaths,
+  type SagaPaths,
+  type StoryPaths,
+  type WorktreePaths,
+} from './directory.ts';
 
 // Epic types
 export {
-  StoryCountsSchema,
-  type StoryCounts,
-  EpicSchema,
   type Epic,
+  EpicSchema,
+  type StoryCounts,
+  StoryCountsSchema,
 } from './epic.ts';
 
 // Session types
 export {
-  SessionStatusSchema,
-  type SessionStatus,
-  SessionSchema,
   type Session,
+  SessionSchema,
+  type SessionStatus,
+  SessionStatusSchema,
 } from './session.ts';
-
-// Directory path utilities
+// Story types
 export {
-  type SagaPaths,
-  type EpicPaths,
-  type StoryPaths,
-  type WorktreePaths,
-  type ArchivePaths,
-  createSagaPaths,
-  createEpicPaths,
-  createStoryPaths,
-  createWorktreePaths,
-  createArchivePaths,
-} from './directory.ts';
+  type Story,
+  type StoryFrontmatter,
+  StoryFrontmatterSchema,
+  StorySchema,
+  type StoryStatus,
+  StoryStatusSchema,
+  type Task,
+  TaskSchema,
+  type TaskStatus,
+  TaskStatusSchema,
+} from './story.ts';

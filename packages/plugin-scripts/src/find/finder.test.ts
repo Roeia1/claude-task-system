@@ -5,8 +5,8 @@
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createEpicPaths, createSagaPaths, createWorktreePaths } from '@saga-ai/types';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { extractContext, findEpic, findStory } from './finder.ts';
 import { parseFrontmatter } from './saga-scanner.ts';
 

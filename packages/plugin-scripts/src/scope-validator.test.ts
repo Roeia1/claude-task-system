@@ -169,17 +169,17 @@ describe('scope-validator', () => {
   describe('validatePath', () => {
     it('should allow valid paths within story scope', () => {
       expect(
-        validatePath(
-          '/project/worktree/src/file.ts',
-          '/project/worktree',
-          'my-epic',
-          'my-story',
-        ),
+        validatePath('/project/worktree/src/file.ts', '/project/worktree', 'my-epic', 'my-story'),
       ).toBeNull();
     });
 
     it('should block paths outside worktree', () => {
-      const result = validatePath('/other/project/file.ts', '/project/worktree', 'my-epic', 'my-story');
+      const result = validatePath(
+        '/other/project/file.ts',
+        '/project/worktree',
+        'my-epic',
+        'my-story',
+      );
       expect(result).toContain('Access outside worktree blocked');
     });
 

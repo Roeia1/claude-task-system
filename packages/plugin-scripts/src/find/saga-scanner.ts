@@ -9,12 +9,12 @@ import { existsSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
-  type StoryStatus,
-  createSagaPaths,
+  createArchivePaths,
   createEpicPaths,
+  createSagaPaths,
   createStoryPaths,
   createWorktreePaths,
-  createArchivePaths,
+  type StoryStatus,
 } from '@saga-ai/types';
 
 // ============================================================================
@@ -324,7 +324,12 @@ async function scanArchive(sagaRoot: string): Promise<ScannedStory[]> {
     const storyPromises = storyEntries.map(async (storySlug) => {
       const storyArchivePaths = createArchivePaths(sagaRoot, epicSlug, storySlug);
 
-      if (!storyArchivePaths.archiveStoryDir || !(await isDirectory(storyArchivePaths.archiveStoryDir))) {
+      if (
+        !(
+          storyArchivePaths.archiveStoryDir &&
+          (await isDirectory(storyArchivePaths.archiveStoryDir))
+        )
+      ) {
         return null;
       }
 

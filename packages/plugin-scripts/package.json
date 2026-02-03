@@ -5,6 +5,7 @@
   "description": "TypeScript source for SAGA plugin scripts compiled to plugin/scripts/",
   "type": "module",
   "scripts": {
+    "prebuild": "biome check .",
     "build": "node esbuild.config.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

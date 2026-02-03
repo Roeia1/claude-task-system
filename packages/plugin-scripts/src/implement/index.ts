@@ -26,13 +26,17 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 import { createWorktreePaths } from '@saga-ai/types';
-
-import type { DryRunCheck, DryRunResult, ImplementOptions, StoryInfo } from './types.ts';
-import { DEFAULT_MAX_CYCLES, DEFAULT_MAX_TIME, DEFAULT_MODEL, WORKER_PROMPT_RELATIVE } from './types.ts';
-import { runLoop, getSkillRoot, getWorktreePath } from './orchestrator.ts';
-import { createSession, buildDetachedCommand } from './session-manager.ts';
 import { findStory as finderFindStory } from '../find/finder.ts';
 import { getPluginRoot, getProjectDir } from '../shared/env.ts';
+import { getSkillRoot, getWorktreePath, runLoop } from './orchestrator.ts';
+import { buildDetachedCommand, createSession } from './session-manager.ts';
+import type { DryRunCheck, DryRunResult, ImplementOptions, StoryInfo } from './types.ts';
+import {
+  DEFAULT_MAX_CYCLES,
+  DEFAULT_MAX_TIME,
+  DEFAULT_MODEL,
+  WORKER_PROMPT_RELATIVE,
+} from './types.ts';
 
 // ============================================================================
 // Story Finding
@@ -298,11 +302,7 @@ async function handleDetachedMode(
   });
 
   try {
-    const sessionInfo = createSession(
-      storyInfo.epicSlug,
-      storyInfo.storySlug,
-      detachedCommand,
-    );
+    const sessionInfo = createSession(storyInfo.epicSlug, storyInfo.storySlug, detachedCommand);
     // Output session info as JSON for programmatic use
     console.log(JSON.stringify(sessionInfo, null, 2));
   } catch (error) {
@@ -330,13 +330,7 @@ async function handleInternalSession(
   console.log(`Max cycles: ${maxCycles}, Max time: ${maxTime}min, Model: ${model}`);
   console.log('');
 
-  const result = await runLoop(
-    storyInfo.epicSlug,
-    storyInfo.storySlug,
-    maxCycles,
-    maxTime,
-    model,
-  );
+  const result = await runLoop(storyInfo.epicSlug, storyInfo.storySlug, maxCycles, maxTime, model);
 
   if (result.status === 'ERROR') {
     console.error(`Error: ${result.summary}`);
@@ -354,7 +348,10 @@ async function handleInternalSession(
  * Execute the implement command
  * Uses SAGA_PROJECT_DIR and SAGA_PLUGIN_ROOT from environment
  */
-export async function implementCommand(storySlug: string, options: ImplementOptions): Promise<void> {
+export async function implementCommand(
+  storySlug: string,
+  options: ImplementOptions,
+): Promise<void> {
   // Verify required env vars are set
   try {
     getProjectDir();

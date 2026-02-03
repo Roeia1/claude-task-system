@@ -207,8 +207,12 @@ function parseArgs(args: string[]): { epicSlug?: string; storySlug?: string; hel
     }
   }
 
-  if (positional.length >= 1) result.epicSlug = positional[0];
-  if (positional.length >= 2) result.storySlug = positional[1];
+  if (positional.length > 0) {
+    result.epicSlug = positional[0];
+  }
+  if (positional.length >= 2) {
+    result.storySlug = positional[1];
+  }
 
   return result;
 }
@@ -225,7 +229,7 @@ function main(): void {
     process.exit(0);
   }
 
-  if (!args.epicSlug || !args.storySlug) {
+  if (!(args.epicSlug && args.storySlug)) {
     console.error('Error: Both epic-slug and story-slug are required.\n');
     printHelp();
     process.exit(1);

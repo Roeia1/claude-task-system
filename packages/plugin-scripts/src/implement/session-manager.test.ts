@@ -39,7 +39,7 @@ describe('session-manager', () => {
 
     it('handles strings with double quotes', () => {
       const result = shellEscape('say "hello"');
-      expect(result).toBe("'say \"hello\"'");
+      expect(result).toBe('\'say "hello"\'');
     });
 
     it('handles strings with newlines', () => {

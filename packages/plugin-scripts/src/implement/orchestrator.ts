@@ -9,7 +9,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createStoryPaths, createWorktreePaths } from '@saga-ai/types';
-
+import { getPluginRoot, getProjectDir } from '../shared/env.ts';
+import { buildScopeSettings } from './scope-config.ts';
+import { spawnWorkerAsync, type WorkerEnv } from './session-manager.ts';
 import type { LoopResult, LoopState, StoryInfo, WorkerLoopConfig } from './types.ts';
 import {
   MS_PER_MINUTE,
@@ -18,9 +20,6 @@ import {
   SECONDS_PER_MINUTE,
   WORKER_PROMPT_RELATIVE,
 } from './types.ts';
-import { buildScopeSettings } from './scope-config.ts';
-import { spawnWorkerAsync, type WorkerEnv } from './session-manager.ts';
-import { getPluginRoot, getProjectDir } from '../shared/env.ts';
 
 // ============================================================================
 // Path Helpers
@@ -124,7 +123,7 @@ export function validateLoopResources(
 
   try {
     const workerPrompt = loadWorkerPrompt();
-    return { valid: true, workerPrompt, worktreeDir: validation.worktreePaths!.worktreeDir };
+    return { valid: true, workerPrompt, worktreeDir: validation.worktreePaths?.worktreeDir };
   } catch (e) {
     return { valid: false, error: e instanceof Error ? e.message : String(e) };
   }

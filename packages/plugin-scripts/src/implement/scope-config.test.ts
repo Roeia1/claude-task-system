@@ -30,7 +30,10 @@ describe('scope-config', () => {
       const settings = buildScopeSettings();
       const hooks = settings.hooks as Record<string, unknown[]>;
       const preToolUse = hooks.PreToolUse;
-      const config = preToolUse[0] as { matcher: string; hooks: Array<{ type: string; command: string }> };
+      const config = preToolUse[0] as {
+        matcher: string;
+        hooks: Array<{ type: string; command: string }>;
+      };
 
       // Should include all file system tools
       expect(config.matcher).toContain('Read');

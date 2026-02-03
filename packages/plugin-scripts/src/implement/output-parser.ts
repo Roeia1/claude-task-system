@@ -257,7 +257,9 @@ export function formatStreamLine(line: string): string | null {
  * Searches for assistant messages containing a StructuredOutput tool_use block
  * Returns the input object if found, null otherwise
  */
-export function extractStructuredOutputFromToolCall(lines: string[]): Record<string, unknown> | null {
+export function extractStructuredOutputFromToolCall(
+  lines: string[],
+): Record<string, unknown> | null {
   // Search backwards to find the most recent StructuredOutput tool call
   for (let i = lines.length - 1; i >= 0; i--) {
     try {

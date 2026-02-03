@@ -19,9 +19,9 @@
 
 import { existsSync } from 'node:fs';
 import process from 'node:process';
-import { type StoryStatus, StoryStatusSchema, createSagaPaths } from '@saga-ai/types';
-import { findEpic, findStory } from './finder.ts';
+import { createSagaPaths, type StoryStatus, StoryStatusSchema } from '@saga-ai/types';
 import { getProjectDir as getProjectDirEnv } from '../shared/env.ts';
+import { findEpic, findStory } from './finder.ts';
 
 // ============================================================================
 // Types
@@ -123,7 +123,9 @@ function parseArgs(args: string[]): {
     }
   }
 
-  if (positional.length >= 1) result.query = positional[0];
+  if (positional.length > 0) {
+    result.query = positional[0];
+  }
 
   return result;
 }
@@ -167,10 +169,16 @@ async function main(): Promise<void> {
     const parsed = StoryStatusSchema.safeParse(args.status);
     if (!parsed.success) {
       const validValues = StoryStatusSchema.options.join(', ');
-      console.log(JSON.stringify({
-        found: false,
-        error: `Invalid status: "${args.status}". Valid values: ${validValues}`,
-      }, null, 2));
+      console.log(
+        JSON.stringify(
+          {
+            found: false,
+            error: `Invalid status: "${args.status}". Valid values: ${validValues}`,
+          },
+          null,
+          2,
+        ),
+      );
       process.exit(1);
     }
     status = parsed.data;

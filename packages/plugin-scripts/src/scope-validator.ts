@@ -205,9 +205,15 @@ function getScopeEnvironment(): {
   const storySlug = process.env.SAGA_STORY_SLUG || '';
 
   const missing: string[] = [];
-  if (!worktreePath) missing.push('SAGA_PROJECT_DIR');
-  if (!epicSlug) missing.push('SAGA_EPIC_SLUG');
-  if (!storySlug) missing.push('SAGA_STORY_SLUG');
+  if (!worktreePath) {
+    missing.push('SAGA_PROJECT_DIR');
+  }
+  if (!epicSlug) {
+    missing.push('SAGA_EPIC_SLUG');
+  }
+  if (!storySlug) {
+    missing.push('SAGA_STORY_SLUG');
+  }
 
   if (missing.length > 0) {
     process.stderr.write(
@@ -288,7 +294,8 @@ async function main(): Promise<void> {
 
 // Run main only when executed directly (not when imported for testing)
 // biome-ignore lint: import.meta.url check is the standard ESM way to detect direct execution
-const isDirectExecution = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
+const isDirectExecution =
+  process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
 if (isDirectExecution) {
   main();
 }

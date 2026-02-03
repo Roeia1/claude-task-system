@@ -9,9 +9,8 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
-
-import type { CreateSessionResult, WorkerOutput } from './types.ts';
 import { formatStreamLine, parseStreamingResult, WORKER_OUTPUT_SCHEMA } from './output-parser.ts';
+import type { CreateSessionResult, WorkerOutput } from './types.ts';
 
 /**
  * Get the session output directory from SAGA_SESSION_DIR environment variable

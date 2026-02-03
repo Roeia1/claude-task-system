@@ -5,8 +5,8 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createStoryPaths, createWorktreePaths } from '@saga-ai/types';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildLoopResult,
   createErrorResult,
@@ -37,7 +37,7 @@ describe('orchestrator', () => {
     });
 
     it('throws when SAGA_PLUGIN_ROOT not set', () => {
-      delete process.env.SAGA_PLUGIN_ROOT;
+      process.env.SAGA_PLUGIN_ROOT = undefined;
       expect(() => getSkillRoot()).toThrow('SAGA_PLUGIN_ROOT environment variable is not set');
     });
   });
@@ -50,8 +50,10 @@ describe('orchestrator', () => {
     });
 
     it('throws when SAGA_PROJECT_DIR not set', () => {
-      delete process.env.SAGA_PROJECT_DIR;
-      expect(() => getWorktreePath('epic', 'story')).toThrow('SAGA_PROJECT_DIR environment variable is not set');
+      process.env.SAGA_PROJECT_DIR = undefined;
+      expect(() => getWorktreePath('epic', 'story')).toThrow(
+        'SAGA_PROJECT_DIR environment variable is not set',
+      );
     });
   });
 
@@ -109,8 +111,10 @@ describe('orchestrator', () => {
     });
 
     it('throws when SAGA_PROJECT_DIR not set', () => {
-      delete process.env.SAGA_PROJECT_DIR;
-      expect(() => validateStoryFiles('epic', 'story')).toThrow('SAGA_PROJECT_DIR environment variable is not set');
+      process.env.SAGA_PROJECT_DIR = undefined;
+      expect(() => validateStoryFiles('epic', 'story')).toThrow(
+        'SAGA_PROJECT_DIR environment variable is not set',
+      );
     });
   });
 
@@ -130,7 +134,7 @@ describe('orchestrator', () => {
     });
 
     it('throws when SAGA_PLUGIN_ROOT not set', () => {
-      delete process.env.SAGA_PLUGIN_ROOT;
+      process.env.SAGA_PLUGIN_ROOT = undefined;
       expect(() => loadWorkerPrompt()).toThrow('SAGA_PLUGIN_ROOT environment variable is not set');
     });
 

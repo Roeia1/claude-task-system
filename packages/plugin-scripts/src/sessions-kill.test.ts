@@ -66,9 +66,13 @@ describe('sessions-kill CLI', () => {
     });
 
     it('should handle session names with hyphens', () => {
-      const result = spawnSync('node', [scriptPath, 'saga__my-epic-name__my-story-name__1234567890'], {
-        encoding: 'utf-8',
-      });
+      const result = spawnSync(
+        'node',
+        [scriptPath, 'saga__my-epic-name__my-story-name__1234567890'],
+        {
+          encoding: 'utf-8',
+        },
+      );
 
       const output = JSON.parse(result.stdout);
       expect(output).toHaveProperty('killed');

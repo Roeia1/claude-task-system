@@ -17,11 +17,7 @@ import {
 describe('output-parser', () => {
   describe('WORKER_OUTPUT_SCHEMA', () => {
     it('defines status as required enum', () => {
-      expect(WORKER_OUTPUT_SCHEMA.properties.status.enum).toEqual([
-        'ONGOING',
-        'FINISH',
-        'BLOCKED',
-      ]);
+      expect(WORKER_OUTPUT_SCHEMA.properties.status.enum).toEqual(['ONGOING', 'FINISH', 'BLOCKED']);
     });
 
     it('defines summary as required string', () => {
@@ -183,7 +179,7 @@ describe('output-parser', () => {
     });
 
     it('truncates arrays in unknown tools', () => {
-      const longArray = Array(50).fill('item');
+      const longArray = new Array(50).fill('item');
       const result = formatToolUsage('CustomTool', { items: longArray });
       expect(result).toContain('...');
     });
@@ -208,9 +204,7 @@ describe('output-parser', () => {
     });
 
     it('formats tool_use content blocks', () => {
-      const content = [
-        { type: 'tool_use', name: 'Read', input: { file_path: '/test.ts' } },
-      ];
+      const content = [{ type: 'tool_use', name: 'Read', input: { file_path: '/test.ts' } }];
       const result = formatAssistantContent(content);
       expect(result).toBe('[Tool Used: Read] /test.ts\n');
     });
@@ -501,9 +495,7 @@ describe('output-parser', () => {
 
     it('throws when no output found', () => {
       const data = { type: 'result', subtype: 'success' };
-      expect(() => processResultLine(data, [])).toThrow(
-        'Worker result missing structured_output',
-      );
+      expect(() => processResultLine(data, [])).toThrow('Worker result missing structured_output');
     });
   });
 

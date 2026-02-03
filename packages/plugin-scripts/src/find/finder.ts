@@ -8,7 +8,7 @@
  */
 
 import { readdirSync } from 'node:fs';
-import { type StoryStatus, createSagaPaths } from '@saga-ai/types';
+import { createSagaPaths, type StoryStatus } from '@saga-ai/types';
 import Fuse, { type FuseResult } from 'fuse.js';
 import {
   epicsDirectoryExists,
