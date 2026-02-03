@@ -13,11 +13,19 @@
  * - SAGA_STORY_SLUG: The current story identifier
  *
  * Input: Tool input JSON is read from stdin
- * Output: Exit code 0 = allowed, exit code 2 = blocked (with error message)
+ * Exit codes:
+ *   0 = allowed (operation can proceed)
+ *   1 = configuration error (missing environment variables)
+ *   2 = blocked (scope violation, with error message to stderr)
  */
 
 import { relative, resolve } from 'node:path';
 import process from 'node:process';
+
+// Exit codes
+const EXIT_ALLOWED = 0;
+const EXIT_CONFIG_ERROR = 1;
+const EXIT_BLOCKED = 2;
 
 // Box formatting constants for scope violation message
 const FILE_PATH_WIDTH = 50;
@@ -247,7 +255,8 @@ function validatePath(
 async function main(): Promise<void> {
   const env = getScopeEnvironment();
   if (!env) {
-    process.exit(2);
+    // Missing required environment variables - configuration error
+    process.exit(EXIT_CONFIG_ERROR);
   }
 
   const toolInput = await readStdinInput();
@@ -255,16 +264,16 @@ async function main(): Promise<void> {
 
   // If no path found, allow the operation (not a file operation)
   if (!filePath) {
-    process.exit(0);
+    process.exit(EXIT_ALLOWED);
   }
 
   const violation = validatePath(filePath, env.worktreePath, env.epicSlug, env.storySlug);
   if (violation) {
     printScopeViolation(filePath, env.epicSlug, env.storySlug, env.worktreePath, violation);
-    process.exit(2);
+    process.exit(EXIT_BLOCKED);
   }
 
-  process.exit(0);
+  process.exit(EXIT_ALLOWED);
 }
 
 // Run main

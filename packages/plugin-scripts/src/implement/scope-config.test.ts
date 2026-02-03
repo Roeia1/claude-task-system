@@ -58,7 +58,7 @@ describe('scope-config', () => {
 
       expect(Array.isArray(config.hooks)).toBe(true);
       expect(config.hooks.length).toBe(1);
-      expect(config.hooks[0]).toBe('npx @saga-ai/cli scope-validator');
+      expect(config.hooks[0]).toBe('node $SAGA_PLUGIN_ROOT/scripts/scope-validator.js');
     });
 
     it('returns consistent results on multiple calls', () => {

@@ -13,6 +13,7 @@ import type { StoryStatus } from '@saga-ai/types';
 import Fuse, { type FuseResult } from 'fuse.js';
 import {
   epicsDirectoryExists,
+  type ScannedEpic,
   type ScannedStory,
   scanAllStories,
   worktreesDirectoryExists,
@@ -369,4 +370,4 @@ async function findStory(
 // ============================================================================
 
 export { extractContext, findEpic, findStory };
-export type { EpicInfo, FindResult, FindStoryOptions, StoryInfo };
+export type { EpicInfo, FindResult, FindStoryOptions, ScannedEpic, ScannedStory, StoryInfo };

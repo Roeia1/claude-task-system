@@ -21,9 +21,9 @@ const HOOK_PRE_TOOL_USE = 'PreToolUse';
  * @returns Settings object with hook configuration
  */
 export function buildScopeSettings(): Record<string, unknown> {
-  // Use npx to run the CLI's scope-validator command
-  // This avoids dependency on Python and keeps everything in TypeScript
-  const hookCommand = 'npx @saga-ai/cli scope-validator';
+  // Use node to run the scope-validator script from plugin-scripts
+  // $SAGA_PLUGIN_ROOT is set by the plugin's SessionStart hook
+  const hookCommand = 'node $SAGA_PLUGIN_ROOT/scripts/scope-validator.js';
 
   return {
     hooks: {
