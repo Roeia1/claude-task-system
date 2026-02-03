@@ -4,12 +4,12 @@ description: Generate stories from an epic
 argument-hint: "[epic-slug]"
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Bash(npx:*), Bash(git:*), Bash(gh:*), Read, Write, AskUserQuestion, Task, TaskCreate, TaskUpdate, TaskList, TaskGet
+allowed-tools: Bash(node:*), Bash(git:*), Bash(gh:*), Read, Write, AskUserQuestion, Task, TaskCreate, TaskUpdate, TaskList, TaskGet
 ---
 
 # Generate Stories Skill
 
-!`npx @saga-ai/cli --path "${SAGA_PROJECT_DIR}" find "$0" --type epic`
+!`node $SAGA_PLUGIN_ROOT/scripts/find.js "$0" --type epic`
 
 ## Tasks
 
