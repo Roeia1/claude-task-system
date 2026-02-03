@@ -26,3 +26,18 @@
 
 **Next steps:**
 - t2: Update generate-story agent to use plugin-scripts
+
+## Session 2: 2026-02-04
+
+### Task: t2 - Update generate-story agent to use plugin-scripts
+
+**What was done:**
+- Updated `plugin/agents/generate-story.md` to replace `npx @saga-ai/cli worktree "<epic_slug>" "<generated-slug>" --path "${SAGA_PROJECT_DIR}"` with `node $SAGA_PLUGIN_ROOT/scripts/worktree.js "<epic_slug>" "<generated-slug>"`
+- Removed `--path` flag consistent with t1 decision (scripts read `SAGA_PROJECT_DIR` from environment)
+
+**Verification:**
+- Grep for `npx @saga-ai/cli` in entire `plugin/` directory returns zero results
+- The worktree command invocation is syntactically correct with same argument structure
+
+**Next steps:**
+- t3: Update CHANGELOG.md for v3.0.0 release
