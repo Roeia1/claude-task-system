@@ -14,6 +14,70 @@ import { existsSync as existsSync4 } from "node:fs";
 import { join as join4 } from "node:path";
 import process3 from "node:process";
 
+// ../saga-types/src/directory.ts
+function normalizeRoot(projectRoot) {
+  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
+}
+function createSagaPaths(projectRoot) {
+  const root = normalizeRoot(projectRoot);
+  const saga = `${root}/.saga`;
+  return {
+    root,
+    saga,
+    epics: `${saga}/epics`,
+    worktrees: `${saga}/worktrees`,
+    archive: `${saga}/archive`
+  };
+}
+function createEpicPaths(projectRoot, epicSlug) {
+  const { epics } = createSagaPaths(projectRoot);
+  const epicDir = `${epics}/${epicSlug}`;
+  return {
+    epicSlug,
+    epicDir,
+    epicMd: `${epicDir}/epic.md`,
+    storiesDir: `${epicDir}/stories`
+  };
+}
+function createStoryPaths(projectRoot, epicSlug, storySlug) {
+  const { storiesDir } = createEpicPaths(projectRoot, epicSlug);
+  const storyDir = `${storiesDir}/${storySlug}`;
+  return {
+    epicSlug,
+    storySlug,
+    storyDir,
+    storyMd: `${storyDir}/story.md`,
+    journalMd: `${storyDir}/journal.md`
+  };
+}
+function createWorktreePaths(projectRoot, epicSlug, storySlug) {
+  const { worktrees } = createSagaPaths(projectRoot);
+  const worktreeDir = `${worktrees}/${epicSlug}/${storySlug}`;
+  const nestedStoryDir = `${worktreeDir}/.saga/epics/${epicSlug}/stories/${storySlug}`;
+  return {
+    epicSlug,
+    storySlug,
+    worktreeDir,
+    storyMdInWorktree: `${nestedStoryDir}/story.md`,
+    journalMdInWorktree: `${nestedStoryDir}/journal.md`
+  };
+}
+function createArchivePaths(projectRoot, epicSlug, storySlug) {
+  const { archive } = createSagaPaths(projectRoot);
+  const archiveEpicDir = `${archive}/${epicSlug}`;
+  const result = {
+    epicSlug,
+    archiveEpicDir
+  };
+  if (storySlug) {
+    const archiveStoryDir = `${archiveEpicDir}/${storySlug}`;
+    result.storySlug = storySlug;
+    result.archiveStoryDir = archiveStoryDir;
+    result.archiveStoryMd = `${archiveStoryDir}/story.md`;
+  }
+  return result;
+}
+
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
 __export(external_exports, {
@@ -4056,7 +4120,12 @@ var coerce = {
 var NEVER = INVALID;
 
 // ../saga-types/src/story.ts
-var StoryStatusSchema = external_exports.enum(["ready", "in_progress", "blocked", "completed"]);
+var StoryStatusSchema = external_exports.enum([
+  "ready",
+  "in_progress",
+  "blocked",
+  "completed"
+]);
 var TaskStatusSchema = external_exports.enum(["pending", "in_progress", "completed"]);
 var TaskSchema = external_exports.object({
   id: external_exports.string(),
@@ -4117,734 +4186,6 @@ var SessionSchema = external_exports.object({
   /** Preview of the last lines of output */
   outputPreview: external_exports.string().optional()
 });
-
-// ../saga-types/src/directory.ts
-function normalizeRoot(projectRoot) {
-  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
-}
-function createSagaPaths(projectRoot) {
-  const root = normalizeRoot(projectRoot);
-  const saga = `${root}/.saga`;
-  return {
-    root,
-    saga,
-    epics: `${saga}/epics`,
-    worktrees: `${saga}/worktrees`,
-    archive: `${saga}/archive`
-  };
-}
-function createEpicPaths(projectRoot, epicSlug) {
-  const { epics } = createSagaPaths(projectRoot);
-  const epicDir = `${epics}/${epicSlug}`;
-  return {
-    epicSlug,
-    epicDir,
-    epicMd: `${epicDir}/epic.md`,
-    storiesDir: `${epicDir}/stories`
-  };
-}
-function createStoryPaths(projectRoot, epicSlug, storySlug) {
-  const { storiesDir } = createEpicPaths(projectRoot, epicSlug);
-  const storyDir = `${storiesDir}/${storySlug}`;
-  return {
-    epicSlug,
-    storySlug,
-    storyDir,
-    storyMd: `${storyDir}/story.md`,
-    journalMd: `${storyDir}/journal.md`
-  };
-}
-function createWorktreePaths(projectRoot, epicSlug, storySlug) {
-  const { worktrees } = createSagaPaths(projectRoot);
-  const worktreeDir = `${worktrees}/${epicSlug}/${storySlug}`;
-  const nestedStoryDir = `${worktreeDir}/.saga/epics/${epicSlug}/stories/${storySlug}`;
-  return {
-    epicSlug,
-    storySlug,
-    worktreeDir,
-    storyMdInWorktree: `${nestedStoryDir}/story.md`,
-    journalMdInWorktree: `${nestedStoryDir}/journal.md`
-  };
-}
-function createArchivePaths(projectRoot, epicSlug, storySlug) {
-  const { archive } = createSagaPaths(projectRoot);
-  const archiveEpicDir = `${archive}/${epicSlug}`;
-  const result = {
-    epicSlug,
-    archiveEpicDir
-  };
-  if (storySlug) {
-    const archiveStoryDir = `${archiveEpicDir}/${storySlug}`;
-    result.storySlug = storySlug;
-    result.archiveStoryDir = archiveStoryDir;
-    result.archiveStoryMd = `${archiveStoryDir}/story.md`;
-  }
-  return result;
-}
-
-// src/implement/types.ts
-var DEFAULT_MAX_CYCLES = 10;
-var DEFAULT_MAX_TIME = 60;
-var DEFAULT_MODEL = "opus";
-var MS_PER_SECOND = 1e3;
-var MS_PER_MINUTE = 6e4;
-var SECONDS_PER_MINUTE = 60;
-var ROUNDING_PRECISION = 100;
-var WORKER_PROMPT_RELATIVE = "worker-prompt.md";
-
-// src/implement/orchestrator.ts
-import { existsSync as existsSync2, readFileSync } from "node:fs";
-import { join as join2 } from "node:path";
-import process2 from "node:process";
-
-// src/implement/scope-config.ts
-var SCOPE_VALIDATED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep"];
-var HOOK_PRE_TOOL_USE = "PreToolUse";
-function buildScopeSettings() {
-  const hookCommand = "node $SAGA_PLUGIN_ROOT/scripts/scope-validator.js";
-  return {
-    hooks: {
-      [HOOK_PRE_TOOL_USE]: [
-        {
-          matcher: SCOPE_VALIDATED_TOOLS.join("|"),
-          hooks: [
-            {
-              type: "command",
-              command: hookCommand
-            }
-          ]
-        }
-      ]
-    }
-  };
-}
-
-// src/implement/session-manager.ts
-import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import process from "node:process";
-
-// src/implement/output-parser.ts
-var VALID_STATUSES = /* @__PURE__ */ new Set(["ONGOING", "FINISH", "BLOCKED"]);
-var WORKER_OUTPUT_SCHEMA = {
-  type: "object",
-  properties: {
-    status: {
-      type: "string",
-      enum: ["ONGOING", "FINISH", "BLOCKED"]
-    },
-    summary: {
-      type: "string",
-      description: "What was accomplished this session"
-    },
-    blocker: {
-      type: ["string", "null"],
-      description: "Brief description if BLOCKED, null otherwise"
-    }
-  },
-  required: ["status", "summary"]
-};
-function truncateString(str, maxLength) {
-  if (str.length <= maxLength) {
-    return str;
-  }
-  return `${str.slice(0, maxLength)}...`;
-}
-function formatInputValue(value, maxLength) {
-  if (value === null || value === void 0) {
-    return "null";
-  }
-  if (typeof value === "string") {
-    const singleLine = value.replace(/\n/g, " ").replace(/\s+/g, " ");
-    return truncateString(singleLine, maxLength);
-  }
-  if (typeof value === "boolean" || typeof value === "number") {
-    return String(value);
-  }
-  if (Array.isArray(value)) {
-    return truncateString(JSON.stringify(value), maxLength);
-  }
-  if (typeof value === "object") {
-    return truncateString(JSON.stringify(value), maxLength);
-  }
-  return String(value);
-}
-function formatAllInputFields(input) {
-  const maxValueLength = 100;
-  const entries = Object.entries(input);
-  if (entries.length === 0) {
-    return "";
-  }
-  return entries.map(([key, value]) => `${key}=${formatInputValue(value, maxValueLength)}`).join(", ");
-}
-function formatToolUsage(name, input) {
-  try {
-    const safeInput = input || {};
-    const maxLength = 100;
-    switch (name) {
-      // File operations - show path
-      case "Read": {
-        const path = safeInput.file_path || "unknown";
-        const extras = [];
-        if (safeInput.offset) {
-          extras.push(`offset=${safeInput.offset}`);
-        }
-        if (safeInput.limit) {
-          extras.push(`limit=${safeInput.limit}`);
-        }
-        const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
-        return `[Tool Used: Read] ${path}${suffix}`;
-      }
-      case "Write":
-        return `[Tool Used: Write] ${safeInput.file_path || "unknown"}`;
-      case "Edit": {
-        const file = safeInput.file_path || "unknown";
-        const replaceAll = safeInput.replace_all ? " (replace_all)" : "";
-        return `[Tool Used: Edit] ${file}${replaceAll}`;
-      }
-      // Shell command - show command and description
-      case "Bash": {
-        const cmd = truncateString(String(safeInput.command || ""), maxLength);
-        const desc = safeInput.description ? ` - ${truncateString(String(safeInput.description), 60)}` : "";
-        return `[Tool Used: Bash] ${cmd}${desc}`;
-      }
-      // Search operations - show pattern and path
-      case "Glob": {
-        const pattern = safeInput.pattern || "unknown";
-        const path = safeInput.path ? ` in ${safeInput.path}` : "";
-        return `[Tool Used: Glob] ${pattern}${path}`;
-      }
-      case "Grep": {
-        const pattern = truncateString(String(safeInput.pattern || ""), 60);
-        const path = safeInput.path ? ` in ${safeInput.path}` : "";
-        const mode = safeInput.output_mode ? ` (${safeInput.output_mode})` : "";
-        return `[Tool Used: Grep] "${pattern}"${path}${mode}`;
-      }
-      // Agent task - show description and type
-      case "Task": {
-        const desc = truncateString(
-          String(safeInput.description || safeInput.prompt || ""),
-          maxLength
-        );
-        const agentType = safeInput.subagent_type ? ` [${safeInput.subagent_type}]` : "";
-        return `[Tool Used: Task]${agentType} ${desc}`;
-      }
-      // Todo operations
-      case "TodoWrite": {
-        const todos = safeInput.todos;
-        if (todos && Array.isArray(todos)) {
-          const subjects = todos.map((t) => {
-            if (t && typeof t === "object" && "subject" in t) {
-              return String(t.subject || "untitled");
-            }
-            return "untitled";
-          }).join(", ");
-          return `[Tool Used: TodoWrite] ${truncateString(subjects, maxLength)}`;
-        }
-        return "[Tool Used: TodoWrite]";
-      }
-      // Structured output - show status
-      case "StructuredOutput": {
-        const status = safeInput.status || "unknown";
-        const summary = safeInput.summary ? ` - ${truncateString(String(safeInput.summary), maxLength)}` : "";
-        return `[Tool Used: StructuredOutput] ${status}${summary}`;
-      }
-      // Unknown tools - show all fields
-      default: {
-        const fields = formatAllInputFields(safeInput);
-        return fields ? `[Tool Used: ${name}] ${fields}` : `[Tool Used: ${name}]`;
-      }
-    }
-  } catch {
-    return `[Tool Used: ${name}]`;
-  }
-}
-function formatAssistantContent(content) {
-  try {
-    if (!(content && Array.isArray(content))) {
-      return null;
-    }
-    for (const block of content) {
-      if (!block || typeof block !== "object") {
-        continue;
-      }
-      const blockData = block;
-      if (blockData.type === "text" && blockData.text) {
-        return `${blockData.text}
-`;
-      }
-      if (blockData.type === "tool_use" && blockData.name) {
-        return `${formatToolUsage(blockData.name, blockData.input || {})}
-`;
-      }
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-function formatStreamLine(line) {
-  try {
-    const data = JSON.parse(line);
-    if (data.type === "assistant" && data.message?.content) {
-      return formatAssistantContent(data.message.content);
-    }
-    if (data.type === "system" && data.subtype === "init") {
-      return `[Session started: ${data.session_id}]`;
-    }
-    if (data.type === "result") {
-      const status = data.subtype === "success" ? "completed" : "failed";
-      return `
-[Worker ${status} in ${Math.round(data.duration_ms / MS_PER_SECOND)}s]`;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-function extractStructuredOutputFromToolCall(lines) {
-  for (let i = lines.length - 1; i >= 0; i--) {
-    try {
-      const data = JSON.parse(lines[i]);
-      if (data.type === "assistant" && data.message?.content) {
-        for (const block of data.message.content) {
-          if (block.type === "tool_use" && block.name === "StructuredOutput") {
-            return block.input;
-          }
-        }
-      }
-    } catch {
-    }
-  }
-  return null;
-}
-function validateAndExtractOutput(output) {
-  if (!VALID_STATUSES.has(output.status)) {
-    throw new Error(`Invalid status: ${output.status}`);
-  }
-  return {
-    status: output.status,
-    summary: output.summary || "",
-    blocker: output.blocker ?? null
-  };
-}
-function processResultLine(data, lines) {
-  if (data.is_error) {
-    throw new Error(`Worker failed: ${data.result || "Unknown error"}`);
-  }
-  let output = data.structured_output;
-  if (!output) {
-    output = extractStructuredOutputFromToolCall(lines) ?? void 0;
-  }
-  if (!output) {
-    throw new Error("Worker result missing structured_output");
-  }
-  return validateAndExtractOutput(output);
-}
-function parseStreamingResult(buffer) {
-  const lines = buffer.split("\n").filter((line) => line.trim());
-  for (let i = lines.length - 1; i >= 0; i--) {
-    try {
-      const data = JSON.parse(lines[i]);
-      if (data.type === "result") {
-        return processResultLine(data, lines);
-      }
-    } catch (e) {
-      if (e instanceof Error && e.message.startsWith("Worker")) {
-        throw e;
-      }
-    }
-  }
-  throw new Error("No result found in worker output");
-}
-
-// src/implement/session-manager.ts
-var OUTPUT_DIR = "/tmp/saga-sessions";
-var SLUG_PATTERN = /^[a-z0-9-]+$/;
-function shellEscape(str) {
-  return `'${str.replace(/'/g, "'\\''")}'`;
-}
-function shellEscapeArgs(args) {
-  return args.map(shellEscape).join(" ");
-}
-function validateSlug(slug) {
-  if (typeof slug !== "string" || slug.length === 0) {
-    return false;
-  }
-  if (!SLUG_PATTERN.test(slug)) {
-    return false;
-  }
-  if (slug.startsWith("-") || slug.endsWith("-")) {
-    return false;
-  }
-  return true;
-}
-function checkTmuxAvailable() {
-  const result = spawnSync("which", ["tmux"], { encoding: "utf-8" });
-  if (result.status !== 0) {
-    throw new Error("tmux is not installed or not found in PATH");
-  }
-}
-function generateWrapperScript(commandFilePath, outputFile, wrapperScriptPath) {
-  return `#!/bin/bash
-# Auto-generated wrapper script for SAGA session
-set -e
-
-# Mark this as an internal SAGA session (used by CLI to detect it's running inside tmux)
-export SAGA_INTERNAL_SESSION=1
-
-COMMAND_FILE="${commandFilePath}"
-OUTPUT_FILE="${outputFile}"
-SCRIPT_FILE="${wrapperScriptPath}"
-
-# Read the command from file
-COMMAND="$(cat "$COMMAND_FILE")"
-
-# Cleanup temporary files on exit
-cleanup() {
-  rm -f "$COMMAND_FILE" "$SCRIPT_FILE"
-}
-trap cleanup EXIT
-
-# Execute the command with output capture
-# script syntax differs between macOS and Linux:
-#   macOS (Darwin): script -q <file> <shell> -c <command>
-#   Linux:          script -q -c <command> <file>
-if [[ "$(uname)" == "Darwin" ]]; then
-  # -F: flush output after each write (ensures immediate visibility)
-  exec script -qF "$OUTPUT_FILE" /bin/bash -c "$COMMAND"
-else
-  exec script -q -c "$COMMAND" "$OUTPUT_FILE"
-fi
-`;
-}
-function validateSessionSlugs(epicSlug, storySlug) {
-  if (!validateSlug(epicSlug)) {
-    throw new Error(
-      `Invalid epic slug: '${epicSlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`
-    );
-  }
-  if (!validateSlug(storySlug)) {
-    throw new Error(
-      `Invalid story slug: '${storySlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`
-    );
-  }
-}
-function createSessionFiles(sessionName, command) {
-  const outputFile = join(OUTPUT_DIR, `${sessionName}.out`);
-  const commandFilePath = join(OUTPUT_DIR, `${sessionName}.cmd`);
-  const wrapperScriptPath = join(OUTPUT_DIR, `${sessionName}.sh`);
-  writeFileSync(commandFilePath, command, { mode: 384 });
-  const wrapperScriptContent = generateWrapperScript(
-    commandFilePath,
-    outputFile,
-    wrapperScriptPath
-  );
-  writeFileSync(wrapperScriptPath, wrapperScriptContent, { mode: 448 });
-  return { wrapperScriptPath, outputFile };
-}
-function createSession(epicSlug, storySlug, command) {
-  validateSessionSlugs(epicSlug, storySlug);
-  checkTmuxAvailable();
-  if (!existsSync(OUTPUT_DIR)) {
-    mkdirSync(OUTPUT_DIR, { recursive: true });
-  }
-  const timestamp = Date.now();
-  const sessionName = `saga__${epicSlug}__${storySlug}__${timestamp}`;
-  const { wrapperScriptPath, outputFile } = createSessionFiles(sessionName, command);
-  const createResult = spawnSync(
-    "tmux",
-    ["new-session", "-d", "-s", sessionName, wrapperScriptPath],
-    { encoding: "utf-8" }
-  );
-  if (createResult.status !== 0) {
-    throw new Error(`Failed to create tmux session: ${createResult.stderr || "unknown error"}`);
-  }
-  return { sessionName, outputFile };
-}
-function spawnWorkerAsync(prompt, model, settings, workingDir, workerEnv) {
-  return new Promise((resolve, reject) => {
-    let buffer = "";
-    const args = [
-      "-p",
-      prompt,
-      "--model",
-      model,
-      "--output-format",
-      "stream-json",
-      "--verbose",
-      "--json-schema",
-      JSON.stringify(WORKER_OUTPUT_SCHEMA),
-      "--settings",
-      JSON.stringify(settings),
-      "--dangerously-skip-permissions"
-    ];
-    const env = {
-      ...process.env,
-      SAGA_EPIC_SLUG: workerEnv.epicSlug,
-      SAGA_STORY_SLUG: workerEnv.storySlug,
-      SAGA_STORY_DIR: workerEnv.storyDir
-    };
-    const child = spawn("claude", args, {
-      cwd: workingDir,
-      env,
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-    child.stdout.on("data", (chunk) => {
-      const text = chunk.toString();
-      buffer += text;
-      const lines = text.split("\n");
-      for (const line of lines) {
-        if (line.trim()) {
-          const formatted = formatStreamLine(line);
-          if (formatted) {
-            process.stdout.write(formatted);
-          }
-        }
-      }
-    });
-    child.stderr.on("data", (chunk) => {
-      process.stderr.write(chunk);
-    });
-    child.on("error", (err) => {
-      reject(new Error(`Failed to spawn worker: ${err.message}`));
-    });
-    child.on("close", (_code) => {
-      process.stdout.write("\n");
-      try {
-        const result = parseStreamingResult(buffer);
-        resolve(result);
-      } catch (e) {
-        reject(e);
-      }
-    });
-  });
-}
-function buildDetachedCommand(storySlug, projectPath, options) {
-  const parts = ["saga", "implement", storySlug];
-  parts.push("--path", projectPath);
-  if (options.maxCycles !== void 0) {
-    parts.push("--max-cycles", String(options.maxCycles));
-  }
-  if (options.maxTime !== void 0) {
-    parts.push("--max-time", String(options.maxTime));
-  }
-  if (options.model !== void 0) {
-    parts.push("--model", options.model);
-  }
-  return shellEscapeArgs(parts);
-}
-
-// src/implement/orchestrator.ts
-function getProjectDir() {
-  const projectDir = process2.env.SAGA_PROJECT_DIR;
-  if (!projectDir) {
-    throw new Error(
-      "SAGA_PROJECT_DIR environment variable is not set.\nThis script must be run from a SAGA session where env vars are set."
-    );
-  }
-  return projectDir;
-}
-function getPluginRoot() {
-  const pluginRoot = process2.env.SAGA_PLUGIN_ROOT;
-  if (!pluginRoot) {
-    throw new Error(
-      "SAGA_PLUGIN_ROOT environment variable is not set.\nThis script must be run from a SAGA session where env vars are set."
-    );
-  }
-  return pluginRoot;
-}
-function getSkillRoot() {
-  const pluginRoot = getPluginRoot();
-  return join2(pluginRoot, "skills", "execute-story");
-}
-function validateStoryFiles(epicSlug, storySlug) {
-  const projectDir = getProjectDir();
-  const worktreePaths = createWorktreePaths(projectDir, epicSlug, storySlug);
-  if (!existsSync2(worktreePaths.worktreeDir)) {
-    return {
-      valid: false,
-      error: `Worktree not found at ${worktreePaths.worktreeDir}
-
-The story worktree has not been created yet. This can happen if:
-1. The story was generated but the worktree wasn't set up
-2. The worktree was deleted or moved
-
-To create the worktree, use: /task-resume ${storySlug}`
-    };
-  }
-  if (!existsSync2(worktreePaths.storyMdInWorktree)) {
-    return {
-      valid: false,
-      error: `story.md not found in worktree.
-
-Expected location: ${worktreePaths.storyMdInWorktree}
-
-The worktree exists but the story definition file is missing.
-This may indicate an incomplete story setup.`
-    };
-  }
-  return { valid: true, worktreePaths };
-}
-function loadWorkerPrompt() {
-  const skillRoot = getSkillRoot();
-  const promptPath = join2(skillRoot, WORKER_PROMPT_RELATIVE);
-  if (!existsSync2(promptPath)) {
-    throw new Error(`Worker prompt not found at ${promptPath}`);
-  }
-  return readFileSync(promptPath, "utf-8");
-}
-function createErrorResult(epicSlug, storySlug, summary, cycles, elapsedMinutes) {
-  return {
-    status: "ERROR",
-    summary,
-    cycles,
-    elapsedMinutes,
-    blocker: null,
-    epicSlug,
-    storySlug
-  };
-}
-function validateLoopResources(epicSlug, storySlug) {
-  const validation = validateStoryFiles(epicSlug, storySlug);
-  if (!validation.valid) {
-    return { valid: false, error: validation.error || "Story validation failed" };
-  }
-  try {
-    const workerPrompt = loadWorkerPrompt();
-    return { valid: true, workerPrompt, worktreeDir: validation.worktreePaths.worktreeDir };
-  } catch (e) {
-    return { valid: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-function buildLoopResult(epicSlug, storySlug, finalStatus, summaries, cycles, elapsedMinutes, lastBlocker) {
-  const combinedSummary = summaries.length === 1 ? summaries[0] : summaries.join(" | ");
-  return {
-    status: finalStatus,
-    summary: combinedSummary,
-    cycles,
-    elapsedMinutes: Math.round(elapsedMinutes * ROUNDING_PRECISION) / ROUNDING_PRECISION,
-    blocker: lastBlocker,
-    epicSlug,
-    storySlug
-  };
-}
-async function executeWorkerCycle(config, state) {
-  if (Date.now() - config.startTime >= config.maxTimeMs) {
-    state.finalStatus = "TIMEOUT";
-    return { continue: false };
-  }
-  if (state.cycles >= config.maxCycles) {
-    return { continue: false };
-  }
-  state.cycles += 1;
-  try {
-    const workerEnv = {
-      epicSlug: config.epicSlug,
-      storySlug: config.storySlug,
-      storyDir: config.storyDir
-    };
-    const parsed = await spawnWorkerAsync(
-      config.workerPrompt,
-      config.model,
-      config.settings,
-      config.worktree,
-      workerEnv
-    );
-    state.summaries.push(parsed.summary);
-    if (parsed.status === "FINISH") {
-      state.finalStatus = "FINISH";
-      return { continue: false };
-    }
-    if (parsed.status === "BLOCKED") {
-      state.finalStatus = "BLOCKED";
-      state.lastBlocker = parsed.blocker || null;
-      return { continue: false };
-    }
-    return { continue: true };
-  } catch (e) {
-    const elapsed = (Date.now() - config.startTime) / MS_PER_MINUTE;
-    return {
-      continue: false,
-      result: createErrorResult(
-        config.epicSlug,
-        config.storySlug,
-        e instanceof Error ? e.message : String(e),
-        state.cycles,
-        elapsed
-      )
-    };
-  }
-}
-function executeWorkerLoop(workerPrompt, model, settings, worktree, maxCycles, maxTimeMs, startTime, epicSlug, storySlug, storyDir) {
-  const config = {
-    workerPrompt,
-    model,
-    settings,
-    worktree,
-    maxCycles,
-    maxTimeMs,
-    startTime,
-    epicSlug,
-    storySlug,
-    storyDir
-  };
-  const state = { summaries: [], cycles: 0, lastBlocker: null, finalStatus: null };
-  const runNextCycle = async () => {
-    const cycleResult = await executeWorkerCycle(config, state);
-    if (cycleResult.result) {
-      return cycleResult.result;
-    }
-    if (cycleResult.continue) {
-      return runNextCycle();
-    }
-    return state;
-  };
-  return runNextCycle();
-}
-async function runLoop(epicSlug, storySlug, maxCycles, maxTime, model) {
-  const resources = validateLoopResources(epicSlug, storySlug);
-  if (!resources.valid) {
-    return createErrorResult(epicSlug, storySlug, resources.error, 0, 0);
-  }
-  const settings = buildScopeSettings();
-  const startTime = Date.now();
-  const maxTimeMs = maxTime * SECONDS_PER_MINUTE * MS_PER_SECOND;
-  const { storyDir } = createStoryPaths(resources.worktreeDir, epicSlug, storySlug);
-  const result = await executeWorkerLoop(
-    resources.workerPrompt,
-    model,
-    settings,
-    resources.worktreeDir,
-    maxCycles,
-    maxTimeMs,
-    startTime,
-    epicSlug,
-    storySlug,
-    storyDir
-  );
-  if ("status" in result && result.status === "ERROR") {
-    return result;
-  }
-  const state = result;
-  const finalStatus = state.finalStatus ?? "MAX_CYCLES";
-  const elapsedMinutes = (Date.now() - startTime) / MS_PER_MINUTE;
-  return buildLoopResult(
-    epicSlug,
-    storySlug,
-    finalStatus,
-    state.summaries,
-    state.cycles,
-    elapsedMinutes,
-    state.lastBlocker
-  );
-}
-function getWorktreePath(epicSlug, storySlug) {
-  const projectDir = getProjectDir();
-  const worktreePaths = createWorktreePaths(projectDir, epicSlug, storySlug);
-  return worktreePaths.worktreeDir;
-}
 
 // ../../node_modules/.pnpm/fuse.js@7.1.0/node_modules/fuse.js/dist/fuse.mjs
 function isArray(value) {
@@ -6166,9 +5507,9 @@ Fuse.config = Config;
 }
 
 // src/find/saga-scanner.ts
-import { existsSync as existsSync3 } from "node:fs";
+import { existsSync } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
-import { join as join3 } from "node:path";
+import { join } from "node:path";
 var FRONTMATTER_START_OFFSET = 3;
 var FRONTMATTER_OPEN_LENGTH = 4;
 var FRONTMATTER_CLOSE_LENGTH = 4;
@@ -6226,7 +5567,7 @@ async function parseStoryFile(storyPath, epicSlug, options = {}) {
     const parsed = parseFrontmatter(content);
     const frontmatter = parsed.frontmatter;
     const body = parsed.body;
-    const journalPath = join3(storyDir, "journal.md");
+    const journalPath = join(storyDir, "journal.md");
     const hasJournal = await fileExists(journalPath);
     return {
       slug: frontmatter.id || frontmatter.slug || dirName,
@@ -6251,7 +5592,7 @@ async function scanWorktrees(sagaRoot) {
   }
   const epicEntries = await readdir(sagaPaths.worktrees);
   const epicPromises = epicEntries.map(async (epicSlug) => {
-    const epicWorktreesDir = join3(sagaPaths.worktrees, epicSlug);
+    const epicWorktreesDir = join(sagaPaths.worktrees, epicSlug);
     if (!await isDirectory(epicWorktreesDir)) {
       return [];
     }
@@ -6309,14 +5650,20 @@ async function scanArchive(sagaRoot) {
     }
     const storyEntries = await readdir(archivePaths.archiveEpicDir);
     const storyPromises = storyEntries.map(async (storySlug) => {
-      const storyArchivePaths = createArchivePaths(sagaRoot, epicSlug, storySlug);
-      if (!storyArchivePaths.archiveStoryDir || !await isDirectory(storyArchivePaths.archiveStoryDir)) {
+      const storyArchivePaths = createArchivePaths(
+        sagaRoot,
+        epicSlug,
+        storySlug
+      );
+      if (!(storyArchivePaths.archiveStoryDir && await isDirectory(storyArchivePaths.archiveStoryDir))) {
         return null;
       }
       if (!storyArchivePaths.archiveStoryMd) {
         return null;
       }
-      return await parseStoryFile(storyArchivePaths.archiveStoryMd, epicSlug, { archived: true });
+      return await parseStoryFile(storyArchivePaths.archiveStoryMd, epicSlug, {
+        archived: true
+      });
     });
     const stories = await Promise.all(storyPromises);
     return stories.filter((story) => story !== null);
@@ -6357,11 +5704,11 @@ async function scanAllStories(sagaRoot) {
 }
 function worktreesDirectoryExists(projectPath) {
   const sagaPaths = createSagaPaths(projectPath);
-  return existsSync3(sagaPaths.worktrees);
+  return existsSync(sagaPaths.worktrees);
 }
 function epicsDirectoryExists(projectPath) {
   const sagaPaths = createSagaPaths(projectPath);
-  return existsSync3(sagaPaths.epics);
+  return existsSync(sagaPaths.epics);
 }
 
 // src/find/finder.ts
@@ -6370,7 +5717,7 @@ var MATCH_THRESHOLD = 0.6;
 var SCORE_SIMILARITY_THRESHOLD = 0.1;
 var DEFAULT_CONTEXT_MAX_LENGTH = 300;
 var ELLIPSIS_LENGTH = 3;
-var CONTEXT_SECTION_REGEX = /##\s*Context\s*\n+([\s\S]*?)(?=\n##|Z|$)/i;
+var CONTEXT_SECTION_REGEX = /##\s*Context\s*\n+([\s\S]*?)(?=\n##|$)/i;
 function extractContext(body, maxLength = DEFAULT_CONTEXT_MAX_LENGTH) {
   const contextMatch = body.match(CONTEXT_SECTION_REGEX);
   if (!contextMatch) {
@@ -6460,7 +5807,11 @@ async function findStory(projectPath, query, options = {}) {
       error: "No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first."
     };
   }
-  const storiesOrError = await loadAndFilterStories(projectPath, query, options);
+  const storiesOrError = await loadAndFilterStories(
+    projectPath,
+    query,
+    options
+  );
   if (!Array.isArray(storiesOrError)) {
     return storiesOrError;
   }
@@ -6473,9 +5824,10 @@ async function findStory(projectPath, query, options = {}) {
   return fuzzySearchStories(allStories, query);
 }
 
-// src/implement/index.ts
-function getProjectDir2() {
-  const projectDir = process3.env.SAGA_PROJECT_DIR;
+// src/shared/env.ts
+import process from "node:process";
+function getProjectDir() {
+  const projectDir = process.env.SAGA_PROJECT_DIR;
   if (!projectDir) {
     throw new Error(
       "SAGA_PROJECT_DIR environment variable is not set.\nThis script must be run from a SAGA session where env vars are set."
@@ -6483,8 +5835,8 @@ function getProjectDir2() {
   }
   return projectDir;
 }
-function getPluginRoot2() {
-  const pluginRoot = process3.env.SAGA_PLUGIN_ROOT;
+function getPluginRoot() {
+  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
   if (!pluginRoot) {
     throw new Error(
       "SAGA_PLUGIN_ROOT environment variable is not set.\nThis script must be run from a SAGA session where env vars are set."
@@ -6492,8 +5844,699 @@ function getPluginRoot2() {
   }
   return pluginRoot;
 }
+
+// src/implement/orchestrator.ts
+import { existsSync as existsSync3, readFileSync } from "node:fs";
+import { join as join3 } from "node:path";
+
+// src/implement/scope-config.ts
+var SCOPE_VALIDATED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep"];
+var HOOK_PRE_TOOL_USE = "PreToolUse";
+function buildScopeSettings() {
+  const hookCommand = "node $SAGA_PLUGIN_ROOT/scripts/scope-validator.js";
+  return {
+    hooks: {
+      [HOOK_PRE_TOOL_USE]: [
+        {
+          matcher: SCOPE_VALIDATED_TOOLS.join("|"),
+          hooks: [
+            {
+              type: "command",
+              command: hookCommand
+            }
+          ]
+        }
+      ]
+    }
+  };
+}
+
+// src/implement/session-manager.ts
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync as existsSync2, mkdirSync, writeFileSync } from "node:fs";
+import { join as join2 } from "node:path";
+import process2 from "node:process";
+
+// src/implement/types.ts
+var DEFAULT_MAX_CYCLES = 10;
+var DEFAULT_MAX_TIME = 60;
+var DEFAULT_MODEL = "opus";
+var MS_PER_SECOND = 1e3;
+var MS_PER_MINUTE = 6e4;
+var SECONDS_PER_MINUTE = 60;
+var ROUNDING_PRECISION = 100;
+var WORKER_PROMPT_RELATIVE = "worker-prompt.md";
+
+// src/implement/output-parser.ts
+var VALID_STATUSES = /* @__PURE__ */ new Set(["ONGOING", "FINISH", "BLOCKED"]);
+var WORKER_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    status: {
+      type: "string",
+      enum: ["ONGOING", "FINISH", "BLOCKED"]
+    },
+    summary: {
+      type: "string",
+      description: "What was accomplished this session"
+    },
+    blocker: {
+      type: ["string", "null"],
+      description: "Brief description if BLOCKED, null otherwise"
+    }
+  },
+  required: ["status", "summary"]
+};
+function truncateString(str, maxLength) {
+  if (str.length <= maxLength) {
+    return str;
+  }
+  return `${str.slice(0, maxLength)}...`;
+}
+function formatInputValue(value, maxLength) {
+  if (value === null || value === void 0) {
+    return "null";
+  }
+  if (typeof value === "string") {
+    const singleLine = value.replace(/\n/g, " ").replace(/\s+/g, " ");
+    return truncateString(singleLine, maxLength);
+  }
+  if (typeof value === "boolean" || typeof value === "number") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return truncateString(JSON.stringify(value), maxLength);
+  }
+  if (typeof value === "object") {
+    return truncateString(JSON.stringify(value), maxLength);
+  }
+  return String(value);
+}
+function formatAllInputFields(input) {
+  const maxValueLength = 100;
+  const entries = Object.entries(input);
+  if (entries.length === 0) {
+    return "";
+  }
+  return entries.map(([key, value]) => `${key}=${formatInputValue(value, maxValueLength)}`).join(", ");
+}
+function formatToolUsage(name, input) {
+  try {
+    const safeInput = input || {};
+    const maxLength = 100;
+    switch (name) {
+      // File operations - show path
+      case "Read": {
+        const path = safeInput.file_path || "unknown";
+        const extras = [];
+        if (safeInput.offset) {
+          extras.push(`offset=${safeInput.offset}`);
+        }
+        if (safeInput.limit) {
+          extras.push(`limit=${safeInput.limit}`);
+        }
+        const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
+        return `[Tool Used: Read] ${path}${suffix}`;
+      }
+      case "Write":
+        return `[Tool Used: Write] ${safeInput.file_path || "unknown"}`;
+      case "Edit": {
+        const file = safeInput.file_path || "unknown";
+        const replaceAll = safeInput.replace_all ? " (replace_all)" : "";
+        return `[Tool Used: Edit] ${file}${replaceAll}`;
+      }
+      // Shell command - show command and description
+      case "Bash": {
+        const cmd = truncateString(String(safeInput.command || ""), maxLength);
+        const desc = safeInput.description ? ` - ${truncateString(String(safeInput.description), 60)}` : "";
+        return `[Tool Used: Bash] ${cmd}${desc}`;
+      }
+      // Search operations - show pattern and path
+      case "Glob": {
+        const pattern = safeInput.pattern || "unknown";
+        const path = safeInput.path ? ` in ${safeInput.path}` : "";
+        return `[Tool Used: Glob] ${pattern}${path}`;
+      }
+      case "Grep": {
+        const pattern = truncateString(String(safeInput.pattern || ""), 60);
+        const path = safeInput.path ? ` in ${safeInput.path}` : "";
+        const mode = safeInput.output_mode ? ` (${safeInput.output_mode})` : "";
+        return `[Tool Used: Grep] "${pattern}"${path}${mode}`;
+      }
+      // Agent task - show description and type
+      case "Task": {
+        const desc = truncateString(
+          String(safeInput.description || safeInput.prompt || ""),
+          maxLength
+        );
+        const agentType = safeInput.subagent_type ? ` [${safeInput.subagent_type}]` : "";
+        return `[Tool Used: Task]${agentType} ${desc}`;
+      }
+      // Todo operations
+      case "TodoWrite": {
+        const todos = safeInput.todos;
+        if (todos && Array.isArray(todos)) {
+          const subjects = todos.map((t) => {
+            if (t && typeof t === "object" && "subject" in t) {
+              return String(
+                t.subject || "untitled"
+              );
+            }
+            return "untitled";
+          }).join(", ");
+          if (subjects) {
+            return `[Tool Used: TodoWrite] ${truncateString(subjects, maxLength)}`;
+          }
+        }
+        return "[Tool Used: TodoWrite]";
+      }
+      // Structured output - show status
+      case "StructuredOutput": {
+        const status = safeInput.status || "unknown";
+        const summary = safeInput.summary ? ` - ${truncateString(String(safeInput.summary), maxLength)}` : "";
+        return `[Tool Used: StructuredOutput] ${status}${summary}`;
+      }
+      // Unknown tools - show all fields
+      default: {
+        const fields = formatAllInputFields(safeInput);
+        return fields ? `[Tool Used: ${name}] ${fields}` : `[Tool Used: ${name}]`;
+      }
+    }
+  } catch {
+    return `[Tool Used: ${name}]`;
+  }
+}
+function formatAssistantContent(content) {
+  try {
+    if (!(content && Array.isArray(content))) {
+      return null;
+    }
+    for (const block of content) {
+      if (!block || typeof block !== "object") {
+        continue;
+      }
+      const blockData = block;
+      if (blockData.type === "text" && blockData.text) {
+        return `${blockData.text}
+`;
+      }
+      if (blockData.type === "tool_use" && blockData.name) {
+        return `${formatToolUsage(blockData.name, blockData.input || {})}
+`;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+function formatStreamLine(line) {
+  try {
+    const data = JSON.parse(line);
+    if (data.type === "assistant" && data.message?.content) {
+      return formatAssistantContent(data.message.content);
+    }
+    if (data.type === "system" && data.subtype === "init") {
+      return `[Session started: ${data.session_id}]`;
+    }
+    if (data.type === "result") {
+      const status = data.subtype === "success" ? "completed" : "failed";
+      return `
+[Worker ${status} in ${Math.round(data.duration_ms / MS_PER_SECOND)}s]`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+function extractStructuredOutputFromToolCall(lines) {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try {
+      const data = JSON.parse(lines[i]);
+      if (data.type === "assistant" && data.message?.content) {
+        for (const block of data.message.content) {
+          if (block.type === "tool_use" && block.name === "StructuredOutput") {
+            return block.input;
+          }
+        }
+      }
+    } catch {
+    }
+  }
+  return null;
+}
+function validateAndExtractOutput(output) {
+  if (!VALID_STATUSES.has(output.status)) {
+    throw new Error(`Invalid status: ${output.status}`);
+  }
+  return {
+    status: output.status,
+    summary: output.summary || "",
+    blocker: output.blocker ?? null
+  };
+}
+function processResultLine(data, lines) {
+  if (data.is_error) {
+    throw new Error(`Worker failed: ${data.result || "Unknown error"}`);
+  }
+  let output = data.structured_output;
+  if (!output) {
+    output = extractStructuredOutputFromToolCall(lines) ?? void 0;
+  }
+  if (!output) {
+    throw new Error("Worker result missing structured_output");
+  }
+  return validateAndExtractOutput(output);
+}
+function parseStreamingResult(buffer) {
+  const lines = buffer.split("\n").filter((line) => line.trim());
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try {
+      const data = JSON.parse(lines[i]);
+      if (data.type === "result") {
+        return processResultLine(data, lines);
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.startsWith("Worker")) {
+        throw e;
+      }
+    }
+  }
+  throw new Error("No result found in worker output");
+}
+
+// src/implement/session-manager.ts
+function getSessionDir() {
+  const sessionDir = process2.env.SAGA_SESSION_DIR;
+  if (!sessionDir) {
+    throw new Error(
+      "SAGA_SESSION_DIR environment variable is not set.\nThis variable must be set by the session-init hook.\nIt specifies the directory for session output files (e.g., /tmp/saga-sessions)."
+    );
+  }
+  return sessionDir;
+}
+var SLUG_PATTERN = /^[a-z0-9-]+$/;
+function shellEscape(str) {
+  return `'${str.replace(/'/g, "'\\''")}'`;
+}
+function shellEscapeArgs(args) {
+  return args.map(shellEscape).join(" ");
+}
+function validateSlug(slug) {
+  if (typeof slug !== "string" || slug.length === 0) {
+    return false;
+  }
+  if (!SLUG_PATTERN.test(slug)) {
+    return false;
+  }
+  if (slug.startsWith("-") || slug.endsWith("-")) {
+    return false;
+  }
+  return true;
+}
+function checkTmuxAvailable() {
+  const result = spawnSync("which", ["tmux"], { encoding: "utf-8" });
+  if (result.status !== 0) {
+    throw new Error("tmux is not installed or not found in PATH");
+  }
+}
+function generateWrapperScript(commandFilePath, outputFile, wrapperScriptPath) {
+  return `#!/bin/bash
+# Auto-generated wrapper script for SAGA session
+set -e
+
+# Mark this as an internal SAGA session (used by CLI to detect it's running inside tmux)
+export SAGA_INTERNAL_SESSION=1
+
+COMMAND_FILE="${commandFilePath}"
+OUTPUT_FILE="${outputFile}"
+SCRIPT_FILE="${wrapperScriptPath}"
+
+# Read the command from file
+COMMAND="$(cat "$COMMAND_FILE")"
+
+# Cleanup temporary files on exit
+cleanup() {
+  rm -f "$COMMAND_FILE" "$SCRIPT_FILE"
+}
+trap cleanup EXIT
+
+# Execute the command with output capture
+# script syntax differs between macOS and Linux:
+#   macOS (Darwin): script -q <file> <shell> -c <command>
+#   Linux:          script -q -c <command> <file>
+if [[ "$(uname)" == "Darwin" ]]; then
+  # -F: flush output after each write (ensures immediate visibility)
+  exec script -qF "$OUTPUT_FILE" /bin/bash -c "$COMMAND"
+else
+  exec script -q -c "$COMMAND" "$OUTPUT_FILE"
+fi
+`;
+}
+function validateSessionSlugs(epicSlug, storySlug) {
+  if (!validateSlug(epicSlug)) {
+    throw new Error(
+      `Invalid epic slug: '${epicSlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`
+    );
+  }
+  if (!validateSlug(storySlug)) {
+    throw new Error(
+      `Invalid story slug: '${storySlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`
+    );
+  }
+}
+function createSessionFiles(sessionName, command) {
+  const sessionDir = getSessionDir();
+  const outputFile = join2(sessionDir, `${sessionName}.out`);
+  const commandFilePath = join2(sessionDir, `${sessionName}.cmd`);
+  const wrapperScriptPath = join2(sessionDir, `${sessionName}.sh`);
+  writeFileSync(commandFilePath, command, { mode: 384 });
+  const wrapperScriptContent = generateWrapperScript(
+    commandFilePath,
+    outputFile,
+    wrapperScriptPath
+  );
+  writeFileSync(wrapperScriptPath, wrapperScriptContent, { mode: 448 });
+  return { wrapperScriptPath, outputFile };
+}
+function createSession(epicSlug, storySlug, command) {
+  validateSessionSlugs(epicSlug, storySlug);
+  checkTmuxAvailable();
+  const sessionDir = getSessionDir();
+  if (!existsSync2(sessionDir)) {
+    mkdirSync(sessionDir, { recursive: true });
+  }
+  const timestamp = Date.now();
+  const sessionName = `saga__${epicSlug}__${storySlug}__${timestamp}`;
+  const { wrapperScriptPath, outputFile } = createSessionFiles(
+    sessionName,
+    command
+  );
+  const createResult = spawnSync(
+    "tmux",
+    ["new-session", "-d", "-s", sessionName, wrapperScriptPath],
+    { encoding: "utf-8" }
+  );
+  if (createResult.status !== 0) {
+    throw new Error(
+      `Failed to create tmux session: ${createResult.stderr || "unknown error"}`
+    );
+  }
+  return { sessionName, outputFile };
+}
+function buildWorkerArgs(prompt, model, settings) {
+  return [
+    "-p",
+    prompt,
+    "--model",
+    model,
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--json-schema",
+    JSON.stringify(WORKER_OUTPUT_SCHEMA),
+    "--settings",
+    JSON.stringify(settings),
+    "--dangerously-skip-permissions"
+  ];
+}
+function buildWorkerProcessEnv(workerEnv) {
+  return {
+    ...process2.env,
+    // biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
+    SAGA_EPIC_SLUG: workerEnv.epicSlug,
+    // biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
+    SAGA_STORY_SLUG: workerEnv.storySlug,
+    // biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
+    SAGA_STORY_DIR: workerEnv.storyDir
+  };
+}
+function handleStreamChunk(text, bufferRef) {
+  bufferRef.value += text;
+  const lines = text.split("\n");
+  for (const line of lines) {
+    if (line.trim()) {
+      const formatted = formatStreamLine(line);
+      if (formatted) {
+        process2.stdout.write(formatted);
+      }
+    }
+  }
+}
+function spawnWorkerAsync(prompt, model, settings, workingDir, workerEnv) {
+  return new Promise((resolve, reject) => {
+    const bufferRef = { value: "" };
+    const args = buildWorkerArgs(prompt, model, settings);
+    const env = buildWorkerProcessEnv(workerEnv);
+    const child = spawn("claude", args, {
+      cwd: workingDir,
+      env,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    child.stdout.on("data", (chunk) => {
+      handleStreamChunk(chunk.toString(), bufferRef);
+    });
+    child.stderr.on("data", (chunk) => {
+      process2.stderr.write(chunk);
+    });
+    child.on("error", (err) => {
+      reject(new Error(`Failed to spawn worker: ${err.message}`));
+    });
+    child.on("close", (_code) => {
+      process2.stdout.write("\n");
+      try {
+        const result = parseStreamingResult(bufferRef.value);
+        resolve(result);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  });
+}
+function buildDetachedCommand(storySlug, pluginRoot, options) {
+  const scriptPath = join2(pluginRoot, "scripts", "implement.js");
+  const parts = ["node", scriptPath, storySlug];
+  if (options.maxCycles !== void 0) {
+    parts.push("--max-cycles", String(options.maxCycles));
+  }
+  if (options.maxTime !== void 0) {
+    parts.push("--max-time", String(options.maxTime));
+  }
+  if (options.model !== void 0) {
+    parts.push("--model", options.model);
+  }
+  return shellEscapeArgs(parts);
+}
+
+// src/implement/orchestrator.ts
+function getSkillRoot() {
+  const pluginRoot = getPluginRoot();
+  return join3(pluginRoot, "skills", "execute-story");
+}
+function validateStoryFiles(epicSlug, storySlug) {
+  const projectDir = getProjectDir();
+  const worktreePaths = createWorktreePaths(projectDir, epicSlug, storySlug);
+  if (!existsSync3(worktreePaths.worktreeDir)) {
+    return {
+      valid: false,
+      error: `Worktree not found at ${worktreePaths.worktreeDir}
+
+The story worktree has not been created yet. This can happen if:
+1. The story was generated but the worktree wasn't set up
+2. The worktree was deleted or moved
+
+To create the worktree, use: /task-resume ${storySlug}`
+    };
+  }
+  if (!existsSync3(worktreePaths.storyMdInWorktree)) {
+    return {
+      valid: false,
+      error: `story.md not found in worktree.
+
+Expected location: ${worktreePaths.storyMdInWorktree}
+
+The worktree exists but the story definition file is missing.
+This may indicate an incomplete story setup.`
+    };
+  }
+  return { valid: true, worktreePaths };
+}
+function loadWorkerPrompt() {
+  const skillRoot = getSkillRoot();
+  const promptPath = join3(skillRoot, WORKER_PROMPT_RELATIVE);
+  if (!existsSync3(promptPath)) {
+    throw new Error(`Worker prompt not found at ${promptPath}`);
+  }
+  return readFileSync(promptPath, "utf-8");
+}
+function createErrorResult(epicSlug, storySlug, summary, cycles, elapsedMinutes) {
+  return {
+    status: "ERROR",
+    summary,
+    cycles,
+    elapsedMinutes,
+    blocker: null,
+    epicSlug,
+    storySlug
+  };
+}
+function validateLoopResources(epicSlug, storySlug) {
+  const validation = validateStoryFiles(epicSlug, storySlug);
+  if (!validation.valid) {
+    return {
+      valid: false,
+      error: validation.error || "Story validation failed"
+    };
+  }
+  try {
+    const workerPrompt = loadWorkerPrompt();
+    return {
+      valid: true,
+      workerPrompt,
+      worktreeDir: validation.worktreePaths?.worktreeDir
+    };
+  } catch (e) {
+    return { valid: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+function buildLoopResult(epicSlug, storySlug, finalStatus, summaries, cycles, elapsedMinutes, lastBlocker) {
+  const combinedSummary = summaries.length === 1 ? summaries[0] : summaries.join(" | ");
+  return {
+    status: finalStatus,
+    summary: combinedSummary,
+    cycles,
+    elapsedMinutes: Math.round(elapsedMinutes * ROUNDING_PRECISION) / ROUNDING_PRECISION,
+    blocker: lastBlocker,
+    epicSlug,
+    storySlug
+  };
+}
+async function executeWorkerCycle(config, state) {
+  if (Date.now() - config.startTime >= config.maxTimeMs) {
+    state.finalStatus = "TIMEOUT";
+    return { continue: false };
+  }
+  if (state.cycles >= config.maxCycles) {
+    return { continue: false };
+  }
+  state.cycles += 1;
+  try {
+    const workerEnv = {
+      epicSlug: config.epicSlug,
+      storySlug: config.storySlug,
+      storyDir: config.storyDir
+    };
+    const parsed = await spawnWorkerAsync(
+      config.workerPrompt,
+      config.model,
+      config.settings,
+      config.worktree,
+      workerEnv
+    );
+    state.summaries.push(parsed.summary);
+    if (parsed.status === "FINISH") {
+      state.finalStatus = "FINISH";
+      return { continue: false };
+    }
+    if (parsed.status === "BLOCKED") {
+      state.finalStatus = "BLOCKED";
+      state.lastBlocker = parsed.blocker || null;
+      return { continue: false };
+    }
+    return { continue: true };
+  } catch (e) {
+    const elapsed = (Date.now() - config.startTime) / MS_PER_MINUTE;
+    return {
+      continue: false,
+      result: createErrorResult(
+        config.epicSlug,
+        config.storySlug,
+        e instanceof Error ? e.message : String(e),
+        state.cycles,
+        elapsed
+      )
+    };
+  }
+}
+async function executeWorkerLoop(workerPrompt, model, settings, worktree, maxCycles, maxTimeMs, startTime, epicSlug, storySlug, storyDir) {
+  const config = {
+    workerPrompt,
+    model,
+    settings,
+    worktree,
+    maxCycles,
+    maxTimeMs,
+    startTime,
+    epicSlug,
+    storySlug,
+    storyDir
+  };
+  const state = {
+    summaries: [],
+    cycles: 0,
+    lastBlocker: null,
+    finalStatus: null
+  };
+  while (true) {
+    const cycleResult = await executeWorkerCycle(config, state);
+    if (cycleResult.result) {
+      return cycleResult.result;
+    }
+    if (!cycleResult.continue) {
+      return state;
+    }
+  }
+}
+async function runLoop(epicSlug, storySlug, maxCycles, maxTime, model) {
+  const resources = validateLoopResources(epicSlug, storySlug);
+  if (!resources.valid) {
+    return createErrorResult(epicSlug, storySlug, resources.error, 0, 0);
+  }
+  const settings = buildScopeSettings();
+  const startTime = Date.now();
+  const maxTimeMs = maxTime * SECONDS_PER_MINUTE * MS_PER_SECOND;
+  const { storyDir } = createStoryPaths(
+    resources.worktreeDir,
+    epicSlug,
+    storySlug
+  );
+  const result = await executeWorkerLoop(
+    resources.workerPrompt,
+    model,
+    settings,
+    resources.worktreeDir,
+    maxCycles,
+    maxTimeMs,
+    startTime,
+    epicSlug,
+    storySlug,
+    storyDir
+  );
+  if ("status" in result && result.status === "ERROR") {
+    return result;
+  }
+  const state = result;
+  const finalStatus = state.finalStatus ?? "MAX_CYCLES";
+  const elapsedMinutes = (Date.now() - startTime) / MS_PER_MINUTE;
+  return buildLoopResult(
+    epicSlug,
+    storySlug,
+    finalStatus,
+    state.summaries,
+    state.cycles,
+    elapsedMinutes,
+    state.lastBlocker
+  );
+}
+function getWorktreePath(epicSlug, storySlug) {
+  const projectDir = getProjectDir();
+  const worktreePaths = createWorktreePaths(projectDir, epicSlug, storySlug);
+  return worktreePaths.worktreeDir;
+}
+
+// src/implement/index.ts
 async function findStory2(storySlug) {
-  const projectDir = getProjectDir2();
+  const projectDir = getProjectDir();
   const result = await findStory(projectDir, storySlug);
   if (!result.found) {
     return null;
@@ -6521,14 +6564,22 @@ function checkProjectDir() {
   if (projectDir) {
     return { name: "SAGA_PROJECT_DIR", path: projectDir, passed: true };
   }
-  return { name: "SAGA_PROJECT_DIR", passed: false, error: "Environment variable not set" };
+  return {
+    name: "SAGA_PROJECT_DIR",
+    passed: false,
+    error: "Environment variable not set"
+  };
 }
 function checkPluginRoot() {
   const pluginRoot = process3.env.SAGA_PLUGIN_ROOT;
   if (pluginRoot) {
     return { name: "SAGA_PLUGIN_ROOT", path: pluginRoot, passed: true };
   }
-  return { name: "SAGA_PLUGIN_ROOT", passed: false, error: "Environment variable not set" };
+  return {
+    name: "SAGA_PLUGIN_ROOT",
+    passed: false,
+    error: "Environment variable not set"
+  };
 }
 function checkClaudeCli() {
   const claudeCheck = checkCommandExists("claude");
@@ -6542,7 +6593,11 @@ function checkClaudeCli() {
 function checkWorkerPrompt() {
   const pluginRoot = process3.env.SAGA_PLUGIN_ROOT;
   if (!pluginRoot) {
-    return { name: "Worker prompt", passed: false, error: "SAGA_PLUGIN_ROOT not set" };
+    return {
+      name: "Worker prompt",
+      passed: false,
+      error: "SAGA_PLUGIN_ROOT not set"
+    };
   }
   const skillRoot = getSkillRoot();
   const workerPromptPath = join4(skillRoot, WORKER_PROMPT_RELATIVE);
@@ -6568,7 +6623,11 @@ function checkStoryMdExists(storyInfo) {
   if (!projectDir) {
     return null;
   }
-  const worktreePaths = createWorktreePaths(projectDir, storyInfo.epicSlug, storyInfo.storySlug);
+  const worktreePaths = createWorktreePaths(
+    projectDir,
+    storyInfo.epicSlug,
+    storyInfo.storySlug
+  );
   if (!existsSync4(worktreePaths.worktreeDir)) {
     return null;
   }
@@ -6593,7 +6652,11 @@ function runDryRun(storyInfo) {
     passed: true
   });
   if (projectDir) {
-    const worktreePaths = createWorktreePaths(projectDir, storyInfo.epicSlug, storyInfo.storySlug);
+    const worktreePaths = createWorktreePaths(
+      projectDir,
+      storyInfo.epicSlug,
+      storyInfo.storySlug
+    );
     checks.push(checkWorktreeExists(worktreePaths.worktreeDir));
     const storyMdCheck = checkStoryMdExists(storyInfo);
     if (storyMdCheck) {
@@ -6646,9 +6709,9 @@ function handleDryRun(storyInfo) {
   printDryRunResults(dryRunResult);
   process3.exit(dryRunResult.success ? 0 : 1);
 }
-async function handleDetachedMode(storySlug, storyInfo, options) {
-  const projectDir = getProjectDir2();
-  const detachedCommand = buildDetachedCommand(storySlug, projectDir, {
+function handleDetachedMode(storySlug, storyInfo, options) {
+  const pluginRoot = getPluginRoot();
+  const detachedCommand = buildDetachedCommand(storySlug, pluginRoot, {
     maxCycles: options.maxCycles,
     maxTime: options.maxTime,
     model: options.model
@@ -6673,7 +6736,9 @@ async function handleInternalSession(storyInfo, options) {
   const model = options.model ?? DEFAULT_MODEL;
   console.log("Starting story implementation...");
   console.log(`Story: ${storyInfo.storySlug} (epic: ${storyInfo.epicSlug})`);
-  console.log(`Max cycles: ${maxCycles}, Max time: ${maxTime}min, Model: ${model}`);
+  console.log(
+    `Max cycles: ${maxCycles}, Max time: ${maxTime}min, Model: ${model}`
+  );
   console.log("");
   const result = await runLoop(
     storyInfo.epicSlug,
@@ -6691,7 +6756,7 @@ Implementation ${result.status}: ${result.summary}`);
 }
 async function implementCommand(storySlug, options) {
   try {
-    getProjectDir2();
+    getProjectDir();
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process3.exit(1);
@@ -6706,7 +6771,7 @@ async function implementCommand(storySlug, options) {
     handleDryRun(storyInfo);
   }
   try {
-    getPluginRoot2();
+    getPluginRoot();
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process3.exit(1);
@@ -6762,83 +6827,90 @@ function printError(message) {
   process4.stderr.write(`Error: ${message}
 `);
 }
-function parseArgs(args) {
-  const options = {};
-  let storySlug;
-  let i = 0;
-  while (i < args.length) {
-    const arg = args[i];
-    if (arg === "--help" || arg === "-h") {
-      printUsage();
-      process4.exit(0);
-    }
-    if (arg === "--max-cycles") {
-      i++;
-      if (i >= args.length) {
-        printError("--max-cycles requires a value");
-        return null;
-      }
-      const value = Number.parseInt(args[i], 10);
-      if (Number.isNaN(value) || value < 1) {
-        printError("--max-cycles must be a positive integer");
-        return null;
-      }
-      options.maxCycles = value;
-      i++;
-      continue;
-    }
-    if (arg === "--max-time") {
-      i++;
-      if (i >= args.length) {
-        printError("--max-time requires a value");
-        return null;
-      }
-      const value = Number.parseInt(args[i], 10);
-      if (Number.isNaN(value) || value < 1) {
-        printError("--max-time must be a positive integer");
-        return null;
-      }
-      options.maxTime = value;
-      i++;
-      continue;
-    }
-    if (arg === "--model") {
-      i++;
-      if (i >= args.length) {
-        printError("--model requires a value");
-        return null;
-      }
-      options.model = args[i];
-      i++;
-      continue;
-    }
-    if (arg === "--dry-run") {
-      options.dryRun = true;
-      i++;
-      continue;
-    }
-    if (arg.startsWith("--")) {
-      printError(`Unknown option: ${arg}`);
-      return null;
-    }
-    if (arg.startsWith("-") && arg !== "-") {
-      printError(`Unknown option: ${arg}`);
-      return null;
-    }
-    if (!storySlug) {
-      storySlug = arg;
-      i++;
-      continue;
-    }
-    printError(`Unexpected argument: ${arg}`);
+function parsePositiveInt(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed < 1) {
     return null;
   }
-  if (!storySlug) {
+  return parsed;
+}
+function consumeNextArg(iter) {
+  const next = iter.next();
+  return next.done ? null : next.value;
+}
+function parseIntOption(name, iter) {
+  const raw = consumeNextArg(iter);
+  if (raw === null) {
+    printError(`${name} requires a value`);
+    return null;
+  }
+  const value = parsePositiveInt(raw);
+  if (value === null) {
+    printError(`${name} must be a positive integer`);
+    return null;
+  }
+  return value;
+}
+function processArg(arg, iter, options, state) {
+  if (arg === "--help" || arg === "-h") {
+    printUsage();
+    process4.exit(0);
+  }
+  if (arg === "--max-cycles") {
+    const value = parseIntOption("--max-cycles", iter);
+    if (value === null) {
+      return false;
+    }
+    options.maxCycles = value;
+    return true;
+  }
+  if (arg === "--max-time") {
+    const value = parseIntOption("--max-time", iter);
+    if (value === null) {
+      return false;
+    }
+    options.maxTime = value;
+    return true;
+  }
+  if (arg === "--model") {
+    const raw = consumeNextArg(iter);
+    if (raw === null) {
+      printError("--model requires a value");
+      return false;
+    }
+    options.model = raw;
+    return true;
+  }
+  if (arg === "--dry-run") {
+    options.dryRun = true;
+    return true;
+  }
+  if (arg.startsWith("-") && arg !== "-") {
+    printError(`Unknown option: ${arg}`);
+    return false;
+  }
+  if (!state.storySlug) {
+    state.storySlug = arg;
+    return true;
+  }
+  printError(`Unexpected argument: ${arg}`);
+  return false;
+}
+function parseArgs(args) {
+  const options = {};
+  const state = {};
+  const iter = args[Symbol.iterator]();
+  for (const arg of iter) {
+    if (!processArg(arg, iter, options, state)) {
+      return null;
+    }
+  }
+  if (!state.storySlug) {
     printError("Missing required argument: story-slug");
     printUsage();
     return null;
   }
-  return { storySlug, options };
+  return { storySlug: state.storySlug, options };
 }
 async function main() {
   const args = process4.argv.slice(2);
@@ -6849,6 +6921,8 @@ async function main() {
   await implementCommand(parsed.storySlug, parsed.options);
 }
 main().catch((error) => {
-  console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(
+    `Error: ${error instanceof Error ? error.message : String(error)}`
+  );
   process4.exit(1);
 });

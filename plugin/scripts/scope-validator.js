@@ -87,9 +87,15 @@ function getScopeEnvironment() {
   const epicSlug = process.env.SAGA_EPIC_SLUG || "";
   const storySlug = process.env.SAGA_STORY_SLUG || "";
   const missing = [];
-  if (!worktreePath) missing.push("SAGA_PROJECT_DIR");
-  if (!epicSlug) missing.push("SAGA_EPIC_SLUG");
-  if (!storySlug) missing.push("SAGA_STORY_SLUG");
+  if (!worktreePath) {
+    missing.push("SAGA_PROJECT_DIR");
+  }
+  if (!epicSlug) {
+    missing.push("SAGA_EPIC_SLUG");
+  }
+  if (!storySlug) {
+    missing.push("SAGA_STORY_SLUG");
+  }
   if (missing.length > 0) {
     process.stderr.write(
       `scope-validator: Missing required environment variables: ${missing.join(", ")}
@@ -128,11 +134,33 @@ async function main() {
   if (!filePath) {
     process.exit(EXIT_ALLOWED);
   }
-  const violation = validatePath(filePath, env.worktreePath, env.epicSlug, env.storySlug);
+  const violation = validatePath(
+    filePath,
+    env.worktreePath,
+    env.epicSlug,
+    env.storySlug
+  );
   if (violation) {
-    printScopeViolation(filePath, env.epicSlug, env.storySlug, env.worktreePath, violation);
+    printScopeViolation(
+      filePath,
+      env.epicSlug,
+      env.storySlug,
+      env.worktreePath,
+      violation
+    );
     process.exit(EXIT_BLOCKED);
   }
   process.exit(EXIT_ALLOWED);
 }
-main();
+var isDirectExecution = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/"));
+if (isDirectExecution) {
+  main();
+}
+export {
+  checkStoryAccess,
+  getFilePathFromInput,
+  isArchiveAccess,
+  isWithinWorktree,
+  normalizePath,
+  validatePath
+};

@@ -7,41 +7,41 @@
  * Uses the shared saga-scanner for directory traversal.
  */
 
-import { readdirSync } from 'node:fs';
-import { join } from 'node:path';
-import Fuse from 'fuse.js';
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+import Fuse from "fuse.js";
 import {
-  epicsDirectoryExists,
-  type ScannedStory,
-  scanAllStories,
-  worktreesDirectoryExists,
-} from './saga-scanner.ts';
+	epicsDirectoryExists,
+	type ScannedStory,
+	scanAllStories,
+	worktreesDirectoryExists,
+} from "./saga-scanner.ts";
 
 // ============================================================================
 // Types
 // ============================================================================
 
 interface EpicInfo {
-  slug: string;
+	slug: string;
 }
 
 interface StoryInfo {
-  slug: string;
-  title: string;
-  status: string;
-  context: string;
-  epicSlug: string;
-  storyPath: string;
-  worktreePath: string;
+	slug: string;
+	title: string;
+	status: string;
+	context: string;
+	epicSlug: string;
+	storyPath: string;
+	worktreePath: string;
 }
 
 type FindResult<T> =
-  | { found: true; data: T }
-  | { found: false; matches: T[] }
-  | { found: false; error: string };
+	| { found: true; data: T }
+	| { found: false; matches: T[] }
+	| { found: false; error: string };
 
 interface FindStoryOptions {
-  status?: string;
+	status?: string;
 }
 
 // ============================================================================
@@ -79,21 +79,24 @@ const CONTEXT_SECTION_REGEX = /##\s*Context\s*\n+([\s\S]*?)(?=\n##|Z|$)/i;
  * @param maxLength - Maximum length of extracted context (default 300)
  * @returns The context text, truncated if necessary
  */
-function extractContext(body: string, maxLength = DEFAULT_CONTEXT_MAX_LENGTH): string {
-  // Look for ## Context section (case-insensitive)
-  const contextMatch = body.match(CONTEXT_SECTION_REGEX);
+function extractContext(
+	body: string,
+	maxLength = DEFAULT_CONTEXT_MAX_LENGTH,
+): string {
+	// Look for ## Context section (case-insensitive)
+	const contextMatch = body.match(CONTEXT_SECTION_REGEX);
 
-  if (!contextMatch) {
-    return '';
-  }
+	if (!contextMatch) {
+		return "";
+	}
 
-  const context = contextMatch[1].trim();
+	const context = contextMatch[1].trim();
 
-  if (context.length > maxLength) {
-    return `${context.slice(0, maxLength - ELLIPSIS_LENGTH)}...`;
-  }
+	if (context.length > maxLength) {
+		return `${context.slice(0, maxLength - ELLIPSIS_LENGTH)}...`;
+	}
 
-  return context;
+	return context;
 }
 
 // ============================================================================
@@ -106,7 +109,7 @@ function extractContext(body: string, maxLength = DEFAULT_CONTEXT_MAX_LENGTH): s
  * - Replace hyphens and underscores with spaces
  */
 function normalize(str: string): string {
-  return str.toLowerCase().replace(/[-_]/g, ' ');
+	return str.toLowerCase().replace(/[-_]/g, " ");
 }
 
 // ============================================================================
@@ -114,15 +117,15 @@ function normalize(str: string): string {
 // ============================================================================
 
 function toStoryInfo(story: ScannedStory): StoryInfo {
-  return {
-    slug: story.slug,
-    title: story.title,
-    status: story.status,
-    context: extractContext(story.body),
-    epicSlug: story.epicSlug,
-    storyPath: story.storyPath,
-    worktreePath: story.worktreePath || '',
-  };
+	return {
+		slug: story.slug,
+		title: story.title,
+		status: story.status,
+		context: extractContext(story.body),
+		epicSlug: story.epicSlug,
+		storyPath: story.storyPath,
+		worktreePath: story.worktreePath || "",
+	};
 }
 
 // ============================================================================
@@ -133,29 +136,29 @@ function toStoryInfo(story: ScannedStory): StoryInfo {
  * Process fuzzy search results and determine the best match or return ambiguous matches
  */
 function processFuzzyResults<T>(results: Fuse.FuseResult<T>[]): FindResult<T> {
-  // If only one match, return it
-  if (results.length === 1) {
-    return { found: true, data: results[0].item };
-  }
+	// If only one match, return it
+	if (results.length === 1) {
+		return { found: true, data: results[0].item };
+	}
 
-  // Check if there are multiple similar scores
-  const bestScore = results[0].score ?? 0;
-  const similarMatches = results.filter(
-    (r) => (r.score ?? 0) - bestScore <= SCORE_SIMILARITY_THRESHOLD,
-  );
+	// Check if there are multiple similar scores
+	const bestScore = results[0].score ?? 0;
+	const similarMatches = results.filter(
+		(r) => (r.score ?? 0) - bestScore <= SCORE_SIMILARITY_THRESHOLD,
+	);
 
-  // If multiple matches have similar scores, return all for disambiguation
-  if (similarMatches.length > 1) {
-    return { found: false, matches: similarMatches.map((r) => r.item) };
-  }
+	// If multiple matches have similar scores, return all for disambiguation
+	if (similarMatches.length > 1) {
+		return { found: false, matches: similarMatches.map((r) => r.item) };
+	}
 
-  // If best match is significantly better than others and good enough, return it
-  if (bestScore <= FUZZY_THRESHOLD) {
-    return { found: true, data: results[0].item };
-  }
+	// If best match is significantly better than others and good enough, return it
+	if (bestScore <= FUZZY_THRESHOLD) {
+		return { found: true, data: results[0].item };
+	}
 
-  // Multiple matches with varying scores - return all for disambiguation
-  return { found: false, matches: results.map((r) => r.item) };
+	// Multiple matches with varying scores - return all for disambiguation
+	return { found: false, matches: results.map((r) => r.item) };
 }
 
 // ============================================================================
@@ -166,42 +169,48 @@ function processFuzzyResults<T>(results: Fuse.FuseResult<T>[]): FindResult<T> {
  * Get all epic slugs from the epics directory
  */
 function getEpicSlugs(projectPath: string): string[] {
-  const epicsDir = join(projectPath, '.saga', 'epics');
-  return readdirSync(epicsDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name);
+	const epicsDir = join(projectPath, ".saga", "epics");
+	return readdirSync(epicsDir, { withFileTypes: true })
+		.filter((d) => d.isDirectory())
+		.map((d) => d.name);
 }
 
 /**
  * Find exact match for epic slug
  */
-function findExactEpicMatch(epicSlugs: string[], queryNormalized: string): EpicInfo | null {
-  for (const slug of epicSlugs) {
-    if (slug.toLowerCase() === queryNormalized) {
-      return { slug };
-    }
-  }
-  return null;
+function findExactEpicMatch(
+	epicSlugs: string[],
+	queryNormalized: string,
+): EpicInfo | null {
+	for (const slug of epicSlugs) {
+		if (slug.toLowerCase() === queryNormalized) {
+			return { slug };
+		}
+	}
+	return null;
 }
 
 /**
  * Perform fuzzy search on epics
  */
-function fuzzySearchEpics(epicSlugs: string[], query: string): FindResult<EpicInfo> {
-  const epics = epicSlugs.map((slug) => ({ slug }));
-  const fuse = new Fuse(epics, {
-    keys: ['slug'],
-    threshold: MATCH_THRESHOLD,
-    includeScore: true,
-  });
+function fuzzySearchEpics(
+	epicSlugs: string[],
+	query: string,
+): FindResult<EpicInfo> {
+	const epics = epicSlugs.map((slug) => ({ slug }));
+	const fuse = new Fuse(epics, {
+		keys: ["slug"],
+		threshold: MATCH_THRESHOLD,
+		includeScore: true,
+	});
 
-  const results = fuse.search(query);
+	const results = fuse.search(query);
 
-  if (results.length === 0) {
-    return { found: false, error: `No epic found matching '${query}'` };
-  }
+	if (results.length === 0) {
+		return { found: false, error: `No epic found matching '${query}'` };
+	}
 
-  return processFuzzyResults(results);
+	return processFuzzyResults(results);
 }
 
 // ============================================================================
@@ -219,27 +228,27 @@ function fuzzySearchEpics(epicSlugs: string[], query: string): FindResult<EpicIn
  * @returns FindResult with epic info or matches/error
  */
 function findEpic(projectPath: string, query: string): FindResult<EpicInfo> {
-  if (!epicsDirectoryExists(projectPath)) {
-    return { found: false, error: 'No .saga/epics/ directory found' };
-  }
+	if (!epicsDirectoryExists(projectPath)) {
+		return { found: false, error: "No .saga/epics/ directory found" };
+	}
 
-  const epicSlugs = getEpicSlugs(projectPath);
+	const epicSlugs = getEpicSlugs(projectPath);
 
-  if (epicSlugs.length === 0) {
-    return { found: false, error: `No epic found matching '${query}'` };
-  }
+	if (epicSlugs.length === 0) {
+		return { found: false, error: `No epic found matching '${query}'` };
+	}
 
-  // Normalize query for exact matching
-  const queryNormalized = query.toLowerCase().replace(/_/g, '-');
+	// Normalize query for exact matching
+	const queryNormalized = query.toLowerCase().replace(/_/g, "-");
 
-  // Check for exact match first (fast path)
-  const exactMatch = findExactEpicMatch(epicSlugs, queryNormalized);
-  if (exactMatch) {
-    return { found: true, data: exactMatch };
-  }
+	// Check for exact match first (fast path)
+	const exactMatch = findExactEpicMatch(epicSlugs, queryNormalized);
+	if (exactMatch) {
+		return { found: true, data: exactMatch };
+	}
 
-  // Use fuzzy search
-  return fuzzySearchEpics(epicSlugs, query);
+	// Use fuzzy search
+	return fuzzySearchEpics(epicSlugs, query);
 }
 
 // ============================================================================
@@ -249,65 +258,71 @@ function findEpic(projectPath: string, query: string): FindResult<EpicInfo> {
 /**
  * Find exact match for story slug
  */
-function findExactStoryMatch(allStories: StoryInfo[], queryNormalized: string): StoryInfo | null {
-  for (const story of allStories) {
-    if (normalize(story.slug) === queryNormalized) {
-      return story;
-    }
-  }
-  return null;
+function findExactStoryMatch(
+	allStories: StoryInfo[],
+	queryNormalized: string,
+): StoryInfo | null {
+	for (const story of allStories) {
+		if (normalize(story.slug) === queryNormalized) {
+			return story;
+		}
+	}
+	return null;
 }
 
 /**
  * Perform fuzzy search on stories
  */
-function fuzzySearchStories(allStories: StoryInfo[], query: string): FindResult<StoryInfo> {
-  const fuse = new Fuse(allStories, {
-    keys: [
-      { name: 'slug', weight: 2 }, // Prioritize slug matches
-      { name: 'title', weight: 1 },
-    ],
-    threshold: MATCH_THRESHOLD,
-    includeScore: true,
-  });
+function fuzzySearchStories(
+	allStories: StoryInfo[],
+	query: string,
+): FindResult<StoryInfo> {
+	const fuse = new Fuse(allStories, {
+		keys: [
+			{ name: "slug", weight: 2 }, // Prioritize slug matches
+			{ name: "title", weight: 1 },
+		],
+		threshold: MATCH_THRESHOLD,
+		includeScore: true,
+	});
 
-  const results = fuse.search(query);
+	const results = fuse.search(query);
 
-  if (results.length === 0) {
-    return { found: false, error: `No story found matching '${query}'` };
-  }
+	if (results.length === 0) {
+		return { found: false, error: `No story found matching '${query}'` };
+	}
 
-  return processFuzzyResults(results);
+	return processFuzzyResults(results);
 }
 
 /**
  * Load and filter stories based on options
  */
 async function loadAndFilterStories(
-  projectPath: string,
-  query: string,
-  options: FindStoryOptions,
+	projectPath: string,
+	query: string,
+	options: FindStoryOptions,
 ): Promise<FindResult<StoryInfo> | StoryInfo[]> {
-  const scannedStories = await scanAllStories(projectPath);
+	const scannedStories = await scanAllStories(projectPath);
 
-  if (scannedStories.length === 0) {
-    return { found: false, error: `No story found matching '${query}'` };
-  }
+	if (scannedStories.length === 0) {
+		return { found: false, error: `No story found matching '${query}'` };
+	}
 
-  let allStories = scannedStories.map(toStoryInfo);
+	let allStories = scannedStories.map(toStoryInfo);
 
-  if (options.status) {
-    allStories = allStories.filter((story) => story.status === options.status);
+	if (options.status) {
+		allStories = allStories.filter((story) => story.status === options.status);
 
-    if (allStories.length === 0) {
-      return {
-        found: false,
-        error: `No story found matching '${query}' with status '${options.status}'`,
-      };
-    }
-  }
+		if (allStories.length === 0) {
+			return {
+				found: false,
+				error: `No story found matching '${query}' with status '${options.status}'`,
+			};
+		}
+	}
 
-  return allStories;
+	return allStories;
 }
 
 // ============================================================================
@@ -330,37 +345,46 @@ async function loadAndFilterStories(
  * @returns Promise resolving to FindResult with story info or matches/error
  */
 async function findStory(
-  projectPath: string,
-  query: string,
-  options: FindStoryOptions = {},
+	projectPath: string,
+	query: string,
+	options: FindStoryOptions = {},
 ): Promise<FindResult<StoryInfo>> {
-  if (!(worktreesDirectoryExists(projectPath) || epicsDirectoryExists(projectPath))) {
-    return {
-      found: false,
-      error: 'No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first.',
-    };
-  }
+	if (
+		!(
+			worktreesDirectoryExists(projectPath) || epicsDirectoryExists(projectPath)
+		)
+	) {
+		return {
+			found: false,
+			error:
+				"No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first.",
+		};
+	}
 
-  const storiesOrError = await loadAndFilterStories(projectPath, query, options);
+	const storiesOrError = await loadAndFilterStories(
+		projectPath,
+		query,
+		options,
+	);
 
-  // If it's a FindResult (error), return it
-  if (!Array.isArray(storiesOrError)) {
-    return storiesOrError;
-  }
+	// If it's a FindResult (error), return it
+	if (!Array.isArray(storiesOrError)) {
+		return storiesOrError;
+	}
 
-  const allStories = storiesOrError;
+	const allStories = storiesOrError;
 
-  // Normalize query for exact matching
-  const queryNormalized = normalize(query);
+	// Normalize query for exact matching
+	const queryNormalized = normalize(query);
 
-  // Check for exact match first (fast path)
-  const exactMatch = findExactStoryMatch(allStories, queryNormalized);
-  if (exactMatch) {
-    return { found: true, data: exactMatch };
-  }
+	// Check for exact match first (fast path)
+	const exactMatch = findExactStoryMatch(allStories, queryNormalized);
+	if (exactMatch) {
+		return { found: true, data: exactMatch };
+	}
 
-  // Use fuzzy search
-  return fuzzySearchStories(allStories, query);
+	// Use fuzzy search
+	return fuzzySearchStories(allStories, query);
 }
 
 // ============================================================================

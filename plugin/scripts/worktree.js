@@ -6,10 +6,38 @@ var __export = (target, all) => {
 };
 
 // src/worktree.ts
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import process from "node:process";
+import process2 from "node:process";
+
+// ../saga-types/src/directory.ts
+function normalizeRoot(projectRoot) {
+  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
+}
+function createSagaPaths(projectRoot) {
+  const root = normalizeRoot(projectRoot);
+  const saga = `${root}/.saga`;
+  return {
+    root,
+    saga,
+    epics: `${saga}/epics`,
+    worktrees: `${saga}/worktrees`,
+    archive: `${saga}/archive`
+  };
+}
+function createWorktreePaths(projectRoot, epicSlug, storySlug) {
+  const { worktrees } = createSagaPaths(projectRoot);
+  const worktreeDir = `${worktrees}/${epicSlug}/${storySlug}`;
+  const nestedStoryDir = `${worktreeDir}/.saga/epics/${epicSlug}/stories/${storySlug}`;
+  return {
+    epicSlug,
+    storySlug,
+    worktreeDir,
+    storyMdInWorktree: `${nestedStoryDir}/story.md`,
+    journalMdInWorktree: `${nestedStoryDir}/journal.md`
+  };
+}
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4053,7 +4081,12 @@ var coerce = {
 var NEVER = INVALID;
 
 // ../saga-types/src/story.ts
-var StoryStatusSchema = external_exports.enum(["ready", "in_progress", "blocked", "completed"]);
+var StoryStatusSchema = external_exports.enum([
+  "ready",
+  "in_progress",
+  "blocked",
+  "completed"
+]);
 var TaskStatusSchema = external_exports.enum(["pending", "in_progress", "completed"]);
 var TaskSchema = external_exports.object({
   id: external_exports.string(),
@@ -4115,35 +4148,8 @@ var SessionSchema = external_exports.object({
   outputPreview: external_exports.string().optional()
 });
 
-// ../saga-types/src/directory.ts
-function normalizeRoot(projectRoot) {
-  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
-}
-function createSagaPaths(projectRoot) {
-  const root = normalizeRoot(projectRoot);
-  const saga = `${root}/.saga`;
-  return {
-    root,
-    saga,
-    epics: `${saga}/epics`,
-    worktrees: `${saga}/worktrees`,
-    archive: `${saga}/archive`
-  };
-}
-function createWorktreePaths(projectRoot, epicSlug, storySlug) {
-  const { worktrees } = createSagaPaths(projectRoot);
-  const worktreeDir = `${worktrees}/${epicSlug}/${storySlug}`;
-  const nestedStoryDir = `${worktreeDir}/.saga/epics/${epicSlug}/stories/${storySlug}`;
-  return {
-    epicSlug,
-    storySlug,
-    worktreeDir,
-    storyMdInWorktree: `${nestedStoryDir}/story.md`,
-    journalMdInWorktree: `${nestedStoryDir}/journal.md`
-  };
-}
-
-// src/worktree.ts
+// src/shared/env.ts
+import process from "node:process";
 function getProjectDir() {
   const projectDir = process.env.SAGA_PROJECT_DIR;
   if (!projectDir) {
@@ -4151,6 +4157,12 @@ function getProjectDir() {
       "SAGA_PROJECT_DIR environment variable is not set.\nThis script must be run from a SAGA session where env vars are set."
     );
   }
+  return projectDir;
+}
+
+// src/worktree.ts
+function getProjectDir2() {
+  const projectDir = getProjectDir();
   const sagaPaths = createSagaPaths(projectDir);
   if (!existsSync(sagaPaths.saga)) {
     throw new Error(
@@ -4162,7 +4174,7 @@ Make sure SAGA_PROJECT_DIR points to a SAGA project root.`
 }
 function runGitCommand(args, cwd) {
   try {
-    const output = execSync(`git ${args.join(" ")}`, {
+    const output = execFileSync("git", args, {
       cwd,
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"]
@@ -4179,7 +4191,10 @@ function branchExists(branchName, cwd) {
   return result.success;
 }
 function getMainBranch(cwd) {
-  const result = runGitCommand(["symbolic-ref", "refs/remotes/origin/HEAD"], cwd);
+  const result = runGitCommand(
+    ["symbolic-ref", "refs/remotes/origin/HEAD"],
+    cwd
+  );
   if (result.success) {
     return result.output.replace("refs/remotes/origin/", "");
   }
@@ -4254,46 +4269,51 @@ Examples:
 `);
 }
 function parseArgs(args) {
-  const result = { help: false };
+  const result = {
+    help: false
+  };
   const positional = [];
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
+  for (const arg of args) {
     if (arg === "--help" || arg === "-h") {
       result.help = true;
     } else if (!arg.startsWith("-")) {
       positional.push(arg);
     }
   }
-  if (positional.length >= 1) result.epicSlug = positional[0];
-  if (positional.length >= 2) result.storySlug = positional[1];
+  if (positional.length > 0) {
+    result.epicSlug = positional[0];
+  }
+  if (positional.length >= 2) {
+    result.storySlug = positional[1];
+  }
   return result;
 }
 function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const args = parseArgs(process2.argv.slice(2));
   if (args.help) {
     printHelp();
-    process.exit(0);
+    process2.exit(0);
   }
-  if (!args.epicSlug || !args.storySlug) {
+  if (!(args.epicSlug && args.storySlug)) {
     console.error("Error: Both epic-slug and story-slug are required.\n");
     printHelp();
-    process.exit(1);
+    process2.exit(1);
   }
   let projectPath;
   try {
-    projectPath = getProjectDir();
+    projectPath = getProjectDir2();
   } catch (error) {
     const result2 = {
       success: false,
       error: error instanceof Error ? error.message : String(error)
     };
     console.log(JSON.stringify(result2, null, 2));
-    process.exit(1);
+    process2.exit(1);
   }
   const result = createWorktree(projectPath, args.epicSlug, args.storySlug);
   console.log(JSON.stringify(result, null, 2));
   if (!result.success) {
-    process.exit(1);
+    process2.exit(1);
   }
 }
 main();

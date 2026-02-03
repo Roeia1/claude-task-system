@@ -5,4 +5,4 @@
  * The actual implementation is in ./find/index.ts
  */
 
-import './find/index.ts';
+import "./find/index.ts";

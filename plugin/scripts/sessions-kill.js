@@ -49,6 +49,13 @@ function main() {
     process.exit(1);
   }
   const sessionName = args[0];
+  if (!sessionName.startsWith("saga__")) {
+    printError(
+      `Invalid session name: "${sessionName}"
+Session name must start with "saga__" (e.g., saga__epic__story__1234567890)`
+    );
+    process.exit(1);
+  }
   const result = killSession(sessionName);
   console.log(JSON.stringify(result, null, 2));
   process.exit(0);

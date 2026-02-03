@@ -16,8 +16,8 @@
  * Output: Exit code 0 = allowed, exit code 2 = blocked (with error message)
  */
 
-import { relative, resolve } from 'node:path';
-import process from 'node:process';
+import { relative, resolve } from "node:path";
+import process from "node:process";
 
 // Box formatting constants for scope violation message
 const FILE_PATH_WIDTH = 50;
@@ -35,31 +35,31 @@ const REASON_WIDTH = 56;
  * }
  */
 function getFilePathFromInput(hookInput: string): string | null {
-  try {
-    const data = JSON.parse(hookInput);
-    const toolInput = data.tool_input || {};
-    // Read, Write, Edit use file_path; Glob, Grep use path
-    return toolInput.file_path || toolInput.path || null;
-  } catch {
-    return null;
-  }
+	try {
+		const data = JSON.parse(hookInput);
+		const toolInput = data.tool_input || {};
+		// Read, Write, Edit use file_path; Glob, Grep use path
+		return toolInput.file_path || toolInput.path || null;
+	} catch {
+		return null;
+	}
 }
 
 /**
  * Normalize path by removing leading ./
  */
 function normalizePath(path: string): string {
-  if (path.startsWith('./')) {
-    return path.slice(2);
-  }
-  return path;
+	if (path.startsWith("./")) {
+		return path.slice(2);
+	}
+	return path;
 }
 
 /**
  * Check if path attempts to access the archive folder
  */
 function isArchiveAccess(path: string): boolean {
-  return path.includes('.saga/archive');
+	return path.includes(".saga/archive");
 }
 
 /**
@@ -67,102 +67,106 @@ function isArchiveAccess(path: string): boolean {
  * Returns true if access is allowed, false if blocked.
  */
 function isWithinWorktree(filePath: string, worktreePath: string): boolean {
-  // Resolve both paths to absolute form
-  const absoluteFilePath = resolve(filePath);
-  const absoluteWorktree = resolve(worktreePath);
+	// Resolve both paths to absolute form
+	const absoluteFilePath = resolve(filePath);
+	const absoluteWorktree = resolve(worktreePath);
 
-  // Get relative path from worktree to file
-  const relativePath = relative(absoluteWorktree, absoluteFilePath);
+	// Get relative path from worktree to file
+	const relativePath = relative(absoluteWorktree, absoluteFilePath);
 
-  // If relative path starts with '..' or is absolute, file is outside worktree
-  if (relativePath.startsWith('..') || resolve(relativePath) === relativePath) {
-    return false;
-  }
+	// If relative path starts with '..' or is absolute, file is outside worktree
+	if (relativePath.startsWith("..") || resolve(relativePath) === relativePath) {
+		return false;
+	}
 
-  return true;
+	return true;
 }
 
 /**
  * Check if path is within the allowed story scope.
  * Returns true if access is allowed, false if blocked.
  */
-function checkStoryAccess(path: string, allowedEpic: string, allowedStory: string): boolean {
-  if (!path.includes('.saga/epics/')) {
-    return true;
-  }
+function checkStoryAccess(
+	path: string,
+	allowedEpic: string,
+	allowedStory: string,
+): boolean {
+	if (!path.includes(".saga/epics/")) {
+		return true;
+	}
 
-  const parts = path.split('/');
-  const epicsIdx = parts.indexOf('epics');
+	const parts = path.split("/");
+	const epicsIdx = parts.indexOf("epics");
 
-  if (epicsIdx === -1) {
-    // No 'epics' in path - not a story file
-    return true;
-  }
+	if (epicsIdx === -1) {
+		// No 'epics' in path - not a story file
+		return true;
+	}
 
-  // Check if path has epic component
-  if (parts.length <= epicsIdx + 1) {
-    // Just epics folder itself
-    return true;
-  }
+	// Check if path has epic component
+	if (parts.length <= epicsIdx + 1) {
+		// Just epics folder itself
+		return true;
+	}
 
-  const pathEpic = parts[epicsIdx + 1];
+	const pathEpic = parts[epicsIdx + 1];
 
-  // Path indices for story folder structure: .saga/epics/{epicSlug}/stories/{storySlug}
-  const storiesFolderIndex = 2;
-  const storySlugIndex = 3;
+	// Path indices for story folder structure: .saga/epics/{epicSlug}/stories/{storySlug}
+	const storiesFolderIndex = 2;
+	const storySlugIndex = 3;
 
-  // Check if this is in stories folder
-  if (
-    parts.length > epicsIdx + storySlugIndex &&
-    parts[epicsIdx + storiesFolderIndex] === 'stories'
-  ) {
-    const pathStory = parts[epicsIdx + storySlugIndex];
-    // Allow if matches current epic and story
-    return pathEpic === allowedEpic && pathStory === allowedStory;
-  }
-  // Not in a story folder - allow epic-level access for same epic
-  return pathEpic === allowedEpic;
+	// Check if this is in stories folder
+	if (
+		parts.length > epicsIdx + storySlugIndex &&
+		parts[epicsIdx + storiesFolderIndex] === "stories"
+	) {
+		const pathStory = parts[epicsIdx + storySlugIndex];
+		// Allow if matches current epic and story
+		return pathEpic === allowedEpic && pathStory === allowedStory;
+	}
+	// Not in a story folder - allow epic-level access for same epic
+	return pathEpic === allowedEpic;
 }
 
 /**
  * Print scope violation error message to stderr
  */
 function printScopeViolation(
-  filePath: string,
-  epicSlug: string,
-  storySlug: string,
-  worktreePath: string,
-  reason: string,
+	filePath: string,
+	epicSlug: string,
+	storySlug: string,
+	worktreePath: string,
+	reason: string,
 ): void {
-  const message = [
-    '',
-    '╭─ Scope Violation ─────────────────────────────────────────╮',
-    '│                                                           │',
-    `│  File: ${filePath.slice(0, FILE_PATH_WIDTH).padEnd(FILE_PATH_WIDTH)}│`,
-    '│                                                           │',
-    `│  ${reason.split('\n')[0].padEnd(REASON_WIDTH)}│`,
-    '│                                                           │',
-    '│  Current scope:                                           │',
-    `│    Epic:     ${epicSlug.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}│`,
-    `│    Story:    ${storySlug.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}│`,
-    `│    Worktree: ${worktreePath.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}│`,
-    '│                                                           │',
-    '╰───────────────────────────────────────────────────────────╯',
-    '',
-  ].join('\n');
+	const message = [
+		"",
+		"╭─ Scope Violation ─────────────────────────────────────────╮",
+		"│                                                           │",
+		`│  File: ${filePath.slice(0, FILE_PATH_WIDTH).padEnd(FILE_PATH_WIDTH)}│`,
+		"│                                                           │",
+		`│  ${reason.split("\n")[0].padEnd(REASON_WIDTH)}│`,
+		"│                                                           │",
+		"│  Current scope:                                           │",
+		`│    Epic:     ${epicSlug.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}│`,
+		`│    Story:    ${storySlug.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}│`,
+		`│    Worktree: ${worktreePath.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}│`,
+		"│                                                           │",
+		"╰───────────────────────────────────────────────────────────╯",
+		"",
+	].join("\n");
 
-  process.stderr.write(message);
+	process.stderr.write(message);
 }
 
 /**
  * Read tool input from stdin
  */
 async function readStdinInput(): Promise<string> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks).toString('utf-8');
+	const chunks: Buffer[] = [];
+	for await (const chunk of process.stdin) {
+		chunks.push(chunk);
+	}
+	return Buffer.concat(chunks).toString("utf-8");
 }
 
 /**
@@ -170,19 +174,19 @@ async function readStdinInput(): Promise<string> {
  * Returns null if any required variable is missing
  */
 function getScopeEnvironment(): {
-  worktreePath: string;
-  epicSlug: string;
-  storySlug: string;
+	worktreePath: string;
+	epicSlug: string;
+	storySlug: string;
 } | null {
-  const worktreePath = process.env.SAGA_PROJECT_DIR || '';
-  const epicSlug = process.env.SAGA_EPIC_SLUG || '';
-  const storySlug = process.env.SAGA_STORY_SLUG || '';
+	const worktreePath = process.env.SAGA_PROJECT_DIR || "";
+	const epicSlug = process.env.SAGA_EPIC_SLUG || "";
+	const storySlug = process.env.SAGA_STORY_SLUG || "";
 
-  if (!(worktreePath && epicSlug && storySlug)) {
-    return null;
-  }
+	if (!(worktreePath && epicSlug && storySlug)) {
+		return null;
+	}
 
-  return { worktreePath, epicSlug, storySlug };
+	return { worktreePath, epicSlug, storySlug };
 }
 
 /**
@@ -190,26 +194,26 @@ function getScopeEnvironment(): {
  * Returns the violation reason if blocked, null if allowed
  */
 function validatePath(
-  filePath: string,
-  worktreePath: string,
-  epicSlug: string,
-  storySlug: string,
+	filePath: string,
+	worktreePath: string,
+	epicSlug: string,
+	storySlug: string,
 ): string | null {
-  const normPath = normalizePath(filePath);
+	const normPath = normalizePath(filePath);
 
-  if (!isWithinWorktree(normPath, worktreePath)) {
-    return 'Access outside worktree blocked\nReason: Workers can only access files within their assigned worktree directory.';
-  }
+	if (!isWithinWorktree(normPath, worktreePath)) {
+		return "Access outside worktree blocked\nReason: Workers can only access files within their assigned worktree directory.";
+	}
 
-  if (isArchiveAccess(normPath)) {
-    return 'Access to archive folder blocked\nReason: The archive folder contains completed stories and is read-only during execution.';
-  }
+	if (isArchiveAccess(normPath)) {
+		return "Access to archive folder blocked\nReason: The archive folder contains completed stories and is read-only during execution.";
+	}
 
-  if (!checkStoryAccess(normPath, epicSlug, storySlug)) {
-    return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
-  }
+	if (!checkStoryAccess(normPath, epicSlug, storySlug)) {
+		return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
+	}
 
-  return null;
+	return null;
 }
 
 /**
@@ -217,24 +221,35 @@ function validatePath(
  * Reads tool input from stdin and validates file path against story scope
  */
 export async function scopeValidatorCommand(): Promise<void> {
-  const env = getScopeEnvironment();
-  if (!env) {
-    process.exit(2);
-  }
+	const env = getScopeEnvironment();
+	if (!env) {
+		process.exit(2);
+	}
 
-  const toolInput = await readStdinInput();
-  const filePath = getFilePathFromInput(toolInput);
+	const toolInput = await readStdinInput();
+	const filePath = getFilePathFromInput(toolInput);
 
-  // If no path found, allow the operation (not a file operation)
-  if (!filePath) {
-    process.exit(0);
-  }
+	// If no path found, allow the operation (not a file operation)
+	if (!filePath) {
+		process.exit(0);
+	}
 
-  const violation = validatePath(filePath, env.worktreePath, env.epicSlug, env.storySlug);
-  if (violation) {
-    printScopeViolation(filePath, env.epicSlug, env.storySlug, env.worktreePath, violation);
-    process.exit(2);
-  }
+	const violation = validatePath(
+		filePath,
+		env.worktreePath,
+		env.epicSlug,
+		env.storySlug,
+	);
+	if (violation) {
+		printScopeViolation(
+			filePath,
+			env.epicSlug,
+			env.storySlug,
+			env.worktreePath,
+			violation,
+		);
+		process.exit(2);
+	}
 
-  process.exit(0);
+	process.exit(0);
 }

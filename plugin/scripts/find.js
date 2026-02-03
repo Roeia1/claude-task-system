@@ -7,7 +7,71 @@ var __export = (target, all) => {
 
 // src/find/index.ts
 import { existsSync as existsSync2 } from "node:fs";
-import process from "node:process";
+import process2 from "node:process";
+
+// ../saga-types/src/directory.ts
+function normalizeRoot(projectRoot) {
+  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
+}
+function createSagaPaths(projectRoot) {
+  const root = normalizeRoot(projectRoot);
+  const saga = `${root}/.saga`;
+  return {
+    root,
+    saga,
+    epics: `${saga}/epics`,
+    worktrees: `${saga}/worktrees`,
+    archive: `${saga}/archive`
+  };
+}
+function createEpicPaths(projectRoot, epicSlug) {
+  const { epics } = createSagaPaths(projectRoot);
+  const epicDir = `${epics}/${epicSlug}`;
+  return {
+    epicSlug,
+    epicDir,
+    epicMd: `${epicDir}/epic.md`,
+    storiesDir: `${epicDir}/stories`
+  };
+}
+function createStoryPaths(projectRoot, epicSlug, storySlug) {
+  const { storiesDir } = createEpicPaths(projectRoot, epicSlug);
+  const storyDir = `${storiesDir}/${storySlug}`;
+  return {
+    epicSlug,
+    storySlug,
+    storyDir,
+    storyMd: `${storyDir}/story.md`,
+    journalMd: `${storyDir}/journal.md`
+  };
+}
+function createWorktreePaths(projectRoot, epicSlug, storySlug) {
+  const { worktrees } = createSagaPaths(projectRoot);
+  const worktreeDir = `${worktrees}/${epicSlug}/${storySlug}`;
+  const nestedStoryDir = `${worktreeDir}/.saga/epics/${epicSlug}/stories/${storySlug}`;
+  return {
+    epicSlug,
+    storySlug,
+    worktreeDir,
+    storyMdInWorktree: `${nestedStoryDir}/story.md`,
+    journalMdInWorktree: `${nestedStoryDir}/journal.md`
+  };
+}
+function createArchivePaths(projectRoot, epicSlug, storySlug) {
+  const { archive } = createSagaPaths(projectRoot);
+  const archiveEpicDir = `${archive}/${epicSlug}`;
+  const result = {
+    epicSlug,
+    archiveEpicDir
+  };
+  if (storySlug) {
+    const archiveStoryDir = `${archiveEpicDir}/${storySlug}`;
+    result.storySlug = storySlug;
+    result.archiveStoryDir = archiveStoryDir;
+    result.archiveStoryMd = `${archiveStoryDir}/story.md`;
+  }
+  return result;
+}
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4051,7 +4115,12 @@ var coerce = {
 var NEVER = INVALID;
 
 // ../saga-types/src/story.ts
-var StoryStatusSchema = external_exports.enum(["ready", "in_progress", "blocked", "completed"]);
+var StoryStatusSchema = external_exports.enum([
+  "ready",
+  "in_progress",
+  "blocked",
+  "completed"
+]);
 var TaskStatusSchema = external_exports.enum(["pending", "in_progress", "completed"]);
 var TaskSchema = external_exports.object({
   id: external_exports.string(),
@@ -4113,68 +4182,16 @@ var SessionSchema = external_exports.object({
   outputPreview: external_exports.string().optional()
 });
 
-// ../saga-types/src/directory.ts
-function normalizeRoot(projectRoot) {
-  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
-}
-function createSagaPaths(projectRoot) {
-  const root = normalizeRoot(projectRoot);
-  const saga = `${root}/.saga`;
-  return {
-    root,
-    saga,
-    epics: `${saga}/epics`,
-    worktrees: `${saga}/worktrees`,
-    archive: `${saga}/archive`
-  };
-}
-function createEpicPaths(projectRoot, epicSlug) {
-  const { epics } = createSagaPaths(projectRoot);
-  const epicDir = `${epics}/${epicSlug}`;
-  return {
-    epicSlug,
-    epicDir,
-    epicMd: `${epicDir}/epic.md`,
-    storiesDir: `${epicDir}/stories`
-  };
-}
-function createStoryPaths(projectRoot, epicSlug, storySlug) {
-  const { storiesDir } = createEpicPaths(projectRoot, epicSlug);
-  const storyDir = `${storiesDir}/${storySlug}`;
-  return {
-    epicSlug,
-    storySlug,
-    storyDir,
-    storyMd: `${storyDir}/story.md`,
-    journalMd: `${storyDir}/journal.md`
-  };
-}
-function createWorktreePaths(projectRoot, epicSlug, storySlug) {
-  const { worktrees } = createSagaPaths(projectRoot);
-  const worktreeDir = `${worktrees}/${epicSlug}/${storySlug}`;
-  const nestedStoryDir = `${worktreeDir}/.saga/epics/${epicSlug}/stories/${storySlug}`;
-  return {
-    epicSlug,
-    storySlug,
-    worktreeDir,
-    storyMdInWorktree: `${nestedStoryDir}/story.md`,
-    journalMdInWorktree: `${nestedStoryDir}/journal.md`
-  };
-}
-function createArchivePaths(projectRoot, epicSlug, storySlug) {
-  const { archive } = createSagaPaths(projectRoot);
-  const archiveEpicDir = `${archive}/${epicSlug}`;
-  const result = {
-    epicSlug,
-    archiveEpicDir
-  };
-  if (storySlug) {
-    const archiveStoryDir = `${archiveEpicDir}/${storySlug}`;
-    result.storySlug = storySlug;
-    result.archiveStoryDir = archiveStoryDir;
-    result.archiveStoryMd = `${archiveStoryDir}/story.md`;
+// src/shared/env.ts
+import process from "node:process";
+function getProjectDir() {
+  const projectDir = process.env.SAGA_PROJECT_DIR;
+  if (!projectDir) {
+    throw new Error(
+      "SAGA_PROJECT_DIR environment variable is not set.\nThis script must be run from a SAGA session where env vars are set."
+    );
   }
-  return result;
+  return projectDir;
 }
 
 // src/find/finder.ts
@@ -5643,14 +5660,20 @@ async function scanArchive(sagaRoot) {
     }
     const storyEntries = await readdir(archivePaths.archiveEpicDir);
     const storyPromises = storyEntries.map(async (storySlug) => {
-      const storyArchivePaths = createArchivePaths(sagaRoot, epicSlug, storySlug);
-      if (!storyArchivePaths.archiveStoryDir || !await isDirectory(storyArchivePaths.archiveStoryDir)) {
+      const storyArchivePaths = createArchivePaths(
+        sagaRoot,
+        epicSlug,
+        storySlug
+      );
+      if (!(storyArchivePaths.archiveStoryDir && await isDirectory(storyArchivePaths.archiveStoryDir))) {
         return null;
       }
       if (!storyArchivePaths.archiveStoryMd) {
         return null;
       }
-      return await parseStoryFile(storyArchivePaths.archiveStoryMd, epicSlug, { archived: true });
+      return await parseStoryFile(storyArchivePaths.archiveStoryMd, epicSlug, {
+        archived: true
+      });
     });
     const stories = await Promise.all(storyPromises);
     return stories.filter((story) => story !== null);
@@ -5704,7 +5727,7 @@ var MATCH_THRESHOLD = 0.6;
 var SCORE_SIMILARITY_THRESHOLD = 0.1;
 var DEFAULT_CONTEXT_MAX_LENGTH = 300;
 var ELLIPSIS_LENGTH = 3;
-var CONTEXT_SECTION_REGEX = /##\s*Context\s*\n+([\s\S]*?)(?=\n##|Z|$)/i;
+var CONTEXT_SECTION_REGEX = /##\s*Context\s*\n+([\s\S]*?)(?=\n##|$)/i;
 function extractContext(body, maxLength = DEFAULT_CONTEXT_MAX_LENGTH) {
   const contextMatch = body.match(CONTEXT_SECTION_REGEX);
   if (!contextMatch) {
@@ -5834,7 +5857,11 @@ async function findStory(projectPath, query, options = {}) {
       error: "No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first."
     };
   }
-  const storiesOrError = await loadAndFilterStories(projectPath, query, options);
+  const storiesOrError = await loadAndFilterStories(
+    projectPath,
+    query,
+    options
+  );
   if (!Array.isArray(storiesOrError)) {
     return storiesOrError;
   }
@@ -5848,13 +5875,8 @@ async function findStory(projectPath, query, options = {}) {
 }
 
 // src/find/index.ts
-function getProjectDir() {
-  const projectDir = process.env.SAGA_PROJECT_DIR;
-  if (!projectDir) {
-    throw new Error(
-      "SAGA_PROJECT_DIR environment variable is not set.\nThis script must be run from a SAGA session where env vars are set."
-    );
-  }
+function getProjectDir2() {
+  const projectDir = getProjectDir();
   const sagaPaths = createSagaPaths(projectDir);
   if (!existsSync2(sagaPaths.saga)) {
     throw new Error(
@@ -5894,59 +5916,87 @@ Examples:
 function parseArgs(args) {
   const result = { help: false };
   const positional = [];
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
+  const iter = args[Symbol.iterator]();
+  for (const arg of iter) {
     if (arg === "--help" || arg === "-h") {
       result.help = true;
     } else if (arg === "--type") {
-      const typeArg = args[++i];
+      const typeArg = iter.next().value;
       if (typeArg === "epic" || typeArg === "story") {
         result.type = typeArg;
       } else {
-        console.error(`Error: Invalid type "${typeArg}". Must be "epic" or "story".`);
-        process.exit(1);
+        console.error(
+          `Error: Invalid type "${typeArg}". Must be "epic" or "story".`
+        );
+        process2.exit(1);
       }
     } else if (arg === "--status") {
-      result.status = args[++i];
+      result.status = iter.next().value;
     } else if (!arg.startsWith("-")) {
       positional.push(arg);
     }
   }
-  if (positional.length >= 1) result.query = positional[0];
+  if (positional.length > 0) {
+    result.query = positional[0];
+  }
   return result;
 }
+function resolveProjectPath() {
+  try {
+    return getProjectDir2();
+  } catch (error) {
+    const result = {
+      found: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+    console.log(JSON.stringify(result, null, 2));
+    process2.exit(1);
+  }
+}
+function resolveStatus(statusArg) {
+  if (!statusArg) {
+    return void 0;
+  }
+  const parsed = StoryStatusSchema.safeParse(statusArg);
+  if (!parsed.success) {
+    const validValues = StoryStatusSchema.options.join(", ");
+    console.log(
+      JSON.stringify(
+        {
+          found: false,
+          error: `Invalid status: "${statusArg}". Valid values: ${validValues}`
+        },
+        null,
+        2
+      )
+    );
+    process2.exit(1);
+  }
+  return parsed.data;
+}
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const args = parseArgs(process2.argv.slice(2));
   if (args.help) {
     printHelp();
-    process.exit(0);
+    process2.exit(0);
   }
   if (!args.query) {
     console.error("Error: Query argument is required.\n");
     printHelp();
-    process.exit(1);
+    process2.exit(1);
   }
-  let projectPath;
-  try {
-    projectPath = getProjectDir();
-  } catch (error) {
-    const result2 = {
-      found: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-    console.log(JSON.stringify(result2, null, 2));
-    process.exit(1);
-  }
+  const projectPath = resolveProjectPath();
   const type = args.type ?? "story";
+  const status = resolveStatus(args.status);
   let result;
   if (type === "epic") {
     result = findEpic(projectPath, args.query);
   } else {
-    result = await findStory(projectPath, args.query, { status: args.status });
+    result = await findStory(projectPath, args.query, { status });
   }
   console.log(JSON.stringify(result, null, 2));
   if (!result.found) {
-    process.exit(1);
+    process2.exit(1);
   }
 }
 main();

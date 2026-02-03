@@ -26,7 +26,7 @@
  * Check if we're running in Vitest test mode.
  */
 function isVitestTest(): boolean {
-  return typeof globalThis.__vitest_expect__ !== 'undefined';
+	return typeof globalThis.__vitest_expect__ !== "undefined";
 }
 
 /**
@@ -34,18 +34,18 @@ function isVitestTest(): boolean {
  * Removes dynamic attributes that change between runs.
  */
 function normalizeHtml(html: string): string {
-  return (
-    html
-      // Remove data-state attributes that may be dynamic
-      .replace(/data-state="[^"]*"/g, 'data-state="..."')
-      // Remove style attributes with dynamic values
-      .replace(/style="[^"]*"/g, 'style="..."')
-      // Normalize Radix UI generated IDs (e.g., radix-:r8:, radix-:rk:)
-      .replace(/radix-:[a-z0-9]+:/g, 'radix-:id:')
-      // Normalize whitespace
-      .replace(/\s+/g, ' ')
-      .trim()
-  );
+	return (
+		html
+			// Remove data-state attributes that may be dynamic
+			.replace(/data-state="[^"]*"/g, 'data-state="..."')
+			// Remove style attributes with dynamic values
+			.replace(/style="[^"]*"/g, 'style="..."')
+			// Normalize Radix UI generated IDs (e.g., radix-:r8:, radix-:rk:)
+			.replace(/radix-:[a-z0-9]+:/g, "radix-:id:")
+			// Normalize whitespace
+			.replace(/\s+/g, " ")
+			.trim()
+	);
 }
 
 // ============================================================================
@@ -65,17 +65,17 @@ function normalizeHtml(html: string): string {
  * @param snapshotName - A unique name for this snapshot
  */
 export async function matchDomSnapshot(
-  canvasElement: HTMLElement,
-  snapshotName: string,
+	canvasElement: HTMLElement,
+	snapshotName: string,
 ): Promise<void> {
-  if (!isVitestTest()) {
-    return;
-  }
+	if (!isVitestTest()) {
+		return;
+	}
 
-  const expect = globalThis.__vitest_expect__;
-  const html = normalizeHtml(canvasElement.innerHTML);
+	const expect = globalThis.__vitest_expect__;
+	const html = normalizeHtml(canvasElement.innerHTML);
 
-  await expect(html).toMatchSnapshot(snapshotName);
+	await expect(html).toMatchSnapshot(snapshotName);
 }
 
 // ============================================================================
@@ -99,14 +99,14 @@ export async function matchDomSnapshot(
  * @param snapshotName - A unique name for this snapshot (without .png extension)
  */
 export async function matchPixelSnapshot(
-  canvasElement: HTMLElement,
-  snapshotName: string,
+	canvasElement: HTMLElement,
+	snapshotName: string,
 ): Promise<void> {
-  if (!isVitestTest()) {
-    return;
-  }
+	if (!isVitestTest()) {
+		return;
+	}
 
-  const expect = globalThis.__vitest_expect__;
+	const expect = globalThis.__vitest_expect__;
 
-  await expect(canvasElement).toMatchScreenshot(`${snapshotName}.png`);
+	await expect(canvasElement).toMatchScreenshot(`${snapshotName}.png`);
 }

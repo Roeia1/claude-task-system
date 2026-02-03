@@ -1,14 +1,23 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, within } from 'storybook/test';
-import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
-import { LogViewer } from './LogViewer.tsx';
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within } from "storybook/test";
+import {
+	matchDomSnapshot,
+	matchPixelSnapshot,
+} from "@/test-utils/visual-snapshot";
+import { LogViewer } from "./LogViewer.tsx";
 
 // ============================================================================
 // Types
 // ============================================================================
 
 /** Preset types for LogViewer states */
-type LogPreset = 'empty' | 'short' | 'long' | 'streaming' | 'complete' | 'unavailable';
+type LogPreset =
+	| "empty"
+	| "short"
+	| "long"
+	| "streaming"
+	| "complete"
+	| "unavailable";
 
 // ============================================================================
 // Constants
@@ -94,82 +103,86 @@ Worktree: /Users/dev/saga/worktrees/user-auth
 
 /** Generate large log content for performance testing */
 function generateLargeLog(lineCount: number): string {
-  const lines: string[] = [];
-  // Use a static base time for reproducible snapshots
-  const baseTime = new Date('2026-01-30T10:00:00.000Z').getTime();
-  for (let i = 1; i <= lineCount; i++) {
-    const timestamp = new Date(baseTime + i * LOG_LINE_TIME_OFFSET_MS).toISOString();
-    const logLevel = ['INFO', 'DEBUG', 'WARN', 'ERROR'][i % LOG_LEVEL_COUNT];
-    lines.push(`[${timestamp}] [${logLevel}] Processing item ${i} of ${lineCount}...`);
-  }
-  return lines.join('\n');
+	const lines: string[] = [];
+	// Use a static base time for reproducible snapshots
+	const baseTime = new Date("2026-01-30T10:00:00.000Z").getTime();
+	for (let i = 1; i <= lineCount; i++) {
+		const timestamp = new Date(
+			baseTime + i * LOG_LINE_TIME_OFFSET_MS,
+		).toISOString();
+		const logLevel = ["INFO", "DEBUG", "WARN", "ERROR"][i % LOG_LEVEL_COUNT];
+		lines.push(
+			`[${timestamp}] [${logLevel}] Processing item ${i} of ${lineCount}...`,
+		);
+	}
+	return lines.join("\n");
 }
 
 /** Get log content for a preset */
 function getLogContentForPreset(preset: LogPreset): string {
-  switch (preset) {
-    case 'empty':
-      return '';
-    case 'short':
-      return shortLogContent;
-    case 'long':
-      return generateLargeLog(LARGE_LOG_LINE_COUNT);
-    case 'streaming':
-      return streamingLogContent;
-    case 'complete':
-      return mediumLogContent;
-    case 'unavailable':
-      return '';
-    default: {
-      const _exhaustive: never = preset;
-      return _exhaustive;
-    }
-  }
+	switch (preset) {
+		case "empty":
+			return "";
+		case "short":
+			return shortLogContent;
+		case "long":
+			return generateLargeLog(LARGE_LOG_LINE_COUNT);
+		case "streaming":
+			return streamingLogContent;
+		case "complete":
+			return mediumLogContent;
+		case "unavailable":
+			return "";
+		default: {
+			const _exhaustive: never = preset;
+			return _exhaustive;
+		}
+	}
 }
 
 /** Get session status for a preset */
-function getStatusForPreset(preset: LogPreset): 'running' | 'completed' {
-  switch (preset) {
-    case 'empty':
-    case 'streaming':
-    case 'unavailable':
-      return 'running';
-    case 'short':
-    case 'long':
-    case 'complete':
-      return 'completed';
-    default: {
-      const _exhaustive: never = preset;
-      return _exhaustive;
-    }
-  }
+function getStatusForPreset(preset: LogPreset): "running" | "completed" {
+	switch (preset) {
+		case "empty":
+		case "streaming":
+		case "unavailable":
+			return "running";
+		case "short":
+		case "long":
+		case "complete":
+			return "completed";
+		default: {
+			const _exhaustive: never = preset;
+			return _exhaustive;
+		}
+	}
 }
 
 /** Check if output is available for a preset */
 function isOutputAvailableForPreset(preset: LogPreset): boolean {
-  return preset !== 'unavailable';
+	return preset !== "unavailable";
 }
 
 /** Convert preset to display label */
 function presetToLabel(preset: LogPreset): string {
-  switch (preset) {
-    case 'empty':
-      return 'Empty Log';
-    case 'short':
-      return 'Short Log';
-    case 'long':
-      return 'Long Log (10K lines)';
-    case 'streaming':
-      return 'Streaming';
-    case 'complete':
-      return 'Complete';
-    case 'unavailable':
-      return 'Output Unavailable';
-    default: {
-      const _exhaustive: never = preset;
-      return _exhaustive;
-    }
-  }
+	switch (preset) {
+		case "empty":
+			return "Empty Log";
+		case "short":
+			return "Short Log";
+		case "long":
+			return "Long Log (10K lines)";
+		case "streaming":
+			return "Streaming";
+		case "complete":
+			return "Complete";
+		case "unavailable":
+			return "Output Unavailable";
+		default: {
+			const _exhaustive: never = preset;
+			return _exhaustive;
+		}
+	}
 }
 
 // ============================================================================
@@ -178,98 +191,110 @@ function presetToLabel(preset: LogPreset): string {
 
 /** Log states section component */
 function LogStatesSection(): React.JSX.Element {
-  return (
-    <section aria-label="Log States">
-      <h3 className="text-sm font-semibold text-text-muted mb-3">Log States</h3>
-      <div className="space-y-4">
-        <div>
-          <p className="text-xs text-text-muted mb-2">Empty Log (no content)</p>
-          <div className="h-32">
-            <LogViewer
-              sessionName="empty-session"
-              status="running"
-              outputAvailable={true}
-              initialContent=""
-            />
-          </div>
-        </div>
-        <div>
-          <p className="text-xs text-text-muted mb-2">Short Log (typical output)</p>
-          <div className="h-48">
-            <LogViewer
-              sessionName="short-session"
-              status="completed"
-              outputAvailable={true}
-              initialContent={shortLogContent}
-            />
-          </div>
-        </div>
-        <div>
-          <p className="text-xs text-text-muted mb-2">
-            Long Log (10,000 lines - virtualized scrolling)
-          </p>
-          <div className="h-48">
-            <LogViewer
-              sessionName="long-session"
-              status="completed"
-              outputAvailable={true}
-              initialContent={generateLargeLog(LARGE_LOG_LINE_COUNT)}
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+	return (
+		<section aria-label="Log States">
+			<h3 className="text-sm font-semibold text-text-muted mb-3">Log States</h3>
+			<div className="space-y-4">
+				<div>
+					<p className="text-xs text-text-muted mb-2">Empty Log (no content)</p>
+					<div className="h-32">
+						<LogViewer
+							sessionName="empty-session"
+							status="running"
+							outputAvailable={true}
+							initialContent=""
+						/>
+					</div>
+				</div>
+				<div>
+					<p className="text-xs text-text-muted mb-2">
+						Short Log (typical output)
+					</p>
+					<div className="h-48">
+						<LogViewer
+							sessionName="short-session"
+							status="completed"
+							outputAvailable={true}
+							initialContent={shortLogContent}
+						/>
+					</div>
+				</div>
+				<div>
+					<p className="text-xs text-text-muted mb-2">
+						Long Log (10,000 lines - virtualized scrolling)
+					</p>
+					<div className="h-48">
+						<LogViewer
+							sessionName="long-session"
+							status="completed"
+							outputAvailable={true}
+							initialContent={generateLargeLog(LARGE_LOG_LINE_COUNT)}
+						/>
+					</div>
+				</div>
+			</div>
+		</section>
+	);
 }
 
 /** Status indicators section component */
 function StatusIndicatorsSection(): React.JSX.Element {
-  return (
-    <section aria-label="Status Indicators">
-      <h3 className="text-sm font-semibold text-text-muted mb-3">Status Indicators</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <p className="text-xs text-text-muted mb-2">Streaming (running session)</p>
-          <div className="h-32">
-            <LogViewer
-              sessionName="streaming-session"
-              status="running"
-              outputAvailable={true}
-              initialContent="[10:00:00] Working on task t1...\n[10:00:01] Running tests..."
-            />
-          </div>
-        </div>
-        <div>
-          <p className="text-xs text-text-muted mb-2">Complete (finished session)</p>
-          <div className="h-32">
-            <LogViewer
-              sessionName="complete-session"
-              status="completed"
-              outputAvailable={true}
-              initialContent="[10:00:00] Story execution complete!\n[10:00:00] All 5 tasks completed."
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+	return (
+		<section aria-label="Status Indicators">
+			<h3 className="text-sm font-semibold text-text-muted mb-3">
+				Status Indicators
+			</h3>
+			<div className="grid grid-cols-2 gap-4">
+				<div>
+					<p className="text-xs text-text-muted mb-2">
+						Streaming (running session)
+					</p>
+					<div className="h-32">
+						<LogViewer
+							sessionName="streaming-session"
+							status="running"
+							outputAvailable={true}
+							initialContent="[10:00:00] Working on task t1...\n[10:00:01] Running tests..."
+						/>
+					</div>
+				</div>
+				<div>
+					<p className="text-xs text-text-muted mb-2">
+						Complete (finished session)
+					</p>
+					<div className="h-32">
+						<LogViewer
+							sessionName="complete-session"
+							status="completed"
+							outputAvailable={true}
+							initialContent="[10:00:00] Story execution complete!\n[10:00:00] All 5 tasks completed."
+						/>
+					</div>
+				</div>
+			</div>
+		</section>
+	);
 }
 
 /** Edge cases section component */
 function EdgeCasesSection(): React.JSX.Element {
-  return (
-    <section aria-label="Edge Cases">
-      <h3 className="text-sm font-semibold text-text-muted mb-3">Edge Cases</h3>
-      <div className="space-y-4">
-        <div>
-          <p className="text-xs text-text-muted mb-2">Output Unavailable</p>
-          <div className="h-24">
-            <LogViewer sessionName="unavailable-session" status="running" outputAvailable={false} />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+	return (
+		<section aria-label="Edge Cases">
+			<h3 className="text-sm font-semibold text-text-muted mb-3">Edge Cases</h3>
+			<div className="space-y-4">
+				<div>
+					<p className="text-xs text-text-muted mb-2">Output Unavailable</p>
+					<div className="h-24">
+						<LogViewer
+							sessionName="unavailable-session"
+							status="running"
+							outputAvailable={false}
+						/>
+					</div>
+				</div>
+			</div>
+		</section>
+	);
 }
 
 // ============================================================================
@@ -289,29 +314,29 @@ function EdgeCasesSection(): React.JSX.Element {
  * - "Output unavailable" state for missing output files
  */
 const meta: Meta<{ preset: LogPreset; customContent: string }> = {
-  title: 'Components/LogViewer',
-  argTypes: {
-    preset: {
-      control: 'select',
-      options: [
-        'empty',
-        'short',
-        'long',
-        'streaming',
-        'complete',
-        'unavailable',
-      ] satisfies LogPreset[],
-      description: 'Select a log preset to display',
-    },
-    customContent: {
-      control: 'text',
-      description: 'Custom log content (overrides preset)',
-    },
-  },
-  args: {
-    preset: 'short',
-    customContent: '',
-  },
+	title: "Components/LogViewer",
+	argTypes: {
+		preset: {
+			control: "select",
+			options: [
+				"empty",
+				"short",
+				"long",
+				"streaming",
+				"complete",
+				"unavailable",
+			] satisfies LogPreset[],
+			description: "Select a log preset to display",
+		},
+		customContent: {
+			control: "text",
+			description: "Custom log content (overrides preset)",
+		},
+	},
+	args: {
+		preset: "short",
+		customContent: "",
+	},
 };
 
 type Story = StoryObj<typeof meta>;
@@ -327,39 +352,51 @@ type Story = StoryObj<typeof meta>;
  * - Edge cases (output unavailable)
  */
 export const Showcase: Story = {
-  render: () => (
-    <div className="space-y-8 p-4">
-      <LogStatesSection />
-      <StatusIndicatorsSection />
-      <EdgeCasesSection />
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+	render: () => (
+		<div className="space-y-8 p-4">
+			<LogStatesSection />
+			<StatusIndicatorsSection />
+			<EdgeCasesSection />
+		</div>
+	),
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
 
-    // Verify section headers
-    await expect(canvas.getByRole('region', { name: 'Log States' })).toBeInTheDocument();
-    await expect(canvas.getByRole('region', { name: 'Status Indicators' })).toBeInTheDocument();
-    await expect(canvas.getByRole('region', { name: 'Edge Cases' })).toBeInTheDocument();
+		// Verify section headers
+		await expect(
+			canvas.getByRole("region", { name: "Log States" }),
+		).toBeInTheDocument();
+		await expect(
+			canvas.getByRole("region", { name: "Status Indicators" }),
+		).toBeInTheDocument();
+		await expect(
+			canvas.getByRole("region", { name: "Edge Cases" }),
+		).toBeInTheDocument();
 
-    // Verify log viewers are rendered
-    const logViewers = canvas.getAllByTestId('log-viewer');
-    await expect(logViewers.length).toBeGreaterThanOrEqual(MIN_SHOWCASE_LOG_VIEWERS);
+		// Verify log viewers are rendered
+		const logViewers = canvas.getAllByTestId("log-viewer");
+		await expect(logViewers.length).toBeGreaterThanOrEqual(
+			MIN_SHOWCASE_LOG_VIEWERS,
+		);
 
-    // Verify status indicators are present
-    const streamingIndicators = canvas.getAllByTestId('status-indicator-streaming');
-    await expect(streamingIndicators.length).toBeGreaterThanOrEqual(1);
+		// Verify status indicators are present
+		const streamingIndicators = canvas.getAllByTestId(
+			"status-indicator-streaming",
+		);
+		await expect(streamingIndicators.length).toBeGreaterThanOrEqual(1);
 
-    const completeIndicators = canvas.getAllByTestId('status-indicator-complete');
-    await expect(completeIndicators.length).toBeGreaterThanOrEqual(1);
+		const completeIndicators = canvas.getAllByTestId(
+			"status-indicator-complete",
+		);
+		await expect(completeIndicators.length).toBeGreaterThanOrEqual(1);
 
-    // Verify "Output unavailable" message
-    await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
+		// Verify "Output unavailable" message
+		await expect(canvas.getByText("Output unavailable")).toBeInTheDocument();
 
-    // Visual snapshot tests
-    await matchDomSnapshot(canvasElement, 'log-viewer-showcase');
-    await matchPixelSnapshot(canvasElement, 'log-viewer-showcase');
-  },
+		// Visual snapshot tests
+		await matchDomSnapshot(canvasElement, "log-viewer-showcase");
+		await matchPixelSnapshot(canvasElement, "log-viewer-showcase");
+	},
 };
 
 // ============================================================================
@@ -371,61 +408,70 @@ export const Showcase: Story = {
  * and custom content.
  */
 export const Playground: Story = {
-  args: {
-    preset: 'short',
-    customContent: '',
-  },
-  render: (args) => {
-    const content = args.customContent || getLogContentForPreset(args.preset);
-    const status = getStatusForPreset(args.preset);
-    const outputAvailable = isOutputAvailableForPreset(args.preset);
+	args: {
+		preset: "short",
+		customContent: "",
+	},
+	render: (args) => {
+		const content = args.customContent || getLogContentForPreset(args.preset);
+		const status = getStatusForPreset(args.preset);
+		const outputAvailable = isOutputAvailableForPreset(args.preset);
 
-    return (
-      <div className="space-y-4 p-4">
-        <div className="text-sm text-text-muted">
-          <span className="font-medium">Preset:</span> {presetToLabel(args.preset)}
-          {args.customContent && ' (overridden with custom content)'}
-        </div>
-        <div className="h-96">
-          <LogViewer
-            sessionName={`${args.preset}-session`}
-            status={status}
-            outputAvailable={outputAvailable}
-            initialContent={content}
-          />
-        </div>
-      </div>
-    );
-  },
-  play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement);
+		return (
+			<div className="space-y-4 p-4">
+				<div className="text-sm text-text-muted">
+					<span className="font-medium">Preset:</span>{" "}
+					{presetToLabel(args.preset)}
+					{args.customContent && " (overridden with custom content)"}
+				</div>
+				<div className="h-96">
+					<LogViewer
+						sessionName={`${args.preset}-session`}
+						status={status}
+						outputAvailable={outputAvailable}
+						initialContent={content}
+					/>
+				</div>
+			</div>
+		);
+	},
+	play: async ({ canvasElement, args }) => {
+		const canvas = within(canvasElement);
 
-    // Verify preset label is displayed
-    await expect(canvas.getByText(presetToLabel(args.preset))).toBeInTheDocument();
+		// Verify preset label is displayed
+		await expect(
+			canvas.getByText(presetToLabel(args.preset)),
+		).toBeInTheDocument();
 
-    // Verify log viewer is rendered
-    const logViewer = canvas.getByTestId('log-viewer');
-    await expect(logViewer).toBeInTheDocument();
+		// Verify log viewer is rendered
+		const logViewer = canvas.getByTestId("log-viewer");
+		await expect(logViewer).toBeInTheDocument();
 
-    // Verify appropriate status based on preset
-    if (args.preset === 'unavailable') {
-      await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
-    } else {
-      const status = getStatusForPreset(args.preset);
-      if (status === 'running') {
-        await expect(canvas.getByTestId('status-indicator-streaming')).toBeInTheDocument();
-      } else {
-        await expect(canvas.getByTestId('status-indicator-complete')).toBeInTheDocument();
-      }
-    }
+		// Verify appropriate status based on preset
+		if (args.preset === "unavailable") {
+			await expect(canvas.getByText("Output unavailable")).toBeInTheDocument();
+		} else {
+			const status = getStatusForPreset(args.preset);
+			if (status === "running") {
+				await expect(
+					canvas.getByTestId("status-indicator-streaming"),
+				).toBeInTheDocument();
+			} else {
+				await expect(
+					canvas.getByTestId("status-indicator-complete"),
+				).toBeInTheDocument();
+			}
+		}
 
-    // For long preset, verify virtualization
-    if (args.preset === 'long') {
-      const renderedLines = canvas.queryAllByTestId('log-line');
-      await expect(renderedLines.length).toBeLessThan(MAX_RENDERED_LINES_THRESHOLD);
-      await expect(renderedLines.length).toBeGreaterThan(0);
-    }
-  },
+		// For long preset, verify virtualization
+		if (args.preset === "long") {
+			const renderedLines = canvas.queryAllByTestId("log-line");
+			await expect(renderedLines.length).toBeLessThan(
+				MAX_RENDERED_LINES_THRESHOLD,
+			);
+			await expect(renderedLines.length).toBeGreaterThan(0);
+		}
+	},
 };
 
 export default meta;

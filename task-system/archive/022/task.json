@@ -1,96 +1,96 @@
 {
-  "meta": {
-    "id": "022",
-    "title": "Phase 1 - Foundation Infrastructure",
-    "created": "2026-01-17",
-    "feature": "009"
-  },
+	"meta": {
+		"id": "022",
+		"title": "Phase 1 - Foundation Infrastructure",
+		"created": "2026-01-17",
+		"feature": "009"
+	},
 
-  "overview": "This task establishes the foundation for Task System V2 - the Epic/Story Architecture. The new system restructures task management into a 3-level hierarchy (Epic -> Stories -> Tasks) with a new `.claude-tasks/` directory structure. This task creates the plugin infrastructure: commands/ and skills/ directories, the /init command with init skill that creates the .claude-tasks/ structure (epics/, archive/, worktrees/), a shared identifier_resolver.py script for epic/story resolution, and templates for epics and stories. The two-layer architecture pattern (Commands invoke Skills via Skill tool) is essential - commands accept $ARGUMENTS and run scripts, skills do the actual work and are marked user-invocable: false. All skills support templates/ and scripts/ subdirectories for co-located resources.",
+	"overview": "This task establishes the foundation for Task System V2 - the Epic/Story Architecture. The new system restructures task management into a 3-level hierarchy (Epic -> Stories -> Tasks) with a new `.claude-tasks/` directory structure. This task creates the plugin infrastructure: commands/ and skills/ directories, the /init command with init skill that creates the .claude-tasks/ structure (epics/, archive/, worktrees/), a shared identifier_resolver.py script for epic/story resolution, and templates for epics and stories. The two-layer architecture pattern (Commands invoke Skills via Skill tool) is essential - commands accept $ARGUMENTS and run scripts, skills do the actual work and are marked user-invocable: false. All skills support templates/ and scripts/ subdirectories for co-located resources.",
 
-  "objectives": [
-    {
-      "id": "obj-1",
-      "description": "Create plugin/commands/ directory and /init command (init.md) that invokes the init skill",
-      "steps": [
-        "Create plugin/commands/ directory",
-        "Create plugin/commands/init.md with frontmatter: description, allowed-tools (Bash, Skill)",
-        "Command runs init_structure.sh via ! prefix, then invokes init skill via Skill tool"
-      ],
-      "notes": [
-        "Commands are user-facing and accept $ARGUMENTS (though /init has none)",
-        "Use ${CLAUDE_PLUGIN_ROOT} for script paths in the command",
-        "Use ${CLAUDE_PROJECT_DIR} for user's project root"
-      ],
-      "status": "done"
-    },
-    {
-      "id": "obj-2",
-      "description": "Create plugin/skills/init/ directory with SKILL.md and scripts/init_structure.sh",
-      "steps": [
-        "Create plugin/skills/init/SKILL.md with user-invocable: false",
-        "Create plugin/skills/init/scripts/init_structure.sh",
-        "Script creates .claude-tasks/epics/, .claude-tasks/archive/, .claude-tasks/worktrees/",
-        "Script updates .gitignore to ignore .claude-tasks/worktrees/"
-      ],
-      "notes": [
-        "SKILL.md reports results to user after script runs",
-        "init_structure.sh receives project root as $1 argument",
-        "Script should be idempotent (safe to run multiple times)"
-      ],
-      "status": "done"
-    },
-    {
-      "id": "obj-3",
-      "description": "Create plugin/scripts/identifier_resolver.py for epic and story resolution",
-      "steps": [
-        "Create plugin/scripts/ directory",
-        "Create identifier_resolver.py with --type (story|epic) and --project-root flags",
-        "Implement epic resolution: slug-based matching from .claude-tasks/epics/ folder names",
-        "Implement story resolution: fuzzy matching on id and title from story.md front matter",
-        "Return JSON output with resolved/epics/stories/error fields"
-      ],
-      "notes": [
-        "Epic resolution only uses folder names (slugs), never reads epic.md",
-        "Story resolution reads YAML front matter using python-frontmatter or PyYAML",
-        "Story context field truncated to 300 characters max",
-        "Returns exit 0 with error field on no match (not exception)",
-        "Multiple matches return resolved=false with array of matches"
-      ],
-      "status": "done"
-    },
-    {
-      "id": "obj-4",
-      "description": "Create plugin/skills/create-epic/templates/epic-template.md template",
-      "steps": [
-        "Create plugin/skills/create-epic/templates/ directory",
-        "Create epic-template.md with unified structure (vision above ---, architecture below ---)",
-        "Include sections: Overview, Goals, Success Metrics, Scope (In/Out), NFRs",
-        "Include sections: Technical Approach, Key Decisions, Data Models, Interface Contracts, Tech Stack, Open Questions"
-      ],
-      "notes": [
-        "Template uses placeholders that will be filled by the create-epic skill",
-        "Vision section is WHAT to build, Architecture section is HOW",
-        "Key Decisions use ADR-style format inline (Choice/Rationale/Alternatives)"
-      ],
-      "status": "done"
-    },
-    {
-      "id": "obj-5",
-      "description": "Create plugin/skills/generate-stories/templates/story-template.md with YAML front matter",
-      "steps": [
-        "Create plugin/skills/generate-stories/templates/ directory",
-        "Create story-template.md with YAML front matter schema",
-        "Front matter includes: id, title, status, epic, tasks[] with id/title/status",
-        "Markdown body includes: Context, Interface (Inputs/Outputs), Acceptance Criteria, Tasks (with Guidance/References/Avoid/Done when)"
-      ],
-      "notes": [
-        "Stories are self-contained - agents only need story.md for execution",
-        "Status values: ready | in-progress | review | done for story",
-        "Task status values: pending | in-progress | done",
-        "Use python-frontmatter compatible YAML format"
-      ],
-      "status": "done"
-    }
-  ]
+	"objectives": [
+		{
+			"id": "obj-1",
+			"description": "Create plugin/commands/ directory and /init command (init.md) that invokes the init skill",
+			"steps": [
+				"Create plugin/commands/ directory",
+				"Create plugin/commands/init.md with frontmatter: description, allowed-tools (Bash, Skill)",
+				"Command runs init_structure.sh via ! prefix, then invokes init skill via Skill tool"
+			],
+			"notes": [
+				"Commands are user-facing and accept $ARGUMENTS (though /init has none)",
+				"Use ${CLAUDE_PLUGIN_ROOT} for script paths in the command",
+				"Use ${CLAUDE_PROJECT_DIR} for user's project root"
+			],
+			"status": "done"
+		},
+		{
+			"id": "obj-2",
+			"description": "Create plugin/skills/init/ directory with SKILL.md and scripts/init_structure.sh",
+			"steps": [
+				"Create plugin/skills/init/SKILL.md with user-invocable: false",
+				"Create plugin/skills/init/scripts/init_structure.sh",
+				"Script creates .claude-tasks/epics/, .claude-tasks/archive/, .claude-tasks/worktrees/",
+				"Script updates .gitignore to ignore .claude-tasks/worktrees/"
+			],
+			"notes": [
+				"SKILL.md reports results to user after script runs",
+				"init_structure.sh receives project root as $1 argument",
+				"Script should be idempotent (safe to run multiple times)"
+			],
+			"status": "done"
+		},
+		{
+			"id": "obj-3",
+			"description": "Create plugin/scripts/identifier_resolver.py for epic and story resolution",
+			"steps": [
+				"Create plugin/scripts/ directory",
+				"Create identifier_resolver.py with --type (story|epic) and --project-root flags",
+				"Implement epic resolution: slug-based matching from .claude-tasks/epics/ folder names",
+				"Implement story resolution: fuzzy matching on id and title from story.md front matter",
+				"Return JSON output with resolved/epics/stories/error fields"
+			],
+			"notes": [
+				"Epic resolution only uses folder names (slugs), never reads epic.md",
+				"Story resolution reads YAML front matter using python-frontmatter or PyYAML",
+				"Story context field truncated to 300 characters max",
+				"Returns exit 0 with error field on no match (not exception)",
+				"Multiple matches return resolved=false with array of matches"
+			],
+			"status": "done"
+		},
+		{
+			"id": "obj-4",
+			"description": "Create plugin/skills/create-epic/templates/epic-template.md template",
+			"steps": [
+				"Create plugin/skills/create-epic/templates/ directory",
+				"Create epic-template.md with unified structure (vision above ---, architecture below ---)",
+				"Include sections: Overview, Goals, Success Metrics, Scope (In/Out), NFRs",
+				"Include sections: Technical Approach, Key Decisions, Data Models, Interface Contracts, Tech Stack, Open Questions"
+			],
+			"notes": [
+				"Template uses placeholders that will be filled by the create-epic skill",
+				"Vision section is WHAT to build, Architecture section is HOW",
+				"Key Decisions use ADR-style format inline (Choice/Rationale/Alternatives)"
+			],
+			"status": "done"
+		},
+		{
+			"id": "obj-5",
+			"description": "Create plugin/skills/generate-stories/templates/story-template.md with YAML front matter",
+			"steps": [
+				"Create plugin/skills/generate-stories/templates/ directory",
+				"Create story-template.md with YAML front matter schema",
+				"Front matter includes: id, title, status, epic, tasks[] with id/title/status",
+				"Markdown body includes: Context, Interface (Inputs/Outputs), Acceptance Criteria, Tasks (with Guidance/References/Avoid/Done when)"
+			],
+			"notes": [
+				"Stories are self-contained - agents only need story.md for execution",
+				"Status values: ready | in-progress | review | done for story",
+				"Task status values: pending | in-progress | done",
+				"Use python-frontmatter compatible YAML format"
+			],
+			"status": "done"
+		}
+	]
 }

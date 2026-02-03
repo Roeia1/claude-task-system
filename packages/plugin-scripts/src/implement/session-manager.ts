@@ -5,27 +5,31 @@
  * for running SAGA workers in detached mode.
  */
 
-import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import process from 'node:process';
-import { formatStreamLine, parseStreamingResult, WORKER_OUTPUT_SCHEMA } from './output-parser.ts';
-import type { CreateSessionResult, WorkerOutput } from './types.ts';
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import process from "node:process";
+import {
+	formatStreamLine,
+	parseStreamingResult,
+	WORKER_OUTPUT_SCHEMA,
+} from "./output-parser.ts";
+import type { CreateSessionResult, WorkerOutput } from "./types.ts";
 
 /**
  * Get the session output directory from SAGA_SESSION_DIR environment variable
  * @throws Error if SAGA_SESSION_DIR is not set
  */
 function getSessionDir(): string {
-  const sessionDir = process.env.SAGA_SESSION_DIR;
-  if (!sessionDir) {
-    throw new Error(
-      'SAGA_SESSION_DIR environment variable is not set.\n' +
-        'This variable must be set by the session-init hook.\n' +
-        'It specifies the directory for session output files (e.g., /tmp/saga-sessions).',
-    );
-  }
-  return sessionDir;
+	const sessionDir = process.env.SAGA_SESSION_DIR;
+	if (!sessionDir) {
+		throw new Error(
+			"SAGA_SESSION_DIR environment variable is not set.\n" +
+				"This variable must be set by the session-init hook.\n" +
+				"It specifies the directory for session output files (e.g., /tmp/saga-sessions).",
+		);
+	}
+	return sessionDir;
 }
 
 // Top-level regex patterns
@@ -40,10 +44,10 @@ const SLUG_PATTERN = /^[a-z0-9-]+$/;
  * @param str - The string to escape
  * @returns Shell-safe escaped string
  */
-export function shellEscape(str: string): string {
-  // Wrap in single quotes and escape any single quotes within
-  // The pattern 'text'\''more' closes the quote, adds an escaped quote, reopens
-  return `'${str.replace(/'/g, "'\\''")}'`;
+function shellEscape(str: string): string {
+	// Wrap in single quotes and escape any single quotes within
+	// The pattern 'text'\''more' closes the quote, adds an escaped quote, reopens
+	return `'${str.replace(/'/g, "'\\''")}'`;
 }
 
 /**
@@ -52,8 +56,8 @@ export function shellEscape(str: string): string {
  * @param args - Array of command arguments
  * @returns Shell-safe command string
  */
-export function shellEscapeArgs(args: string[]): string {
-  return args.map(shellEscape).join(' ');
+function shellEscapeArgs(args: string[]): string {
+	return args.map(shellEscape).join(" ");
 }
 
 /**
@@ -63,43 +67,43 @@ export function shellEscapeArgs(args: string[]): string {
  * @param slug - The slug to validate
  * @returns true if valid, false otherwise
  */
-export function validateSlug(slug: unknown): boolean {
-  if (typeof slug !== 'string' || slug.length === 0) {
-    return false;
-  }
+function validateSlug(slug: unknown): boolean {
+	if (typeof slug !== "string" || slug.length === 0) {
+		return false;
+	}
 
-  // Must only contain lowercase letters, numbers, and hyphens
-  if (!SLUG_PATTERN.test(slug)) {
-    return false;
-  }
+	// Must only contain lowercase letters, numbers, and hyphens
+	if (!SLUG_PATTERN.test(slug)) {
+		return false;
+	}
 
-  // Cannot start or end with hyphen
-  if (slug.startsWith('-') || slug.endsWith('-')) {
-    return false;
-  }
+	// Cannot start or end with hyphen
+	if (slug.startsWith("-") || slug.endsWith("-")) {
+		return false;
+	}
 
-  return true;
+	return true;
 }
 
 /**
  * Check if tmux is available on the system
  */
 function checkTmuxAvailable(): void {
-  const result = spawnSync('which', ['tmux'], { encoding: 'utf-8' });
-  if (result.status !== 0) {
-    throw new Error('tmux is not installed or not found in PATH');
-  }
+	const result = spawnSync("which", ["tmux"], { encoding: "utf-8" });
+	if (result.status !== 0) {
+		throw new Error("tmux is not installed or not found in PATH");
+	}
 }
 
 /**
  * Generate wrapper script content for a SAGA session
  */
 function generateWrapperScript(
-  commandFilePath: string,
-  outputFile: string,
-  wrapperScriptPath: string,
+	commandFilePath: string,
+	outputFile: string,
+	wrapperScriptPath: string,
 ): string {
-  return `#!/bin/bash
+	return `#!/bin/bash
 # Auto-generated wrapper script for SAGA session
 set -e
 
@@ -136,42 +140,42 @@ fi
  * Validate slugs for session creation and throw if invalid
  */
 function validateSessionSlugs(epicSlug: string, storySlug: string): void {
-  if (!validateSlug(epicSlug)) {
-    throw new Error(
-      `Invalid epic slug: '${epicSlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`,
-    );
-  }
-  if (!validateSlug(storySlug)) {
-    throw new Error(
-      `Invalid story slug: '${storySlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`,
-    );
-  }
+	if (!validateSlug(epicSlug)) {
+		throw new Error(
+			`Invalid epic slug: '${epicSlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`,
+		);
+	}
+	if (!validateSlug(storySlug)) {
+		throw new Error(
+			`Invalid story slug: '${storySlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`,
+		);
+	}
 }
 
 /**
  * Create session files (command and wrapper script)
  */
 function createSessionFiles(
-  sessionName: string,
-  command: string,
+	sessionName: string,
+	command: string,
 ): { wrapperScriptPath: string; outputFile: string } {
-  const sessionDir = getSessionDir();
-  const outputFile = join(sessionDir, `${sessionName}.out`);
-  const commandFilePath = join(sessionDir, `${sessionName}.cmd`);
-  const wrapperScriptPath = join(sessionDir, `${sessionName}.sh`);
+	const sessionDir = getSessionDir();
+	const outputFile = join(sessionDir, `${sessionName}.out`);
+	const commandFilePath = join(sessionDir, `${sessionName}.cmd`);
+	const wrapperScriptPath = join(sessionDir, `${sessionName}.sh`);
 
-  // Write the raw command to a file (no shell interpretation)
-  writeFileSync(commandFilePath, command, { mode: 0o600 });
+	// Write the raw command to a file (no shell interpretation)
+	writeFileSync(commandFilePath, command, { mode: 0o600 });
 
-  // Create wrapper script that reads the command file safely
-  const wrapperScriptContent = generateWrapperScript(
-    commandFilePath,
-    outputFile,
-    wrapperScriptPath,
-  );
-  writeFileSync(wrapperScriptPath, wrapperScriptContent, { mode: 0o700 });
+	// Create wrapper script that reads the command file safely
+	const wrapperScriptContent = generateWrapperScript(
+		commandFilePath,
+		outputFile,
+		wrapperScriptPath,
+	);
+	writeFileSync(wrapperScriptPath, wrapperScriptContent, { mode: 0o700 });
 
-  return { wrapperScriptPath, outputFile };
+	return { wrapperScriptPath, outputFile };
 }
 
 /**
@@ -185,49 +189,109 @@ function createSessionFiles(
  * @param command - The command to execute in the session
  * @returns Session name and output file path
  */
-export function createSession(
-  epicSlug: string,
-  storySlug: string,
-  command: string,
+function createSession(
+	epicSlug: string,
+	storySlug: string,
+	command: string,
 ): CreateSessionResult {
-  validateSessionSlugs(epicSlug, storySlug);
-  checkTmuxAvailable();
+	validateSessionSlugs(epicSlug, storySlug);
+	checkTmuxAvailable();
 
-  // Create output directory
-  const sessionDir = getSessionDir();
-  if (!existsSync(sessionDir)) {
-    mkdirSync(sessionDir, { recursive: true });
-  }
+	// Create output directory
+	const sessionDir = getSessionDir();
+	if (!existsSync(sessionDir)) {
+		mkdirSync(sessionDir, { recursive: true });
+	}
 
-  // Generate session name with timestamp for uniqueness
-  // Uses double-underscore format for dashboard compatibility (parseSessionName requires saga__)
-  const timestamp = Date.now();
-  const sessionName = `saga__${epicSlug}__${storySlug}__${timestamp}`;
+	// Generate session name with timestamp for uniqueness
+	// Uses double-underscore format for dashboard compatibility (parseSessionName requires saga__)
+	const timestamp = Date.now();
+	const sessionName = `saga__${epicSlug}__${storySlug}__${timestamp}`;
 
-  // Create session files
-  const { wrapperScriptPath, outputFile } = createSessionFiles(sessionName, command);
+	// Create session files
+	const { wrapperScriptPath, outputFile } = createSessionFiles(
+		sessionName,
+		command,
+	);
 
-  // Create detached tmux session that runs the wrapper script
-  const createResult = spawnSync(
-    'tmux',
-    ['new-session', '-d', '-s', sessionName, wrapperScriptPath],
-    { encoding: 'utf-8' },
-  );
+	// Create detached tmux session that runs the wrapper script
+	const createResult = spawnSync(
+		"tmux",
+		["new-session", "-d", "-s", sessionName, wrapperScriptPath],
+		{ encoding: "utf-8" },
+	);
 
-  if (createResult.status !== 0) {
-    throw new Error(`Failed to create tmux session: ${createResult.stderr || 'unknown error'}`);
-  }
+	if (createResult.status !== 0) {
+		throw new Error(
+			`Failed to create tmux session: ${createResult.stderr || "unknown error"}`,
+		);
+	}
 
-  return { sessionName, outputFile };
+	return { sessionName, outputFile };
 }
 
 /**
  * Worker environment variables passed to headless Claude workers
  */
-export interface WorkerEnv {
-  epicSlug: string;
-  storySlug: string;
-  storyDir: string;
+interface WorkerEnv {
+	epicSlug: string;
+	storySlug: string;
+	storyDir: string;
+}
+
+/**
+ * Build the CLI arguments array for the claude command
+ */
+function buildWorkerArgs(
+	prompt: string,
+	model: string,
+	settings: Record<string, unknown>,
+): string[] {
+	return [
+		"-p",
+		prompt,
+		"--model",
+		model,
+		"--output-format",
+		"stream-json",
+		"--verbose",
+		"--json-schema",
+		JSON.stringify(WORKER_OUTPUT_SCHEMA),
+		"--settings",
+		JSON.stringify(settings),
+		"--dangerously-skip-permissions",
+	];
+}
+
+/**
+ * Build the environment variables for the worker process
+ */
+function buildWorkerProcessEnv(workerEnv: WorkerEnv): NodeJS.ProcessEnv {
+	return {
+		...process.env,
+		// biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
+		SAGA_EPIC_SLUG: workerEnv.epicSlug,
+		// biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
+		SAGA_STORY_SLUG: workerEnv.storySlug,
+		// biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
+		SAGA_STORY_DIR: workerEnv.storyDir,
+	};
+}
+
+/**
+ * Process streaming output chunks, writing formatted lines to stdout
+ */
+function handleStreamChunk(text: string, bufferRef: { value: string }): void {
+	bufferRef.value += text;
+	const lines = text.split("\n");
+	for (const line of lines) {
+		if (line.trim()) {
+			const formatted = formatStreamLine(line);
+			if (formatted) {
+				process.stdout.write(formatted);
+			}
+		}
+	}
 }
 
 /**
@@ -239,82 +303,46 @@ export interface WorkerEnv {
  * - SAGA_STORY_SLUG: The current story identifier
  * - SAGA_STORY_DIR: Relative path to story files
  */
-export function spawnWorkerAsync(
-  prompt: string,
-  model: string,
-  settings: Record<string, unknown>,
-  workingDir: string,
-  workerEnv: WorkerEnv,
+function spawnWorkerAsync(
+	prompt: string,
+	model: string,
+	settings: Record<string, unknown>,
+	workingDir: string,
+	workerEnv: WorkerEnv,
 ): Promise<WorkerOutput> {
-  return new Promise((resolve, reject) => {
-    let buffer = '';
+	return new Promise((resolve, reject) => {
+		const bufferRef = { value: "" };
+		const args = buildWorkerArgs(prompt, model, settings);
+		const env = buildWorkerProcessEnv(workerEnv);
 
-    // Build command arguments for streaming
-    const args = [
-      '-p',
-      prompt,
-      '--model',
-      model,
-      '--output-format',
-      'stream-json',
-      '--verbose',
-      '--json-schema',
-      JSON.stringify(WORKER_OUTPUT_SCHEMA),
-      '--settings',
-      JSON.stringify(settings),
-      '--dangerously-skip-permissions',
-    ];
+		const child = spawn("claude", args, {
+			cwd: workingDir,
+			env,
+			stdio: ["ignore", "pipe", "pipe"],
+		});
 
-    // Build worker environment with story-specific variables
-    const env = {
-      ...process.env,
-      SAGA_EPIC_SLUG: workerEnv.epicSlug,
-      SAGA_STORY_SLUG: workerEnv.storySlug,
-      SAGA_STORY_DIR: workerEnv.storyDir,
-    };
+		child.stdout.on("data", (chunk: Buffer) => {
+			handleStreamChunk(chunk.toString(), bufferRef);
+		});
 
-    const child = spawn('claude', args, {
-      cwd: workingDir,
-      env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+		child.stderr.on("data", (chunk: Buffer) => {
+			process.stderr.write(chunk);
+		});
 
-    child.stdout.on('data', (chunk: Buffer) => {
-      const text = chunk.toString();
-      buffer += text;
+		child.on("error", (err) => {
+			reject(new Error(`Failed to spawn worker: ${err.message}`));
+		});
 
-      // Parse and display each line
-      const lines = text.split('\n');
-      for (const line of lines) {
-        if (line.trim()) {
-          const formatted = formatStreamLine(line);
-          if (formatted) {
-            process.stdout.write(formatted);
-          }
-        }
-      }
-    });
-
-    child.stderr.on('data', (chunk: Buffer) => {
-      process.stderr.write(chunk);
-    });
-
-    child.on('error', (err) => {
-      reject(new Error(`Failed to spawn worker: ${err.message}`));
-    });
-
-    child.on('close', (_code) => {
-      // Add newline after streaming output
-      process.stdout.write('\n');
-
-      try {
-        const result = parseStreamingResult(buffer);
-        resolve(result);
-      } catch (e) {
-        reject(e);
-      }
-    });
-  });
+		child.on("close", (_code) => {
+			process.stdout.write("\n");
+			try {
+				const result = parseStreamingResult(bufferRef.value);
+				resolve(result);
+			} catch (e) {
+				reject(e);
+			}
+		});
+	});
 }
 
 /**
@@ -327,29 +355,43 @@ export function spawnWorkerAsync(
  *
  * All arguments are properly shell-escaped to prevent command injection
  */
-export function buildDetachedCommand(
-  storySlug: string,
-  pluginRoot: string,
-  options: {
-    maxCycles?: number;
-    maxTime?: number;
-    model?: string;
-  },
+function buildDetachedCommand(
+	storySlug: string,
+	pluginRoot: string,
+	options: {
+		maxCycles?: number;
+		maxTime?: number;
+		model?: string;
+	},
 ): string {
-  const scriptPath = join(pluginRoot, 'scripts', 'implement.js');
-  const parts = ['node', scriptPath, storySlug];
+	const scriptPath = join(pluginRoot, "scripts", "implement.js");
+	const parts = ["node", scriptPath, storySlug];
 
-  // Add options if specified
-  if (options.maxCycles !== undefined) {
-    parts.push('--max-cycles', String(options.maxCycles));
-  }
-  if (options.maxTime !== undefined) {
-    parts.push('--max-time', String(options.maxTime));
-  }
-  if (options.model !== undefined) {
-    parts.push('--model', options.model);
-  }
+	// Add options if specified
+	if (options.maxCycles !== undefined) {
+		parts.push("--max-cycles", String(options.maxCycles));
+	}
+	if (options.maxTime !== undefined) {
+		parts.push("--max-time", String(options.maxTime));
+	}
+	if (options.model !== undefined) {
+		parts.push("--model", options.model);
+	}
 
-  // Use shell escaping to prevent command injection
-  return shellEscapeArgs(parts);
+	// Use shell escaping to prevent command injection
+	return shellEscapeArgs(parts);
 }
+
+// ============================================================================
+// Exports
+// ============================================================================
+
+export {
+	buildDetachedCommand,
+	createSession,
+	shellEscape,
+	shellEscapeArgs,
+	spawnWorkerAsync,
+	validateSlug,
+};
+export type { WorkerEnv };
