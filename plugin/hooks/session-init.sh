@@ -8,38 +8,28 @@
 # All SAGA environment variables use the SAGA_ prefix for namespacing.
 
 # =============================================================================
-# Story Detection (.saga/worktrees/EPIC/STORY/)
+# Story Detection (worktree vs main repo)
 # =============================================================================
 
 SAGA_EPIC_SLUG=""
 SAGA_STORY_SLUG=""
 SAGA_STORY_DIR=""
+SAGA_TASK_CONTEXT="main"
 
-# Check if we're in a story worktree by looking for the marker
-# The worktree path is: .saga/worktrees/<epic>/<story>/
-# We detect by checking if .saga/epics exists and extracting from git worktree info
-if [ -d ".saga/epics" ]; then
-    # Get the worktree path from git
+# Detect worktree vs main repo by checking if .git is a file or directory
+# - Worktree: .git is a file pointing to the main repo
+# - Main repo: .git is a directory
+if [ -f .git ]; then
+    # We're in a worktree - .git is a file
+    # Get the worktree path and extract epic/story from it
     WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null)
-    if [ -n "$WORKTREE_PATH" ]; then
-        # Check if path contains /worktrees/ pattern
-        if [[ "$WORKTREE_PATH" == *"/.saga/worktrees/"* ]]; then
-            # Extract epic and story from path: .../worktrees/EPIC/STORY
-            SAGA_STORY_SLUG=$(basename "$WORKTREE_PATH")
-            SAGA_EPIC_SLUG=$(basename "$(dirname "$WORKTREE_PATH")")
-            SAGA_STORY_DIR=".saga/epics/${SAGA_EPIC_SLUG}/stories/${SAGA_STORY_SLUG}"
-        fi
+    if [ -n "$WORKTREE_PATH" ] && [[ "$WORKTREE_PATH" == *"/.saga/worktrees/"* ]]; then
+        # Extract epic and story from path: .../worktrees/EPIC/STORY
+        SAGA_STORY_SLUG=$(basename "$WORKTREE_PATH")
+        SAGA_EPIC_SLUG=$(basename "$(dirname "$WORKTREE_PATH")")
+        SAGA_STORY_DIR=".saga/epics/${SAGA_EPIC_SLUG}/stories/${SAGA_STORY_SLUG}"
+        SAGA_TASK_CONTEXT="story-worktree"
     fi
-fi
-
-# =============================================================================
-# Determine Context
-# =============================================================================
-
-if [ -n "$SAGA_STORY_SLUG" ]; then
-    SAGA_TASK_CONTEXT="story-worktree"
-else
-    SAGA_TASK_CONTEXT="main"
 fi
 
 # =============================================================================

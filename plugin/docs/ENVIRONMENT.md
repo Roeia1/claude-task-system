@@ -69,17 +69,6 @@ The SessionStart hook determines context by checking if `.git` is a file or dire
 2. **Main Repository**: If `.git` is a **directory** (main repo has .git directory)
    - Sets: `SAGA_TASK_CONTEXT="main"`
 
-```bash
-# Detection logic in session-init.sh
-if [ -f .git ]; then
-  # Worktree - .git is a file pointing to main repo
-  SAGA_TASK_CONTEXT="story-worktree"
-elif [ -d .git ]; then
-  # Main repo - .git is a directory
-  SAGA_TASK_CONTEXT="main"
-fi
-```
-
 ## Interactive vs Headless Mode
 
 Both interactive and headless Claude sessions work the same way:
