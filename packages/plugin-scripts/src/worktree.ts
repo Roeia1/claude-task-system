@@ -262,3 +262,5 @@ function main(): void {
 
 // Run main
 main();
+// biome-ignore lint: test
+// biome-ignore lint: test
