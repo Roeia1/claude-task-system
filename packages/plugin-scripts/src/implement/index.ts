@@ -32,40 +32,7 @@ import { DEFAULT_MAX_CYCLES, DEFAULT_MAX_TIME, DEFAULT_MODEL, WORKER_PROMPT_RELA
 import { runLoop, getSkillRoot, getWorktreePath } from './orchestrator.ts';
 import { createSession, buildDetachedCommand } from './session-manager.ts';
 import { findStory as finderFindStory } from '../find/finder.ts';
-
-// ============================================================================
-// Environment Variable Helpers
-// ============================================================================
-
-/**
- * Get SAGA_PROJECT_DIR from environment
- * @throws Error if not set
- */
-function getProjectDir(): string {
-  const projectDir = process.env.SAGA_PROJECT_DIR;
-  if (!projectDir) {
-    throw new Error(
-      'SAGA_PROJECT_DIR environment variable is not set.\n' +
-        'This script must be run from a SAGA session where env vars are set.',
-    );
-  }
-  return projectDir;
-}
-
-/**
- * Get SAGA_PLUGIN_ROOT from environment
- * @throws Error if not set
- */
-function getPluginRoot(): string {
-  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
-  if (!pluginRoot) {
-    throw new Error(
-      'SAGA_PLUGIN_ROOT environment variable is not set.\n' +
-        'This script must be run from a SAGA session where env vars are set.',
-    );
-  }
-  return pluginRoot;
-}
+import { getPluginRoot, getProjectDir } from '../shared/env.ts';
 
 // ============================================================================
 // Story Finding
@@ -323,8 +290,8 @@ async function handleDetachedMode(
   storyInfo: StoryInfo,
   options: ImplementOptions,
 ): Promise<void> {
-  const projectDir = getProjectDir();
-  const detachedCommand = buildDetachedCommand(storySlug, projectDir, {
+  const pluginRoot = getPluginRoot();
+  const detachedCommand = buildDetachedCommand(storySlug, pluginRoot, {
     maxCycles: options.maxCycles,
     maxTime: options.maxTime,
     model: options.model,

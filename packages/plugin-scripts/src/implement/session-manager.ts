@@ -14,9 +14,20 @@ import type { CreateSessionResult, WorkerOutput } from './types.ts';
 import { formatStreamLine, parseStreamingResult, WORKER_OUTPUT_SCHEMA } from './output-parser.ts';
 
 /**
- * Directory where session output files are stored
+ * Get the session output directory from SAGA_SESSION_DIR environment variable
+ * @throws Error if SAGA_SESSION_DIR is not set
  */
-const OUTPUT_DIR = '/tmp/saga-sessions';
+function getSessionDir(): string {
+  const sessionDir = process.env.SAGA_SESSION_DIR;
+  if (!sessionDir) {
+    throw new Error(
+      'SAGA_SESSION_DIR environment variable is not set.\n' +
+        'This variable must be set by the session-init hook.\n' +
+        'It specifies the directory for session output files (e.g., /tmp/saga-sessions).',
+    );
+  }
+  return sessionDir;
+}
 
 // Top-level regex patterns
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
@@ -145,9 +156,10 @@ function createSessionFiles(
   sessionName: string,
   command: string,
 ): { wrapperScriptPath: string; outputFile: string } {
-  const outputFile = join(OUTPUT_DIR, `${sessionName}.out`);
-  const commandFilePath = join(OUTPUT_DIR, `${sessionName}.cmd`);
-  const wrapperScriptPath = join(OUTPUT_DIR, `${sessionName}.sh`);
+  const sessionDir = getSessionDir();
+  const outputFile = join(sessionDir, `${sessionName}.out`);
+  const commandFilePath = join(sessionDir, `${sessionName}.cmd`);
+  const wrapperScriptPath = join(sessionDir, `${sessionName}.sh`);
 
   // Write the raw command to a file (no shell interpretation)
   writeFileSync(commandFilePath, command, { mode: 0o600 });
@@ -167,7 +179,7 @@ function createSessionFiles(
  * Create a new detached tmux session for running a command
  *
  * Creates a tmux session named: saga__<epic>__<story>__<timestamp>
- * Output is captured to: /tmp/saga-sessions/<session-name>.out
+ * Output is captured to: $SAGA_SESSION_DIR/<session-name>.out
  *
  * @param epicSlug - The epic slug (validated)
  * @param storySlug - The story slug (validated)
@@ -183,8 +195,9 @@ export function createSession(
   checkTmuxAvailable();
 
   // Create output directory
-  if (!existsSync(OUTPUT_DIR)) {
-    mkdirSync(OUTPUT_DIR, { recursive: true });
+  const sessionDir = getSessionDir();
+  if (!existsSync(sessionDir)) {
+    mkdirSync(sessionDir, { recursive: true });
   }
 
   // Generate session name with timestamp for uniqueness
@@ -309,21 +322,23 @@ export function spawnWorkerAsync(
  * Build the command string to run in detached mode
  * The CLI detects it's inside a tmux session via SAGA_INTERNAL_SESSION env var
  *
+ * Invokes the implement.js plugin-script directly via node.
+ * Environment variables (SAGA_PROJECT_DIR, SAGA_PLUGIN_ROOT) are inherited
+ * by the tmux session from the parent process.
+ *
  * All arguments are properly shell-escaped to prevent command injection
  */
 export function buildDetachedCommand(
   storySlug: string,
-  projectPath: string,
+  pluginRoot: string,
   options: {
     maxCycles?: number;
     maxTime?: number;
     model?: string;
   },
 ): string {
-  const parts = ['saga', 'implement', storySlug];
-
-  // Add project path
-  parts.push('--path', projectPath);
+  const scriptPath = join(pluginRoot, 'scripts', 'implement.js');
+  const parts = ['node', scriptPath, storySlug];
 
   // Add options if specified
   if (options.maxCycles !== undefined) {

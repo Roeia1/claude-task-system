@@ -35,6 +35,7 @@ These are computed by `hooks/session-init.sh` when a Claude Code session starts.
 | `SAGA_PROJECT_DIR` | Absolute path to the project or worktree root | `/Users/name/my-project` |
 | `SAGA_PLUGIN_ROOT` | Absolute path to the plugin installation | `/Users/name/.claude/plugins/saga` |
 | `SAGA_TASK_CONTEXT` | Current working context | `"main"` or `"story-worktree"` |
+| `SAGA_SESSION_DIR` | Directory for session output files (tmux session logs, wrapper scripts) | `/tmp/saga-sessions` |
 
 **Note**: All paths are absolute. `SAGA_PROJECT_DIR` points to different locations depending on context:
 - In main repo: The project root directory (e.g., `/Users/name/my-project`)

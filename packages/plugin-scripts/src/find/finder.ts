@@ -67,7 +67,7 @@ const DEFAULT_CONTEXT_MAX_LENGTH = 300;
 const ELLIPSIS_LENGTH = 3;
 
 // Regex pattern for extracting ## Context section (case-insensitive)
-const CONTEXT_SECTION_REGEX = /##\s*Context\s*\n+([\s\S]*?)(?=\n##|Z|$)/i;
+const CONTEXT_SECTION_REGEX = /##\s*Context\s*\n+([\s\S]*?)(?=\n##|$)/i;
 
 // ============================================================================
 // Context Extraction

@@ -171,27 +171,27 @@ describe('session-manager', () => {
 
   describe('buildDetachedCommand', () => {
     it('builds basic command with required args', () => {
-      const result = buildDetachedCommand('my-story', '/project', {});
-      expect(result).toBe("'saga' 'implement' 'my-story' '--path' '/project'");
+      const result = buildDetachedCommand('my-story', '/plugin', {});
+      expect(result).toBe("'node' '/plugin/scripts/implement.js' 'my-story'");
     });
 
     it('includes max-cycles option', () => {
-      const result = buildDetachedCommand('my-story', '/project', { maxCycles: 5 });
+      const result = buildDetachedCommand('my-story', '/plugin', { maxCycles: 5 });
       expect(result).toContain("'--max-cycles' '5'");
     });
 
     it('includes max-time option', () => {
-      const result = buildDetachedCommand('my-story', '/project', { maxTime: 30 });
+      const result = buildDetachedCommand('my-story', '/plugin', { maxTime: 30 });
       expect(result).toContain("'--max-time' '30'");
     });
 
     it('includes model option', () => {
-      const result = buildDetachedCommand('my-story', '/project', { model: 'sonnet' });
+      const result = buildDetachedCommand('my-story', '/plugin', { model: 'sonnet' });
       expect(result).toContain("'--model' 'sonnet'");
     });
 
     it('includes all options together', () => {
-      const result = buildDetachedCommand('my-story', '/project', {
+      const result = buildDetachedCommand('my-story', '/plugin', {
         maxCycles: 10,
         maxTime: 60,
         model: 'opus',
@@ -201,18 +201,18 @@ describe('session-manager', () => {
       expect(result).toContain("'--model' 'opus'");
     });
 
-    it('properly escapes project path with spaces', () => {
-      const result = buildDetachedCommand('my-story', '/path/with spaces/project', {});
-      expect(result).toContain("'/path/with spaces/project'");
+    it('properly escapes plugin root path with spaces', () => {
+      const result = buildDetachedCommand('my-story', '/path/with spaces/plugin', {});
+      expect(result).toContain("'/path/with spaces/plugin/scripts/implement.js'");
     });
 
     it('properly escapes story slug (even though slugs are validated)', () => {
-      const result = buildDetachedCommand('my-story', '/project', {});
+      const result = buildDetachedCommand('my-story', '/plugin', {});
       expect(result).toContain("'my-story'");
     });
 
     it('handles zero values for options', () => {
-      const result = buildDetachedCommand('my-story', '/project', {
+      const result = buildDetachedCommand('my-story', '/plugin', {
         maxCycles: 0,
         maxTime: 0,
       });
@@ -221,7 +221,7 @@ describe('session-manager', () => {
     });
 
     it('omits undefined options', () => {
-      const result = buildDetachedCommand('my-story', '/project', {
+      const result = buildDetachedCommand('my-story', '/plugin', {
         maxCycles: undefined,
         maxTime: undefined,
         model: undefined,

@@ -19,8 +19,9 @@
 
 import { existsSync } from 'node:fs';
 import process from 'node:process';
-import { type StoryStatus, createSagaPaths } from '@saga-ai/types';
+import { type StoryStatus, StoryStatusSchema, createSagaPaths } from '@saga-ai/types';
 import { findEpic, findStory } from './finder.ts';
+import { getProjectDir as getProjectDirEnv } from '../shared/env.ts';
 
 // ============================================================================
 // Types
@@ -40,17 +41,11 @@ interface FindOptions {
 // ============================================================================
 
 /**
- * Get SAGA_PROJECT_DIR from environment
+ * Get SAGA_PROJECT_DIR from environment and validate .saga/ exists
  * @throws Error if not set or invalid
  */
 function getProjectDir(): string {
-  const projectDir = process.env.SAGA_PROJECT_DIR;
-  if (!projectDir) {
-    throw new Error(
-      'SAGA_PROJECT_DIR environment variable is not set.\n' +
-        'This script must be run from a SAGA session where env vars are set.',
-    );
-  }
+  const projectDir = getProjectDirEnv();
 
   const sagaPaths = createSagaPaths(projectDir);
   if (!existsSync(sagaPaths.saga)) {
@@ -166,11 +161,26 @@ async function main(): Promise<void> {
 
   const type = args.type ?? 'story';
 
+  // Validate status flag if provided
+  let status: StoryStatus | undefined;
+  if (args.status) {
+    const parsed = StoryStatusSchema.safeParse(args.status);
+    if (!parsed.success) {
+      const validValues = StoryStatusSchema.options.join(', ');
+      console.log(JSON.stringify({
+        found: false,
+        error: `Invalid status: "${args.status}". Valid values: ${validValues}`,
+      }, null, 2));
+      process.exit(1);
+    }
+    status = parsed.data;
+  }
+
   let result: ReturnType<typeof findEpic> | Awaited<ReturnType<typeof findStory>>;
   if (type === 'epic') {
     result = findEpic(projectPath, args.query);
   } else {
-    result = await findStory(projectPath, args.query, { status: args.status as StoryStatus });
+    result = await findStory(projectPath, args.query, { status });
   }
 
   // Output JSON result

@@ -37,6 +37,7 @@ if [ -n "$CLAUDE_ENV_FILE" ]; then
     echo "export SAGA_PROJECT_DIR=\"$CLAUDE_PROJECT_DIR\"" >> "$CLAUDE_ENV_FILE"
     echo "export SAGA_PLUGIN_ROOT=\"$CLAUDE_PLUGIN_ROOT\"" >> "$CLAUDE_ENV_FILE"
     echo "export SAGA_TASK_CONTEXT=\"$SAGA_TASK_CONTEXT\"" >> "$CLAUDE_ENV_FILE"
+    echo "export SAGA_SESSION_DIR=\"/tmp/saga-sessions\"" >> "$CLAUDE_ENV_FILE"
 fi
 
 # =============================================================================

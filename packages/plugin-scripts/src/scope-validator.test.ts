@@ -1,9 +1,13 @@
-import { relative, resolve } from 'node:path';
 import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
-// Test the internal functions by mirroring the logic
-// The actual command reads from stdin, so we test the logic directly
+import {
+  checkStoryAccess,
+  getFilePathFromInput,
+  isArchiveAccess,
+  isWithinWorktree,
+  normalizePath,
+  validatePath,
+} from './scope-validator.ts';
 
 describe('scope-validator', () => {
   const originalEnv = process.env;
@@ -17,19 +21,6 @@ describe('scope-validator', () => {
   });
 
   describe('isWithinWorktree', () => {
-    // Mirror the function logic for testing
-    const isWithinWorktree = (filePath: string, worktreePath: string): boolean => {
-      const absoluteFilePath = resolve(filePath);
-      const absoluteWorktree = resolve(worktreePath);
-      const relativePath = relative(absoluteWorktree, absoluteFilePath);
-
-      if (relativePath.startsWith('..') || resolve(relativePath) === relativePath) {
-        return false;
-      }
-
-      return true;
-    };
-
     it('should allow paths within the worktree', () => {
       expect(isWithinWorktree('/project/worktree/src/file.ts', '/project/worktree')).toBe(true);
       expect(isWithinWorktree('/project/worktree/package.json', '/project/worktree')).toBe(true);
@@ -64,17 +55,6 @@ describe('scope-validator', () => {
   });
 
   describe('file path extraction from hook input', () => {
-    // Mirror the function logic for testing (uses hook input structure)
-    const getFilePathFromInput = (hookInput: string): string | null => {
-      try {
-        const data = JSON.parse(hookInput);
-        const toolInput = data.tool_input || {};
-        return toolInput.file_path || toolInput.path || null;
-      } catch {
-        return null;
-      }
-    };
-
     it('should extract file_path from Read tool input', () => {
       const input = JSON.stringify({
         tool_name: 'Read',
@@ -118,13 +98,6 @@ describe('scope-validator', () => {
   });
 
   describe('normalizePath', () => {
-    const normalizePath = (path: string): string => {
-      if (path.startsWith('./')) {
-        return path.slice(2);
-      }
-      return path;
-    };
-
     it('should remove leading ./', () => {
       expect(normalizePath('./path/to/file')).toBe('path/to/file');
     });
@@ -136,10 +109,6 @@ describe('scope-validator', () => {
   });
 
   describe('isArchiveAccess', () => {
-    const isArchiveAccess = (path: string): boolean => {
-      return path.includes('.saga/archive');
-    };
-
     it('should detect archive access', () => {
       expect(isArchiveAccess('.saga/archive/epic/story/file.md')).toBe(true);
       expect(isArchiveAccess('/project/.saga/archive/test')).toBe(true);
@@ -152,38 +121,6 @@ describe('scope-validator', () => {
   });
 
   describe('checkStoryAccess', () => {
-    const checkStoryAccess = (path: string, allowedEpic: string, allowedStory: string): boolean => {
-      if (!path.includes('.saga/epics/')) {
-        return true;
-      }
-
-      const parts = path.split('/');
-      const epicsIdx = parts.indexOf('epics');
-
-      if (epicsIdx === -1) {
-        return true;
-      }
-
-      if (parts.length <= epicsIdx + 1) {
-        return true;
-      }
-
-      const pathEpic = parts[epicsIdx + 1];
-
-      // Path indices for story folder structure
-      const storiesFolderIndex = 2;
-      const storySlugIndex = 3;
-
-      if (
-        parts.length > epicsIdx + storySlugIndex &&
-        parts[epicsIdx + storiesFolderIndex] === 'stories'
-      ) {
-        const pathStory = parts[epicsIdx + storySlugIndex];
-        return pathEpic === allowedEpic && pathStory === allowedStory;
-      }
-      return pathEpic === allowedEpic;
-    };
-
     it('should allow access to assigned story', () => {
       expect(
         checkStoryAccess('.saga/epics/my-epic/stories/my-story/story.md', 'my-epic', 'my-story'),
@@ -230,75 +167,6 @@ describe('scope-validator', () => {
   });
 
   describe('validatePath', () => {
-    const normalizePath = (path: string): string => {
-      if (path.startsWith('./')) {
-        return path.slice(2);
-      }
-      return path;
-    };
-
-    const isWithinWorktree = (filePath: string, worktreePath: string): boolean => {
-      const absoluteFilePath = resolve(filePath);
-      const absoluteWorktree = resolve(worktreePath);
-      const relativePath = relative(absoluteWorktree, absoluteFilePath);
-      if (relativePath.startsWith('..') || resolve(relativePath) === relativePath) {
-        return false;
-      }
-      return true;
-    };
-
-    const isArchiveAccess = (path: string): boolean => {
-      return path.includes('.saga/archive');
-    };
-
-    const checkStoryAccess = (path: string, allowedEpic: string, allowedStory: string): boolean => {
-      if (!path.includes('.saga/epics/')) {
-        return true;
-      }
-      const parts = path.split('/');
-      const epicsIdx = parts.indexOf('epics');
-      if (epicsIdx === -1) {
-        return true;
-      }
-      if (parts.length <= epicsIdx + 1) {
-        return true;
-      }
-      const pathEpic = parts[epicsIdx + 1];
-      const storiesFolderIndex = 2;
-      const storySlugIndex = 3;
-      if (
-        parts.length > epicsIdx + storySlugIndex &&
-        parts[epicsIdx + storiesFolderIndex] === 'stories'
-      ) {
-        const pathStory = parts[epicsIdx + storySlugIndex];
-        return pathEpic === allowedEpic && pathStory === allowedStory;
-      }
-      return pathEpic === allowedEpic;
-    };
-
-    const validatePath = (
-      filePath: string,
-      worktreePath: string,
-      epicSlug: string,
-      storySlug: string,
-    ): string | null => {
-      const normPath = normalizePath(filePath);
-
-      if (!isWithinWorktree(normPath, worktreePath)) {
-        return 'Access outside worktree blocked';
-      }
-
-      if (isArchiveAccess(normPath)) {
-        return 'Access to archive folder blocked';
-      }
-
-      if (!checkStoryAccess(normPath, epicSlug, storySlug)) {
-        return 'Access to other story blocked';
-      }
-
-      return null;
-    };
-
     it('should allow valid paths within story scope', () => {
       expect(
         validatePath(
@@ -311,31 +179,28 @@ describe('scope-validator', () => {
     });
 
     it('should block paths outside worktree', () => {
-      expect(
-        validatePath('/other/project/file.ts', '/project/worktree', 'my-epic', 'my-story'),
-      ).toBe('Access outside worktree blocked');
+      const result = validatePath('/other/project/file.ts', '/project/worktree', 'my-epic', 'my-story');
+      expect(result).toContain('Access outside worktree blocked');
     });
 
     it('should block archive access', () => {
-      expect(
-        validatePath(
-          '/project/worktree/.saga/archive/old-story/file.md',
-          '/project/worktree',
-          'my-epic',
-          'my-story',
-        ),
-      ).toBe('Access to archive folder blocked');
+      const result = validatePath(
+        '/project/worktree/.saga/archive/old-story/file.md',
+        '/project/worktree',
+        'my-epic',
+        'my-story',
+      );
+      expect(result).toContain('Access to archive folder blocked');
     });
 
     it('should block other story access', () => {
-      expect(
-        validatePath(
-          '/project/worktree/.saga/epics/my-epic/stories/other-story/story.md',
-          '/project/worktree',
-          'my-epic',
-          'my-story',
-        ),
-      ).toBe('Access to other story blocked');
+      const result = validatePath(
+        '/project/worktree/.saga/epics/my-epic/stories/other-story/story.md',
+        '/project/worktree',
+        'my-epic',
+        'my-story',
+      );
+      expect(result).toContain('Access to other story blocked');
     });
   });
 });

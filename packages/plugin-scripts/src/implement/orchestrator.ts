@@ -8,7 +8,6 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import process from 'node:process';
 import { createStoryPaths, createWorktreePaths } from '@saga-ai/types';
 
 import type { LoopResult, LoopState, StoryInfo, WorkerLoopConfig } from './types.ts';
@@ -21,40 +20,7 @@ import {
 } from './types.ts';
 import { buildScopeSettings } from './scope-config.ts';
 import { spawnWorkerAsync, type WorkerEnv } from './session-manager.ts';
-
-// ============================================================================
-// Environment Variable Helpers
-// ============================================================================
-
-/**
- * Get SAGA_PROJECT_DIR from environment
- * @throws Error if not set
- */
-function getProjectDir(): string {
-  const projectDir = process.env.SAGA_PROJECT_DIR;
-  if (!projectDir) {
-    throw new Error(
-      'SAGA_PROJECT_DIR environment variable is not set.\n' +
-        'This script must be run from a SAGA session where env vars are set.',
-    );
-  }
-  return projectDir;
-}
-
-/**
- * Get SAGA_PLUGIN_ROOT from environment
- * @throws Error if not set
- */
-function getPluginRoot(): string {
-  const pluginRoot = process.env.SAGA_PLUGIN_ROOT;
-  if (!pluginRoot) {
-    throw new Error(
-      'SAGA_PLUGIN_ROOT environment variable is not set.\n' +
-        'This script must be run from a SAGA session where env vars are set.',
-    );
-  }
-  return pluginRoot;
-}
+import { getPluginRoot, getProjectDir } from '../shared/env.ts';
 
 // ============================================================================
 // Path Helpers
@@ -252,9 +218,9 @@ async function executeWorkerCycle(
 }
 
 /**
- * Execute the worker spawning loop using recursion
+ * Execute the worker spawning loop
  */
-function executeWorkerLoop(
+async function executeWorkerLoop(
   workerPrompt: string,
   model: string,
   settings: Record<string, unknown>,
@@ -280,22 +246,18 @@ function executeWorkerLoop(
   };
   const state: LoopState = { summaries: [], cycles: 0, lastBlocker: null, finalStatus: null };
 
-  // Use recursive async function to avoid await in loop
-  const runNextCycle = async (): Promise<LoopState | LoopResult> => {
+  // biome-ignore lint: sequential worker cycles require await in loop
+  while (true) {
     const cycleResult = await executeWorkerCycle(config, state);
 
     if (cycleResult.result) {
       return cycleResult.result;
     }
 
-    if (cycleResult.continue) {
-      return runNextCycle();
+    if (!cycleResult.continue) {
+      return state;
     }
-
-    return state;
-  };
-
-  return runNextCycle();
+  }
 }
 
 /**

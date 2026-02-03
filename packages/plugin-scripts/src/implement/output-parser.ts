@@ -158,7 +158,9 @@ export function formatToolUsage(name: string, input: Record<string, unknown>): s
               return 'untitled';
             })
             .join(', ');
-          return `[Tool Used: TodoWrite] ${truncateString(subjects, maxLength)}`;
+          if (subjects) {
+            return `[Tool Used: TodoWrite] ${truncateString(subjects, maxLength)}`;
+          }
         }
         return '[Tool Used: TodoWrite]';
       }

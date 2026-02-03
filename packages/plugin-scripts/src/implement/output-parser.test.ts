@@ -179,8 +179,7 @@ describe('output-parser', () => {
 
     it('formats TodoWrite with empty todos array', () => {
       const result = formatToolUsage('TodoWrite', { todos: [] });
-      // Returns with trailing space when subjects string is empty
-      expect(result).toBe('[Tool Used: TodoWrite] ');
+      expect(result).toBe('[Tool Used: TodoWrite]');
     });
 
     it('truncates arrays in unknown tools', () => {

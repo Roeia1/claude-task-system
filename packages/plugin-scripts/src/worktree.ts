@@ -14,11 +14,12 @@
  *   { "success": false, "error": "..." }
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import process from 'node:process';
 import { createSagaPaths, createWorktreePaths } from '@saga-ai/types';
+import { getProjectDir as getProjectDirEnv } from './shared/env.ts';
 
 // ============================================================================
 // Types
@@ -39,17 +40,11 @@ interface WorktreeResult {
 // ============================================================================
 
 /**
- * Get SAGA_PROJECT_DIR from environment
+ * Get SAGA_PROJECT_DIR from environment and validate .saga/ exists
  * @throws Error if not set or invalid
  */
 function getProjectDir(): string {
-  const projectDir = process.env.SAGA_PROJECT_DIR;
-  if (!projectDir) {
-    throw new Error(
-      'SAGA_PROJECT_DIR environment variable is not set.\n' +
-        'This script must be run from a SAGA session where env vars are set.',
-    );
-  }
+  const projectDir = getProjectDirEnv();
 
   const sagaPaths = createSagaPaths(projectDir);
   if (!existsSync(sagaPaths.saga)) {
@@ -71,7 +66,7 @@ function getProjectDir(): string {
  */
 function runGitCommand(args: string[], cwd: string): { success: boolean; output: string } {
   try {
-    const output = execSync(`git ${args.join(' ')}`, {
+    const output = execFileSync('git', args, {
       cwd,
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],

@@ -44,7 +44,7 @@ const REASON_WIDTH = 56;
  *   ...
  * }
  */
-function getFilePathFromInput(hookInput: string): string | null {
+export function getFilePathFromInput(hookInput: string): string | null {
   try {
     const data = JSON.parse(hookInput);
     const toolInput = data.tool_input || {};
@@ -58,7 +58,7 @@ function getFilePathFromInput(hookInput: string): string | null {
 /**
  * Normalize path by removing leading ./
  */
-function normalizePath(path: string): string {
+export function normalizePath(path: string): string {
   if (path.startsWith('./')) {
     return path.slice(2);
   }
@@ -72,7 +72,7 @@ function normalizePath(path: string): string {
 /**
  * Check if path attempts to access the archive folder
  */
-function isArchiveAccess(path: string): boolean {
+export function isArchiveAccess(path: string): boolean {
   return path.includes('.saga/archive');
 }
 
@@ -80,7 +80,7 @@ function isArchiveAccess(path: string): boolean {
  * Check if a path is within the allowed worktree directory.
  * Returns true if access is allowed, false if blocked.
  */
-function isWithinWorktree(filePath: string, worktreePath: string): boolean {
+export function isWithinWorktree(filePath: string, worktreePath: string): boolean {
   // Resolve both paths to absolute form
   const absoluteFilePath = resolve(filePath);
   const absoluteWorktree = resolve(worktreePath);
@@ -100,7 +100,7 @@ function isWithinWorktree(filePath: string, worktreePath: string): boolean {
  * Check if path is within the allowed story scope.
  * Returns true if access is allowed, false if blocked.
  */
-function checkStoryAccess(path: string, allowedEpic: string, allowedStory: string): boolean {
+export function checkStoryAccess(path: string, allowedEpic: string, allowedStory: string): boolean {
   if (!path.includes('.saga/epics/')) {
     return true;
   }
@@ -231,7 +231,7 @@ function getScopeEnvironment(): {
  * Validate a file path against scope rules
  * Returns the violation reason if blocked, null if allowed
  */
-function validatePath(
+export function validatePath(
   filePath: string,
   worktreePath: string,
   epicSlug: string,
@@ -286,5 +286,9 @@ async function main(): Promise<void> {
   process.exit(EXIT_ALLOWED);
 }
 
-// Run main
-main();
+// Run main only when executed directly (not when imported for testing)
+// biome-ignore lint: import.meta.url check is the standard ESM way to detect direct execution
+const isDirectExecution = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
+if (isDirectExecution) {
+  main();
+}
