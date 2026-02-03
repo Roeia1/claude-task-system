@@ -1,6 +1,6 @@
 # Testing Strategy
 
-Comprehensive testing guidance for the `@saga-ai/cli` package.
+Comprehensive testing guidance for the `@saga-ai/dashboard` package.
 
 ## Testing Philosophy
 
