@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { createEpicPaths, createSagaPaths, createWorktreePaths } from '@saga-ai/types';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -24,13 +25,14 @@ describe('find command', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  // Helper to run the script
+  // Helper to run the script with SAGA_PROJECT_DIR set
   function runScript(args: string[]): { stdout: string; stderr: string; exitCode: number } {
     try {
       const stdout = execSync(`node ${scriptPath} ${args.join(' ')}`, {
         cwd: testDir,
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, SAGA_PROJECT_DIR: testDir },
       });
       return { stdout, stderr: '', exitCode: 0 };
     } catch (error) {
@@ -44,8 +46,8 @@ describe('find command', () => {
   }
 
   function setupEpic(slug: string): void {
-    const epicsDir = join(testDir, '.saga', 'epics');
-    mkdirSync(join(epicsDir, slug), { recursive: true });
+    const { epicDir } = createEpicPaths(testDir, slug);
+    mkdirSync(epicDir, { recursive: true });
   }
 
   function setupStory(
@@ -54,25 +56,16 @@ describe('find command', () => {
     frontmatter: Record<string, string>,
     body = '',
   ): void {
-    const storyDir = join(
-      testDir,
-      '.saga',
-      'worktrees',
-      epicSlug,
-      storySlug,
-      '.saga',
-      'epics',
-      epicSlug,
-      'stories',
-      storySlug,
-    );
+    // Get the story.md path inside the worktree and create its directory
+    const { storyMdInWorktree } = createWorktreePaths(testDir, epicSlug, storySlug);
+    const storyDir = dirname(storyMdInWorktree);
     mkdirSync(storyDir, { recursive: true });
 
     const frontmatterStr = Object.entries(frontmatter)
       .map(([k, v]) => `${k}: ${v}`)
       .join('\n');
     const content = `---\n${frontmatterStr}\n---\n${body}`;
-    writeFileSync(join(storyDir, 'story.md'), content);
+    writeFileSync(storyMdInWorktree, content);
   }
 
   describe('story search (default)', () => {
@@ -83,7 +76,7 @@ describe('find command', () => {
         status: 'draft',
       });
 
-      const result = runScript(['implement-login', '--path', testDir]);
+      const result = runScript(['implement-login']);
 
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
@@ -103,7 +96,7 @@ describe('find command', () => {
         '## Context\n\nLogin context here.',
       );
 
-      const result = runScript(['implement-login', '--path', testDir]);
+      const result = runScript(['implement-login']);
 
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
@@ -121,9 +114,10 @@ describe('find command', () => {
 
     it('should exit 1 when no story found', () => {
       // Create .saga/worktrees dir but no stories
-      mkdirSync(join(testDir, '.saga', 'worktrees'), { recursive: true });
+      const { worktrees } = createSagaPaths(testDir);
+      mkdirSync(worktrees, { recursive: true });
 
-      const result = runScript(['nonexistent', '--path', testDir]);
+      const result = runScript(['nonexistent']);
 
       expect(result.exitCode).toBe(1);
       const output = JSON.parse(result.stdout);
@@ -143,7 +137,7 @@ describe('find command', () => {
         status: 'draft',
       });
 
-      const result = runScript(['login', '--path', testDir]);
+      const result = runScript(['login']);
 
       expect(result.exitCode).toBe(1);
       const output = JSON.parse(result.stdout);
@@ -156,7 +150,7 @@ describe('find command', () => {
     it('should find epic by exact slug', () => {
       setupEpic('user-authentication');
 
-      const result = runScript(['user-authentication', '--type', 'epic', '--path', testDir]);
+      const result = runScript(['user-authentication', '--type', 'epic']);
 
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
@@ -167,7 +161,7 @@ describe('find command', () => {
     it('should find epic by partial match', () => {
       setupEpic('user-authentication');
 
-      const result = runScript(['auth', '--type', 'epic', '--path', testDir]);
+      const result = runScript(['auth', '--type', 'epic']);
 
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
@@ -177,9 +171,10 @@ describe('find command', () => {
 
     it('should exit 1 when no epic found', () => {
       // Create .saga/epics but no epics
-      mkdirSync(join(testDir, '.saga', 'epics'), { recursive: true });
+      const { epics } = createSagaPaths(testDir);
+      mkdirSync(epics, { recursive: true });
 
-      const result = runScript(['nonexistent', '--type', 'epic', '--path', testDir]);
+      const result = runScript(['nonexistent', '--type', 'epic']);
 
       expect(result.exitCode).toBe(1);
       const output = JSON.parse(result.stdout);
@@ -191,7 +186,7 @@ describe('find command', () => {
       setupEpic('user-auth');
       setupEpic('admin-auth');
 
-      const result = runScript(['auth', '--type', 'epic', '--path', testDir]);
+      const result = runScript(['auth', '--type', 'epic']);
 
       expect(result.exitCode).toBe(1);
       const output = JSON.parse(result.stdout);
@@ -202,13 +197,13 @@ describe('find command', () => {
 
   describe('error handling', () => {
     it('should error when no .saga directory exists', () => {
-      const result = runScript(['anything', '--path', testDir]);
+      const result = runScript(['anything']);
 
       expect(result.exitCode).toBe(1);
     });
 
     it('should require a query argument', () => {
-      const result = runScript(['--path', testDir]);
+      const result = runScript([]);
 
       expect(result.exitCode).not.toBe(0);
     });
@@ -222,7 +217,7 @@ describe('find command', () => {
       expect(result.stdout).toContain('Usage:');
       expect(result.stdout).toContain('--type');
       expect(result.stdout).toContain('--status');
-      expect(result.stdout).toContain('--path');
+      expect(result.stdout).toContain('SAGA_PROJECT_DIR');
     });
   });
 });

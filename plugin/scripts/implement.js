@@ -4558,7 +4558,7 @@ function createSession(epicSlug, storySlug, command) {
   }
   return { sessionName, outputFile };
 }
-function spawnWorkerAsync(prompt, model, settings, workingDir) {
+function spawnWorkerAsync(prompt, model, settings, workingDir, workerEnv) {
   return new Promise((resolve, reject) => {
     let buffer = "";
     const args = [
@@ -4575,8 +4575,15 @@ function spawnWorkerAsync(prompt, model, settings, workingDir) {
       JSON.stringify(settings),
       "--dangerously-skip-permissions"
     ];
+    const env = {
+      ...process.env,
+      SAGA_EPIC_SLUG: workerEnv.epicSlug,
+      SAGA_STORY_SLUG: workerEnv.storySlug,
+      SAGA_STORY_DIR: workerEnv.storyDir
+    };
     const child = spawn("claude", args, {
       cwd: workingDir,
+      env,
       stdio: ["ignore", "pipe", "pipe"]
     });
     child.stdout.on("data", (chunk) => {
@@ -4728,11 +4735,17 @@ async function executeWorkerCycle(config, state) {
   }
   state.cycles += 1;
   try {
+    const workerEnv = {
+      epicSlug: config.epicSlug,
+      storySlug: config.storySlug,
+      storyDir: config.storyDir
+    };
     const parsed = await spawnWorkerAsync(
       config.workerPrompt,
       config.model,
       config.settings,
-      config.worktree
+      config.worktree,
+      workerEnv
     );
     state.summaries.push(parsed.summary);
     if (parsed.status === "FINISH") {
@@ -4759,7 +4772,7 @@ async function executeWorkerCycle(config, state) {
     };
   }
 }
-function executeWorkerLoop(workerPrompt, model, settings, worktree, maxCycles, maxTimeMs, startTime, epicSlug, storySlug) {
+function executeWorkerLoop(workerPrompt, model, settings, worktree, maxCycles, maxTimeMs, startTime, epicSlug, storySlug, storyDir) {
   const config = {
     workerPrompt,
     model,
@@ -4769,7 +4782,8 @@ function executeWorkerLoop(workerPrompt, model, settings, worktree, maxCycles, m
     maxTimeMs,
     startTime,
     epicSlug,
-    storySlug
+    storySlug,
+    storyDir
   };
   const state = { summaries: [], cycles: 0, lastBlocker: null, finalStatus: null };
   const runNextCycle = async () => {
@@ -4792,6 +4806,7 @@ async function runLoop(epicSlug, storySlug, maxCycles, maxTime, model) {
   const settings = buildScopeSettings();
   const startTime = Date.now();
   const maxTimeMs = maxTime * SECONDS_PER_MINUTE * MS_PER_SECOND;
+  const { storyDir } = createStoryPaths(resources.worktreeDir, epicSlug, storySlug);
   const result = await executeWorkerLoop(
     resources.workerPrompt,
     model,
@@ -4801,7 +4816,8 @@ async function runLoop(epicSlug, storySlug, maxCycles, maxTime, model) {
     maxTimeMs,
     startTime,
     epicSlug,
-    storySlug
+    storySlug,
+    storyDir
   );
   if ("status" in result && result.status === "ERROR") {
     return result;

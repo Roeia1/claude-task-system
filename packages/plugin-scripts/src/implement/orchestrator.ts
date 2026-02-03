@@ -9,7 +9,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
-import { createWorktreePaths } from '@saga-ai/types';
+import { createStoryPaths, createWorktreePaths } from '@saga-ai/types';
 
 import type { LoopResult, LoopState, StoryInfo, WorkerLoopConfig } from './types.ts';
 import {
@@ -20,7 +20,7 @@ import {
   WORKER_PROMPT_RELATIVE,
 } from './types.ts';
 import { buildScopeSettings } from './scope-config.ts';
-import { spawnWorkerAsync } from './session-manager.ts';
+import { spawnWorkerAsync, type WorkerEnv } from './session-manager.ts';
 
 // ============================================================================
 // Environment Variable Helpers
@@ -209,11 +209,18 @@ async function executeWorkerCycle(
   state.cycles += 1;
 
   try {
+    const workerEnv: WorkerEnv = {
+      epicSlug: config.epicSlug,
+      storySlug: config.storySlug,
+      storyDir: config.storyDir,
+    };
+
     const parsed = await spawnWorkerAsync(
       config.workerPrompt,
       config.model,
       config.settings,
       config.worktree,
+      workerEnv,
     );
 
     state.summaries.push(parsed.summary);
@@ -257,6 +264,7 @@ function executeWorkerLoop(
   startTime: number,
   epicSlug: string,
   storySlug: string,
+  storyDir: string,
 ): Promise<LoopState | LoopResult> {
   const config: WorkerLoopConfig = {
     workerPrompt,
@@ -268,6 +276,7 @@ function executeWorkerLoop(
     startTime,
     epicSlug,
     storySlug,
+    storyDir,
   };
   const state: LoopState = { summaries: [], cycles: 0, lastBlocker: null, finalStatus: null };
 
@@ -309,6 +318,9 @@ export async function runLoop(
   const startTime = Date.now();
   const maxTimeMs = maxTime * SECONDS_PER_MINUTE * MS_PER_SECOND;
 
+  // Get the story directory path using saga-types (worktree contains nested .saga structure)
+  const { storyDir } = createStoryPaths(resources.worktreeDir, epicSlug, storySlug);
+
   const result = await executeWorkerLoop(
     resources.workerPrompt,
     model,
@@ -319,6 +331,7 @@ export async function runLoop(
     startTime,
     epicSlug,
     storySlug,
+    storyDir,
   );
 
   // If result is a LoopResult (error case), return it directly

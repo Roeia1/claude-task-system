@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { createSagaPaths, createWorktreePaths } from '@saga-ai/types';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -59,9 +60,10 @@ describe('worktree script', () => {
       stdio: 'pipe',
     });
 
-    // Initialize .saga directory
-    mkdirSync(join(testDir, '.saga', 'epics'), { recursive: true });
-    mkdirSync(join(testDir, '.saga', 'worktrees'), { recursive: true });
+    // Initialize .saga directory using saga-types
+    const sagaPaths = createSagaPaths(testDir);
+    mkdirSync(sagaPaths.epics, { recursive: true });
+    mkdirSync(sagaPaths.worktrees, { recursive: true });
   });
 
   afterEach(() => {
@@ -110,9 +112,9 @@ describe('worktree script', () => {
     it('should create worktree directory on disk', () => {
       runScript(['my-epic', 'my-story']);
 
-      const worktreePath = join(testDir, '.saga', 'worktrees', 'my-epic', 'my-story');
-      expect(existsSync(worktreePath)).toBe(true);
-      expect(existsSync(join(worktreePath, '.git'))).toBe(true);
+      const { worktreeDir } = createWorktreePaths(testDir, 'my-epic', 'my-story');
+      expect(existsSync(worktreeDir)).toBe(true);
+      expect(existsSync(join(worktreeDir, '.git'))).toBe(true);
     });
 
     it('should create git branch', () => {
@@ -151,8 +153,8 @@ describe('worktree script', () => {
 
     it('should fail if worktree directory already exists', () => {
       // Create the worktree directory first
-      const worktreePath = join(testDir, '.saga', 'worktrees', 'my-epic', 'my-story');
-      mkdirSync(worktreePath, { recursive: true });
+      const { worktreeDir } = createWorktreePaths(testDir, 'my-epic', 'my-story');
+      mkdirSync(worktreeDir, { recursive: true });
 
       const result = runScript(['my-epic', 'my-story']);
 
@@ -164,7 +166,8 @@ describe('worktree script', () => {
 
     it('should fail if .saga directory does not exist', () => {
       // Remove .saga directory
-      rmSync(join(testDir, '.saga'), { recursive: true, force: true });
+      const { saga } = createSagaPaths(testDir);
+      rmSync(saga, { recursive: true, force: true });
 
       const result = runScript(['my-epic', 'my-story']);
 
@@ -204,7 +207,8 @@ describe('worktree script', () => {
       const result = runScript(['auth', 'login']);
 
       const output = JSON.parse(result.stdout);
-      expect(output.worktreePath).toBe(join(testDir, '.saga', 'worktrees', 'auth', 'login'));
+      const { worktreeDir } = createWorktreePaths(testDir, 'auth', 'login');
+      expect(output.worktreePath).toBe(worktreeDir);
     });
 
     it('should create parent directories if needed', () => {
@@ -212,7 +216,8 @@ describe('worktree script', () => {
       const result = runScript(['new-epic', 'new-story']);
 
       expect(result.exitCode).toBe(0);
-      expect(existsSync(join(testDir, '.saga', 'worktrees', 'new-epic', 'new-story'))).toBe(true);
+      const { worktreeDir } = createWorktreePaths(testDir, 'new-epic', 'new-story');
+      expect(existsSync(worktreeDir)).toBe(true);
     });
   });
 

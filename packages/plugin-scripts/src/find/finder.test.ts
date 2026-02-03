@@ -4,8 +4,9 @@
 
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { createEpicPaths, createSagaPaths, createWorktreePaths } from '@saga-ai/types';
 import { extractContext, findEpic, findStory } from './finder.ts';
 import { parseFrontmatter } from './saga-scanner.ts';
 
@@ -159,10 +160,11 @@ describe('findEpic', () => {
   });
 
   function setupEpics(slugs: string[]): void {
-    const epicsDir = join(testDir, '.saga', 'epics');
-    mkdirSync(epicsDir, { recursive: true });
+    const { epics } = createSagaPaths(testDir);
+    mkdirSync(epics, { recursive: true });
     for (const slug of slugs) {
-      mkdirSync(join(epicsDir, slug));
+      const { epicDir } = createEpicPaths(testDir, slug);
+      mkdirSync(epicDir);
     }
   }
 
@@ -274,24 +276,16 @@ describe('findStory', () => {
     frontmatter: Record<string, string>,
     body = '',
   ): void {
-    const worktreesDir = join(testDir, '.saga', 'worktrees');
-    const storyDir = join(
-      worktreesDir,
-      epicSlug,
-      storySlug,
-      '.saga',
-      'epics',
-      epicSlug,
-      'stories',
-      storySlug,
-    );
+    // Get the story.md path inside the worktree and create its directory
+    const { storyMdInWorktree } = createWorktreePaths(testDir, epicSlug, storySlug);
+    const storyDir = dirname(storyMdInWorktree);
     mkdirSync(storyDir, { recursive: true });
 
     const frontmatterStr = Object.entries(frontmatter)
       .map(([k, v]) => `${k}: ${v}`)
       .join('\n');
     const content = `---\n${frontmatterStr}\n---\n${body}`;
-    writeFileSync(join(storyDir, 'story.md'), content);
+    writeFileSync(storyMdInWorktree, content);
   }
 
   it('should find story by exact slug match', async () => {

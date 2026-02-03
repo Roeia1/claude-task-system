@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createWorktreePaths } from '@saga-ai/types';
+import { createStoryPaths, createWorktreePaths } from '@saga-ai/types';
 import {
   buildLoopResult,
   createErrorResult,
@@ -99,7 +99,7 @@ describe('orchestrator', () => {
       // Create worktree and story.md at the correct location
       process.env.SAGA_PROJECT_DIR = tempDir;
       const worktreePaths = createWorktreePaths(tempDir, 'epic', 'story');
-      const storyDir = join(worktreePaths.worktreeDir, '.saga', 'epics', 'epic', 'stories', 'story');
+      const { storyDir } = createStoryPaths(worktreePaths.worktreeDir, 'epic', 'story');
       mkdirSync(storyDir, { recursive: true });
       writeFileSync(join(storyDir, 'story.md'), '# Story');
 
@@ -201,7 +201,7 @@ describe('orchestrator', () => {
       process.env.SAGA_PLUGIN_ROOT = join(tempDir, 'plugin');
 
       const worktreePaths = createWorktreePaths(tempDir, 'epic', 'story');
-      const storyDir = join(worktreePaths.worktreeDir, '.saga', 'epics', 'epic', 'stories', 'story');
+      const { storyDir } = createStoryPaths(worktreePaths.worktreeDir, 'epic', 'story');
       mkdirSync(storyDir, { recursive: true });
       writeFileSync(join(storyDir, 'story.md'), '# Story');
 
@@ -217,7 +217,7 @@ describe('orchestrator', () => {
       process.env.SAGA_PLUGIN_ROOT = pluginRoot;
 
       const worktreePaths = createWorktreePaths(tempDir, 'epic', 'story');
-      const storyDir = join(worktreePaths.worktreeDir, '.saga', 'epics', 'epic', 'stories', 'story');
+      const { storyDir } = createStoryPaths(worktreePaths.worktreeDir, 'epic', 'story');
       mkdirSync(storyDir, { recursive: true });
       writeFileSync(join(storyDir, 'story.md'), '# Story');
 

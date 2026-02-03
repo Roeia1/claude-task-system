@@ -195,7 +195,7 @@ async function readStdinInput(): Promise<string> {
 
 /**
  * Get required environment variables for scope validation
- * Returns null if any required variable is missing
+ * Returns null if any required variable is missing, with error output to stderr
  */
 function getScopeEnvironment(): {
   worktreePath: string;
@@ -206,7 +206,16 @@ function getScopeEnvironment(): {
   const epicSlug = process.env.SAGA_EPIC_SLUG || '';
   const storySlug = process.env.SAGA_STORY_SLUG || '';
 
-  if (!(worktreePath && epicSlug && storySlug)) {
+  const missing: string[] = [];
+  if (!worktreePath) missing.push('SAGA_PROJECT_DIR');
+  if (!epicSlug) missing.push('SAGA_EPIC_SLUG');
+  if (!storySlug) missing.push('SAGA_STORY_SLUG');
+
+  if (missing.length > 0) {
+    process.stderr.write(
+      `scope-validator: Missing required environment variables: ${missing.join(', ')}\n` +
+        'This hook requires worker environment variables set by the orchestrator.\n',
+    );
     return null;
   }
 

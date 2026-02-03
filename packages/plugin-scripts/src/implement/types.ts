@@ -94,6 +94,7 @@ export interface WorkerLoopConfig {
   startTime: number;
   epicSlug: string;
   storySlug: string;
+  storyDir: string;
 }
 
 /**

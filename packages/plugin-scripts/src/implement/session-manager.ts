@@ -210,14 +210,29 @@ export function createSession(
 }
 
 /**
+ * Worker environment variables passed to headless Claude workers
+ */
+export interface WorkerEnv {
+  epicSlug: string;
+  storySlug: string;
+  storyDir: string;
+}
+
+/**
  * Spawn a worker Claude instance with streaming output
  * Streams output to stdout in real-time while collecting the final result
+ *
+ * Sets worker-specific environment variables:
+ * - SAGA_EPIC_SLUG: The current epic identifier
+ * - SAGA_STORY_SLUG: The current story identifier
+ * - SAGA_STORY_DIR: Relative path to story files
  */
 export function spawnWorkerAsync(
   prompt: string,
   model: string,
   settings: Record<string, unknown>,
   workingDir: string,
+  workerEnv: WorkerEnv,
 ): Promise<WorkerOutput> {
   return new Promise((resolve, reject) => {
     let buffer = '';
@@ -238,8 +253,17 @@ export function spawnWorkerAsync(
       '--dangerously-skip-permissions',
     ];
 
+    // Build worker environment with story-specific variables
+    const env = {
+      ...process.env,
+      SAGA_EPIC_SLUG: workerEnv.epicSlug,
+      SAGA_STORY_SLUG: workerEnv.storySlug,
+      SAGA_STORY_DIR: workerEnv.storyDir,
+    };
+
     const child = spawn('claude', args, {
       cwd: workingDir,
+      env,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 

@@ -87,7 +87,16 @@ function getScopeEnvironment() {
   const worktreePath = process.env.SAGA_PROJECT_DIR || "";
   const epicSlug = process.env.SAGA_EPIC_SLUG || "";
   const storySlug = process.env.SAGA_STORY_SLUG || "";
-  if (!(worktreePath && epicSlug && storySlug)) {
+  const missing = [];
+  if (!worktreePath) missing.push("SAGA_PROJECT_DIR");
+  if (!epicSlug) missing.push("SAGA_EPIC_SLUG");
+  if (!storySlug) missing.push("SAGA_STORY_SLUG");
+  if (missing.length > 0) {
+    process.stderr.write(
+      `scope-validator: Missing required environment variables: ${missing.join(", ")}
+This hook requires worker environment variables set by the orchestrator.
+`
+    );
     return null;
   }
   return { worktreePath, epicSlug, storySlug };

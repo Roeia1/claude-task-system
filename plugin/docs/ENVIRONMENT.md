@@ -12,8 +12,6 @@ Environment variables in Claude Code are available in the bash execution environ
 echo $SAGA_PROJECT_DIR
 ```
 
-The SessionStart hook outputs context at session start, displaying all available variables with their values.
-
 **Naming Convention**: All SAGA environment variables use the `SAGA_` prefix for clear namespacing.
 
 ## Variable Reference
@@ -30,25 +28,36 @@ These are set by the Claude Code runtime before any user interaction. The Sessio
 
 ### Session Variables (Set by SessionStart Hook)
 
-These are computed by `hooks/session-init.sh` when a Claude Code session starts. They are derived from filesystem state and persisted with the `SAGA_` prefix.
+These are computed by `hooks/session-init.sh` when a Claude Code session starts. They are available in both interactive and headless sessions.
 
-#### Core Variables (Always Set)
-
-| Variable | Description | Values |
-|----------|-------------|--------|
-| `SAGA_PROJECT_DIR` | Absolute path to the project root | `/Users/name/my-project` |
-| `SAGA_PLUGIN_ROOT` | Absolute path to the plugin installation | `/Users/name/.claude/plugins/...` |
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SAGA_PROJECT_DIR` | Absolute path to the project or worktree root | `/Users/name/my-project` |
+| `SAGA_PLUGIN_ROOT` | Absolute path to the plugin installation | `/Users/name/.claude/plugins/saga` |
 | `SAGA_TASK_CONTEXT` | Current working context | `"main"` or `"story-worktree"` |
 
-#### Story Variables (Conditional)
+**Note**: All paths are absolute. `SAGA_PROJECT_DIR` points to different locations depending on context:
+- In main repo: The project root directory (e.g., `/Users/name/my-project`)
+- In worktree: The worktree root (e.g., `/Users/name/my-project/.saga/worktrees/{epic}/{story}`)
 
-Set when `SAGA_TASK_CONTEXT="story-worktree"`:
+### Worker Environment Variables
+
+These variables are **only** set when spawning headless Claude workers via `saga implement`. They are NOT set during interactive sessions.
+
+The worker orchestrator (`implement.ts`) sets these before spawning each worker:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `SAGA_EPIC_SLUG` | Epic identifier | `"user-auth"` |
 | `SAGA_STORY_SLUG` | Story identifier | `"login-flow"` |
-| `SAGA_STORY_DIR` | Relative path to story files | `".saga/epics/user-auth/stories/login-flow"` |
+| `SAGA_STORY_DIR` | Absolute path to story files | `/Users/name/.../worktree/.saga/epics/user-auth/stories/login-flow` |
+
+**Note**: All paths are absolute, consistent with `SAGA_PROJECT_DIR` and `SAGA_PLUGIN_ROOT`.
+
+Workers use these variables for:
+- Reading `story.md` and `journal.md` via `$SAGA_STORY_DIR`
+- Commit messages: `feat($SAGA_EPIC_SLUG-$SAGA_STORY_SLUG): description`
+- Scope validation (the `scope-validator` hook uses these to enforce access boundaries)
 
 ### Internal Variables (Set by CLI)
 
@@ -58,28 +67,34 @@ These are set by the SAGA CLI for internal use. They are not set during normal i
 |----------|-------------|--------|
 | `SAGA_INTERNAL_SESSION` | Indicates CLI is running inside a tmux session spawned by `saga implement`. Used to prevent creating nested tmux sessions. | `"1"` when inside tmux session |
 
-### Detection Logic
+## Context Detection
 
 The SessionStart hook determines context by checking if `.git` is a file or directory:
 
 1. **Story Worktree**: If `.git` is a **file** (worktrees have a .git file that points to the main repo)
-   - Sets: `SAGA_TASK_CONTEXT="story-worktree"`, `SAGA_EPIC_SLUG`, `SAGA_STORY_SLUG`, `SAGA_STORY_DIR`
-   - Epic and story slugs are extracted from the worktree path
+   - Sets: `SAGA_TASK_CONTEXT="story-worktree"`
 
 2. **Main Repository**: If `.git` is a **directory** (main repo has .git directory)
    - Sets: `SAGA_TASK_CONTEXT="main"`
 
-## Interactive vs Headless Mode
+## Interactive vs Worker Sessions
 
-Both interactive and headless Claude sessions work the same way:
+### Interactive Sessions
 
-1. Plugin loads
-2. SessionStart hook runs and detects context
-3. Hook persists all SAGA_ variables to `CLAUDE_ENV_FILE`
-4. Hook outputs context summary for Claude to see
-5. Bash tool sources `CLAUDE_ENV_FILE`, making all variables available
+When you run `claude` interactively in a SAGA project:
 
-**There is no difference** - headless workers (spawned via `implement.py` or `claude -p`) run hooks just like interactive sessions.
+1. SessionStart hook runs and detects context
+2. Sets core variables: `SAGA_PROJECT_DIR`, `SAGA_PLUGIN_ROOT`, `SAGA_TASK_CONTEXT`
+3. Story-specific context (epic, story) comes from user input via plugin skills
+
+### Worker Sessions (Headless)
+
+When `saga implement` spawns headless workers:
+
+1. The orchestrator sets worker env vars before spawning `claude -p`
+2. Worker receives: `SAGA_EPIC_SLUG`, `SAGA_STORY_SLUG`, `SAGA_STORY_DIR`
+3. SessionStart hook also runs, setting core variables
+4. Worker prompt can use all variables in bash commands
 
 ## Usage Patterns
 
@@ -91,28 +106,22 @@ Use `${VARIABLE}` syntax (braced) for consistency:
 Read the file at `${SAGA_PLUGIN_ROOT}/templates/example.md`
 ```
 
+### In Worker Prompt (Bash commands)
+
 ```bash
 cat $SAGA_STORY_DIR/story.md
+git commit -m "feat($SAGA_EPIC_SLUG-$SAGA_STORY_SLUG): description"
 ```
 
-### In Python Scripts
+### In TypeScript Scripts
 
-```python
-import os
+```typescript
+import process from 'node:process';
 
-project_dir = os.environ.get("SAGA_PROJECT_DIR")
-if not project_dir:
-    raise EnvironmentError("SAGA_PROJECT_DIR not set")
-```
-
-### In Bash Scripts
-
-```bash
-# Always check if set before using
-if [ -z "$SAGA_STORY_DIR" ]; then
-    echo "Error: SAGA_STORY_DIR not set" >&2
-    exit 1
-fi
+const projectDir = process.env.SAGA_PROJECT_DIR;
+if (!projectDir) {
+  throw new Error('SAGA_PROJECT_DIR not set');
+}
 ```
 
 ## Adding New Variables
@@ -120,35 +129,51 @@ fi
 If you need to add a new environment variable:
 
 1. **Document it here first** - add to the appropriate table above
-2. **Set it in one place only** - add to `hooks/session-init.sh`
-3. **Update CLAUDE.md** - if the variable affects how Claude should behave
-4. **Use the SAGA_ prefix** - all SAGA variables must be namespaced
-5. **Use consistent naming** - the same name should be used everywhere (hook output, env var, documentation)
+2. **Determine the scope**:
+   - Session variables: Set in `hooks/session-init.sh`
+   - Worker variables: Set in `implement/session-manager.ts`
+3. **Use the SAGA_ prefix** - all SAGA variables must be namespaced
+4. **Use consistent naming** - the same name should be used everywhere
 
 ## Variable Flow Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│              Session Start (Interactive or Headless)             │
+│                    Interactive Session                           │
 ├─────────────────────────────────────────────────────────────────┤
 │  Claude Code Runtime                                             │
 │  └── Sets: CLAUDE_PROJECT_DIR, CLAUDE_PLUGIN_ROOT, CLAUDE_ENV_FILE│
 │                          ↓                                       │
 │  SessionStart Hook (session-init.sh)                             │
-│  └── Detects story worktree (.saga/worktrees/...)                │
-│  └── Sets: SAGA_* variables (prefixed for namespacing)           │
-│  └── Writes all to CLAUDE_ENV_FILE                               │
-│  └── Outputs context summary for Claude                          │
+│  └── Detects context (main vs worktree)                          │
+│  └── Sets: SAGA_PROJECT_DIR, SAGA_PLUGIN_ROOT, SAGA_TASK_CONTEXT │
+│  └── Writes to CLAUDE_ENV_FILE                                   │
 │                          ↓                                       │
-│  Bash Tool Invocations                                           │
-│  └── Sources CLAUDE_ENV_FILE automatically                       │
-│  └── All variables available via $SAGA_* or ${SAGA_*}            │
+│  Plugin Skills                                                   │
+│  └── User provides epic/story context via skill invocation       │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    Worker Session (Headless)                     │
+├─────────────────────────────────────────────────────────────────┤
+│  saga implement                                                  │
+│  └── Finds story, validates worktree                             │
+│  └── Sets worker env: SAGA_EPIC_SLUG, SAGA_STORY_SLUG, SAGA_STORY_DIR│
+│                          ↓                                       │
+│  Spawns: claude -p <worker-prompt>                               │
+│  └── Worker inherits env vars                                    │
+│  └── SessionStart hook also runs (sets core vars)                │
+│                          ↓                                       │
+│  Worker Execution                                                │
+│  └── Uses $SAGA_STORY_DIR to read story.md, journal.md           │
+│  └── Uses $SAGA_EPIC_SLUG-$SAGA_STORY_SLUG in commits            │
+│  └── scope-validator enforces access boundaries                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Example Session Output
 
-**In main repository:**
+**Interactive session (main repository):**
 ```
 # Session Context
 
@@ -159,16 +184,20 @@ SAGA_TASK_CONTEXT: main
 These variables are available via the Bash tool: echo $VARIABLE_NAME
 ```
 
-**In story worktree:**
+**Interactive session (worktree):**
 ```
 # Session Context
 
-SAGA_PROJECT_DIR: /Users/name/my-project
+SAGA_PROJECT_DIR: /Users/name/my-project/.saga/worktrees/user-auth/login-flow
 SAGA_PLUGIN_ROOT: /Users/name/my-project/.claude/plugins/saga
 SAGA_TASK_CONTEXT: story-worktree
-SAGA_EPIC_SLUG: user-auth
-SAGA_STORY_SLUG: login-flow
-SAGA_STORY_DIR: .saga/epics/user-auth/stories/login-flow
 
 These variables are available via the Bash tool: echo $VARIABLE_NAME
+```
+
+**Worker session** (in addition to above, has these env vars set by orchestrator):
+```
+SAGA_EPIC_SLUG=user-auth
+SAGA_STORY_SLUG=login-flow
+SAGA_STORY_DIR=/Users/name/my-project/.saga/worktrees/user-auth/login-flow/.saga/epics/user-auth/stories/login-flow
 ```
