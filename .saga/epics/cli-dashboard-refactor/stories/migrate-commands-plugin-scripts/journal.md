@@ -253,3 +253,66 @@ All 7 tasks in story t1-t7 are now complete:
 - t5: implement.ts split into modules ✓
 - t6: imports updated to use saga-types ✓
 - t7: unit tests added for implement modules ✓
+
+## Session: 2026-02-03T02:09:00Z
+
+### Post-completion: Address PR review feedback
+
+**What was done:**
+- Updated `scope-config.ts` to reference the plugin-scripts path instead of the CLI path for the scope-validator script
+- Differentiated scope-validator exit codes: exit code 1 for config errors, exit code 2 for blocked (scope violation)
+- Re-exported `ScannedStory` and `ScannedEpic` types from the finder module for external consumers
+- Updated scope-config test to match the new path
+
+**Files changed:**
+- `packages/plugin-scripts/src/find/finder.ts` - re-export types
+- `packages/plugin-scripts/src/implement/scope-config.ts` - fix script path
+- `packages/plugin-scripts/src/implement/scope-config.test.ts` - update test
+- `packages/plugin-scripts/src/scope-validator.ts` - differentiate exit codes
+
+## Session: 2026-02-03T02:55:00Z
+
+### Post-completion: Use env vars and saga-types paths, simplify worktree detection
+
+**What was done:**
+- Replaced `--path` CLI options with `SAGA_PROJECT_DIR` and `SAGA_PLUGIN_ROOT` environment variables across find, worktree, and implement scripts
+- Scripts now fail with informative errors when required env vars are missing (no silent fallbacks)
+- Adopted saga-types path utilities (`createSagaPaths`, `createWorktreePaths`, etc.) for all path construction
+- Updated `ENVIRONMENT.md` with new worktree detection logic (`.git` file vs directory check)
+- Simplified `session-init.sh` worktree detection to use `.git` file/directory check instead of checking for `.saga/epics` directory
+- Removed duplicated code block from ENVIRONMENT.md
+
+**Decisions:**
+- Environment variables are the correct mechanism for scripts invoked by hooks - they run in the shell context where SAGA env vars are already set by `session-init.sh`. The `--path` flags were a CLI artifact that doesn't apply in the plugin context.
+- Using saga-types path utilities ensures consistency across all scripts and avoids hardcoded `.saga/` path patterns.
+- The `.git` file vs directory check is more reliable for worktree detection than checking for `.saga/epics` (which may not exist yet in a fresh worktree).
+
+**Files changed:**
+- `packages/plugin-scripts/src/find/index.ts`, `finder.ts`, `saga-scanner.ts` - env var usage
+- `packages/plugin-scripts/src/implement/index.ts`, `orchestrator.ts` - env var usage
+- `packages/plugin-scripts/src/worktree.ts` - env var usage
+- `packages/plugin-scripts/src/worktree.test.ts`, `implement/orchestrator.test.ts` - test updates
+- `plugin/docs/ENVIRONMENT.md` - documentation updates
+- `plugin/hooks/session-init.sh` - simplified worktree detection
+
+## Session: 2026-02-03T03:55:00Z
+
+### Post-completion: Move story env vars to worker context, fix hook format, harden scope-validator
+
+**What was done:**
+- Removed `SAGA_EPIC_SLUG`, `SAGA_STORY_SLUG`, `SAGA_STORY_DIR` from `session-init.sh` - these are worker-specific and should not be set in interactive sessions
+- Set worker env vars in orchestrator when spawning headless workers instead
+- Used saga-types for all path construction in session-manager (no hardcoded `.saga` paths)
+- Fixed `find.test.ts` to use `SAGA_PROJECT_DIR` env var instead of `--path` flag
+- Removed the `hello` placeholder script and its tests
+- Updated `ENVIRONMENT.md` to document the distinction between interactive session vars and worker-only vars
+- Fixed Claude Code hook format in `scope-config.ts` - was using a plain string but the correct format requires an object with `type` and `command` fields
+- Updated scope-config tests to verify the object format
+- Changed scope-validator to exit with code 2 (blocked) instead of code 1 when required environment variables are missing, ensuring operations fail safely rather than proceeding without scope validation
+- Error message now instructs the worker to exit with BLOCKED status and report the configuration error as a blocker
+
+**Decisions:**
+- Story-specific env vars (`SAGA_EPIC_SLUG`, `SAGA_STORY_SLUG`, `SAGA_STORY_DIR`) belong in the worker context, not the interactive session. The orchestrator knows which story is being executed and passes these to the worker process.
+- The `hello` placeholder script served its purpose during initial package setup and is no longer needed now that real scripts are in place.
+- Hook configuration must use `{ type: "command", command: "..." }` format per Claude Code docs, not a bare string.
+- Scope-validator should block (exit 2) on missing env vars rather than reporting a generic error (exit 1). This ensures the hook system treats it as a scope violation, preventing any file operations from proceeding without proper scope validation.
