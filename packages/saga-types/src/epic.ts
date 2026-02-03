@@ -1,15 +1,15 @@
-import { z } from 'zod';
-import { StorySchema } from './story.ts';
+import { z } from "zod";
+import { StorySchema } from "./story.ts";
 
 /**
  * Story counts by status for epic summaries.
  */
 export const StoryCountsSchema = z.object({
-  total: z.number(),
-  ready: z.number(),
-  inProgress: z.number(),
-  blocked: z.number(),
-  completed: z.number(),
+	total: z.number(),
+	ready: z.number(),
+	inProgress: z.number(),
+	blocked: z.number(),
+	completed: z.number(),
 });
 export type StoryCounts = z.infer<typeof StoryCountsSchema>;
 
@@ -21,12 +21,12 @@ export type StoryCounts = z.infer<typeof StoryCountsSchema>;
  * determined by whether the epic is in `.saga/archive/` directory.
  */
 export const EpicSchema = z.object({
-  slug: z.string(),
-  path: z.string(),
-  title: z.string(),
-  content: z.string(),
-  storyCounts: StoryCountsSchema,
-  stories: z.array(StorySchema),
-  archived: z.boolean().optional(),
+	slug: z.string(),
+	path: z.string(),
+	title: z.string(),
+	content: z.string(),
+	storyCounts: StoryCountsSchema,
+	stories: z.array(StorySchema),
+	archived: z.boolean().optional(),
 });
 export type Epic = z.infer<typeof EpicSchema>;

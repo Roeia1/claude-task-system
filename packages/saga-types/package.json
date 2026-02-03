@@ -1,27 +1,28 @@
 {
-  "name": "@saga-ai/types",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Shared Zod schemas for SAGA .saga/ directory structure",
-  "type": "module",
-  "exports": {
-    "./story.ts": "./src/story.ts",
-    "./epic.ts": "./src/epic.ts",
-    "./session.ts": "./src/session.ts",
-    "./directory.ts": "./src/directory.ts"
-  },
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write ."
-  },
-  "dependencies": {
-    "zod": "^3.24.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.7.0",
-    "vitest": "^4.0.18"
-  }
+	"name": "@saga-ai/types",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Shared Zod schemas for SAGA .saga/ directory structure",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./story.ts": "./src/story.ts",
+		"./epic.ts": "./src/epic.ts",
+		"./session.ts": "./src/session.ts",
+		"./directory.ts": "./src/directory.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write ."
+	},
+	"dependencies": {
+		"zod": "^3.24.0"
+	},
+	"devDependencies": {
+		"typescript": "^5.7.0",
+		"vitest": "^4.0.18"
+	}
 }

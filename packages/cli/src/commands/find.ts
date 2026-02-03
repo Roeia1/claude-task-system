@@ -16,45 +16,50 @@
  *   - error: string (if no match)
  */
 
-import process from 'node:process';
-import { findEpic, findStory } from '../utils/finder.ts';
-import { resolveProjectPath } from '../utils/project-discovery.ts';
+import process from "node:process";
+import { findEpic, findStory } from "../utils/finder.ts";
+import { resolveProjectPath } from "../utils/project-discovery.ts";
 
 /**
  * Options for the find command
  */
 export interface FindOptions {
-  path?: string;
-  type?: 'epic' | 'story';
-  status?: string;
+	path?: string;
+	type?: "epic" | "story";
+	status?: string;
 }
 
 /**
  * Execute the find command
  */
-export async function findCommand(query: string, options: FindOptions): Promise<void> {
-  // Resolve project path
-  let projectPath: string;
-  try {
-    projectPath = resolveProjectPath(options.path);
-  } catch (_error) {
-    process.exit(1);
-  }
+export async function findCommand(
+	query: string,
+	options: FindOptions,
+): Promise<void> {
+	// Resolve project path
+	let projectPath: string;
+	try {
+		projectPath = resolveProjectPath(options.path);
+	} catch (_error) {
+		process.exit(1);
+	}
 
-  const type = options.type ?? 'story';
+	const type = options.type ?? "story";
 
-  let result: ReturnType<typeof findEpic> | Awaited<ReturnType<typeof findStory>>;
-  if (type === 'epic') {
-    result = findEpic(projectPath, query);
-  } else {
-    result = await findStory(projectPath, query, { status: options.status });
-  }
+	let result:
+		| ReturnType<typeof findEpic>
+		| Awaited<ReturnType<typeof findStory>>;
+	if (type === "epic") {
+		result = findEpic(projectPath, query);
+	} else {
+		result = await findStory(projectPath, query, { status: options.status });
+	}
 
-  // Output JSON result
-  console.log(JSON.stringify(result, null, 2));
+	// Output JSON result
+	console.log(JSON.stringify(result, null, 2));
 
-  // Exit with appropriate code
-  if (!result.found) {
-    process.exit(1);
-  }
+	// Exit with appropriate code
+	if (!result.found) {
+		process.exit(1);
+	}
 }

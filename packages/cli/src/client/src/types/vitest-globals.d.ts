@@ -6,8 +6,8 @@
  */
 
 declare global {
-  var __vitest_expect__: typeof import('vitest').expect | undefined;
-  var __vitest_page__: import('playwright').Page | undefined;
+	var __vitest_expect__: typeof import("vitest").expect | undefined;
+	var __vitest_page__: import("playwright").Page | undefined;
 }
 
 export {};

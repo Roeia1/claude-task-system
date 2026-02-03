@@ -1,0 +1,35 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: biome
+      glob: "*.{ts,tsx,js,jsx,json}"
+      run: npx biome check --no-errors-on-unmatched {staged_files}
+
+    - name: no-biome-ignore
+      glob: "*.{ts,tsx,js,jsx}"
+      run: |
+        ADDED=$(git diff --cached --diff-filter=ACM -U0 {staged_files} | grep '^+' | grep -v '^+++' | grep 'biome-ignore' || true)
+        if [ -n "$ADDED" ]; then
+          echo ""
+          echo "New biome-ignore suppression(s) detected:"
+          echo ""
+          echo "$ADDED"
+          echo ""
+          echo "Fix the lint issue instead of suppressing it."
+          echo "If a suppression is truly necessary, explain it to the user and"
+          echo "get their approval before committing with LEFTHOOK=0 git commit."
+          echo ""
+          exit 1
+        fi
+
+    - name: protect-biome-config
+      glob: "biome.json*"
+      run: |
+        echo ""
+        echo "biome.json changes detected."
+        echo ""
+        echo "Fix biome issues in the code, not by changing the configuration."
+        echo "If a config change is truly necessary, explain it to the user and"
+        echo "get their approval before committing with LEFTHOOK=0 git commit."
+        echo ""
+        exit 1
