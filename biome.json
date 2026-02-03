@@ -92,7 +92,8 @@
 		{
 			"includes": [
 				"packages/cli/src/client/playwright.config.ts",
-				"packages/cli/src/client/playwright.e2e.config.ts"
+				"packages/cli/src/client/playwright.e2e.config.ts",
+				"packages/cli/src/client/e2e/test-fixture.ts"
 			],
 			"linter": {
 				"rules": {
@@ -100,7 +101,37 @@
 						"useNamingConvention": {
 							"level": "error",
 							"options": {
-								"strictCase": false
+								"strictCase": false,
+								"conventions": [
+									{
+										"selector": {
+											"kind": "objectLiteralProperty"
+										},
+										"formats": ["camelCase", "CONSTANT_CASE"]
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/cli/vitest.config.ts"],
+			"linter": {
+				"rules": {
+					"style": {
+						"useNamingConvention": {
+							"level": "error",
+							"options": {
+								"conventions": [
+									{
+										"selector": {
+											"kind": "objectLiteralProperty"
+										},
+										"formats": ["camelCase", "CONSTANT_CASE"]
+									}
+								]
 							}
 						}
 					}
@@ -166,6 +197,16 @@
 				"rules": {
 					"style": {
 						"useNamingConvention": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/saga-types/src/index.ts"],
+			"linter": {
+				"rules": {
+					"performance": {
+						"noBarrelFile": "off"
 					}
 				}
 			}

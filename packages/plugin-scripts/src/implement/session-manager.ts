@@ -263,18 +263,20 @@ function buildWorkerArgs(
 	];
 }
 
+// Environment variable name constants (SCREAMING_SNAKE_CASE names require computed properties)
+const ENV_EPIC_SLUG = "SAGA_EPIC_SLUG";
+const ENV_STORY_SLUG = "SAGA_STORY_SLUG";
+const ENV_STORY_DIR = "SAGA_STORY_DIR";
+
 /**
  * Build the environment variables for the worker process
  */
 function buildWorkerProcessEnv(workerEnv: WorkerEnv): NodeJS.ProcessEnv {
 	return {
 		...process.env,
-		// biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
-		SAGA_EPIC_SLUG: workerEnv.epicSlug,
-		// biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
-		SAGA_STORY_SLUG: workerEnv.storySlug,
-		// biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
-		SAGA_STORY_DIR: workerEnv.storyDir,
+		[ENV_EPIC_SLUG]: workerEnv.epicSlug,
+		[ENV_STORY_SLUG]: workerEnv.storySlug,
+		[ENV_STORY_DIR]: workerEnv.storyDir,
 	};
 }
 

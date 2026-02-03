@@ -85,7 +85,7 @@ describe("sessions-kill CLI", () => {
 		});
 
 		it("should handle simple session names", () => {
-			const result = spawnSync("node", [scriptPath, "test-session"], {
+			const result = spawnSync("node", [scriptPath, "saga__test-session"], {
 				encoding: "utf-8",
 			});
 

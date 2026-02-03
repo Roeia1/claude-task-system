@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { test as base } from "@playwright/test";
+import { test as base, expect as playwrightExpect } from "@playwright/test";
 import { createFixtureUtils, type FixtureUtils } from "./fixtures-utils.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -36,27 +36,42 @@ const SOURCE_FIXTURES = join(__dirname, "fixtures");
 const CLI_DIST = join(__dirname, "..", "..", "..");
 
 /**
- * Wait for a server to be ready by polling its health endpoint
+ * Attempt a single poll request to check if the server is ready.
+ * Returns true if the server responded with an OK status.
  */
-async function waitForServer(url: string, timeoutMs: number): Promise<void> {
-	const start = Date.now();
-	while (Date.now() - start < timeoutMs) {
-		try {
-			// biome-ignore lint/performance/noAwaitInLoops: polling requires sequential requests
-			const response = await fetch(url);
-			if (response.ok) {
-				return;
-			}
-		} catch {
-			// Server not ready yet, keep polling
+async function tryPoll(url: string): Promise<boolean> {
+	try {
+		const response = await fetch(url);
+		return response.ok;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Wait for a server to be ready by polling its health endpoint.
+ * Uses a recursive helper to avoid await-in-loop.
+ */
+function waitForServer(url: string, timeoutMs: number): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+
+	async function poll(): Promise<void> {
+		if (Date.now() >= deadline) {
+			throw new Error(
+				`Server at ${url} did not become ready within ${timeoutMs}ms`,
+			);
+		}
+		const ready = await tryPoll(url);
+		if (ready) {
+			return;
 		}
 		await new Promise((resolve) =>
 			setTimeout(resolve, SERVER_POLL_INTERVAL_MS),
 		);
+		return poll();
 	}
-	throw new Error(
-		`Server at ${url} did not become ready within ${timeoutMs}ms`,
-	);
+
+	return poll();
 }
 
 /**
@@ -74,8 +89,7 @@ interface WorkerFixtures {
  */
 export const test = base.extend<object, WorkerFixtures>({
 	serverUrl: [
-		// biome-ignore lint/correctness/noEmptyPattern: Playwright fixture API requires this signature
-		async ({}, use, workerInfo) => {
+		async (_deps, use, workerInfo) => {
 			const workerId = workerInfo.workerIndex;
 			const port = BASE_PORT + workerId;
 			const fixturesPath = join(tmpdir(), `saga-e2e-fixtures-${workerId}`);
@@ -101,7 +115,6 @@ export const test = base.extend<object, WorkerFixtures>({
 					env: {
 						...process.env,
 						// Use polling for file watching in tests (slower but reliable)
-						// biome-ignore lint/style/useNamingConvention: env var
 						SAGA_USE_POLLING: "1",
 					},
 				},
@@ -132,8 +145,7 @@ export const test = base.extend<object, WorkerFixtures>({
 	],
 
 	fixtureUtils: [
-		// biome-ignore lint/correctness/noEmptyPattern: Playwright fixture API requires this signature
-		async ({}, use, workerInfo) => {
+		async (_deps, use, workerInfo) => {
 			const workerId = workerInfo.workerIndex;
 			const fixturesPath = join(tmpdir(), `saga-e2e-fixtures-${workerId}`);
 			const utils = createFixtureUtils(fixturesPath);
@@ -143,11 +155,10 @@ export const test = base.extend<object, WorkerFixtures>({
 	],
 
 	// Override baseURL to use worker-specific server
-	// biome-ignore lint/style/useNamingConvention: Playwright uses baseURL
 	baseURL: async ({ serverUrl }, use) => {
 		await use(serverUrl);
 	},
 });
 
-// biome-ignore lint/performance/noBarrelFile: test fixture re-exports expect for convenience
-export { expect } from "@playwright/test";
+/** Re-export Playwright's expect for test convenience */
+export const expect = playwrightExpect;

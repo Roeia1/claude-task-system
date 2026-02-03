@@ -5940,88 +5940,97 @@ function formatAllInputFields(input) {
   }
   return entries.map(([key, value]) => `${key}=${formatInputValue(value, maxValueLength)}`).join(", ");
 }
+function formatReadTool(input) {
+  const path = input.file_path || "unknown";
+  const extras = [];
+  if (input.offset) {
+    extras.push(`offset=${input.offset}`);
+  }
+  if (input.limit) {
+    extras.push(`limit=${input.limit}`);
+  }
+  const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
+  return `[Tool Used: Read] ${path}${suffix}`;
+}
+function formatWriteTool(input) {
+  return `[Tool Used: Write] ${input.file_path || "unknown"}`;
+}
+function formatEditTool(input) {
+  const file = input.file_path || "unknown";
+  const replaceAll = input.replace_all ? " (replace_all)" : "";
+  return `[Tool Used: Edit] ${file}${replaceAll}`;
+}
+function formatBashTool(input) {
+  const maxLength = 100;
+  const cmd = truncateString(String(input.command || ""), maxLength);
+  const desc = input.description ? ` - ${truncateString(String(input.description), 60)}` : "";
+  return `[Tool Used: Bash] ${cmd}${desc}`;
+}
+function formatGlobTool(input) {
+  const pattern = input.pattern || "unknown";
+  const path = input.path ? ` in ${input.path}` : "";
+  return `[Tool Used: Glob] ${pattern}${path}`;
+}
+function formatGrepTool(input) {
+  const pattern = truncateString(String(input.pattern || ""), 60);
+  const path = input.path ? ` in ${input.path}` : "";
+  const mode = input.output_mode ? ` (${input.output_mode})` : "";
+  return `[Tool Used: Grep] "${pattern}"${path}${mode}`;
+}
+function formatTaskTool(input) {
+  const maxLength = 100;
+  const desc = truncateString(
+    String(input.description || input.prompt || ""),
+    maxLength
+  );
+  const agentType = input.subagent_type ? ` [${input.subagent_type}]` : "";
+  return `[Tool Used: Task]${agentType} ${desc}`;
+}
+function formatTodoWriteTool(input) {
+  const maxLength = 100;
+  const todos = input.todos;
+  if (todos && Array.isArray(todos)) {
+    const subjects = todos.map((t) => {
+      if (t && typeof t === "object" && "subject" in t) {
+        return String(t.subject || "untitled");
+      }
+      return "untitled";
+    }).join(", ");
+    if (subjects) {
+      return `[Tool Used: TodoWrite] ${truncateString(subjects, maxLength)}`;
+    }
+  }
+  return "[Tool Used: TodoWrite]";
+}
+function formatStructuredOutputTool(input) {
+  const maxLength = 100;
+  const status = input.status || "unknown";
+  const summary = input.summary ? ` - ${truncateString(String(input.summary), maxLength)}` : "";
+  return `[Tool Used: StructuredOutput] ${status}${summary}`;
+}
+function formatDefaultTool(name, input) {
+  const fields = formatAllInputFields(input);
+  return fields ? `[Tool Used: ${name}] ${fields}` : `[Tool Used: ${name}]`;
+}
+var TOOL_FORMATTERS = /* @__PURE__ */ new Map([
+  ["Read", formatReadTool],
+  ["Write", formatWriteTool],
+  ["Edit", formatEditTool],
+  ["Bash", formatBashTool],
+  ["Glob", formatGlobTool],
+  ["Grep", formatGrepTool],
+  ["Task", formatTaskTool],
+  ["TodoWrite", formatTodoWriteTool],
+  ["StructuredOutput", formatStructuredOutputTool]
+]);
 function formatToolUsage(name, input) {
   try {
     const safeInput = input || {};
-    const maxLength = 100;
-    switch (name) {
-      // File operations - show path
-      case "Read": {
-        const path = safeInput.file_path || "unknown";
-        const extras = [];
-        if (safeInput.offset) {
-          extras.push(`offset=${safeInput.offset}`);
-        }
-        if (safeInput.limit) {
-          extras.push(`limit=${safeInput.limit}`);
-        }
-        const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
-        return `[Tool Used: Read] ${path}${suffix}`;
-      }
-      case "Write":
-        return `[Tool Used: Write] ${safeInput.file_path || "unknown"}`;
-      case "Edit": {
-        const file = safeInput.file_path || "unknown";
-        const replaceAll = safeInput.replace_all ? " (replace_all)" : "";
-        return `[Tool Used: Edit] ${file}${replaceAll}`;
-      }
-      // Shell command - show command and description
-      case "Bash": {
-        const cmd = truncateString(String(safeInput.command || ""), maxLength);
-        const desc = safeInput.description ? ` - ${truncateString(String(safeInput.description), 60)}` : "";
-        return `[Tool Used: Bash] ${cmd}${desc}`;
-      }
-      // Search operations - show pattern and path
-      case "Glob": {
-        const pattern = safeInput.pattern || "unknown";
-        const path = safeInput.path ? ` in ${safeInput.path}` : "";
-        return `[Tool Used: Glob] ${pattern}${path}`;
-      }
-      case "Grep": {
-        const pattern = truncateString(String(safeInput.pattern || ""), 60);
-        const path = safeInput.path ? ` in ${safeInput.path}` : "";
-        const mode = safeInput.output_mode ? ` (${safeInput.output_mode})` : "";
-        return `[Tool Used: Grep] "${pattern}"${path}${mode}`;
-      }
-      // Agent task - show description and type
-      case "Task": {
-        const desc = truncateString(
-          String(safeInput.description || safeInput.prompt || ""),
-          maxLength
-        );
-        const agentType = safeInput.subagent_type ? ` [${safeInput.subagent_type}]` : "";
-        return `[Tool Used: Task]${agentType} ${desc}`;
-      }
-      // Todo operations
-      case "TodoWrite": {
-        const todos = safeInput.todos;
-        if (todos && Array.isArray(todos)) {
-          const subjects = todos.map((t) => {
-            if (t && typeof t === "object" && "subject" in t) {
-              return String(
-                t.subject || "untitled"
-              );
-            }
-            return "untitled";
-          }).join(", ");
-          if (subjects) {
-            return `[Tool Used: TodoWrite] ${truncateString(subjects, maxLength)}`;
-          }
-        }
-        return "[Tool Used: TodoWrite]";
-      }
-      // Structured output - show status
-      case "StructuredOutput": {
-        const status = safeInput.status || "unknown";
-        const summary = safeInput.summary ? ` - ${truncateString(String(safeInput.summary), maxLength)}` : "";
-        return `[Tool Used: StructuredOutput] ${status}${summary}`;
-      }
-      // Unknown tools - show all fields
-      default: {
-        const fields = formatAllInputFields(safeInput);
-        return fields ? `[Tool Used: ${name}] ${fields}` : `[Tool Used: ${name}]`;
-      }
+    const formatter = TOOL_FORMATTERS.get(name);
+    if (formatter) {
+      return formatter(safeInput);
     }
+    return formatDefaultTool(name, safeInput);
   } catch {
     return `[Tool Used: ${name}]`;
   }
@@ -6260,15 +6269,15 @@ function buildWorkerArgs(prompt, model, settings) {
     "--dangerously-skip-permissions"
   ];
 }
+var ENV_EPIC_SLUG = "SAGA_EPIC_SLUG";
+var ENV_STORY_SLUG = "SAGA_STORY_SLUG";
+var ENV_STORY_DIR = "SAGA_STORY_DIR";
 function buildWorkerProcessEnv(workerEnv) {
   return {
     ...process2.env,
-    // biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
-    SAGA_EPIC_SLUG: workerEnv.epicSlug,
-    // biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
-    SAGA_STORY_SLUG: workerEnv.storySlug,
-    // biome-ignore lint/style/useNamingConvention: environment variable names use SCREAMING_SNAKE_CASE
-    SAGA_STORY_DIR: workerEnv.storyDir
+    [ENV_EPIC_SLUG]: workerEnv.epicSlug,
+    [ENV_STORY_SLUG]: workerEnv.storySlug,
+    [ENV_STORY_DIR]: workerEnv.storyDir
   };
 }
 function handleStreamChunk(text, bufferRef) {
@@ -6458,6 +6467,32 @@ async function executeWorkerCycle(config, state) {
     };
   }
 }
+async function runSequentialCycles(config, state) {
+  const cycleIterable = {
+    [Symbol.asyncIterator]() {
+      let done = false;
+      return {
+        next() {
+          if (done) {
+            return Promise.resolve({ done: true, value: void 0 });
+          }
+          return executeWorkerCycle(config, state).then((cycleResult) => {
+            if (!cycleResult.continue) {
+              done = true;
+            }
+            return { done: false, value: cycleResult };
+          });
+        }
+      };
+    }
+  };
+  for await (const cycleResult of cycleIterable) {
+    if (cycleResult.result) {
+      return cycleResult.result;
+    }
+  }
+  return void 0;
+}
 async function executeWorkerLoop(workerPrompt, model, settings, worktree, maxCycles, maxTimeMs, startTime, epicSlug, storySlug, storyDir) {
   const config = {
     workerPrompt,
@@ -6477,15 +6512,11 @@ async function executeWorkerLoop(workerPrompt, model, settings, worktree, maxCyc
     lastBlocker: null,
     finalStatus: null
   };
-  while (true) {
-    const cycleResult = await executeWorkerCycle(config, state);
-    if (cycleResult.result) {
-      return cycleResult.result;
-    }
-    if (!cycleResult.continue) {
-      return state;
-    }
+  const earlyResult = await runSequentialCycles(config, state);
+  if (earlyResult) {
+    return earlyResult;
   }
+  return state;
 }
 async function runLoop(epicSlug, storySlug, maxCycles, maxTime, model) {
   const resources = validateLoopResources(epicSlug, storySlug);

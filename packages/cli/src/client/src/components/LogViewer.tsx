@@ -320,17 +320,14 @@ function useLines(displayContent: string) {
 }
 
 /**
- * LogViewer component displays streaming logs in a terminal-style interface.
- * Uses monospace font and SAGA theme colors for a familiar terminal experience.
- * Implements virtual scrolling for performance with large log files.
+ * Custom hook that sets up log viewer state: subscription, virtualizer, and auto-scroll
  */
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: component has clear structure with hooks and conditional rendering
-export function LogViewer({
-	sessionName,
-	status,
-	outputAvailable,
-	initialContent = "",
-}: LogViewerProps) {
+function useLogViewerState(
+	sessionName: string,
+	status: "running" | "completed",
+	outputAvailable: boolean,
+	initialContent: string,
+) {
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const virtualizerRef = useRef<Virtualizer<HTMLDivElement, Element> | null>(
 		null,
@@ -363,6 +360,42 @@ export function LogViewer({
 		effectiveStatus,
 		lines.length,
 	);
+
+	return {
+		scrollContainerRef,
+		isLoading,
+		error,
+		effectiveStatus,
+		virtualizer,
+		autoScroll,
+		handleScroll,
+		toggleAutoScroll,
+		lines,
+	};
+}
+
+/**
+ * LogViewer component displays streaming logs in a terminal-style interface.
+ * Uses monospace font and SAGA theme colors for a familiar terminal experience.
+ * Implements virtual scrolling for performance with large log files.
+ */
+export function LogViewer({
+	sessionName,
+	status,
+	outputAvailable,
+	initialContent = "",
+}: LogViewerProps) {
+	const {
+		scrollContainerRef,
+		isLoading,
+		error,
+		effectiveStatus,
+		virtualizer,
+		autoScroll,
+		handleScroll,
+		toggleAutoScroll,
+		lines,
+	} = useLogViewerState(sessionName, status, outputAvailable, initialContent);
 
 	if (!outputAvailable) {
 		return <LogViewerUnavailable />;

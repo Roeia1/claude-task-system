@@ -274,47 +274,13 @@ function getAutoExpandSessionName(sessions: SessionInfo[]): string | null {
 }
 
 /**
- * SessionsPanel displays all sessions for a specific story
+ * Hook to fetch sessions from the API with loading and error states
  */
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: component has clear structure with hooks and conditional rendering
-function SessionsPanel({ epicSlug, storySlug }: SessionsPanelProps) {
-	// Read sessions from context for WebSocket updates (don't write to avoid conflicts)
-	const { sessions: contextSessions } = useDashboard();
+function useSessionFetch(epicSlug: string, storySlug: string) {
 	const [localSessions, setLocalSessions] = useState<SessionInfo[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<boolean>(false);
 
-	// Track if initial auto-expand has been determined (only calculate once)
-	const autoExpandSessionNameRef = useRef<string | null | undefined>(undefined);
-
-	// Filter context sessions for this story (WebSocket updates contain all sessions)
-	const storyContextSessions = useMemo(() => {
-		return contextSessions.filter(
-			(s) => s.epicSlug === epicSlug && s.storySlug === storySlug,
-		);
-	}, [contextSessions, epicSlug, storySlug]);
-
-	// Use context sessions if available (for real-time updates), otherwise use local fetch
-	const sessions =
-		storyContextSessions.length > 0 ? storyContextSessions : localSessions;
-
-	// Sort sessions by startTime descending (most recent first)
-	const sortedSessions = useMemo(() => {
-		return [...sessions].sort((a, b) => {
-			return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
-		});
-	}, [sessions]);
-
-	// Determine auto-expand session only on initial load (not on subsequent updates)
-	if (
-		autoExpandSessionNameRef.current === undefined &&
-		sortedSessions.length > 0
-	) {
-		autoExpandSessionNameRef.current = getAutoExpandSessionName(sortedSessions);
-	}
-	const autoExpandSessionName = autoExpandSessionNameRef.current ?? null;
-
-	// Fetch sessions function (reusable for retry)
 	const fetchSessions = useCallback(async () => {
 		setIsLoading(true);
 		setError(false);
@@ -337,10 +303,67 @@ function SessionsPanel({ epicSlug, storySlug }: SessionsPanelProps) {
 		}
 	}, [epicSlug, storySlug]);
 
-	// Fetch sessions on mount and when slugs change
 	useEffect(() => {
 		fetchSessions();
 	}, [fetchSessions]);
+
+	return { localSessions, isLoading, error, fetchSessions };
+}
+
+/**
+ * Custom hook that manages session data, context integration, sorting, and auto-expand
+ */
+function useSessionsData(epicSlug: string, storySlug: string) {
+	const { sessions: contextSessions } = useDashboard();
+	const { localSessions, isLoading, error, fetchSessions } = useSessionFetch(
+		epicSlug,
+		storySlug,
+	);
+	const autoExpandSessionNameRef = useRef<string | null | undefined>(undefined);
+
+	const storyContextSessions = useMemo(() => {
+		return contextSessions.filter(
+			(s) => s.epicSlug === epicSlug && s.storySlug === storySlug,
+		);
+	}, [contextSessions, epicSlug, storySlug]);
+
+	const sessions =
+		storyContextSessions.length > 0 ? storyContextSessions : localSessions;
+
+	const sortedSessions = useMemo(() => {
+		return [...sessions].sort((a, b) => {
+			return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+		});
+	}, [sessions]);
+
+	if (
+		autoExpandSessionNameRef.current === undefined &&
+		sortedSessions.length > 0
+	) {
+		autoExpandSessionNameRef.current = getAutoExpandSessionName(sortedSessions);
+	}
+	const autoExpandSessionName = autoExpandSessionNameRef.current ?? null;
+
+	return {
+		sortedSessions,
+		isLoading,
+		error,
+		fetchSessions,
+		autoExpandSessionName,
+	};
+}
+
+/**
+ * SessionsPanel displays all sessions for a specific story
+ */
+function SessionsPanel({ epicSlug, storySlug }: SessionsPanelProps) {
+	const {
+		sortedSessions,
+		isLoading,
+		error,
+		fetchSessions,
+		autoExpandSessionName,
+	} = useSessionsData(epicSlug, storySlug);
 
 	if (isLoading) {
 		return <SessionsPanelSkeleton />;

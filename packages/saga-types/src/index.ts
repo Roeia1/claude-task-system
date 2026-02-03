@@ -5,7 +5,6 @@
  */
 
 // Directory path utilities
-// biome-ignore lint/performance/noBarrelFile: this is the package entry point for type exports
 export {
 	type ArchivePaths,
 	createArchivePaths,

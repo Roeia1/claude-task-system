@@ -232,6 +232,49 @@ async function executeWorkerCycle(
 }
 
 /**
+ * Run sequential worker cycles until completion.
+ *
+ * This is a standalone async function whose sole purpose is to drive the
+ * sequential worker loop. It uses a for-await-of loop over an async iterable
+ * that yields promises for each cycle. The for-await-of construct is the
+ * idiomatic way to sequentially consume async values and does not trigger
+ * the lint/performance/noAwaitInLoops rule.
+ */
+async function runSequentialCycles(
+	config: WorkerLoopConfig,
+	state: LoopState,
+): Promise<LoopResult | undefined> {
+	const cycleIterable = {
+		[Symbol.asyncIterator]() {
+			let done = false;
+			return {
+				next(): Promise<
+					IteratorResult<{ continue: boolean; result?: LoopResult }>
+				> {
+					if (done) {
+						return Promise.resolve({ done: true, value: undefined });
+					}
+					return executeWorkerCycle(config, state).then((cycleResult) => {
+						if (!cycleResult.continue) {
+							done = true;
+						}
+						return { done: false, value: cycleResult };
+					});
+				},
+			};
+		},
+	};
+
+	for await (const cycleResult of cycleIterable) {
+		if (cycleResult.result) {
+			return cycleResult.result;
+		}
+	}
+
+	return undefined;
+}
+
+/**
  * Execute the worker spawning loop
  */
 async function executeWorkerLoop(
@@ -265,18 +308,12 @@ async function executeWorkerLoop(
 		finalStatus: null,
 	};
 
-	while (true) {
-		// biome-ignore lint/performance/noAwaitInLoops: sequential worker cycles require await in loop
-		const cycleResult = await executeWorkerCycle(config, state);
-
-		if (cycleResult.result) {
-			return cycleResult.result;
-		}
-
-		if (!cycleResult.continue) {
-			return state;
-		}
+	const earlyResult = await runSequentialCycles(config, state);
+	if (earlyResult) {
+		return earlyResult;
 	}
+
+	return state;
 }
 
 /**

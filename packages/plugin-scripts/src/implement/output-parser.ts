@@ -82,110 +82,154 @@ function formatAllInputFields(input: Record<string, unknown>): string {
 }
 
 /**
+ * Format Read tool: show file path with optional offset/limit
+ */
+function formatReadTool(input: Record<string, unknown>): string {
+	const path = input.file_path || "unknown";
+	const extras: string[] = [];
+	if (input.offset) {
+		extras.push(`offset=${input.offset}`);
+	}
+	if (input.limit) {
+		extras.push(`limit=${input.limit}`);
+	}
+	const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
+	return `[Tool Used: Read] ${path}${suffix}`;
+}
+
+/**
+ * Format Write tool: show file path
+ */
+function formatWriteTool(input: Record<string, unknown>): string {
+	return `[Tool Used: Write] ${input.file_path || "unknown"}`;
+}
+
+/**
+ * Format Edit tool: show file path and replace_all flag
+ */
+function formatEditTool(input: Record<string, unknown>): string {
+	const file = input.file_path || "unknown";
+	const replaceAll = input.replace_all ? " (replace_all)" : "";
+	return `[Tool Used: Edit] ${file}${replaceAll}`;
+}
+
+/**
+ * Format Bash tool: show command and description
+ */
+function formatBashTool(input: Record<string, unknown>): string {
+	const maxLength = 100;
+	const cmd = truncateString(String(input.command || ""), maxLength);
+	const desc = input.description
+		? ` - ${truncateString(String(input.description), 60)}`
+		: "";
+	return `[Tool Used: Bash] ${cmd}${desc}`;
+}
+
+/**
+ * Format Glob tool: show pattern and path
+ */
+function formatGlobTool(input: Record<string, unknown>): string {
+	const pattern = input.pattern || "unknown";
+	const path = input.path ? ` in ${input.path}` : "";
+	return `[Tool Used: Glob] ${pattern}${path}`;
+}
+
+/**
+ * Format Grep tool: show pattern, path, and output mode
+ */
+function formatGrepTool(input: Record<string, unknown>): string {
+	const pattern = truncateString(String(input.pattern || ""), 60);
+	const path = input.path ? ` in ${input.path}` : "";
+	const mode = input.output_mode ? ` (${input.output_mode})` : "";
+	return `[Tool Used: Grep] "${pattern}"${path}${mode}`;
+}
+
+/**
+ * Format Task tool: show description and agent type
+ */
+function formatTaskTool(input: Record<string, unknown>): string {
+	const maxLength = 100;
+	const desc = truncateString(
+		String(input.description || input.prompt || ""),
+		maxLength,
+	);
+	const agentType = input.subagent_type ? ` [${input.subagent_type}]` : "";
+	return `[Tool Used: Task]${agentType} ${desc}`;
+}
+
+/**
+ * Format TodoWrite tool: show todo subjects
+ */
+function formatTodoWriteTool(input: Record<string, unknown>): string {
+	const maxLength = 100;
+	const todos = input.todos;
+	if (todos && Array.isArray(todos)) {
+		const subjects = todos
+			.map((t: unknown) => {
+				if (t && typeof t === "object" && "subject" in t) {
+					return String((t as { subject: unknown }).subject || "untitled");
+				}
+				return "untitled";
+			})
+			.join(", ");
+		if (subjects) {
+			return `[Tool Used: TodoWrite] ${truncateString(subjects, maxLength)}`;
+		}
+	}
+	return "[Tool Used: TodoWrite]";
+}
+
+/**
+ * Format StructuredOutput tool: show status and summary
+ */
+function formatStructuredOutputTool(input: Record<string, unknown>): string {
+	const maxLength = 100;
+	const status = input.status || "unknown";
+	const summary = input.summary
+		? ` - ${truncateString(String(input.summary), maxLength)}`
+		: "";
+	return `[Tool Used: StructuredOutput] ${status}${summary}`;
+}
+
+/**
+ * Format unknown tool: show all input fields
+ */
+function formatDefaultTool(
+	name: string,
+	input: Record<string, unknown>,
+): string {
+	const fields = formatAllInputFields(input);
+	return fields ? `[Tool Used: ${name}] ${fields}` : `[Tool Used: ${name}]`;
+}
+
+/** Dispatch map from tool name to formatter function */
+const TOOL_FORMATTERS = new Map<
+	string,
+	(input: Record<string, unknown>) => string
+>([
+	["Read", formatReadTool],
+	["Write", formatWriteTool],
+	["Edit", formatEditTool],
+	["Bash", formatBashTool],
+	["Glob", formatGlobTool],
+	["Grep", formatGrepTool],
+	["Task", formatTaskTool],
+	["TodoWrite", formatTodoWriteTool],
+	["StructuredOutput", formatStructuredOutputTool],
+]);
+
+/**
  * Format tool usage with curated info for known tools, all fields for unknown
  * Wrapped in try-catch to ensure parsing errors don't crash the process
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: switch statement for tool formatting is inherently complex but readable
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: each case is simple, splitting would reduce readability
 function formatToolUsage(name: string, input: Record<string, unknown>): string {
 	try {
 		const safeInput = input || {};
-		const maxLength = 100;
-
-		switch (name) {
-			// File operations - show path
-			case "Read": {
-				const path = safeInput.file_path || "unknown";
-				const extras: string[] = [];
-				if (safeInput.offset) {
-					extras.push(`offset=${safeInput.offset}`);
-				}
-				if (safeInput.limit) {
-					extras.push(`limit=${safeInput.limit}`);
-				}
-				const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
-				return `[Tool Used: Read] ${path}${suffix}`;
-			}
-			case "Write":
-				return `[Tool Used: Write] ${safeInput.file_path || "unknown"}`;
-			case "Edit": {
-				const file = safeInput.file_path || "unknown";
-				const replaceAll = safeInput.replace_all ? " (replace_all)" : "";
-				return `[Tool Used: Edit] ${file}${replaceAll}`;
-			}
-
-			// Shell command - show command and description
-			case "Bash": {
-				const cmd = truncateString(String(safeInput.command || ""), maxLength);
-				const desc = safeInput.description
-					? ` - ${truncateString(String(safeInput.description), 60)}`
-					: "";
-				return `[Tool Used: Bash] ${cmd}${desc}`;
-			}
-
-			// Search operations - show pattern and path
-			case "Glob": {
-				const pattern = safeInput.pattern || "unknown";
-				const path = safeInput.path ? ` in ${safeInput.path}` : "";
-				return `[Tool Used: Glob] ${pattern}${path}`;
-			}
-			case "Grep": {
-				const pattern = truncateString(String(safeInput.pattern || ""), 60);
-				const path = safeInput.path ? ` in ${safeInput.path}` : "";
-				const mode = safeInput.output_mode ? ` (${safeInput.output_mode})` : "";
-				return `[Tool Used: Grep] "${pattern}"${path}${mode}`;
-			}
-
-			// Agent task - show description and type
-			case "Task": {
-				const desc = truncateString(
-					String(safeInput.description || safeInput.prompt || ""),
-					maxLength,
-				);
-				const agentType = safeInput.subagent_type
-					? ` [${safeInput.subagent_type}]`
-					: "";
-				return `[Tool Used: Task]${agentType} ${desc}`;
-			}
-
-			// Todo operations
-			case "TodoWrite": {
-				const todos = safeInput.todos;
-				if (todos && Array.isArray(todos)) {
-					const subjects = todos
-						.map((t: unknown) => {
-							if (t && typeof t === "object" && "subject" in t) {
-								return String(
-									(t as { subject: unknown }).subject || "untitled",
-								);
-							}
-							return "untitled";
-						})
-						.join(", ");
-					if (subjects) {
-						return `[Tool Used: TodoWrite] ${truncateString(subjects, maxLength)}`;
-					}
-				}
-				return "[Tool Used: TodoWrite]";
-			}
-
-			// Structured output - show status
-			case "StructuredOutput": {
-				const status = safeInput.status || "unknown";
-				const summary = safeInput.summary
-					? ` - ${truncateString(String(safeInput.summary), maxLength)}`
-					: "";
-				return `[Tool Used: StructuredOutput] ${status}${summary}`;
-			}
-
-			// Unknown tools - show all fields
-			default: {
-				const fields = formatAllInputFields(safeInput);
-				return fields
-					? `[Tool Used: ${name}] ${fields}`
-					: `[Tool Used: ${name}]`;
-			}
+		const formatter = TOOL_FORMATTERS.get(name);
+		if (formatter) {
+			return formatter(safeInput);
 		}
+		return formatDefaultTool(name, safeInput);
 	} catch {
 		// Fallback if any parsing fails
 		return `[Tool Used: ${name}]`;

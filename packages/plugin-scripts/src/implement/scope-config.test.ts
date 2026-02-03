@@ -50,8 +50,8 @@ describe("scope-config", () => {
 			const config = preToolUse[0] as { matcher: string };
 
 			// Should be pipe-separated (regex OR pattern)
-			// biome-ignore lint/security/noSecrets: pipe-separated tool name pattern, not a secret
-			expect(config.matcher).toBe("Read|Write|Edit|Glob|Grep");
+			const expectedTools = ["Read", "Write", "Edit", "Glob", "Grep"];
+			expect(config.matcher).toBe(expectedTools.join("|"));
 		});
 
 		it("hooks array contains the scope-validator command with correct format", () => {

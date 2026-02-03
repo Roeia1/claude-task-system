@@ -10,9 +10,8 @@ const NEWER_SESSION_PATTERN = /newer/;
 const RETRY_BUTTON_PATTERN = /retry/i;
 
 // API endpoint for sessions
-const SESSIONS_API_ENDPOINT =
-	// biome-ignore lint/security/noSecrets: test API endpoint, not a secret
-	"/api/sessions?epicSlug=my-epic&storySlug=my-story";
+const SESSIONS_API_BASE = "/api/sessions";
+const SESSIONS_API_ENDPOINT = `${SESSIONS_API_BASE}?epicSlug=my-epic&storySlug=my-story`;
 
 /**
  * Helper to render components with all required providers

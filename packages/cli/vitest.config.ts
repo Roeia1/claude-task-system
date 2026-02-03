@@ -83,7 +83,6 @@ const config = defineConfig({
 					exclude: ["src/client/**"],
 					// Use polling for file watcher tests (slower but reliable)
 					env: {
-						// biome-ignore lint/style/useNamingConvention: env var
 						SAGA_USE_POLLING: "1",
 					},
 				},
