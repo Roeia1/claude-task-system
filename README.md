@@ -2,7 +2,7 @@
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
 [![Version](https://img.shields.io/badge/version-2.17.1-blue)](CHANGELOG.md)
-[![npm](https://img.shields.io/npm/v/@saga-ai/cli)](https://www.npmjs.com/package/@saga-ai/cli)
+[![npm](https://img.shields.io/npm/v/@saga-ai/dashboard)](https://www.npmjs.com/package/@saga-ai/dashboard)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skills](https://img.shields.io/badge/skills-6-green)](https://github.com/Roeia1/saga)
 [![Agents](https://img.shields.io/badge/agents-1-blue)](https://github.com/Roeia1/saga)
@@ -340,37 +340,31 @@ plugin/
 
 ---
 
-## CLI Package
+## Dashboard Package
 
-The `@saga-ai/cli` npm package provides standalone CLI commands for SAGA workflows. It's used internally by the plugin for story orchestration but can also be used directly.
+The `@saga-ai/dashboard` npm package provides a dashboard UI and session monitoring for SAGA workflows.
 
 ### Installation
 
 ```bash
 # Run directly with npx (no install required)
-npx @saga-ai/cli <command>
+npx @saga-ai/dashboard dashboard
 
 # Or install globally
-npm install -g @saga-ai/cli
+npm install -g @saga-ai/dashboard
 ```
 
 ### Commands
 
 | Command | Description |
 |---------|-------------|
-| `saga init` | Initialize `.saga/` directory structure |
-| `saga find <query>` | Find epic or story by slug/title (fuzzy search, `--status` filter) |
-| `saga worktree <epic> <story>` | Create git worktree for story isolation |
-| `saga implement <story>` | Orchestrate autonomous story execution (detached by default) |
-| `saga sessions <cmd>` | Manage tmux sessions (list, status, logs, kill) |
 | `saga dashboard` | Start HTTP server for dashboard UI |
+| `saga sessions list` | List all SAGA tmux sessions |
+| `saga sessions status <name>` | Show session status |
+| `saga sessions logs <name>` | Stream session output |
 | `saga help` | Display help information |
 
-### Usage with Plugin
-
-The plugin's `/execute-story` skill uses the CLI's `implement` command under the hood. When running via the plugin, environment variables like `SAGA_PLUGIN_ROOT` are automatically configured.
-
-For full CLI documentation, see [`packages/cli/README.md`](packages/cli/README.md).
+For full documentation, see [`packages/dashboard/README.md`](packages/dashboard/README.md).
 
 ---
 

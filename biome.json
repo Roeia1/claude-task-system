@@ -1,215 +1,210 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.3.13/schema.json",
-	"vcs": {
-		"enabled": true,
-		"clientKind": "git",
-		"useIgnoreFile": true
-	},
-	"files": {
-		"ignoreUnknown": true,
-		"includes": ["**", "!!packages/statusline", "!!plugin/scripts"]
-	},
-	"formatter": {
-		"enabled": true
-	},
-	"linter": {
-		"enabled": true,
-		"domains": {
-			"react": "all",
-			"solid": "none",
-			"test": "all",
-			"project": "all"
-		},
-		"rules": {
-			"a11y": "error",
-			"complexity": "error",
-			"correctness": "error",
-			"performance": "error",
-			"security": "error",
-			"style": "error",
-			"suspicious": "error"
-		}
-	},
-	"css": {
-		"parser": {
-			"cssModules": true,
-			"tailwindDirectives": true
-		},
-		"linter": {
-			"enabled": true
-		}
-	},
-	"assist": {
-		"enabled": true,
-		"actions": {
-			"source": {
-				"organizeImports": "on"
-			}
-		}
-	},
-	"overrides": [
-		{
-			"includes": [
-				"packages/cli/src/**",
-				"!packages/cli/src/client/src/**",
-				"packages/cli/*.config.ts",
-				"packages/saga-types/**",
-				"packages/plugin-scripts/**"
-			],
-			"linter": {
-				"rules": {
-					"correctness": {
-						"noNodejsModules": "off"
-					},
-					"suspicious": {
-						"noConsole": "off"
-					}
-				}
-			}
-		},
-		{
-			"includes": [
-				"**/*.stories.tsx",
-				"**/.storybook/**",
-				"**/playwright.config.ts",
-				"**/playwright.*.config.ts",
-				"**/global-teardown.ts",
-				"**/jest.config.mjs",
-				"packages/cli/src/client/vite.config.ts",
-				"packages/cli/vitest.config.ts",
-				"packages/saga-types/vitest.config.ts",
-				"packages/plugin-scripts/vitest.config.ts"
-			],
-			"linter": {
-				"rules": {
-					"style": {
-						"noDefaultExport": "off",
-						"useComponentExportOnlyModules": "off"
-					}
-				}
-			}
-		},
-		{
-			"includes": [
-				"packages/cli/src/client/playwright.config.ts",
-				"packages/cli/src/client/playwright.e2e.config.ts",
-				"packages/cli/src/client/e2e/test-fixture.ts"
-			],
-			"linter": {
-				"rules": {
-					"style": {
-						"useNamingConvention": {
-							"level": "error",
-							"options": {
-								"strictCase": false,
-								"conventions": [
-									{
-										"selector": {
-											"kind": "objectLiteralProperty"
-										},
-										"formats": ["camelCase", "CONSTANT_CASE"]
-									}
-								]
-							}
-						}
-					}
-				}
-			}
-		},
-		{
-			"includes": ["packages/cli/vitest.config.ts"],
-			"linter": {
-				"rules": {
-					"style": {
-						"useNamingConvention": {
-							"level": "error",
-							"options": {
-								"conventions": [
-									{
-										"selector": {
-											"kind": "objectLiteralProperty"
-										},
-										"formats": ["camelCase", "CONSTANT_CASE"]
-									}
-								]
-							}
-						}
-					}
-				}
-			}
-		},
-		{
-			"includes": ["**/components/ui/**"],
-			"linter": {
-				"rules": {
-					"style": {
-						"useComponentExportOnlyModules": {
-							"level": "error",
-							"options": {
-								"allowExportNames": [
-									"badgeVariants",
-									"buttonVariants",
-									"toastVariants",
-									"BadgeProps",
-									"ButtonProps",
-									"ToastProps",
-									"ToastActionElement"
-								]
-							}
-						}
-					}
-				}
-			}
-		},
-		{
-			"includes": ["packages/cli/src/client/.storybook/vitest.setup.ts"],
-			"linter": {
-				"rules": {
-					"suspicious": {
-						"noMisplacedAssertion": "off"
-					}
-				}
-			}
-		},
-		{
-			"includes": [
-				"**/*.test.ts",
-				"**/*.test.tsx",
-				"**/*.test.js",
-				"**/*.spec.ts",
-				"**/*.spec.tsx",
-				"**/*.spec.js"
-			],
-			"linter": {
-				"rules": {
-					"complexity": {
-						"noExcessiveLinesPerFunction": "off"
-					},
-					"style": {
-						"useNamingConvention": "off"
-					}
-				}
-			}
-		},
-		{
-			"includes": ["**/machines/*.ts", "**/machines/*.tsx"],
-			"linter": {
-				"rules": {
-					"style": {
-						"useNamingConvention": "off"
-					}
-				}
-			}
-		},
-		{
-			"includes": ["packages/saga-types/src/index.ts"],
-			"linter": {
-				"rules": {
-					"performance": {
-						"noBarrelFile": "off"
-					}
-				}
-			}
-		}
-	]
+  "$schema": "https://biomejs.dev/schemas/2.3.13/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": ["**", "!!packages/statusline", "!!plugin/scripts"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "domains": {
+      "react": "all",
+      "solid": "none",
+      "test": "all",
+      "project": "all"
+    },
+    "rules": {
+      "a11y": "error",
+      "complexity": "error",
+      "correctness": "error",
+      "performance": "error",
+      "security": "error",
+      "style": "error",
+      "suspicious": "error"
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "all",
+      "semicolons": "always",
+      "arrowParentheses": "always"
+    }
+  },
+  "json": {
+    "formatter": {
+      "indentWidth": 2
+    }
+  },
+  "css": {
+    "parser": {
+      "cssModules": true,
+      "tailwindDirectives": true
+    },
+    "linter": {
+      "enabled": true
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "packages/dashboard/src/**",
+        "!packages/dashboard/src/client/src/**",
+        "packages/dashboard/*.config.ts",
+        "packages/saga-types/**",
+        "packages/plugin-scripts/**"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noNodejsModules": "off"
+          },
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/*.stories.tsx",
+        "**/.storybook/**",
+        "**/playwright.config.ts",
+        "**/playwright.*.config.ts",
+        "**/global-teardown.ts",
+        "**/jest.config.mjs",
+        "packages/dashboard/src/client/vite.config.ts",
+        "packages/dashboard/vitest.config.ts",
+        "packages/saga-types/vitest.config.ts",
+        "packages/plugin-scripts/vitest.config.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off",
+            "useComponentExportOnlyModules": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/dashboard/src/client/playwright.config.ts",
+        "packages/dashboard/src/client/playwright.e2e.config.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "useNamingConvention": {
+              "level": "error",
+              "options": {
+                "strictCase": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/components/ui/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useComponentExportOnlyModules": {
+              "level": "error",
+              "options": {
+                "allowExportNames": [
+                  "badgeVariants",
+                  "buttonVariants",
+                  "toastVariants",
+                  "BadgeProps",
+                  "ButtonProps",
+                  "ToastProps",
+                  "ToastActionElement"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/e2e/test-fixture.ts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noEmptyPattern": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/dashboard/src/client/.storybook/vitest.setup.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noMisplacedAssertion": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.test.js",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/*.spec.js"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          },
+          "style": {
+            "useNamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/machines/*.ts", "**/machines/*.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useNamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/saga-types/src/index.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
+          }
+        }
+      }
+    }
+  ]
 }
