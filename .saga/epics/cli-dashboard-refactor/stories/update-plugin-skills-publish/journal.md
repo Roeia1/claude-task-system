@@ -109,3 +109,28 @@
 
 **Next steps:**
 - t6: Delete @saga-ai/cli from npm
+
+## Session 6: 2026-02-04
+
+### Task: t6 - Delete @saga-ai/cli from npm
+
+**What was done:**
+- Deprecated `@saga-ai/cli` on npm with message: "This package has been replaced by @saga-ai/dashboard. Please use npx @saga-ai/dashboard instead."
+- Attempted `npm unpublish` but received 422 error (package published beyond 72-hour unpublish window)
+- Verified deprecation is live via `npm view @saga-ai/cli --json` showing the deprecated field
+
+**Decisions:**
+- Deprecation is the correct approach since the package is beyond the 72-hour unpublish window
+- Deprecation message clearly directs users to the replacement package
+
+**Verification:**
+- `npm view @saga-ai/cli --json` shows `"deprecated": "This package has been replaced by @saga-ai/dashboard. Please use npx @saga-ai/dashboard instead."`
+- Users installing `@saga-ai/cli` will see the deprecation warning
+
+**All story tasks completed:**
+- t1: Plugin skills updated to use plugin-scripts ✓
+- t2: Generate-story agent updated to use plugin-scripts ✓
+- t3: CHANGELOG.md updated with v3.0.0 entry ✓
+- t4: Version numbers updated to 3.0.0 ✓
+- t5: Root publish skill updated for @saga-ai/dashboard ✓
+- t6: @saga-ai/cli deprecated on npm ✓
