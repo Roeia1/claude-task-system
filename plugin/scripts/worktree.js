@@ -4191,10 +4191,7 @@ function branchExists(branchName, cwd) {
   return result.success;
 }
 function getMainBranch(cwd) {
-  const result = runGitCommand(
-    ["symbolic-ref", "refs/remotes/origin/HEAD"],
-    cwd
-  );
+  const result = runGitCommand(["symbolic-ref", "refs/remotes/origin/HEAD"], cwd);
   if (result.success) {
     return result.output.replace("refs/remotes/origin/", "");
   }

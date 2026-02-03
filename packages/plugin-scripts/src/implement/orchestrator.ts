@@ -6,20 +6,20 @@
  * result aggregation.
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { createStoryPaths, createWorktreePaths } from "@saga-ai/types";
-import { getPluginRoot, getProjectDir } from "../shared/env.ts";
-import { buildScopeSettings } from "./scope-config.ts";
-import { spawnWorkerAsync, type WorkerEnv } from "./session-manager.ts";
-import type { LoopResult, LoopState, WorkerLoopConfig } from "./types.ts";
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { createStoryPaths, createWorktreePaths } from '@saga-ai/types';
+import { getPluginRoot, getProjectDir } from '../shared/env.ts';
+import { buildScopeSettings } from './scope-config.ts';
+import { spawnWorkerAsync, type WorkerEnv } from './session-manager.ts';
+import type { LoopResult, LoopState, WorkerLoopConfig } from './types.ts';
 import {
-	MS_PER_MINUTE,
-	MS_PER_SECOND,
-	ROUNDING_PRECISION,
-	SECONDS_PER_MINUTE,
-	WORKER_PROMPT_RELATIVE,
-} from "./types.ts";
+  MS_PER_MINUTE,
+  MS_PER_SECOND,
+  ROUNDING_PRECISION,
+  SECONDS_PER_MINUTE,
+  WORKER_PROMPT_RELATIVE,
+} from './types.ts';
 
 // ============================================================================
 // Path Helpers
@@ -29,8 +29,8 @@ import {
  * Get the execute-story skill root directory
  */
 function getSkillRoot(): string {
-	const pluginRoot = getPluginRoot();
-	return join(pluginRoot, "skills", "execute-story");
+  const pluginRoot = getPluginRoot();
+  return join(pluginRoot, 'skills', 'execute-story');
 }
 
 /**
@@ -38,42 +38,42 @@ function getSkillRoot(): string {
  * Uses SAGA_PROJECT_DIR from environment
  */
 function validateStoryFiles(
-	epicSlug: string,
-	storySlug: string,
+  epicSlug: string,
+  storySlug: string,
 ): {
-	valid: boolean;
-	error?: string;
-	worktreePaths?: ReturnType<typeof createWorktreePaths>;
+  valid: boolean;
+  error?: string;
+  worktreePaths?: ReturnType<typeof createWorktreePaths>;
 } {
-	const projectDir = getProjectDir();
-	const worktreePaths = createWorktreePaths(projectDir, epicSlug, storySlug);
+  const projectDir = getProjectDir();
+  const worktreePaths = createWorktreePaths(projectDir, epicSlug, storySlug);
 
-	// Check worktree exists
-	if (!existsSync(worktreePaths.worktreeDir)) {
-		return {
-			valid: false,
-			error:
-				`Worktree not found at ${worktreePaths.worktreeDir}\n\n` +
-				"The story worktree has not been created yet. This can happen if:\n" +
-				`1. The story was generated but the worktree wasn't set up\n` +
-				"2. The worktree was deleted or moved\n\n" +
-				`To create the worktree, use: /task-resume ${storySlug}`,
-		};
-	}
+  // Check worktree exists
+  if (!existsSync(worktreePaths.worktreeDir)) {
+    return {
+      valid: false,
+      error:
+        `Worktree not found at ${worktreePaths.worktreeDir}\n\n` +
+        'The story worktree has not been created yet. This can happen if:\n' +
+        `1. The story was generated but the worktree wasn't set up\n` +
+        '2. The worktree was deleted or moved\n\n' +
+        `To create the worktree, use: /task-resume ${storySlug}`,
+    };
+  }
 
-	// Check story.md exists
-	if (!existsSync(worktreePaths.storyMdInWorktree)) {
-		return {
-			valid: false,
-			error:
-				"story.md not found in worktree.\n\n" +
-				`Expected location: ${worktreePaths.storyMdInWorktree}\n\n` +
-				"The worktree exists but the story definition file is missing.\n" +
-				"This may indicate an incomplete story setup.",
-		};
-	}
+  // Check story.md exists
+  if (!existsSync(worktreePaths.storyMdInWorktree)) {
+    return {
+      valid: false,
+      error:
+        'story.md not found in worktree.\n\n' +
+        `Expected location: ${worktreePaths.storyMdInWorktree}\n\n` +
+        'The worktree exists but the story definition file is missing.\n' +
+        'This may indicate an incomplete story setup.',
+    };
+  }
 
-	return { valid: true, worktreePaths };
+  return { valid: true, worktreePaths };
 }
 
 /**
@@ -81,35 +81,35 @@ function validateStoryFiles(
  * Uses SAGA_PLUGIN_ROOT from environment
  */
 function loadWorkerPrompt(): string {
-	const skillRoot = getSkillRoot();
-	const promptPath = join(skillRoot, WORKER_PROMPT_RELATIVE);
+  const skillRoot = getSkillRoot();
+  const promptPath = join(skillRoot, WORKER_PROMPT_RELATIVE);
 
-	if (!existsSync(promptPath)) {
-		throw new Error(`Worker prompt not found at ${promptPath}`);
-	}
+  if (!existsSync(promptPath)) {
+    throw new Error(`Worker prompt not found at ${promptPath}`);
+  }
 
-	return readFileSync(promptPath, "utf-8");
+  return readFileSync(promptPath, 'utf-8');
 }
 
 /**
  * Create an error LoopResult
  */
 function createErrorResult(
-	epicSlug: string,
-	storySlug: string,
-	summary: string,
-	cycles: number,
-	elapsedMinutes: number,
+  epicSlug: string,
+  storySlug: string,
+  summary: string,
+  cycles: number,
+  elapsedMinutes: number,
 ): LoopResult {
-	return {
-		status: "ERROR",
-		summary,
-		cycles,
-		elapsedMinutes,
-		blocker: null,
-		epicSlug,
-		storySlug,
-	};
+  return {
+    status: 'ERROR',
+    summary,
+    cycles,
+    elapsedMinutes,
+    blocker: null,
+    epicSlug,
+    storySlug,
+  };
 }
 
 /**
@@ -117,118 +117,114 @@ function createErrorResult(
  * Uses SAGA_PROJECT_DIR and SAGA_PLUGIN_ROOT from environment
  */
 function validateLoopResources(
-	epicSlug: string,
-	storySlug: string,
-):
-	| { valid: true; workerPrompt: string; worktreeDir: string }
-	| { valid: false; error: string } {
-	const validation = validateStoryFiles(epicSlug, storySlug);
-	if (!validation.valid) {
-		return {
-			valid: false,
-			error: validation.error || "Story validation failed",
-		};
-	}
+  epicSlug: string,
+  storySlug: string,
+): { valid: true; workerPrompt: string; worktreeDir: string } | { valid: false; error: string } {
+  const validation = validateStoryFiles(epicSlug, storySlug);
+  if (!validation.valid) {
+    return {
+      valid: false,
+      error: validation.error || 'Story validation failed',
+    };
+  }
 
-	try {
-		const workerPrompt = loadWorkerPrompt();
-		return {
-			valid: true,
-			workerPrompt,
-			worktreeDir: validation.worktreePaths?.worktreeDir,
-		};
-	} catch (e) {
-		return { valid: false, error: e instanceof Error ? e.message : String(e) };
-	}
+  try {
+    const workerPrompt = loadWorkerPrompt();
+    return {
+      valid: true,
+      workerPrompt,
+      worktreeDir: validation.worktreePaths?.worktreeDir,
+    };
+  } catch (e) {
+    return { valid: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 /**
  * Build final LoopResult from loop state
  */
 function buildLoopResult(
-	epicSlug: string,
-	storySlug: string,
-	finalStatus: LoopResult["status"],
-	summaries: string[],
-	cycles: number,
-	elapsedMinutes: number,
-	lastBlocker: string | null,
+  epicSlug: string,
+  storySlug: string,
+  finalStatus: LoopResult['status'],
+  summaries: string[],
+  cycles: number,
+  elapsedMinutes: number,
+  lastBlocker: string | null,
 ): LoopResult {
-	const combinedSummary =
-		summaries.length === 1 ? summaries[0] : summaries.join(" | ");
-	return {
-		status: finalStatus,
-		summary: combinedSummary,
-		cycles,
-		elapsedMinutes:
-			Math.round(elapsedMinutes * ROUNDING_PRECISION) / ROUNDING_PRECISION,
-		blocker: lastBlocker,
-		epicSlug,
-		storySlug,
-	};
+  const combinedSummary = summaries.length === 1 ? summaries[0] : summaries.join(' | ');
+  return {
+    status: finalStatus,
+    summary: combinedSummary,
+    cycles,
+    elapsedMinutes: Math.round(elapsedMinutes * ROUNDING_PRECISION) / ROUNDING_PRECISION,
+    blocker: lastBlocker,
+    epicSlug,
+    storySlug,
+  };
 }
 
 /**
  * Execute a single worker cycle and return the result
  */
 async function executeWorkerCycle(
-	config: WorkerLoopConfig,
-	state: LoopState,
+  config: WorkerLoopConfig,
+  state: LoopState,
 ): Promise<{ continue: boolean; result?: LoopResult }> {
-	// Check timeout
-	if (Date.now() - config.startTime >= config.maxTimeMs) {
-		state.finalStatus = "TIMEOUT";
-		return { continue: false };
-	}
+  // Check timeout
+  if (Date.now() - config.startTime >= config.maxTimeMs) {
+    state.finalStatus = 'TIMEOUT';
+    return { continue: false };
+  }
 
-	// Check max cycles
-	if (state.cycles >= config.maxCycles) {
-		return { continue: false };
-	}
+  // Check max cycles
+  if (state.cycles >= config.maxCycles) {
+    return { continue: false };
+  }
 
-	state.cycles += 1;
+  state.cycles += 1;
 
-	try {
-		const workerEnv: WorkerEnv = {
-			epicSlug: config.epicSlug,
-			storySlug: config.storySlug,
-			storyDir: config.storyDir,
-		};
+  try {
+    const workerEnv: WorkerEnv = {
+      epicSlug: config.epicSlug,
+      storySlug: config.storySlug,
+      storyDir: config.storyDir,
+    };
 
-		const parsed = await spawnWorkerAsync(
-			config.workerPrompt,
-			config.model,
-			config.settings,
-			config.worktree,
-			workerEnv,
-		);
+    const parsed = await spawnWorkerAsync(
+      config.workerPrompt,
+      config.model,
+      config.settings,
+      config.worktree,
+      workerEnv,
+    );
 
-		state.summaries.push(parsed.summary);
+    state.summaries.push(parsed.summary);
 
-		if (parsed.status === "FINISH") {
-			state.finalStatus = "FINISH";
-			return { continue: false };
-		}
-		if (parsed.status === "BLOCKED") {
-			state.finalStatus = "BLOCKED";
-			state.lastBlocker = parsed.blocker || null;
-			return { continue: false };
-		}
+    if (parsed.status === 'FINISH') {
+      state.finalStatus = 'FINISH';
+      return { continue: false };
+    }
+    if (parsed.status === 'BLOCKED') {
+      state.finalStatus = 'BLOCKED';
+      state.lastBlocker = parsed.blocker || null;
+      return { continue: false };
+    }
 
-		return { continue: true };
-	} catch (e) {
-		const elapsed = (Date.now() - config.startTime) / MS_PER_MINUTE;
-		return {
-			continue: false,
-			result: createErrorResult(
-				config.epicSlug,
-				config.storySlug,
-				e instanceof Error ? e.message : String(e),
-				state.cycles,
-				elapsed,
-			),
-		};
-	}
+    return { continue: true };
+  } catch (e) {
+    const elapsed = (Date.now() - config.startTime) / MS_PER_MINUTE;
+    return {
+      continue: false,
+      result: createErrorResult(
+        config.epicSlug,
+        config.storySlug,
+        e instanceof Error ? e.message : String(e),
+        state.cycles,
+        elapsed,
+      ),
+    };
+  }
 }
 
 /**
@@ -241,79 +237,77 @@ async function executeWorkerCycle(
  * the lint/performance/noAwaitInLoops rule.
  */
 async function runSequentialCycles(
-	config: WorkerLoopConfig,
-	state: LoopState,
+  config: WorkerLoopConfig,
+  state: LoopState,
 ): Promise<LoopResult | undefined> {
-	const cycleIterable = {
-		[Symbol.asyncIterator]() {
-			let done = false;
-			return {
-				next(): Promise<
-					IteratorResult<{ continue: boolean; result?: LoopResult }>
-				> {
-					if (done) {
-						return Promise.resolve({ done: true, value: undefined });
-					}
-					return executeWorkerCycle(config, state).then((cycleResult) => {
-						if (!cycleResult.continue) {
-							done = true;
-						}
-						return { done: false, value: cycleResult };
-					});
-				},
-			};
-		},
-	};
+  const cycleIterable = {
+    [Symbol.asyncIterator]() {
+      let done = false;
+      return {
+        next(): Promise<IteratorResult<{ continue: boolean; result?: LoopResult }>> {
+          if (done) {
+            return Promise.resolve({ done: true, value: undefined });
+          }
+          return executeWorkerCycle(config, state).then((cycleResult) => {
+            if (!cycleResult.continue) {
+              done = true;
+            }
+            return { done: false, value: cycleResult };
+          });
+        },
+      };
+    },
+  };
 
-	for await (const cycleResult of cycleIterable) {
-		if (cycleResult.result) {
-			return cycleResult.result;
-		}
-	}
+  for await (const cycleResult of cycleIterable) {
+    if (cycleResult.result) {
+      return cycleResult.result;
+    }
+  }
 
-	return undefined;
+  return undefined;
 }
 
 /**
  * Execute the worker spawning loop
  */
 async function executeWorkerLoop(
-	workerPrompt: string,
-	model: string,
-	settings: Record<string, unknown>,
-	worktree: string,
-	maxCycles: number,
-	maxTimeMs: number,
-	startTime: number,
-	epicSlug: string,
-	storySlug: string,
-	storyDir: string,
+  workerPrompt: string,
+  model: string,
+  settings: Record<string, unknown>,
+  worktree: string,
+  maxCycles: number,
+  maxTimeMs: number,
+  startTime: number,
+  epicSlug: string,
+  storySlug: string,
+  storyDir: string,
 ): Promise<LoopState | LoopResult> {
-	const config: WorkerLoopConfig = {
-		workerPrompt,
-		model,
-		settings,
-		worktree,
-		maxCycles,
-		maxTimeMs,
-		startTime,
-		epicSlug,
-		storySlug,
-		storyDir,
-	};
-	const state: LoopState = {
-		summaries: [],
-		cycles: 0,
-		lastBlocker: null,
-		finalStatus: null,
-	};
+  const config: WorkerLoopConfig = {
+    workerPrompt,
+    model,
+    settings,
+    worktree,
+    maxCycles,
+    maxTimeMs,
+    startTime,
+    epicSlug,
+    storySlug,
+    storyDir,
+  };
+  const state: LoopState = {
+    summaries: [],
+    cycles: 0,
+    lastBlocker: null,
+    finalStatus: null,
+  };
 
-	const earlyResult = await runSequentialCycles(config, state);
-	if (earlyResult) {
-		return earlyResult;
-	}
+  const earlyResult = await runSequentialCycles(config, state);
+  if (earlyResult) {
+    return earlyResult;
+  }
 
-	return state;
+  return state;
 }
 
 /**
@@ -321,59 +315,55 @@ async function executeWorkerLoop(
  * Uses SAGA_PROJECT_DIR and SAGA_PLUGIN_ROOT from environment
  */
 async function runLoop(
-	epicSlug: string,
-	storySlug: string,
-	maxCycles: number,
-	maxTime: number,
-	model: string,
+  epicSlug: string,
+  storySlug: string,
+  maxCycles: number,
+  maxTime: number,
+  model: string,
 ): Promise<LoopResult> {
-	const resources = validateLoopResources(epicSlug, storySlug);
-	if (!resources.valid) {
-		return createErrorResult(epicSlug, storySlug, resources.error, 0, 0);
-	}
+  const resources = validateLoopResources(epicSlug, storySlug);
+  if (!resources.valid) {
+    return createErrorResult(epicSlug, storySlug, resources.error, 0, 0);
+  }
 
-	const settings = buildScopeSettings();
-	const startTime = Date.now();
-	const maxTimeMs = maxTime * SECONDS_PER_MINUTE * MS_PER_SECOND;
+  const settings = buildScopeSettings();
+  const startTime = Date.now();
+  const maxTimeMs = maxTime * SECONDS_PER_MINUTE * MS_PER_SECOND;
 
-	// Get the story directory path using saga-types (worktree contains nested .saga structure)
-	const { storyDir } = createStoryPaths(
-		resources.worktreeDir,
-		epicSlug,
-		storySlug,
-	);
+  // Get the story directory path using saga-types (worktree contains nested .saga structure)
+  const { storyDir } = createStoryPaths(resources.worktreeDir, epicSlug, storySlug);
 
-	const result = await executeWorkerLoop(
-		resources.workerPrompt,
-		model,
-		settings,
-		resources.worktreeDir,
-		maxCycles,
-		maxTimeMs,
-		startTime,
-		epicSlug,
-		storySlug,
-		storyDir,
-	);
+  const result = await executeWorkerLoop(
+    resources.workerPrompt,
+    model,
+    settings,
+    resources.worktreeDir,
+    maxCycles,
+    maxTimeMs,
+    startTime,
+    epicSlug,
+    storySlug,
+    storyDir,
+  );
 
-	// If result is a LoopResult (error case), return it directly
-	if ("status" in result && result.status === "ERROR") {
-		return result as LoopResult;
-	}
+  // If result is a LoopResult (error case), return it directly
+  if ('status' in result && result.status === 'ERROR') {
+    return result as LoopResult;
+  }
 
-	const state = result as LoopState;
-	const finalStatus = state.finalStatus ?? "MAX_CYCLES";
-	const elapsedMinutes = (Date.now() - startTime) / MS_PER_MINUTE;
+  const state = result as LoopState;
+  const finalStatus = state.finalStatus ?? 'MAX_CYCLES';
+  const elapsedMinutes = (Date.now() - startTime) / MS_PER_MINUTE;
 
-	return buildLoopResult(
-		epicSlug,
-		storySlug,
-		finalStatus,
-		state.summaries,
-		state.cycles,
-		elapsedMinutes,
-		state.lastBlocker,
-	);
+  return buildLoopResult(
+    epicSlug,
+    storySlug,
+    finalStatus,
+    state.summaries,
+    state.cycles,
+    elapsedMinutes,
+    state.lastBlocker,
+  );
 }
 
 /**
@@ -381,9 +371,9 @@ async function runLoop(
  * Uses SAGA_PROJECT_DIR from environment
  */
 function getWorktreePath(epicSlug: string, storySlug: string): string {
-	const projectDir = getProjectDir();
-	const worktreePaths = createWorktreePaths(projectDir, epicSlug, storySlug);
-	return worktreePaths.worktreeDir;
+  const projectDir = getProjectDir();
+  const worktreePaths = createWorktreePaths(projectDir, epicSlug, storySlug);
+  return worktreePaths.worktreeDir;
 }
 
 // ============================================================================
@@ -391,13 +381,13 @@ function getWorktreePath(epicSlug: string, storySlug: string): string {
 // ============================================================================
 
 export {
-	buildLoopResult,
-	createErrorResult,
-	getSkillRoot,
-	getWorktreePath,
-	loadWorkerPrompt,
-	runLoop,
-	validateLoopResources,
-	validateStoryFiles,
+  buildLoopResult,
+  createErrorResult,
+  getSkillRoot,
+  getWorktreePath,
+  loadWorkerPrompt,
+  runLoop,
+  validateLoopResources,
+  validateStoryFiles,
 };
-export type { StoryInfo } from "./types.ts";
+export type { StoryInfo } from './types.ts';

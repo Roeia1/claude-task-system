@@ -17,15 +17,11 @@
  *   - error: string (if no match)
  */
 
-import { existsSync } from "node:fs";
-import process from "node:process";
-import {
-	createSagaPaths,
-	type StoryStatus,
-	StoryStatusSchema,
-} from "@saga-ai/types";
-import { getProjectDir as getProjectDirEnv } from "../shared/env.ts";
-import { findEpic, findStory } from "./finder.ts";
+import { existsSync } from 'node:fs';
+import process from 'node:process';
+import { createSagaPaths, type StoryStatus, StoryStatusSchema } from '@saga-ai/types';
+import { getProjectDir as getProjectDirEnv } from '../shared/env.ts';
+import { findEpic, findStory } from './finder.ts';
 
 // ============================================================================
 // Project Discovery
@@ -36,17 +32,17 @@ import { findEpic, findStory } from "./finder.ts";
  * @throws Error if not set or invalid
  */
 function getProjectDir(): string {
-	const projectDir = getProjectDirEnv();
+  const projectDir = getProjectDirEnv();
 
-	const sagaPaths = createSagaPaths(projectDir);
-	if (!existsSync(sagaPaths.saga)) {
-		throw new Error(
-			`No .saga/ directory found at SAGA_PROJECT_DIR: ${projectDir}\n` +
-				"Make sure SAGA_PROJECT_DIR points to a SAGA project root.",
-		);
-	}
+  const sagaPaths = createSagaPaths(projectDir);
+  if (!existsSync(sagaPaths.saga)) {
+    throw new Error(
+      `No .saga/ directory found at SAGA_PROJECT_DIR: ${projectDir}\n` +
+        'Make sure SAGA_PROJECT_DIR points to a SAGA project root.',
+    );
+  }
 
-	return projectDir;
+  return projectDir;
 }
 
 // ============================================================================
@@ -54,7 +50,7 @@ function getProjectDir(): string {
 // ============================================================================
 
 function printHelp(): void {
-	console.log(`Usage: find <query> [options]
+  console.log(`Usage: find <query> [options]
 
 Find epics or stories by slug/title using fuzzy matching.
 
@@ -82,45 +78,43 @@ Examples:
 }
 
 function parseArgs(args: string[]): {
-	query?: string;
-	type?: "epic" | "story";
-	status?: string;
-	help: boolean;
+  query?: string;
+  type?: 'epic' | 'story';
+  status?: string;
+  help: boolean;
 } {
-	const result: {
-		query?: string;
-		type?: "epic" | "story";
-		status?: string;
-		help: boolean;
-	} = { help: false };
-	const positional: string[] = [];
-	const iter = args[Symbol.iterator]();
+  const result: {
+    query?: string;
+    type?: 'epic' | 'story';
+    status?: string;
+    help: boolean;
+  } = { help: false };
+  const positional: string[] = [];
+  const iter = args[Symbol.iterator]();
 
-	for (const arg of iter) {
-		if (arg === "--help" || arg === "-h") {
-			result.help = true;
-		} else if (arg === "--type") {
-			const typeArg = iter.next().value as string | undefined;
-			if (typeArg === "epic" || typeArg === "story") {
-				result.type = typeArg;
-			} else {
-				console.error(
-					`Error: Invalid type "${typeArg}". Must be "epic" or "story".`,
-				);
-				process.exit(1);
-			}
-		} else if (arg === "--status") {
-			result.status = iter.next().value as string | undefined;
-		} else if (!arg.startsWith("-")) {
-			positional.push(arg);
-		}
-	}
+  for (const arg of iter) {
+    if (arg === '--help' || arg === '-h') {
+      result.help = true;
+    } else if (arg === '--type') {
+      const typeArg = iter.next().value as string | undefined;
+      if (typeArg === 'epic' || typeArg === 'story') {
+        result.type = typeArg;
+      } else {
+        console.error(`Error: Invalid type "${typeArg}". Must be "epic" or "story".`);
+        process.exit(1);
+      }
+    } else if (arg === '--status') {
+      result.status = iter.next().value as string | undefined;
+    } else if (!arg.startsWith('-')) {
+      positional.push(arg);
+    }
+  }
 
-	if (positional.length > 0) {
-		result.query = positional[0];
-	}
+  if (positional.length > 0) {
+    result.query = positional[0];
+  }
 
-	return result;
+  return result;
 }
 
 // ============================================================================
@@ -131,41 +125,41 @@ function parseArgs(args: string[]): {
  * Resolve project path from environment, exit on failure
  */
 function resolveProjectPath(): string {
-	try {
-		return getProjectDir();
-	} catch (error) {
-		const result = {
-			found: false,
-			error: error instanceof Error ? error.message : String(error),
-		};
-		console.log(JSON.stringify(result, null, 2));
-		process.exit(1);
-	}
+  try {
+    return getProjectDir();
+  } catch (error) {
+    const result = {
+      found: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(1);
+  }
 }
 
 /**
  * Validate and parse the status flag if provided
  */
 function resolveStatus(statusArg: string | undefined): StoryStatus | undefined {
-	if (!statusArg) {
-		return undefined;
-	}
-	const parsed = StoryStatusSchema.safeParse(statusArg);
-	if (!parsed.success) {
-		const validValues = StoryStatusSchema.options.join(", ");
-		console.log(
-			JSON.stringify(
-				{
-					found: false,
-					error: `Invalid status: "${statusArg}". Valid values: ${validValues}`,
-				},
-				null,
-				2,
-			),
-		);
-		process.exit(1);
-	}
-	return parsed.data;
+  if (!statusArg) {
+    return undefined;
+  }
+  const parsed = StoryStatusSchema.safeParse(statusArg);
+  if (!parsed.success) {
+    const validValues = StoryStatusSchema.options.join(', ');
+    console.log(
+      JSON.stringify(
+        {
+          found: false,
+          error: `Invalid status: "${statusArg}". Valid values: ${validValues}`,
+        },
+        null,
+        2,
+      ),
+    );
+    process.exit(1);
+  }
+  return parsed.data;
 }
 
 // ============================================================================
@@ -173,39 +167,37 @@ function resolveStatus(statusArg: string | undefined): StoryStatus | undefined {
 // ============================================================================
 
 async function main(): Promise<void> {
-	const args = parseArgs(process.argv.slice(2));
+  const args = parseArgs(process.argv.slice(2));
 
-	if (args.help) {
-		printHelp();
-		process.exit(0);
-	}
+  if (args.help) {
+    printHelp();
+    process.exit(0);
+  }
 
-	if (!args.query) {
-		console.error("Error: Query argument is required.\n");
-		printHelp();
-		process.exit(1);
-	}
+  if (!args.query) {
+    console.error('Error: Query argument is required.\n');
+    printHelp();
+    process.exit(1);
+  }
 
-	const projectPath = resolveProjectPath();
-	const type = args.type ?? "story";
-	const status = resolveStatus(args.status);
+  const projectPath = resolveProjectPath();
+  const type = args.type ?? 'story';
+  const status = resolveStatus(args.status);
 
-	let result:
-		| ReturnType<typeof findEpic>
-		| Awaited<ReturnType<typeof findStory>>;
-	if (type === "epic") {
-		result = findEpic(projectPath, args.query);
-	} else {
-		result = await findStory(projectPath, args.query, { status });
-	}
+  let result: ReturnType<typeof findEpic> | Awaited<ReturnType<typeof findStory>>;
+  if (type === 'epic') {
+    result = findEpic(projectPath, args.query);
+  } else {
+    result = await findStory(projectPath, args.query, { status });
+  }
 
-	// Output JSON result
-	console.log(JSON.stringify(result, null, 2));
+  // Output JSON result
+  console.log(JSON.stringify(result, null, 2));
 
-	// Exit with appropriate code
-	if (!result.found) {
-		process.exit(1);
-	}
+  // Exit with appropriate code
+  if (!result.found) {
+    process.exit(1);
+  }
 }
 
 // Run main

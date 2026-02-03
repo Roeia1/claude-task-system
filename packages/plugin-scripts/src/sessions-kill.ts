@@ -19,8 +19,8 @@
  *   1 - Invalid arguments
  */
 
-import { spawnSync } from "node:child_process";
-import process from "node:process";
+import { spawnSync } from 'node:child_process';
+import process from 'node:process';
 
 // ============================================================================
 // Types
@@ -30,7 +30,7 @@ import process from "node:process";
  * Result from killing a session
  */
 interface KillSessionResult {
-	killed: boolean;
+  killed: boolean;
 }
 
 // ============================================================================
@@ -47,13 +47,13 @@ interface KillSessionResult {
  * @returns Object with killed boolean
  */
 function killSession(sessionName: string): KillSessionResult {
-	const result = spawnSync("tmux", ["kill-session", "-t", sessionName], {
-		encoding: "utf-8",
-	});
+  const result = spawnSync('tmux', ['kill-session', '-t', sessionName], {
+    encoding: 'utf-8',
+  });
 
-	return {
-		killed: result.status === 0,
-	};
+  return {
+    killed: result.status === 0,
+  };
 }
 
 // ============================================================================
@@ -64,7 +64,7 @@ function killSession(sessionName: string): KillSessionResult {
  * Print usage information
  */
 function printUsage(): void {
-	const usage = `
+  const usage = `
 Usage: sessions-kill <session-name>
 
 Terminate a SAGA worker tmux session.
@@ -84,14 +84,14 @@ Examples:
   node sessions-kill.js saga__epic__story__1234 | jq '.killed'
 `.trim();
 
-	console.log(usage);
+  console.log(usage);
 }
 
 /**
  * Print error message to stderr
  */
 function printError(message: string): void {
-	process.stderr.write(`Error: ${message}\n`);
+  process.stderr.write(`Error: ${message}\n`);
 }
 
 // ============================================================================
@@ -102,38 +102,38 @@ function printError(message: string): void {
  * Execute the sessions-kill command
  */
 function main(): void {
-	const args = process.argv.slice(2);
+  const args = process.argv.slice(2);
 
-	// Handle --help
-	if (args.includes("--help") || args.includes("-h")) {
-		printUsage();
-		process.exit(0);
-	}
+  // Handle --help
+  if (args.includes('--help') || args.includes('-h')) {
+    printUsage();
+    process.exit(0);
+  }
 
-	// Validate arguments
-	if (args.length === 0) {
-		printError("Missing required argument: session-name");
-		printUsage();
-		process.exit(1);
-	}
+  // Validate arguments
+  if (args.length === 0) {
+    printError('Missing required argument: session-name');
+    printUsage();
+    process.exit(1);
+  }
 
-	const sessionName = args[0];
+  const sessionName = args[0];
 
-	// Validate session name matches SAGA convention
-	if (!sessionName.startsWith("saga__")) {
-		printError(
-			`Invalid session name: "${sessionName}"\n` +
-				'Session name must start with "saga__" (e.g., saga__epic__story__1234567890)',
-		);
-		process.exit(1);
-	}
+  // Validate session name matches SAGA convention
+  if (!sessionName.startsWith('saga__')) {
+    printError(
+      `Invalid session name: "${sessionName}"\n` +
+        'Session name must start with "saga__" (e.g., saga__epic__story__1234567890)',
+    );
+    process.exit(1);
+  }
 
-	// Kill the session
-	const result = killSession(sessionName);
+  // Kill the session
+  const result = killSession(sessionName);
 
-	// Output JSON result
-	console.log(JSON.stringify(result, null, 2));
-	process.exit(0);
+  // Output JSON result
+  console.log(JSON.stringify(result, null, 2));
+  process.exit(0);
 }
 
 // Run main

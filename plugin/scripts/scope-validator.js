@@ -134,20 +134,9 @@ async function main() {
   if (!filePath) {
     process.exit(EXIT_ALLOWED);
   }
-  const violation = validatePath(
-    filePath,
-    env.worktreePath,
-    env.epicSlug,
-    env.storySlug
-  );
+  const violation = validatePath(filePath, env.worktreePath, env.epicSlug, env.storySlug);
   if (violation) {
-    printScopeViolation(
-      filePath,
-      env.epicSlug,
-      env.storySlug,
-      env.worktreePath,
-      violation
-    );
+    printScopeViolation(filePath, env.epicSlug, env.storySlug, env.worktreePath, violation);
     process.exit(EXIT_BLOCKED);
   }
   process.exit(EXIT_ALLOWED);

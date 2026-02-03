@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2026-02-04
+
+### Fixed
+
+- **publish**: Add build plugin-scripts step to publish workflow
+- **dashboard**: Move `@saga-ai/types` to devDependencies to fix npm install E404 when types package is not published
+
 ## [3.0.0] - 2026-02-04
 
 ### Breaking Changes

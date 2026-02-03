@@ -5650,11 +5650,7 @@ async function scanArchive(sagaRoot) {
     }
     const storyEntries = await readdir(archivePaths.archiveEpicDir);
     const storyPromises = storyEntries.map(async (storySlug) => {
-      const storyArchivePaths = createArchivePaths(
-        sagaRoot,
-        epicSlug,
-        storySlug
-      );
+      const storyArchivePaths = createArchivePaths(sagaRoot, epicSlug, storySlug);
       if (!(storyArchivePaths.archiveStoryDir && await isDirectory(storyArchivePaths.archiveStoryDir))) {
         return null;
       }
@@ -5807,11 +5803,7 @@ async function findStory(projectPath, query, options = {}) {
       error: "No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first."
     };
   }
-  const storiesOrError = await loadAndFilterStories(
-    projectPath,
-    query,
-    options
-  );
+  const storiesOrError = await loadAndFilterStories(projectPath, query, options);
   if (!Array.isArray(storiesOrError)) {
     return storiesOrError;
   }
@@ -5979,10 +5971,7 @@ function formatGrepTool(input) {
 }
 function formatTaskTool(input) {
   const maxLength = 100;
-  const desc = truncateString(
-    String(input.description || input.prompt || ""),
-    maxLength
-  );
+  const desc = truncateString(String(input.description || input.prompt || ""), maxLength);
   const agentType = input.subagent_type ? ` [${input.subagent_type}]` : "";
   return `[Tool Used: Task]${agentType} ${desc}`;
 }
@@ -6237,19 +6226,14 @@ function createSession(epicSlug, storySlug, command) {
   }
   const timestamp = Date.now();
   const sessionName = `saga__${epicSlug}__${storySlug}__${timestamp}`;
-  const { wrapperScriptPath, outputFile } = createSessionFiles(
-    sessionName,
-    command
-  );
+  const { wrapperScriptPath, outputFile } = createSessionFiles(sessionName, command);
   const createResult = spawnSync(
     "tmux",
     ["new-session", "-d", "-s", sessionName, wrapperScriptPath],
     { encoding: "utf-8" }
   );
   if (createResult.status !== 0) {
-    throw new Error(
-      `Failed to create tmux session: ${createResult.stderr || "unknown error"}`
-    );
+    throw new Error(`Failed to create tmux session: ${createResult.stderr || "unknown error"}`);
   }
   return { sessionName, outputFile };
 }
@@ -6526,11 +6510,7 @@ async function runLoop(epicSlug, storySlug, maxCycles, maxTime, model) {
   const settings = buildScopeSettings();
   const startTime = Date.now();
   const maxTimeMs = maxTime * SECONDS_PER_MINUTE * MS_PER_SECOND;
-  const { storyDir } = createStoryPaths(
-    resources.worktreeDir,
-    epicSlug,
-    storySlug
-  );
+  const { storyDir } = createStoryPaths(resources.worktreeDir, epicSlug, storySlug);
   const result = await executeWorkerLoop(
     resources.workerPrompt,
     model,
@@ -6654,11 +6634,7 @@ function checkStoryMdExists(storyInfo) {
   if (!projectDir) {
     return null;
   }
-  const worktreePaths = createWorktreePaths(
-    projectDir,
-    storyInfo.epicSlug,
-    storyInfo.storySlug
-  );
+  const worktreePaths = createWorktreePaths(projectDir, storyInfo.epicSlug, storyInfo.storySlug);
   if (!existsSync4(worktreePaths.worktreeDir)) {
     return null;
   }
@@ -6683,11 +6659,7 @@ function runDryRun(storyInfo) {
     passed: true
   });
   if (projectDir) {
-    const worktreePaths = createWorktreePaths(
-      projectDir,
-      storyInfo.epicSlug,
-      storyInfo.storySlug
-    );
+    const worktreePaths = createWorktreePaths(projectDir, storyInfo.epicSlug, storyInfo.storySlug);
     checks.push(checkWorktreeExists(worktreePaths.worktreeDir));
     const storyMdCheck = checkStoryMdExists(storyInfo);
     if (storyMdCheck) {
@@ -6748,11 +6720,7 @@ function handleDetachedMode(storySlug, storyInfo, options) {
     model: options.model
   });
   try {
-    const sessionInfo = createSession(
-      storyInfo.epicSlug,
-      storyInfo.storySlug,
-      detachedCommand
-    );
+    const sessionInfo = createSession(storyInfo.epicSlug, storyInfo.storySlug, detachedCommand);
     console.log(JSON.stringify(sessionInfo, null, 2));
   } catch (error) {
     console.error(
@@ -6767,17 +6735,9 @@ async function handleInternalSession(storyInfo, options) {
   const model = options.model ?? DEFAULT_MODEL;
   console.log("Starting story implementation...");
   console.log(`Story: ${storyInfo.storySlug} (epic: ${storyInfo.epicSlug})`);
-  console.log(
-    `Max cycles: ${maxCycles}, Max time: ${maxTime}min, Model: ${model}`
-  );
+  console.log(`Max cycles: ${maxCycles}, Max time: ${maxTime}min, Model: ${model}`);
   console.log("");
-  const result = await runLoop(
-    storyInfo.epicSlug,
-    storyInfo.storySlug,
-    maxCycles,
-    maxTime,
-    model
-  );
+  const result = await runLoop(storyInfo.epicSlug, storyInfo.storySlug, maxCycles, maxTime, model);
   if (result.status === "ERROR") {
     console.error(`Error: ${result.summary}`);
     process3.exit(1);
@@ -6952,8 +6912,6 @@ async function main() {
   await implementCommand(parsed.storySlug, parsed.options);
 }
 main().catch((error) => {
-  console.error(
-    `Error: ${error instanceof Error ? error.message : String(error)}`
-  );
+  console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
   process4.exit(1);
 });

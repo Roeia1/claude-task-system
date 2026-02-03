@@ -5660,11 +5660,7 @@ async function scanArchive(sagaRoot) {
     }
     const storyEntries = await readdir(archivePaths.archiveEpicDir);
     const storyPromises = storyEntries.map(async (storySlug) => {
-      const storyArchivePaths = createArchivePaths(
-        sagaRoot,
-        epicSlug,
-        storySlug
-      );
+      const storyArchivePaths = createArchivePaths(sagaRoot, epicSlug, storySlug);
       if (!(storyArchivePaths.archiveStoryDir && await isDirectory(storyArchivePaths.archiveStoryDir))) {
         return null;
       }
@@ -5857,11 +5853,7 @@ async function findStory(projectPath, query, options = {}) {
       error: "No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first."
     };
   }
-  const storiesOrError = await loadAndFilterStories(
-    projectPath,
-    query,
-    options
-  );
+  const storiesOrError = await loadAndFilterStories(projectPath, query, options);
   if (!Array.isArray(storiesOrError)) {
     return storiesOrError;
   }
@@ -5925,9 +5917,7 @@ function parseArgs(args) {
       if (typeArg === "epic" || typeArg === "story") {
         result.type = typeArg;
       } else {
-        console.error(
-          `Error: Invalid type "${typeArg}". Must be "epic" or "story".`
-        );
+        console.error(`Error: Invalid type "${typeArg}". Must be "epic" or "story".`);
         process2.exit(1);
       }
     } else if (arg === "--status") {
