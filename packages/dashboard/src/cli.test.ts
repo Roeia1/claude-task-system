@@ -37,7 +37,7 @@ describe('CLI entry point', () => {
       const { stdout, exitCode } = runCli(['--help']);
       expect(exitCode).toBe(0);
       expect(stdout).toContain('Usage:');
-      expect(stdout).toContain('dashboard');
+      expect(stdout).toContain('start');
       expect(stdout).toContain('sessions');
     });
 
@@ -75,14 +75,14 @@ describe('CLI entry point', () => {
       const { stdout, exitCode } = runCli(['help']);
       expect(exitCode).toBe(0);
       expect(stdout).toContain('Usage:');
-      expect(stdout).toContain('dashboard');
+      expect(stdout).toContain('start');
       expect(stdout).toContain('sessions');
     });
 
-    it('saga help dashboard shows dashboard command help', () => {
-      const { stdout, exitCode } = runCli(['help', 'dashboard']);
+    it('saga help start shows start command help', () => {
+      const { stdout, exitCode } = runCli(['help', 'start']);
       expect(exitCode).toBe(0);
-      expect(stdout).toContain('dashboard');
+      expect(stdout).toContain('start');
       expect(stdout).toContain('--port');
     });
 
@@ -96,19 +96,19 @@ describe('CLI entry point', () => {
     });
   });
 
-  describe('dashboard command', () => {
-    it('has dashboard subcommand', () => {
-      const { stdout, exitCode } = runCli(['dashboard', '--help']);
+  describe('start command', () => {
+    it('has start subcommand', () => {
+      const { stdout, exitCode } = runCli(['start', '--help']);
       expect(exitCode).toBe(0);
-      expect(stdout).toContain('dashboard');
+      expect(stdout).toContain('start');
     });
 
-    it('dashboard --help shows port option', () => {
-      const { stdout } = runCli(['dashboard', '--help']);
+    it('start --help shows port option', () => {
+      const { stdout } = runCli(['start', '--help']);
       expect(stdout).toContain('--port');
     });
 
-    it('dashboard uses global --path option', () => {
+    it('start uses global --path option', () => {
       // --path is a global option shown in main help
       const { stdout } = runCli(['--help']);
       expect(stdout).toContain('--path');

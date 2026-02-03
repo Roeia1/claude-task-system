@@ -11,7 +11,7 @@ Dashboard and session monitoring for SAGA (Structured Autonomous Goal Achievemen
 Run commands using npx (no global installation required):
 
 ```bash
-npx @saga-ai/dashboard dashboard
+npx @saga-ai/dashboard start
 npx @saga-ai/dashboard sessions list
 npx @saga-ai/dashboard sessions status <name>
 npx @saga-ai/dashboard sessions logs <name>
@@ -19,14 +19,14 @@ npx @saga-ai/dashboard sessions logs <name>
 
 ## Commands
 
-### `saga dashboard`
+### `saga start`
 
 Start the SAGA dashboard server for viewing epics, stories, and progress.
 
 ```bash
-saga dashboard
-saga dashboard --port 8080
-saga dashboard --path /path/to/project
+saga start
+saga start --port 8080
+saga start --path /path/to/project
 ```
 
 Options:

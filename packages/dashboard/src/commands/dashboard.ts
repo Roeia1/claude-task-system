@@ -1,5 +1,5 @@
 /**
- * saga dashboard command - Start the dashboard server
+ * saga start command - Start the dashboard server
  *
  * Starts an Express server that provides REST API endpoints for reading
  * epic and story data from the filesystem, watches for file changes,

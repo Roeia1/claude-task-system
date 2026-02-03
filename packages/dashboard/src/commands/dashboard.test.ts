@@ -18,7 +18,7 @@ const TEST_PORT_BASE = 30_000;
 /** Range for random port offset (0-19999) */
 const TEST_PORT_RANGE = 20_000;
 
-describe('saga dashboard command', () => {
+describe('saga start command', () => {
   let tempDir: string;
   const cliPath = join(__dirname, '..', '..', 'dist', 'cli.cjs');
 
@@ -119,7 +119,7 @@ describe('saga dashboard command', () => {
     createSagaProject(tempDir);
     // Use a random port to avoid conflicts
     const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
-    const { proc, stdout } = await startCliAsync(`dashboard --port ${port}`, {
+    const { proc, stdout } = await startCliAsync(`start --port ${port}`, {
       cwd: tempDir,
       waitForProject: true,
     });
@@ -137,7 +137,7 @@ describe('saga dashboard command', () => {
     createSagaProject(tempDir);
     // Use a random port to avoid conflicts with the default port
     const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
-    const { proc, stdout } = await startCliAsync(`dashboard --port ${port}`, {
+    const { proc, stdout } = await startCliAsync(`start --port ${port}`, {
       cwd: tempDir,
     });
 
@@ -152,7 +152,7 @@ describe('saga dashboard command', () => {
   it('uses custom port when --port option is provided', async () => {
     createSagaProject(tempDir);
     const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
-    const { proc, stdout } = await startCliAsync(`dashboard --port ${port}`, {
+    const { proc, stdout } = await startCliAsync(`start --port ${port}`, {
       cwd: tempDir,
     });
 
@@ -166,7 +166,7 @@ describe('saga dashboard command', () => {
   it('uses custom port when --port option with equals sign', async () => {
     createSagaProject(tempDir);
     const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
-    const { proc, stdout } = await startCliAsync(`dashboard --port=${port}`, {
+    const { proc, stdout } = await startCliAsync(`start --port=${port}`, {
       cwd: tempDir,
     });
 
@@ -184,7 +184,7 @@ describe('saga dashboard command', () => {
 
     const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
     // Run from temp dir with --path pointing to project
-    const { proc, stdout } = await startCliAsync(`--path ${projectDir} dashboard --port ${port}`, {
+    const { proc, stdout } = await startCliAsync(`--path ${projectDir} start --port ${port}`, {
       cwd: tempDir,
       waitForProject: true,
     });
@@ -199,7 +199,7 @@ describe('saga dashboard command', () => {
 
   it('fails with helpful error when no SAGA project found', () => {
     // No .saga/ directory created - use sync runner since it will exit with error
-    const result = runCliSync('dashboard', { cwd: tempDir });
+    const result = runCliSync('start', { cwd: tempDir });
 
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr).toContain('SAGA project');
@@ -211,7 +211,7 @@ describe('saga dashboard command', () => {
     mkdirSync(subDir, { recursive: true });
 
     const port = TEST_PORT_BASE + Math.floor(Math.random() * TEST_PORT_RANGE);
-    const { proc, stdout } = await startCliAsync(`dashboard --port ${port}`, {
+    const { proc, stdout } = await startCliAsync(`start --port ${port}`, {
       cwd: subDir,
     });
 

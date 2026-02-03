@@ -15,7 +15,7 @@ pnpm test:watch   # Watch mode
 | Path | Purpose |
 |------|---------|
 | `src/cli.ts` | Entry point, Commander.js command registration |
-| `src/commands/dashboard.ts` | `saga dashboard` - HTTP server with React dashboard UI |
+| `src/commands/dashboard.ts` | `saga start` - HTTP server with React dashboard UI |
 | `src/commands/sessions/` | `saga sessions` - tmux session management (list, status, logs) |
 | `src/lib/sessions.ts` | Tmux session list/status/logs/create/kill utilities |
 | `src/lib/session-polling.ts` | Periodic session status polling |

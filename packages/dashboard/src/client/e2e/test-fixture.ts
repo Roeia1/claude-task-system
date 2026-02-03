@@ -103,7 +103,7 @@ export const test = base.extend<object, WorkerFixtures>({
       // Start server for this worker with polling enabled for reliable tests
       const server: ChildProcess = spawn(
         'node',
-        ['dist/cli.cjs', 'dashboard', '--path', fixturesPath, '--port', String(port)],
+        ['dist/cli.cjs', 'start', '--path', fixturesPath, '--port', String(port)],
         {
           cwd: CLI_DIST,
           stdio: 'pipe',

@@ -348,7 +348,7 @@ The `@saga-ai/dashboard` npm package provides a dashboard UI and session monitor
 
 ```bash
 # Run directly with npx (no install required)
-npx @saga-ai/dashboard dashboard
+npx @saga-ai/dashboard start
 
 # Or install globally
 npm install -g @saga-ai/dashboard
@@ -358,7 +358,7 @@ npm install -g @saga-ai/dashboard
 
 | Command | Description |
 |---------|-------------|
-| `saga dashboard` | Start HTTP server for dashboard UI |
+| `saga start` | Start HTTP server for dashboard UI |
 | `saga sessions list` | List all SAGA tmux sessions |
 | `saga sessions status <name>` | Show session status |
 | `saga sessions logs <name>` | Stream session output |

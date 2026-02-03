@@ -2,7 +2,7 @@
  * SAGA Dashboard - Standalone dashboard and session monitoring
  *
  * Commands:
- *   saga dashboard              Start the dashboard server
+ *   saga start                  Start the dashboard server
  *   saga sessions list          List all SAGA sessions
  *   saga sessions status <name> Show session status
  *   saga sessions logs <name>   Stream session output
@@ -36,9 +36,9 @@ program
 // Global --path option
 program.option('-p, --path <dir>', 'Path to SAGA project directory (overrides auto-discovery)');
 
-// dashboard command
+// start command
 program
-  .command('dashboard')
+  .command('start')
   .description('Start the dashboard server')
   .option('--port <n>', 'Port to run the server on (default: 3847)', Number.parseInt)
   .action(async (options: { port?: number }) => {
