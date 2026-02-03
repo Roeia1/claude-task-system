@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!!packages/statusline"]
+    "includes": ["**", "!!packages/statusline", "!!plugin/scripts"]
   },
   "formatter": {
     "enabled": true,
@@ -66,9 +66,11 @@
   "overrides": [
     {
       "includes": [
-        "packages/cli/src/**",
-        "!packages/cli/src/client/src/**",
-        "packages/cli/*.config.ts"
+        "packages/dashboard/src/**",
+        "!packages/dashboard/src/client/src/**",
+        "packages/dashboard/*.config.ts",
+        "packages/saga-types/**",
+        "packages/plugin-scripts/**"
       ],
       "linter": {
         "rules": {
@@ -89,8 +91,10 @@
         "**/playwright.*.config.ts",
         "**/global-teardown.ts",
         "**/jest.config.mjs",
-        "packages/cli/src/client/vite.config.ts",
-        "packages/cli/vitest.config.ts"
+        "packages/dashboard/src/client/vite.config.ts",
+        "packages/dashboard/vitest.config.ts",
+        "packages/saga-types/vitest.config.ts",
+        "packages/plugin-scripts/vitest.config.ts"
       ],
       "linter": {
         "rules": {
@@ -103,8 +107,8 @@
     },
     {
       "includes": [
-        "packages/cli/src/client/playwright.config.ts",
-        "packages/cli/src/client/playwright.e2e.config.ts"
+        "packages/dashboard/src/client/playwright.config.ts",
+        "packages/dashboard/src/client/playwright.e2e.config.ts"
       ],
       "linter": {
         "rules": {
@@ -143,7 +147,17 @@
       }
     },
     {
-      "includes": ["packages/cli/src/client/.storybook/vitest.setup.ts"],
+      "includes": ["**/e2e/test-fixture.ts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noEmptyPattern": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/dashboard/src/client/.storybook/vitest.setup.ts"],
       "linter": {
         "rules": {
           "suspicious": {
@@ -178,6 +192,16 @@
         "rules": {
           "style": {
             "useNamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/saga-types/src/index.ts"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noBarrelFile": "off"
           }
         }
       }

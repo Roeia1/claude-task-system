@@ -18,7 +18,7 @@ Refactor the SAGA architecture to establish clear separation of concerns: the CL
 - Plugin contains all orchestration logic (implement, scope-validator, etc.)
 - Zero coupling between dashboard and plugin code
 - Single version/release for plugin, independent versioning possible for dashboard
-- Clear documentation of `.saga/` directory schema
+- Shared TypeScript types define `.saga/` directory contract
 
 ## Scope
 
@@ -32,8 +32,8 @@ Refactor the SAGA architecture to establish clear separation of concerns: the CL
 - Build plugin scripts to `plugin/scripts/` directory
 - Remove `SAGA_PLUGIN_ROOT` dependency from dashboard
 - Update plugin skills to call internal scripts instead of `npx @saga-ai/cli`
-- Document `.saga/` directory schema as the interface contract
-- Deprecate `@saga-ai/cli` npm package
+- Create `packages/saga-types/` with TypeScript interfaces as the contract
+- Delete `@saga-ai/cli` npm package, publish `@saga-ai/dashboard` starting at 3.0.0
 
 ### Out of Scope
 
@@ -75,12 +75,13 @@ Refactor the SAGA architecture to establish clear separation of concerns: the CL
 ┌─────────────────────────────────────────────────────────────┐
 │  Plugin (Claude Code)                                        │
 │  ├── Skills call `node $SAGA_PLUGIN_ROOT/scripts/<name>.js` │
+│  ├── skills/init/ (user-invocable, creates .saga/)          │
 │  └── scripts/                                                │
-│      ├── implement.js                                        │
+│      ├── implement.js      (orchestration + session create)  │
 │      ├── scope-validator.js                                  │
 │      ├── find.js                                             │
 │      ├── worktree.js                                         │
-│      └── sessions.js (create, manage, kill)                  │
+│      └── sessions.js       (kill only)                       │
 │                                                              │
 │  Dashboard (@saga-ai/dashboard) - SEPARATE                   │
 │  ├── Only reads .saga/ directory                             │
@@ -94,28 +95,38 @@ Refactor the SAGA architecture to establish clear separation of concerns: the CL
 ```
 saga/
 ├── packages/
+│   ├── saga-types/          # Shared Zod schemas + inferred types (internal, not published)
+│   │   ├── src/
+│   │   │   ├── epic.ts      # EpicSchema, Epic, EpicFrontmatter
+│   │   │   ├── story.ts     # StorySchema, Story, StoryFrontmatter, StoryStatus
+│   │   │   ├── session.ts   # SessionSchema, Session, SessionStatus (shared by dashboard + plugin-scripts)
+│   │   │   ├── directory.ts # SagaDirectory paths/structure
+│   │   │   └── index.ts     # Re-exports schemas and types
+│   │   ├── package.json     # depends on zod
+│   │   └── tsconfig.json
+│   │
 │   ├── dashboard/           # @saga-ai/dashboard (npm)
-│   │   └── src/
+│   │   └── src/             # imports from @saga-ai/types
 │   │       ├── dashboard.ts
 │   │       ├── server/
 │   │       └── client/
 │   │
 │   └── plugin-scripts/      # Source for plugin scripts (NOT published)
-│       ├── src/
+│       ├── src/             # imports from @saga-ai/types
 │       │   ├── implement.ts
 │       │   ├── scope-validator.ts
 │       │   ├── find.ts
 │       │   ├── worktree.ts
-│       │   └── sessions.ts
+│       │   └── sessions-kill.ts
 │       ├── package.json
 │       └── tsconfig.json    # Outputs to ../../plugin/scripts/
 │
 ├── plugin/                  # What Claude Code installs
 │   ├── skills/
+│   │   └── init/            # User-invocable /init skill
 │   ├── hooks/
 │   ├── agents/
 │   ├── docs/
-│   │   └── SAGA-DIRECTORY-SCHEMA.md  # Contract documentation
 │   └── scripts/             # Pre-built JS (committed)
 │       ├── implement.js
 │       ├── scope-validator.js
@@ -128,12 +139,49 @@ saga/
 
 | Component | Current Location | New Location |
 |-----------|------------------|--------------|
-| `implement.ts` | `packages/cli/src/commands/` | `packages/plugin-scripts/src/` |
+| `implement.ts` | `packages/cli/src/commands/` | `packages/plugin-scripts/src/implement/` (split into modules) |
 | `scope-validator.ts` | `packages/cli/src/commands/` | `packages/plugin-scripts/src/` |
 | `find.ts` + `finder.ts` | `packages/cli/src/commands/` | `packages/plugin-scripts/src/` |
 | `worktree.ts` | `packages/cli/src/commands/` | `packages/plugin-scripts/src/` |
-| `sessions/*.ts` (create/kill) | `packages/cli/src/commands/` | `packages/plugin-scripts/src/` |
-| `sessions/*.ts` (list/status/logs) | `packages/cli/src/commands/` | `packages/dashboard/src/` |
+| `init.ts` | `packages/cli/src/commands/` | `plugin/skills/init/` (user-invocable skill only) |
+| `sessions/kill` | `packages/cli/src/commands/` | `packages/plugin-scripts/src/` |
+| `sessions/list,status,logs` | `packages/cli/src/commands/` | `packages/dashboard/src/` |
+
+**Note**: Session creation is part of the `implement.ts` execute-story flow, not a separate command.
+
+### implement.ts Refactoring
+
+The 32KB `implement.ts` file will be split into focused modules during migration:
+
+```
+packages/plugin-scripts/src/implement/
+├── index.ts              # Entry point, CLI args parsing
+├── orchestrator.ts       # Main worker loop (runLoop)
+├── session-manager.ts    # Tmux session create/attach/kill
+├── output-parser.ts      # Parse and validate worker JSON output
+├── scope-config.ts       # Build scope hook configuration
+└── types.ts              # Local types (WorkerResult, CycleOutcome, etc.)
+```
+
+**Benefits:**
+- Testable units (can test orchestrator without tmux)
+- Clear separation of concerns
+- Easier to maintain and debug
+
+### Testing Strategy
+
+For each migrated command:
+1. **Migrate existing tests** - Move test files from CLI to plugin-scripts, adapt imports
+2. **Add new unit tests** - Test split modules individually (e.g., `orchestrator.test.ts`, `output-parser.test.ts`)
+
+This ensures no regression during migration while improving coverage of refactored code.
+
+### Shared Types (saga-types)
+
+Any types used by both plugin-scripts and dashboard must live in `packages/saga-types/`:
+- Epic, Story, StoryStatus (reading .saga/ directory)
+- Session, SessionStatus (plugin-scripts kills, dashboard views)
+- Directory structure types
 
 ### What Stays in Dashboard
 
@@ -171,27 +219,35 @@ saga/
 - **Rationale**: True decoupling, dashboard works without plugin installed
 - **Alternatives Considered**: Shared library (tight coupling), environment variables (current problem)
 
-### 5. Contract Documentation
+### 5. Contract via Zod Schemas
 
-- **Choice**: Document `.saga/` directory structure in `plugin/docs/SAGA-DIRECTORY-SCHEMA.md`
-- **Rationale**: Single source of truth, human-readable, easy to maintain
-- **Alternatives Considered**: JSON Schema (overkill), implicit (no clarity)
+- **Choice**: Define `.saga/` directory structure as Zod schemas in `packages/saga-types/`, TypeScript types inferred via `z.infer<>`
+- **Rationale**: Single source of truth, type safety, runtime validation for plugin-scripts input, self-documenting
+- **Alternatives Considered**: Plain interfaces (no runtime validation), separate zod layer (two definitions to sync)
 
 ### 6. Session Management Split
 
-- **Choice**: Plugin handles session creation/management/killing, dashboard handles viewing (list, status, logs)
-- **Rationale**: Creation is orchestration (plugin concern), viewing is monitoring (dashboard concern)
+- **Choice**: Plugin handles session killing (via plugin-scripts), dashboard handles viewing (list, status, logs)
+- **Rationale**: Session creation is part of `implement.ts` execute-story flow, not a separate command. Killing is an orchestration action (plugin concern), viewing is monitoring (dashboard concern)
 - **Alternatives Considered**: All in plugin (dashboard less useful), all in dashboard (needs plugin context)
 
 ### 7. Migration Strategy
 
-- **Choice**: Hard deprecation of `@saga-ai/cli`, users must switch to `@saga-ai/dashboard`
-- **Rationale**: Clean break, no maintenance of compatibility shims
-- **Alternatives Considered**: Deprecation warning with redirect, alias package
+- **Choice**: Delete `@saga-ai/cli` from npm, start `@saga-ai/dashboard` at version 3.0.0
+- **Rationale**: No users on current package, clean break, version number signals continuation
+- **Alternatives Considered**: Deprecation notice (unnecessary), start at 1.0.0 (loses version continuity)
+
+### 8. Versioning Strategy
+
+- **Choice**: Coupled versioning - plugin and dashboard release together with same version number
+- **Rationale**: Simpler release process, consistent version across SAGA components
+- **Alternatives Considered**: Independent versioning (adds coordination overhead)
 
 ## Data Models
 
-### .saga/ Directory Structure (Contract)
+### .saga/ Directory Structure
+
+Defined in `packages/saga-types/src/directory.ts`:
 
 ```
 .saga/
@@ -211,16 +267,60 @@ saga/
     └── {epic-slug}/                   # Archived epics
 ```
 
-### story.md Frontmatter Schema
+### Zod Schemas (packages/saga-types/)
 
-```yaml
----
-title: string           # Story title
-status: string          # draft | ready | in-progress | blocked | completed
-priority: number        # 1-5 (optional)
-dependencies: string[]  # Story slugs this depends on (optional)
-estimate: string        # Time estimate (optional)
----
+```typescript
+// story.ts
+import { z } from 'zod';
+
+export const StoryStatusSchema = z.enum(['draft', 'ready', 'in-progress', 'blocked', 'completed']);
+export type StoryStatus = z.infer<typeof StoryStatusSchema>;
+
+export const StoryFrontmatterSchema = z.object({
+  title: z.string(),
+  status: StoryStatusSchema,
+  priority: z.number().min(1).max(5).optional(),
+  dependencies: z.array(z.string()).optional(),
+  estimate: z.string().optional(),
+});
+export type StoryFrontmatter = z.infer<typeof StoryFrontmatterSchema>;
+
+export const StorySchema = z.object({
+  slug: z.string(),
+  path: z.string(),
+  frontmatter: StoryFrontmatterSchema,
+  content: z.string(),
+});
+export type Story = z.infer<typeof StorySchema>;
+
+// epic.ts
+export const EpicFrontmatterSchema = z.object({
+  title: z.string(),
+  status: z.enum(['active', 'archived']).optional(),
+});
+export type EpicFrontmatter = z.infer<typeof EpicFrontmatterSchema>;
+
+export const EpicSchema = z.object({
+  slug: z.string(),
+  path: z.string(),
+  frontmatter: EpicFrontmatterSchema,
+  content: z.string(),
+  stories: z.array(StorySchema),
+});
+export type Epic = z.infer<typeof EpicSchema>;
+
+// session.ts
+export const SessionStatusSchema = z.enum(['running', 'stopped', 'unknown']);
+export type SessionStatus = z.infer<typeof SessionStatusSchema>;
+
+export const SessionSchema = z.object({
+  name: z.string(),
+  status: SessionStatusSchema,
+  createdAt: z.string().optional(),
+  epicSlug: z.string().optional(),
+  storySlug: z.string().optional(),
+});
+export type Session = z.infer<typeof SessionSchema>;
 ```
 
 ## Interface Contracts
@@ -262,6 +362,7 @@ node $SAGA_PLUGIN_ROOT/scripts/<name>.js [args...]
 ## Tech Stack
 
 - **TypeScript**: Plugin scripts and dashboard source
+- **Zod**: Schema definitions + runtime validation in saga-types
 - **esbuild**: Bundle plugin scripts to single JS files
 - **React**: Dashboard frontend (existing)
 - **Express**: Dashboard server (existing)
@@ -269,8 +370,8 @@ node $SAGA_PLUGIN_ROOT/scripts/<name>.js [args...]
 - **Fuse.js**: Fuzzy search in find script (existing)
 - **chokidar**: File watching in dashboard (existing)
 
-## Open Questions
+## Resolved Questions
 
-- Should we version the `.saga/` directory schema? (e.g., `.saga/version` file)
-- How do we handle plugin scripts that need the worker prompt? (Currently in `plugin/skills/execute-story/worker-prompt.md`)
-- Should dashboard show archived epics by default or require a flag?
+- **Schema versioning**: Not needed for now. The `.saga/` structure is stable and changes can be handled via dashboard backward compatibility.
+- **Worker prompt access**: Plugin scripts access via `$SAGA_PLUGIN_ROOT/skills/execute-story/worker-prompt.md`. The `SAGA_PLUGIN_ROOT` env var is always available when scripts are called from plugin skills.
+- **Archived epics**: Dashboard shows archived epics with a toggle (current behavior, unchanged).

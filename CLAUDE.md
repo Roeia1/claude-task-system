@@ -11,7 +11,7 @@ Guidance for Claude Code when working with this repository.
 ```
 saga/
 ├── plugin/                  # Plugin source (skills, agents, hooks)
-├── packages/cli/            # @saga-ai/cli npm package
+├── packages/dashboard/      # @saga-ai/dashboard npm package
 ├── .claude/skills/          # Dev skills for this repo (publish, pr-review, task-pattern)
 └── CHANGELOG.md             # Version history (plugin + CLI combined)
 ```
@@ -22,7 +22,7 @@ saga/
 |-----|---------|
 | [`README.md`](README.md) | User-facing: installation, workflow, skills reference |
 | [`plugin/docs/ENVIRONMENT.md`](plugin/docs/ENVIRONMENT.md) | Environment variables reference |
-| [`packages/cli/CLAUDE.md`](packages/cli/CLAUDE.md) | CLI package development guide |
+| [`packages/dashboard/CLAUDE.md`](packages/dashboard/CLAUDE.md) | Dashboard package development guide |
 
 ## Plugin Skills
 

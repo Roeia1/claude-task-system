@@ -1,8 +1,8 @@
 ---
 paths:
-  - "packages/cli/**"
+  - "packages/dashboard/**"
 ---
 
 # CLI Testing Guidelines
 
-@packages/cli/docs/TESTING.md
+@packages/dashboard/docs/TESTING.md

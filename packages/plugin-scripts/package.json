@@ -1,0 +1,26 @@
+{
+	"name": "@saga-ai/plugin-scripts",
+	"version": "0.0.0",
+	"private": true,
+	"description": "TypeScript source for SAGA plugin scripts compiled to plugin/scripts/",
+	"type": "module",
+	"scripts": {
+		"prebuild": "biome check .",
+		"build": "node esbuild.config.mjs",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write ."
+	},
+	"dependencies": {
+		"@saga-ai/types": "workspace:*",
+		"fuse.js": "^7.1.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.0.0",
+		"esbuild": "^0.27.2",
+		"typescript": "^5.7.0",
+		"vitest": "^4.0.18"
+	}
+}
