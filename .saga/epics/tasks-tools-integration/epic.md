@@ -61,7 +61,7 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 - Task list files must be human-inspectable (readable JSON with descriptive filenames)
 - Filename and task ID must always be in sync (`{id}.json`)
 - Workers must handle context window limits (task descriptions must be self-contained)
-- Must work with Claude Code v2.1.30+ headless mode
+- Must work with Claude Code v2.1.30+ headless mode (requires `CLAUDE_CODE_ENABLE_TASKS=true`)
 - Hydration/sync operations must be atomic to prevent corruption
 
 ## Technical Approach
@@ -165,6 +165,11 @@ The orchestrator manages task list execution. It handles both regular tasks and 
    - Mark pointer task as completed when child list finishes
 5. Sync status back to `.saga/tasks/`
 6. Clean up `~/.claude/tasks/`
+
+**Required environment variables for headless execution:**
+```bash
+CLAUDE_CODE_ENABLE_TASKS=true CLAUDE_CODE_TASK_LIST_ID=saga--<path> claude -p "..."
+```
 
 For a flat task list (no pointers), the orchestrator simply hydrates, spawns one worker, syncs, and cleans up.
 
