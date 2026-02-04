@@ -4,7 +4,17 @@
 
 This epic replaces SAGA's markdown-based epic/story system with Claude Code's native Tasks tools. The current workflow uses `.md` files with YAML frontmatter to define and track work. The new system uses structured JSON task lists that workers consume directly via `TaskCreate`, `TaskGet`, `TaskUpdate`, and `TaskList` tools.
 
-Everything becomes a "task list" — there is no distinction between "epic" and "story". A task list can contain regular tasks (executable work) or pointer tasks (references to child task lists). This creates a tree structure where the root task list represents the goal, and child task lists represent breakdowns that map to individual worker loops and PRs.
+Everything becomes a "task list" — there is no distinction between "epic" and "story". A task list can contain any combination of:
+- **Regular tasks**: executable work items
+- **Pointer tasks**: references to child task lists
+
+This flexibility means:
+- A root task list might contain only pointer tasks (pure orchestration)
+- A root task list might contain only regular tasks (simple goal, no nesting needed)
+- A root task list might mix both (some setup tasks, then delegate to child lists)
+- Any child task list can also contain pointer tasks, creating arbitrary depth
+
+The tree structure is optional — a single flat task list is valid for simple goals.
 
 The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At execution time, SAGA hydrates task lists to `~/.claude/tasks/` for native tool compatibility, then syncs status back after completion.
 
@@ -145,16 +155,18 @@ Pointer task example:
 
 ### SAGA Orchestrator
 
-The orchestrator manages the task list tree:
+The orchestrator manages task list execution. It handles both regular tasks and pointer tasks:
 
-1. Read root task list
-2. Find next unblocked pointer task
-3. Hydrate child task list to `~/.claude/tasks/`
-4. Spawn headless worker: `CLAUDE_CODE_TASK_LIST_ID=saga--<child-path> claude -p "..."`
-5. Monitor: poll child task list for all tasks completed
-6. Sync status back to `.saga/tasks/`
-7. Mark pointer task as completed
-8. Repeat until all pointer tasks done
+1. Hydrate task list to `~/.claude/tasks/`
+2. Spawn headless worker: `CLAUDE_CODE_TASK_LIST_ID=saga--<path> claude -p "..."`
+3. Worker executes all regular tasks in dependency order
+4. When worker encounters a pointer task, orchestrator takes over:
+   - Recursively execute the child task list
+   - Mark pointer task as completed when child list finishes
+5. Sync status back to `.saga/tasks/`
+6. Clean up `~/.claude/tasks/`
+
+For a flat task list (no pointers), the orchestrator simply hydrates, spawns one worker, syncs, and cleans up.
 
 ### Worker Execution Loop
 
