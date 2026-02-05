@@ -39,7 +39,7 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 - Integration with existing infrastructure (hooks, worktree.js, implement.js, scope-validator.js)
 - SAGA types in `saga-types` package (`TaskList`, `Task`, conversion layer)
 - `tasklist.json` metadata file for each task list (context, children, execution state)
-- Nested folder structure in `.saga/tasks/` with descriptive filenames
+- Flat folder structure in `.saga/tasks/` with canonical naming convention (`--` as hierarchy separator)
 - Hydration layer: convert SAGA tasks to Claude Code format, copy to `~/.claude/tasks/`
 - Sync layer via tool hooks: update status in `.saga/tasks/` using hooks on Tasks builtin tools
 - Execution script that manages task list execution (deterministic, spawns workers, handles children)
@@ -62,13 +62,18 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 - Filename and task ID must always be in sync (`{id}.json`)
 - Workers must handle context window limits (task descriptions must be self-contained)
 - Must work with Claude Code v2.1.30+ headless mode (requires `CLAUDE_CODE_ENABLE_TASKS=true`)
-- Hydration/sync operations must be atomic to prevent corruption
+- Hydration/sync operations should minimize corruption risk (e.g., handle partial write failures gracefully)
 
 ## Technical Approach
 
 ### Task List Storage
 
-Source of truth: `.saga/tasks/` with nested folders representing hierarchy.
+Source of truth: `.saga/tasks/` with flat folder structure. Hierarchy is expressed through the `--` naming convention and the `children` array in `tasklist.json`, not through folder nesting.
+
+**Naming convention:**
+- Individual task list IDs use `[a-z0-9-]` (lowercase, digits, single dashes)
+- `--` (double dash) is the hierarchy separator — banned in individual IDs
+- The canonical name is used everywhere: folder name, branch, worktree, tmux session, env vars
 
 **Leaf task list** (simple feature, no nesting):
 ```
@@ -82,18 +87,18 @@ Source of truth: `.saga/tasks/` with nested folders representing hierarchy.
 **Coordinator task list** (complex feature with children):
 ```
 .saga/tasks/
-└── user-authentication/
-    ├── tasklist.json           ← metadata + children array with dependencies
-    ├── setup-database/
-    │   ├── tasklist.json
-    │   ├── write-tests.json
-    │   └── create-migrations.json
-    └── implement-api/
-        ├── tasklist.json
-        └── add-endpoints.json
+├── user-authentication/                  ← coordinator (has children in tasklist.json)
+│   └── tasklist.json
+├── user-authentication--setup-database/  ← child leaf
+│   ├── tasklist.json
+│   ├── write-tests.json
+│   └── create-migrations.json
+└── user-authentication--implement-api/   ← child leaf
+    ├── tasklist.json
+    └── add-endpoints.json
 ```
 
-Runtime (for native tool compatibility): `~/.claude/tasks/saga__<flattened-path>/`
+Runtime (for native tool compatibility): `~/.claude/tasks/saga__<canonical-name>/`
 
 ### Task List Types
 
@@ -105,11 +110,13 @@ Runtime (for native tool compatibility): `~/.claude/tasks/saga__<flattened-path>
 
 **Coordinator Task List**:
 - Has `tasklist.json` with `children` array defining dependencies
-- Contains child task list folders (no task files at this level)
-- Execution script processes children in dependency order
+- References child task lists by ID (children are sibling folders in `.saga/tasks/`, not nested)
+- Execution script processes children sequentially in dependency order
 - Not directly executable — orchestrates child execution
 
 ### SAGA Types (in `saga-types` package)
+
+> **Breaking change**: The new `TaskList` and `Task` types replace the existing `Task` and related types in `saga-types` entirely. No backward compatibility with the old story-based types (`Task`, `StoryFrontmatter`, etc.).
 
 **TaskList** (stored in `tasklist.json`):
 ```typescript
@@ -123,8 +130,8 @@ interface TaskList {
   status?: "pending" | "in_progress" | "completed";
   // Coordinator only:
   children?: Array<{
-    path: string;
-    blockedBy: string[];  // paths of sibling children
+    id: string;           // canonical name of child task list
+    blockedBy: string[];  // IDs of sibling children that must complete first
   }>;
   // Execution state (populated at runtime):
   branch?: string;
@@ -180,17 +187,18 @@ function fromClaudeTask(claudeTask: ClaudeCodeTask): Partial<Task> {
 
 **Hydration (before execution):**
 1. Read `tasklist.json` for context (used in worker prompt)
-2. Read task files from `.saga/tasks/<path>/`
+2. Read task files from `.saga/tasks/<canonicalName>/`
 3. Convert each SAGA task to Claude Code format
-4. Create `~/.claude/tasks/saga__<flattened-path>/`
+4. Create `~/.claude/tasks/saga__<canonicalName>/`
 5. Write converted task files
 6. Write `.highwatermark` file
 
 **Sync (via tool hooks):**
-- Tool hooks registered for `TaskUpdate` (and optionally `TaskCreate`)
-- Hooks intercept status changes and update `.saga/tasks/<path>/*.json`
+- Tool hooks registered for `TaskUpdate`
+- Hooks intercept status changes and update `.saga/tasks/<canonicalName>/*.json`
 - Only status is synced back (other fields are source-controlled in SAGA)
-- Cleanup of `~/.claude/tasks/saga__<flattened-path>/` after execution completes
+- Workers may create tasks at runtime via `TaskCreate` for their own tracking; these are not synced back to `.saga/tasks/` and are discarded at cleanup
+- Cleanup of `~/.claude/tasks/saga__<canonicalName>/` after execution completes
 
 ### SAGA Execution Script
 
@@ -203,7 +211,7 @@ A deterministic script manages task list execution:
 4. Spawn headless worker with context in prompt:
    ```bash
    CLAUDE_CODE_ENABLE_TASKS=true \
-   CLAUDE_CODE_TASK_LIST_ID=saga__<path> \
+   CLAUDE_CODE_TASK_LIST_ID=saga__<canonicalName> \
    claude -p "You are working on: ${title}
 
    ${description}
@@ -220,7 +228,7 @@ A deterministic script manages task list execution:
 
 **For a coordinator task list:**
 1. Read `tasklist.json` to get children and dependencies
-2. Execute children in dependency order (respecting `blockedBy`)
+2. Execute children sequentially in dependency order (respecting `blockedBy`)
 3. For each child: recursively call execution script
 4. Mark coordinator as completed when all children complete
 
@@ -232,9 +240,36 @@ Each worker (inside a leaf task list) receives context via prompt, then:
 2. `TaskGet(<task-id>)` → load full description
 3. Execute the work (write code, run tests, etc.)
 4. `TaskUpdate(<task-id>, status: "completed")`
-5. Repeat until all tasks done
+5. `TaskList` → check for remaining pending/unblocked tasks
+6. Repeat until all tasks are completed, then self-terminate
 
-Workers only see real executable tasks — no synthetic context task.
+Workers self-terminate when `TaskList` shows all tasks completed. The execution script waits for the worker process to exit. Workers only see real executable tasks — no synthetic context task.
+
+### Error Handling
+
+**Worker crash (process dies mid-execution):**
+- Tasks left in `in_progress` status remain in that state in `.saga/tasks/`
+- Execution script detects non-zero exit code from the worker process
+- Task list is marked as failed; no automatic retry
+- User can re-run execution — the hydration layer reads current status from `.saga/tasks/`, so completed tasks are preserved and only remaining tasks are re-attempted
+
+**Stuck tasks:**
+- If a worker exits (crash or self-termination) with tasks still in `in_progress`, the execution script resets those tasks to `pending` before marking the task list as failed
+- This ensures a clean state for re-execution
+
+**Hydration failure:**
+- If writing to `~/.claude/tasks/` fails (permissions, disk space), execution script aborts before spawning the worker
+- No partial state to clean up since the worker never started
+
+**Sync failure (hook can't write to .saga/tasks/):**
+- Hook logs a warning but does not block the worker
+- Status drift between `~/.claude/tasks/` and `.saga/tasks/` is possible but recoverable
+- Post-execution reconciliation: execution script reads final state from `~/.claude/tasks/` and writes it to `.saga/tasks/` as a fallback
+
+**Coordinator child failure:**
+- If a child task list fails, the coordinator stops executing further children
+- Children that depend on the failed child (via `blockedBy`) are not attempted
+- Coordinator is marked as failed; user decides whether to retry or intervene
 
 ## Integration with Existing Infrastructure
 
@@ -269,8 +304,8 @@ The existing environment variable pattern is preserved and extended:
 | `SAGA_EPIC_SLUG` | Epic identifier | Deprecated (use `SAGA_TASK_LIST_PATH`) |
 | `SAGA_STORY_SLUG` | Story identifier | Deprecated (use `SAGA_TASK_LIST_PATH`) |
 | `SAGA_STORY_DIR` | Path to story.md in worktree | Deprecated |
-| `SAGA_TASK_LIST_PATH` | N/A | Task list path (e.g., `"user-auth/setup-db"`) |
-| `SAGA_TASK_LIST_ID` | N/A | Flattened ID for Claude Code (e.g., `"saga__user-auth--setup-db"`) |
+| `SAGA_TASK_LIST_PATH` | N/A | Canonical task list name (e.g., `"user-auth--setup-db"`) |
+| `SAGA_TASK_LIST_ID` | N/A | Claude Code task list ID (e.g., `"saga__user-auth--setup-db"`) |
 
 ### Context Detection
 
@@ -282,10 +317,8 @@ if [ -f .git ]; then
     worktree_path=$(pwd)
     if [[ "$worktree_path" == *".saga/worktrees/tasks/"* ]]; then
         SAGA_TASK_CONTEXT="tasklist-worktree"
-        # Extract task list path from worktree location
-        SAGA_TASK_LIST_PATH=$(echo "$worktree_path" | sed 's|.*\.saga/worktrees/tasks/||')
-    else
-        SAGA_TASK_CONTEXT="story-worktree"  # Legacy support
+        # Extract canonical task list name directly from flat worktree folder
+        SAGA_TASK_LIST_PATH=$(echo "$worktree_path" | sed 's|.*\.saga/worktrees/tasks/||' | sed 's|/$||')
     fi
 else
     SAGA_TASK_CONTEXT="main"
@@ -294,32 +327,32 @@ fi
 
 ### Worktree and Branch Naming
 
-**Answer to Open Question #3:**
+All derived paths use the canonical task list name directly:
 
-Task list paths are flattened using `--` as separator for collision-free, filesystem-safe names:
-
-| Task List Path | Branch Name | Worktree Path |
-|---------------|-------------|---------------|
-| `add-logout-button` | `tasklist/add-logout-button` | `.saga/worktrees/tasks/add-logout-button/` |
-| `user-auth/setup-db` | `tasklist/user-auth--setup-db` | `.saga/worktrees/tasks/user-auth--setup-db/` |
-| `user-auth/api/endpoints` | `tasklist/user-auth--api--endpoints` | `.saga/worktrees/tasks/user-auth--api--endpoints/` |
+| Canonical Name | Branch | Worktree | Task Folder |
+|---------------|--------|----------|-------------|
+| `add-logout-button` | `tasklist/add-logout-button` | `.saga/worktrees/tasks/add-logout-button/` | `.saga/tasks/add-logout-button/` |
+| `user-auth--setup-db` | `tasklist/user-auth--setup-db` | `.saga/worktrees/tasks/user-auth--setup-db/` | `.saga/tasks/user-auth--setup-db/` |
+| `user-auth--api--endpoints` | `tasklist/user-auth--api--endpoints` | `.saga/worktrees/tasks/user-auth--api--endpoints/` | `.saga/tasks/user-auth--api--endpoints/` |
 
 **Rationale:**
-- `--` chosen over `/` (invalid in branch names) and `__` (used for Claude Code task list ID prefix)
-- Branch prefix `tasklist/` provides clear namespace separation from legacy `story-*` branches
-- Worktree path is flat (not nested) to simplify cleanup and avoid deep directory structures
+- One canonical name used everywhere — no conversion between forms
+- `--` chosen as hierarchy separator; individual IDs use `[a-z0-9-]` (ban `--` in individual IDs to prevent ambiguity)
+- Branch prefix `tasklist/` provides clear namespace separation
 
 ### Tmux Session Management
 
 The execution script spawns workers in detached tmux sessions, preserving the existing pattern:
 
-**Session naming:** `saga__tasklist__<flattened-path>__<pid>`
+**Session naming:** `saga-tl-<canonical-name>-<pid>`
 
-Example: `saga__tasklist__user-auth--setup-db__12345`
+Example: `saga-tl-user-auth--setup-db-12345`
+
+**Rationale:** Single dash delimiters throughout. `tl` prefix (short for "task list") keeps sessions short and parseable. The canonical name already uses `--` for hierarchy, which is visually distinct from the single `-` structural delimiters.
 
 **Dashboard integration:**
 - Dashboard reads tmux sessions via `tmux list-sessions`
-- Filters by `saga__tasklist__` prefix to identify task list executions
+- Filters by `saga-tl-` prefix to identify task list executions
 - Streams output from session output files for real-time monitoring
 
 ### Scope Validation
@@ -333,10 +366,10 @@ const allowedPaths = [
   // ... other allowed paths
 ];
 
-// New: uses SAGA_TASK_LIST_PATH
-const taskListPath = process.env.SAGA_TASK_LIST_PATH;
+// New: uses SAGA_TASK_LIST_PATH (canonical name)
+const canonicalName = process.env.SAGA_TASK_LIST_PATH;
 const allowedPaths = [
-  `.saga/tasks/${taskListPath}/`,
+  `.saga/tasks/${canonicalName}/`,
   // Project files (for implementation work)
   // ... other allowed paths
 ];
@@ -413,6 +446,18 @@ const watchPaths = [
 - **Rationale**: Simpler mental model. Root vs child is just tree depth, not a different concept.
 - **Alternatives**: Keep epic/story (rejected: adds confusion when underlying format is the same)
 
+### Runtime TaskCreate Allowed but Not Synced
+
+- **Choice**: Workers may create tasks at runtime via `TaskCreate` for their own tracking, but these are not synced back to `.saga/tasks/`
+- **Rationale**: Workers sometimes need to break down work further during execution. These ad-hoc tasks are ephemeral and discarded at cleanup. Only pre-defined tasks in `.saga/tasks/` are the source of truth.
+- **Alternatives**: Block `TaskCreate` entirely (rejected: too restrictive), sync new tasks back (rejected: adds complexity, blurs source of truth)
+
+### Flat Canonical Naming
+
+- **Choice**: One canonical name (using `--` as hierarchy separator) used everywhere: `.saga/tasks/`, worktrees, branches, tmux sessions, env vars
+- **Rationale**: No conversion between forms. Individual IDs use `[a-z0-9-]`; `--` is banned in individual IDs to prevent ambiguity.
+- **Alternatives**: Nested folder structure with path-to-flat conversion (rejected: requires bidirectional conversion, error-prone)
+
 ## Data Models
 
 ### TaskList Schema (tasklist.json)
@@ -448,19 +493,19 @@ const watchPaths = [
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| path | string | Yes | Relative path to child task list folder |
-| blockedBy | string[] | Yes | Paths of sibling children that must complete first |
+| id | string | Yes | Canonical name of the child task list |
+| blockedBy | string[] | Yes | IDs of sibling children that must complete first |
 
 ## Interface Contracts
 
 ### Hydration Service
 
 ```
-hydrate(sagaPath: string): void
-  - Input: path relative to .saga/tasks/ (e.g., "user-authentication/setup-database")
-  - Reads: tasklist.json (for context), *.json task files
+hydrate(canonicalName: string): void
+  - Input: canonical task list name (e.g., "user-authentication--setup-database")
+  - Reads: .saga/tasks/<canonicalName>/tasklist.json (for context), *.json task files
   - Converts: SAGA tasks to Claude Code format
-  - Output: Creates ~/.claude/tasks/saga__<flattened-path>/ with converted tasks
+  - Output: Creates ~/.claude/tasks/saga__<canonicalName>/ with converted tasks
   - Returns: TaskList metadata for prompt injection
 ```
 
@@ -469,17 +514,17 @@ hydrate(sagaPath: string): void
 ```
 Tool hooks registered for: TaskUpdate
   - Intercept status changes during worker execution
-  - Update status in .saga/tasks/<path>/*.json
-  - Cleanup ~/.claude/tasks/saga__<flattened-path>/ after execution completes
+  - Update status in .saga/tasks/<canonicalName>/*.json
+  - Cleanup ~/.claude/tasks/saga__<canonicalName>/ after execution completes
 ```
 
 ### Execution Script
 
 ```
-execute(taskListPath: string): void
-  - Input: task list path (e.g., "user-authentication")
+execute(canonicalName: string): void
+  - Input: canonical task list name (e.g., "user-authentication")
   - For leaf: create worktree, hydrate, spawn worker, create PR
-  - For coordinator: execute children in dependency order
+  - For coordinator: execute children sequentially in dependency order
   - Output: All tasks/children completed, PRs created
 ```
 
@@ -493,8 +538,8 @@ execute(taskListPath: string): void
 
 ## Open Questions
 
-1. **`.highwatermark` management**: Claude Code uses this for auto-increment. When SAGA pre-populates task files with string IDs, what should `.highwatermark` contain? Needs investigation.
+1. **`.highwatermark` management**: String IDs are confirmed to work with Claude Code. Remaining question: verify that hydrating a task list without a `.highwatermark` file (with pre-existing task files using string IDs) works correctly — Claude Code should auto-generate `.highwatermark` and handle its own task creation alongside SAGA-provided tasks. Needs experimental verification.
 
 2. **Dashboard migration**: Dashboard currently reads `.saga/epics/` and `.saga/stories/`. Needs update to read `.saga/tasks/` tree structure and visualize task list hierarchy.
 
-3. ~~**Worktree/branch naming convention**~~: **Resolved** — See "Integration with Existing Infrastructure > Worktree and Branch Naming" section. Uses `--` as path separator, `tasklist/` branch prefix, flat worktree structure.
+3. ~~**Worktree/branch naming convention**~~: **Resolved** — See "Worktree and Branch Naming" section and "Flat Canonical Naming" key decision. One canonical name used everywhere with `--` as hierarchy separator.
