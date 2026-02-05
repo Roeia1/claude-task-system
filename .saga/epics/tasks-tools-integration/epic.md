@@ -263,9 +263,9 @@ Workers only see real executable tasks — no synthetic context task.
 
 ### Leaf vs Coordinator Distinction
 
-- **Choice**: Task list is either a leaf (has tasks) or coordinator (has children), not both
-- **Rationale**: Each leaf = one worker capsule = one worktree/branch/PR. Clear execution model.
-- **Alternatives**: Mixed task lists with both tasks and children (rejected: unclear execution semantics)
+- **Choice**: Task list is either a leaf (has tasks) or coordinator (has children), never both
+- **Rationale**: Each leaf = one worker capsule = one worktree/branch/PR. Clear execution model. Intuitive breakdown: coordinators define the major pieces, leaves define the work within each piece.
+- **Alternatives**: Mixed task lists with both tasks and children (rejected: unclear execution semantics, complicates worktree/branch model)
 
 ### Native Tasks as Runtime, SAGA as Source of Truth
 
