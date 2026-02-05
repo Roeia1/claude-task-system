@@ -2,21 +2,17 @@
 
 ## Overview
 
-This epic replaces SAGA's markdown-based epic/story system with Claude Code's native Tasks tools. The current workflow uses `.md` files with YAML frontmatter to define and track work. The new system uses structured JSON task lists that workers consume directly via `TaskCreate`, `TaskGet`, `TaskUpdate`, and `TaskList` tools.
+This epic replaces SAGA's markdown-based epic/story system with Claude Code's native Tasks tools. The current workflow uses `.md` files with YAML frontmatter to define and track work. The new system uses structured JSON task lists that workers consume directly via `TaskList`, `TaskGet`, and `TaskUpdate` tools.
 
-Everything becomes a "task list" — there is no distinction between "epic" and "story". A task list can contain any combination of:
-- **Regular tasks**: executable work items
-- **Pointer tasks**: references to child task lists
+Everything becomes a "task list" — there is no distinction between "epic" and "story". A task list is a **worker capsule**: an isolated unit of work executed in its own worktree, branch, and PR.
 
-This flexibility means:
-- A root task list might contain only pointer tasks (pure orchestration)
-- A root task list might contain only regular tasks (simple goal, no nesting needed)
-- A root task list might mix both (some setup tasks, then delegate to child lists)
-- Any child task list can also contain pointer tasks, creating arbitrary depth
+Task lists can be:
+- **Leaf**: Contains executable tasks, executed by a single worker
+- **Coordinator**: Contains child task lists with dependencies, orchestrates execution order
 
-The tree structure is optional — a single flat task list is valid for simple goals.
+The tree structure is optional — a single leaf task list is valid for simple goals.
 
-The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At execution time, SAGA hydrates task lists to `~/.claude/tasks/` for native tool compatibility, then syncs status back after completion.
+The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At execution time, SAGA hydrates task lists to `~/.claude/tasks/` for native tool compatibility, then syncs status back via tool hooks.
 
 ## Goals
 
@@ -25,26 +21,29 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 - Support task list nesting with dependencies between child task lists
 - Provide a SAGA execution script that manages task list execution
 - Maintain git-trackable task definitions in `.saga/tasks/` (JSON format, human-viewable via dashboard)
+- Define SAGA-specific types in `saga-types` package, decoupled from Claude Code's task interface
 
 ## Success Metrics
 
 - Workers can execute task lists using native Tasks tools with proper status tracking
 - Task state is presented in the dashboard during execution
 - Cross-session task coordination works via `CLAUDE_CODE_TASK_LIST_ID`
-- Execution script handles pointer tasks and spawns workers for child task lists
+- Execution script handles child task lists and spawns workers in dependency order
+- Each leaf task list executes in its own worktree with dedicated branch and PR
 - Dashboard can visualize task list trees
 
 ## Scope
 
 ### In Scope
 
-- Task list JSON schema for SAGA (context tasks, pointer tasks, regular tasks, metadata conventions)
+- SAGA types in `saga-types` package (`TaskList`, `Task`, conversion layer)
+- `tasklist.json` metadata file for each task list (context, children, execution state)
 - Nested folder structure in `.saga/tasks/` with descriptive filenames
-- Hydration layer: copy only the relevant task list being executed from `.saga/tasks/` to `~/.claude/tasks/`
+- Hydration layer: convert SAGA tasks to Claude Code format, copy to `~/.claude/tasks/`
 - Sync layer via tool hooks: update status in `.saga/tasks/` using hooks on Tasks builtin tools
-- Execution script that manages task list execution (deterministic, spawns workers, handles pointer tasks)
-- Worker execution loop using native Tasks tools
-- Context task convention (first task in every list holds global context; workers read this for implementation guidance)
+- Execution script that manages task list execution (deterministic, spawns workers, handles children)
+- Context injection: task list context provided in worker prompt (not as a task)
+- Worker execution loop using native Tasks tools (only real tasks, no synthetic context task)
 - Skills for: breakdown (task list creation from defined goal), execution selection, review/discuss task lists
 - Dashboard visualization of task list trees
 
@@ -70,121 +69,203 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 
 Source of truth: `.saga/tasks/` with nested folders representing hierarchy.
 
+**Leaf task list** (simple feature, no nesting):
+```
+.saga/tasks/
+└── add-logout-button/
+    ├── tasklist.json           ← metadata: id, title, description, guidance
+    ├── write-tests.json        ← task
+    └── implement-button.json   ← task
+```
+
+**Coordinator task list** (complex feature with children):
 ```
 .saga/tasks/
 └── user-authentication/
-    ├── _context.json                    ← context task (id: "_context")
-    ├── setup-database.json              ← pointer task (id: "setup-database")
-    ├── implement-api.json               ← pointer task (id: "implement-api", blockedBy: ["setup-database"])
-    └── setup-database/
-        ├── _context.json                ← context task for this list
-        ├── write-migration-tests.json   ← regular task (id: "write-migration-tests")
-        ├── create-migrations.json       ← regular task (id: "create-migrations", blockedBy: ["write-migration-tests"])
-        └── add-seed-data.json           ← regular task (id: "add-seed-data", blockedBy: ["create-migrations"])
+    ├── tasklist.json           ← metadata + children array with dependencies
+    ├── setup-database/
+    │   ├── tasklist.json
+    │   ├── write-tests.json
+    │   └── create-migrations.json
+    └── implement-api/
+        ├── tasklist.json
+        └── add-endpoints.json
 ```
 
 Runtime (for native tool compatibility): `~/.claude/tasks/saga__<flattened-path>/`
 
-### Task Types
+### Task List Types
 
-**Context Task** (`_context.json`):
-- Always first in every task list
-- Holds goal overview, scope, conventions, guidance
-- References parent task list (if child)
-- Workers read this first for global context
+**Leaf Task List**:
+- Has `tasklist.json` with no `children` array (or empty)
+- Contains executable task files (`*.json`)
+- Executed by a single worker in its own worktree/branch/PR
+- Worker capsule: isolated execution environment
 
-**Pointer Task**:
-- References a child task list via `childPath` in metadata
-- Has `type: "pointer"` in metadata
-- Can have `blockedBy` dependencies on other pointer tasks in the same task list (no cross-list dependencies)
-- Status reflects child task list completion
+**Coordinator Task List**:
+- Has `tasklist.json` with `children` array defining dependencies
+- Contains child task list folders (no task files at this level)
+- Execution script processes children in dependency order
+- Not directly executable — orchestrates child execution
 
-**Regular Task**:
-- Executable work item
-- Has `subject`, `description`, `status`, `blockedBy`
-- Worker picks up, executes, marks completed
+### SAGA Types (in `saga-types` package)
 
-### Task JSON Schema
-
-```json
-{
-  "id": "write-migration-tests",
-  "subject": "Write migration tests",
-  "description": "Create test cases for database migrations...",
-  "activeForm": "Writing migration tests",
-  "status": "pending",
-  "blocks": [],
-  "blockedBy": [],
-  "metadata": {
-    "type": "task",
-    "guidance": "Follow TDD approach, write tests before implementation",
-    "doneWhen": "All migration test cases pass"
-  }
+**TaskList** (stored in `tasklist.json`):
+```typescript
+interface TaskList {
+  id: string;
+  title: string;
+  description: string;
+  guidance?: string;
+  doneWhen?: string;
+  avoid?: string;
+  status?: "pending" | "in_progress" | "completed";
+  // Coordinator only:
+  children?: Array<{
+    path: string;
+    blockedBy: string[];  // paths of sibling children
+  }>;
+  // Execution state (populated at runtime):
+  branch?: string;
+  pr?: string;
+  worktree?: string;
 }
 ```
 
-Pointer task example:
-```json
-{
-  "id": "setup-database",
-  "subject": "Setup database schema",
-  "description": "Create database schema for user authentication...",
-  "activeForm": "Setting up database",
-  "status": "pending",
-  "blocks": [],
-  "blockedBy": [],
-  "metadata": {
-    "type": "pointer",
-    "childPath": "setup-database/"
-  }
+**Task** (stored in `{id}.json`):
+```typescript
+interface Task {
+  id: string;
+  subject: string;
+  description: string;
+  activeForm?: string;
+  status: "pending" | "in_progress" | "completed";
+  blockedBy: string[];  // task IDs within same list
+  guidance?: string;
+  doneWhen?: string;
+}
+```
+
+### Conversion Layer
+
+SAGA tasks are converted to Claude Code format during hydration:
+
+```typescript
+function toClaudeTask(sagaTask: Task): ClaudeCodeTask {
+  return {
+    id: sagaTask.id,
+    subject: sagaTask.subject,
+    description: sagaTask.description,
+    activeForm: sagaTask.activeForm,
+    status: sagaTask.status,
+    blocks: [],  // computed from other tasks' blockedBy
+    blockedBy: sagaTask.blockedBy,
+    metadata: {
+      guidance: sagaTask.guidance,
+      doneWhen: sagaTask.doneWhen,
+    },
+  };
+}
+
+function fromClaudeTask(claudeTask: ClaudeCodeTask): Partial<Task> {
+  return {
+    status: claudeTask.status,
+    // Only sync status back; other fields are source-controlled
+  };
 }
 ```
 
 ### Hydration & Sync
 
 **Hydration (before execution):**
-1. Read the specific task list being executed from `.saga/tasks/<path>/`
-2. Create `~/.claude/tasks/saga__<flattened-path>/`
-3. Copy all `.json` files for that task list only
-4. Write `.highwatermark` file with next available ID
+1. Read `tasklist.json` for context (used in worker prompt)
+2. Read task files from `.saga/tasks/<path>/`
+3. Convert each SAGA task to Claude Code format
+4. Create `~/.claude/tasks/saga__<flattened-path>/`
+5. Write converted task files
+6. Write `.highwatermark` file
 
 **Sync (via tool hooks):**
-- Tool hooks are registered for Tasks builtin tools (`TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`)
-- Hooks intercept tool calls and sync status changes to `.saga/tasks/<path>/`
-- Cleanup of `~/.claude/tasks/saga__<flattened-path>/` happens after task list execution completes
+- Tool hooks registered for `TaskUpdate` (and optionally `TaskCreate`)
+- Hooks intercept status changes and update `.saga/tasks/<path>/*.json`
+- Only status is synced back (other fields are source-controlled in SAGA)
+- Cleanup of `~/.claude/tasks/saga__<flattened-path>/` after execution completes
 
 ### SAGA Execution Script
 
-A deterministic script manages task list execution. It handles both regular tasks and pointer tasks:
+A deterministic script manages task list execution:
 
-1. Hydrate task list to `~/.claude/tasks/`
-2. Spawn headless worker: `CLAUDE_CODE_TASK_LIST_ID=saga__<path> claude -p "..."`
-3. Worker executes all regular tasks in dependency order
-4. When the script encounters a pointer task:
-   - Recursively execute the child task list
-   - Mark pointer task as completed when child list finishes
+**For a leaf task list:**
+1. Create worktree and branch for this task list
+2. Read `tasklist.json` for context
+3. Hydrate task files to `~/.claude/tasks/`
+4. Spawn headless worker with context in prompt:
+   ```bash
+   CLAUDE_CODE_ENABLE_TASKS=true \
+   CLAUDE_CODE_TASK_LIST_ID=saga__<path> \
+   claude -p "You are working on: ${title}
+
+   ${description}
+
+   Guidance: ${guidance}
+
+   Done when: ${doneWhen}
+
+   Execute the tasks in the task list using TaskList, TaskGet, and TaskUpdate."
+   ```
 5. Tool hooks sync status to `.saga/tasks/` during execution
 6. Clean up `~/.claude/tasks/` after completion
+7. Create PR for the branch
 
-**Required environment variables for headless execution:**
-```bash
-CLAUDE_CODE_ENABLE_TASKS=true CLAUDE_CODE_TASK_LIST_ID=saga__<path> claude -p "..."
-```
-
-For a flat task list (no pointers), the orchestrator simply hydrates, spawns one worker, syncs, and cleans up.
+**For a coordinator task list:**
+1. Read `tasklist.json` to get children and dependencies
+2. Execute children in dependency order (respecting `blockedBy`)
+3. For each child: recursively call execution script
+4. Mark coordinator as completed when all children complete
 
 ### Worker Execution Loop
 
-Each worker (inside a child task list):
+Each worker (inside a leaf task list) receives context via prompt, then:
 
-1. `TaskGet("_context")` → load global context
-2. `TaskList` → find next pending unblocked task
-3. `TaskGet(<task-id>)` → load full description
-4. Execute the work (write code, run tests, etc.)
-5. `TaskUpdate(<task-id>, status: "completed")`
-6. Repeat until all tasks done
+1. `TaskList` → find next pending unblocked task
+2. `TaskGet(<task-id>)` → load full description
+3. Execute the work (write code, run tests, etc.)
+4. `TaskUpdate(<task-id>, status: "completed")`
+5. Repeat until all tasks done
+
+Workers only see real executable tasks — no synthetic context task.
 
 ## Key Decisions
+
+### SAGA Types Decoupled from Claude Code
+
+- **Choice**: Define SAGA-specific types in `saga-types` package with conversion layer
+- **Rationale**: SAGA can evolve independently. If Claude Code's interface changes, only the conversion layer needs updating. First-class fields for `guidance`, `doneWhen`, etc. instead of generic `metadata`.
+- **Alternatives**: Directly use Claude Code's task schema (rejected: tight coupling, SAGA fields buried in metadata)
+
+### Context in Prompt, Not as Task
+
+- **Choice**: Inject task list context into worker prompt, not as a `_context` task
+- **Rationale**: Workers only see real executable tasks. Cleaner `TaskList` output. Context belongs in the prompt, not as a fake task.
+- **Alternatives**: Synthetic `_context` task (rejected: pollutes task list, workers must skip it)
+
+### tasklist.json for Metadata
+
+- **Choice**: Each task list has `tasklist.json` with metadata, separate from task files
+- **Rationale**: Clean separation of list metadata vs individual tasks. Children/dependencies defined in one place.
+- **Alternatives**: Context as first task (rejected: conflates metadata with tasks)
+
+### Children in tasklist.json, Not Pointer Tasks
+
+- **Choice**: Coordinator task lists define children in `tasklist.json`, not as "pointer tasks"
+- **Rationale**: Children are not tasks — they're references to other task lists. Cleaner model: task lists contain only real tasks.
+- **Alternatives**: Pointer tasks (rejected: confusing, mixes orchestration with execution)
+
+### Leaf vs Coordinator Distinction
+
+- **Choice**: Task list is either a leaf (has tasks) or coordinator (has children), not both
+- **Rationale**: Each leaf = one worker capsule = one worktree/branch/PR. Clear execution model.
+- **Alternatives**: Mixed task lists with both tasks and children (rejected: unclear execution semantics)
 
 ### Native Tasks as Runtime, SAGA as Source of Truth
 
@@ -198,18 +279,6 @@ Each worker (inside a child task list):
 - **Rationale**: Human-readable in file explorer, self-documenting. Claude Code accepts non-numeric string IDs.
 - **Alternatives**: Numeric IDs (rejected: not human-readable), hash IDs (rejected: opaque)
 
-### Nested Folders for Hierarchy
-
-- **Choice**: Child task lists are subfolders of their parent
-- **Rationale**: Visual hierarchy in file explorer, natural grouping, easy to navigate
-- **Alternatives**: Flat with `--` separators (rejected: loses visual hierarchy)
-
-### Context as First Task
-
-- **Choice**: `_context.json` is always present, holds global context
-- **Rationale**: Workers load context through same interface (`TaskGet`), no separate files needed
-- **Alternatives**: Separate `context.json` outside task list (rejected: inconsistent interface)
-
 ### Drop Epic/Story Terminology
 
 - **Choice**: Everything is a "task list", no distinction between epic and story
@@ -218,7 +287,23 @@ Each worker (inside a child task list):
 
 ## Data Models
 
-### Task Schema
+### TaskList Schema (tasklist.json)
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string | Yes | Unique identifier, matches folder name |
+| title | string | Yes | Human-readable title |
+| description | string | Yes | Full context for the task list goal |
+| guidance | string | No | How to approach the work |
+| doneWhen | string | No | Completion criteria |
+| avoid | string | No | Patterns to avoid |
+| status | enum | No | "pending", "in_progress", "completed" |
+| children | array | No | Child task lists with dependencies (coordinator only) |
+| branch | string | No | Git branch name (populated at execution) |
+| pr | string | No | Pull request URL (populated at execution) |
+| worktree | string | No | Worktree path (populated at execution) |
+
+### Task Schema ({id}.json)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -227,20 +312,16 @@ Each worker (inside a child task list):
 | description | string | Yes | Full context for execution |
 | activeForm | string | No | Present continuous for spinner ("Writing tests") |
 | status | enum | Yes | "pending", "in_progress", "completed" |
-| blocks | string[] | Yes | Task IDs that wait on this task |
 | blockedBy | string[] | Yes | Task IDs that must complete first |
-| metadata | object | No | Type, guidance, doneWhen, childPath, etc. |
+| guidance | string | No | How to approach the work |
+| doneWhen | string | No | Completion criteria |
 
-### Metadata Fields
+### Child Reference Schema (in tasklist.json children array)
 
-| Field | Used In | Description |
-|-------|---------|-------------|
-| type | All | "context", "pointer", or "task" |
-| childPath | Pointer | Relative path to child task list folder |
-| parent | Context | ID of parent pointer task (for child lists) |
-| guidance | Task | How to approach the work |
-| doneWhen | Task | Completion criteria |
-| avoid | Task | Patterns to avoid |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| path | string | Yes | Relative path to child task list folder |
+| blockedBy | string[] | Yes | Paths of sibling children that must complete first |
 
 ## Interface Contracts
 
@@ -249,30 +330,34 @@ Each worker (inside a child task list):
 ```
 hydrate(sagaPath: string): void
   - Input: path relative to .saga/tasks/ (e.g., "user-authentication/setup-database")
-  - Output: Creates ~/.claude/tasks/saga__user-authentication__setup-database/
-  - Copies all .json files, writes .highwatermark
+  - Reads: tasklist.json (for context), *.json task files
+  - Converts: SAGA tasks to Claude Code format
+  - Output: Creates ~/.claude/tasks/saga__<flattened-path>/ with converted tasks
+  - Returns: TaskList metadata for prompt injection
 ```
 
 ### Sync via Tool Hooks
 
 ```
-Tool hooks registered for: TaskCreate, TaskUpdate, TaskList, TaskGet
-  - Intercept tool calls during worker execution
-  - Sync status changes to .saga/tasks/<path>/*.json in real-time
+Tool hooks registered for: TaskUpdate
+  - Intercept status changes during worker execution
+  - Update status in .saga/tasks/<path>/*.json
   - Cleanup ~/.claude/tasks/saga__<flattened-path>/ after execution completes
 ```
 
 ### Execution Script
 
 ```
-execute(rootPath: string): void
-  - Input: root task list path (e.g., "user-authentication")
-  - Output: All child task lists executed in dependency order
-  - Spawns workers, handles pointer tasks, monitors completion
+execute(taskListPath: string): void
+  - Input: task list path (e.g., "user-authentication")
+  - For leaf: create worktree, hydrate, spawn worker, create PR
+  - For coordinator: execute children in dependency order
+  - Output: All tasks/children completed, PRs created
 ```
 
 ## Tech Stack
 
+- **Types**: `saga-types` package with Zod schemas
 - **Storage**: JSON files in `.saga/tasks/` (source of truth) and `~/.claude/tasks/` (runtime)
 - **Execution**: Claude Code headless mode with `CLAUDE_CODE_TASK_LIST_ID`
 - **Orchestration**: Bash scripts or Node.js for spawning workers and monitoring
@@ -282,4 +367,6 @@ execute(rootPath: string): void
 
 1. **`.highwatermark` management**: Claude Code uses this for auto-increment. When SAGA pre-populates task files with string IDs, what should `.highwatermark` contain? Needs investigation.
 
-2. **Dashboard migration**: Dashboard currently reads `.saga/epics/` and `.saga/stories/`. Needs update to read `.saga/tasks/` tree structure and visualize pointer/child relationships.
+2. **Dashboard migration**: Dashboard currently reads `.saga/epics/` and `.saga/stories/`. Needs update to read `.saga/tasks/` tree structure and visualize task list hierarchy.
+
+3. **Worktree/branch naming convention**: How should worktree paths and branch names be derived from task list paths? Need consistent, collision-free naming.
