@@ -28,7 +28,7 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 - Workers can execute task lists using native Tasks tools with proper status tracking
 - Task state is presented in the dashboard during execution
 - Cross-session task coordination works via `CLAUDE_CODE_TASK_LIST_ID`
-- Execution script handles child task lists and spawns workers in dependency order
+- Execution script handles leaf task list execution end-to-end (worktree, hydration, worker, PR)
 - Each leaf task list executes in its own worktree with dedicated branch and PR
 - Dashboard can visualize task list trees
 
@@ -42,7 +42,7 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 - Flat folder structure in `.saga/tasks/` with canonical naming convention (`--` as hierarchy separator)
 - Hydration layer: convert SAGA tasks to Claude Code format, copy to `~/.claude/tasks/`
 - Sync layer via tool hooks: update status in `.saga/tasks/` using hooks on Tasks builtin tools
-- Execution script that manages task list execution (deterministic, spawns workers, handles children)
+- Execution script that manages leaf task list execution (deterministic, spawns worker, creates PR)
 - Context injection: task list context provided in worker prompt (not as a task)
 - Worker execution loop using native Tasks tools (only real tasks, no synthetic context task)
 - Skills for: breakdown (task list creation from defined goal), execution selection, review/discuss task lists
@@ -51,6 +51,7 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 ### Out of Scope
 
 - Goal definition process (interactive brainstorming to define what to build) — separate effort
+- Coordinator task list orchestration (automated traversal of children in dependency order)
 - Parallel worker execution (start with sequential, add parallelism later)
 - Import from external systems (JIRA, Linear, etc.)
 - Changes to Claude Code's native Tasks tools themselves
@@ -154,6 +155,24 @@ interface Task {
 }
 ```
 
+### ClaudeCodeTask Type
+
+Derived from Claude Code's built-in Tasks tools (`TaskCreate`, `TaskGet`, `TaskUpdate`, `TaskList`):
+
+```typescript
+interface ClaudeCodeTask {
+  id: string;
+  subject: string;
+  description: string;
+  activeForm?: string;
+  status: "pending" | "in_progress" | "completed";
+  owner?: string;
+  blocks: string[];     // task IDs that this task blocks
+  blockedBy: string[];  // task IDs that block this task
+  metadata?: Record<string, unknown>;
+}
+```
+
 ### Conversion Layer
 
 SAGA tasks are converted to Claude Code format during hydration:
@@ -202,13 +221,14 @@ function fromClaudeTask(claudeTask: ClaudeCodeTask): Partial<Task> {
 
 ### SAGA Execution Script
 
-A deterministic script manages task list execution:
+A deterministic script manages leaf task list execution:
 
 **For a leaf task list:**
 1. Create worktree and branch for this task list
-2. Read `tasklist.json` for context
-3. Hydrate task files to `~/.claude/tasks/`
-4. Spawn headless worker with context in prompt:
+2. Create draft PR for the branch (allows dashboard tracking from the start; draft PRs can be created on empty branches via `gh pr create --draft`)
+3. Read `tasklist.json` for context
+4. Hydrate task files to `~/.claude/tasks/`
+5. Spawn headless worker with context in prompt:
    ```bash
    CLAUDE_CODE_ENABLE_TASKS=true \
    CLAUDE_CODE_TASK_LIST_ID=saga__<canonicalName> \
@@ -222,15 +242,11 @@ A deterministic script manages task list execution:
 
    Execute the tasks in the task list using TaskList, TaskGet, and TaskUpdate."
    ```
-5. Tool hooks sync status to `.saga/tasks/` during execution
-6. Clean up `~/.claude/tasks/` after completion
-7. Create PR for the branch
+6. Tool hooks sync status to `.saga/tasks/` during execution
+7. Clean up `~/.claude/tasks/` after completion
+8. Mark PR as ready for review
 
-**For a coordinator task list:**
-1. Read `tasklist.json` to get children and dependencies
-2. Execute children sequentially in dependency order (respecting `blockedBy`)
-3. For each child: recursively call execution script
-4. Mark coordinator as completed when all children complete
+The execution script only handles leaf task lists. Coordinator orchestration (traversing children, respecting dependencies) is out of scope — the user selects which leaf task list to execute via a plugin skill.
 
 ### Worker Execution Loop
 
@@ -266,11 +282,6 @@ Workers self-terminate when `TaskList` shows all tasks completed. The execution 
 - Status drift between `~/.claude/tasks/` and `.saga/tasks/` is possible but recoverable
 - Post-execution reconciliation: execution script reads final state from `~/.claude/tasks/` and writes it to `.saga/tasks/` as a fallback
 
-**Coordinator child failure:**
-- If a child task list fails, the coordinator stops executing further children
-- Children that depend on the failed child (via `blockedBy`) are not attempted
-- Coordinator is marked as failed; user decides whether to retry or intervene
-
 ## Integration with Existing Infrastructure
 
 This is not a complete rewrite. SAGA has established mechanisms for worktree isolation, context detection, scope validation, and session management. The new task list system builds on these foundations.
@@ -281,7 +292,7 @@ This is not a complete rewrite. SAGA has established mechanisms for worktree iso
 |-----------|-----------------|-------------|
 | **SessionStart hook** | `hooks/session-init.sh` | Reused for context detection; updated to recognize task list worktrees |
 | **Worktree creation** | `scripts/worktree.js` | Extended to create worktrees for leaf task lists |
-| **Orchestrator** | `scripts/implement.js` | Refactored to become the execution script; handles task list tree traversal |
+| **Orchestrator** | `scripts/implement.js` | Refactored to become the execution script; handles leaf task list execution |
 | **Scope validator** | `scripts/scope-validator.js` | Updated to validate worker access based on task list path |
 | **Tmux sessions** | Used by implement.js | Preserved for detached execution and dashboard monitoring |
 | **Dashboard file watcher** | `packages/dashboard/watcher.ts` | Updated to watch `.saga/tasks/` in addition to `.saga/epics/` |
@@ -522,10 +533,12 @@ Tool hooks registered for: TaskUpdate
 
 ```
 execute(canonicalName: string): void
-  - Input: canonical task list name (e.g., "user-authentication")
-  - For leaf: create worktree, hydrate, spawn worker, create PR
-  - For coordinator: execute children sequentially in dependency order
-  - Output: All tasks/children completed, PRs created
+  - Input: canonical name of a leaf task list (e.g., "user-authentication--setup-database")
+  - Creates worktree and branch, creates draft PR
+  - Hydrates task files to ~/.claude/tasks/
+  - Spawns headless worker, waits for completion
+  - Cleans up runtime files, marks PR ready for review
+  - Output: All tasks completed, PR ready
 ```
 
 ## Tech Stack
