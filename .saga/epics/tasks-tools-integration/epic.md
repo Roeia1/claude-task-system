@@ -23,15 +23,15 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 - Enable workers to execute using Claude Code's native Tasks tools (`TaskList` → `TaskGet` → execute → `TaskUpdate`)
 - Replace markdown epic/story files with structured JSON task lists
 - Support task list nesting with dependencies between child task lists
-- Provide a SAGA orchestrator that manages the task list tree execution
-- Maintain git-trackable, human-readable task definitions in `.saga/tasks/`
+- Provide a SAGA execution script that manages task list execution
+- Maintain git-trackable task definitions in `.saga/tasks/` (JSON format, human-viewable via dashboard)
 
 ## Success Metrics
 
 - Workers can execute task lists using native Tasks tools with proper status tracking
-- Task state is visible via `Ctrl+T` in interactive mode during execution
+- Task state is presented in the dashboard during execution
 - Cross-session task coordination works via `CLAUDE_CODE_TASK_LIST_ID`
-- Orchestrator can run child task lists sequentially based on dependencies
+- Execution script handles pointer tasks and spawns workers for child task lists
 - Dashboard can visualize task list trees
 
 ## Scope
@@ -40,14 +40,13 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 
 - Task list JSON schema for SAGA (context tasks, pointer tasks, regular tasks, metadata conventions)
 - Nested folder structure in `.saga/tasks/` with descriptive filenames
-- Hydration layer: copy from `.saga/tasks/` to `~/.claude/tasks/` at execution time
-- Sync layer: update status in `.saga/tasks/` after execution, cleanup `~/.claude/tasks/`
-- SAGA orchestrator that manages task list tree (spawn workers, monitor completion, propagate status)
+- Hydration layer: copy only the relevant task list being executed from `.saga/tasks/` to `~/.claude/tasks/`
+- Sync layer via tool hooks: update status in `.saga/tasks/` using hooks on Tasks builtin tools
+- Execution script that manages task list execution (deterministic, spawns workers, handles pointer tasks)
 - Worker execution loop using native Tasks tools
-- Context task convention (first task in every list holds global context)
-- Skills for: breakdown (task list creation from defined goal), execution (orchestrator), review/discuss task lists
+- Context task convention (first task in every list holds global context; workers read this for implementation guidance)
+- Skills for: breakdown (task list creation from defined goal), execution selection, review/discuss task lists
 - Dashboard visualization of task list trees
-- Migration path from existing `.saga/epics/` and `.saga/stories/` markdown files
 
 ### Out of Scope
 
@@ -55,10 +54,11 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 - Parallel worker execution (start with sequential, add parallelism later)
 - Import from external systems (JIRA, Linear, etc.)
 - Changes to Claude Code's native Tasks tools themselves
+- Backward compatibility with existing `.saga/epics/` and `.saga/stories/` markdown files
 
 ## Non-Functional Requirements
 
-- Task list files must be human-inspectable (readable JSON with descriptive filenames)
+- Task list files stored as JSON (viewable via dashboard for human-readable presentation)
 - Filename and task ID must always be in sync (`{id}.json`)
 - Workers must handle context window limits (task descriptions must be self-contained)
 - Must work with Claude Code v2.1.30+ headless mode (requires `CLAUDE_CODE_ENABLE_TASKS=true`)
@@ -83,7 +83,7 @@ Source of truth: `.saga/tasks/` with nested folders representing hierarchy.
         └── add-seed-data.json           ← regular task (id: "add-seed-data", blockedBy: ["create-migrations"])
 ```
 
-Runtime (for native tool compatibility): `~/.claude/tasks/saga--<flattened-path>/`
+Runtime (for native tool compatibility): `~/.claude/tasks/saga__<flattened-path>/`
 
 ### Task Types
 
@@ -94,9 +94,9 @@ Runtime (for native tool compatibility): `~/.claude/tasks/saga--<flattened-path>
 - Workers read this first for global context
 
 **Pointer Task**:
-- References a child task list via `childPath`
+- References a child task list via `childPath` in metadata
 - Has `type: "pointer"` in metadata
-- Can have `blockedBy` dependencies on other pointer tasks
+- Can have `blockedBy` dependencies on other pointer tasks in the same task list (no cross-list dependencies)
 - Status reflects child task list completion
 
 **Regular Task**:
@@ -114,7 +114,7 @@ Runtime (for native tool compatibility): `~/.claude/tasks/saga--<flattened-path>
   "activeForm": "Writing migration tests",
   "status": "pending",
   "blocks": [],
-  "blockedBy": ["_context"],
+  "blockedBy": [],
   "metadata": {
     "type": "task",
     "guidance": "Follow TDD approach, write tests before implementation",
@@ -143,32 +143,32 @@ Pointer task example:
 ### Hydration & Sync
 
 **Hydration (before execution):**
-1. Read task list from `.saga/tasks/<path>/`
-2. Create `~/.claude/tasks/saga--<flattened-path>/`
-3. Copy all `.json` files
+1. Read the specific task list being executed from `.saga/tasks/<path>/`
+2. Create `~/.claude/tasks/saga__<flattened-path>/`
+3. Copy all `.json` files for that task list only
 4. Write `.highwatermark` file with next available ID
 
-**Sync (after execution):**
-1. Read task statuses from `~/.claude/tasks/saga--<flattened-path>/`
-2. Update corresponding files in `.saga/tasks/<path>/`
-3. Delete `~/.claude/tasks/saga--<flattened-path>/`
+**Sync (via tool hooks):**
+- Tool hooks are registered for Tasks builtin tools (`TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`)
+- Hooks intercept tool calls and sync status changes to `.saga/tasks/<path>/`
+- Cleanup of `~/.claude/tasks/saga__<flattened-path>/` happens after task list execution completes
 
-### SAGA Orchestrator
+### SAGA Execution Script
 
-The orchestrator manages task list execution. It handles both regular tasks and pointer tasks:
+A deterministic script manages task list execution. It handles both regular tasks and pointer tasks:
 
 1. Hydrate task list to `~/.claude/tasks/`
-2. Spawn headless worker: `CLAUDE_CODE_TASK_LIST_ID=saga--<path> claude -p "..."`
+2. Spawn headless worker: `CLAUDE_CODE_TASK_LIST_ID=saga__<path> claude -p "..."`
 3. Worker executes all regular tasks in dependency order
-4. When worker encounters a pointer task, orchestrator takes over:
+4. When the script encounters a pointer task:
    - Recursively execute the child task list
    - Mark pointer task as completed when child list finishes
-5. Sync status back to `.saga/tasks/`
-6. Clean up `~/.claude/tasks/`
+5. Tool hooks sync status to `.saga/tasks/` during execution
+6. Clean up `~/.claude/tasks/` after completion
 
 **Required environment variables for headless execution:**
 ```bash
-CLAUDE_CODE_ENABLE_TASKS=true CLAUDE_CODE_TASK_LIST_ID=saga--<path> claude -p "..."
+CLAUDE_CODE_ENABLE_TASKS=true CLAUDE_CODE_TASK_LIST_ID=saga__<path> claude -p "..."
 ```
 
 For a flat task list (no pointers), the orchestrator simply hydrates, spawns one worker, syncs, and cleans up.
@@ -249,26 +249,26 @@ Each worker (inside a child task list):
 ```
 hydrate(sagaPath: string): void
   - Input: path relative to .saga/tasks/ (e.g., "user-authentication/setup-database")
-  - Output: Creates ~/.claude/tasks/saga--user-authentication--setup-database/
+  - Output: Creates ~/.claude/tasks/saga__user-authentication__setup-database/
   - Copies all .json files, writes .highwatermark
 ```
 
-### Sync Service
+### Sync via Tool Hooks
 
 ```
-sync(sagaPath: string): void
-  - Input: path relative to .saga/tasks/
-  - Output: Updates status fields in .saga/tasks/<path>/*.json
-  - Deletes ~/.claude/tasks/saga--<flattened-path>/
+Tool hooks registered for: TaskCreate, TaskUpdate, TaskList, TaskGet
+  - Intercept tool calls during worker execution
+  - Sync status changes to .saga/tasks/<path>/*.json in real-time
+  - Cleanup ~/.claude/tasks/saga__<flattened-path>/ after execution completes
 ```
 
-### Orchestrator
+### Execution Script
 
 ```
 execute(rootPath: string): void
   - Input: root task list path (e.g., "user-authentication")
   - Output: All child task lists executed in dependency order
-  - Spawns workers, monitors completion, propagates status
+  - Spawns workers, handles pointer tasks, monitors completion
 ```
 
 ## Tech Stack
@@ -280,12 +280,6 @@ execute(rootPath: string): void
 
 ## Open Questions
 
-1. **Naming convention for flattened paths**: When hydrating nested paths like `user-authentication/setup-database/` to `~/.claude/tasks/`, use `saga--user-authentication--setup-database`. Is `--` the right separator? Could conflict with task IDs that contain `--`.
+1. **`.highwatermark` management**: Claude Code uses this for auto-increment. When SAGA pre-populates task files with string IDs, what should `.highwatermark` contain? Needs investigation.
 
-2. **`.highwatermark` management**: Claude Code uses this for auto-increment. When SAGA pre-populates task files with string IDs, what should `.highwatermark` contain? Needs investigation.
-
-3. **Cross-list dependencies**: A pointer task in list A can `blockedBy` another pointer in list A. But can a regular task in child list B depend on a task in sibling child list C? Likely no — keep dependencies within a single task list.
-
-4. **Dashboard migration**: Dashboard currently reads `.saga/epics/` and `.saga/stories/`. Needs update to read `.saga/tasks/` tree structure and visualize pointer/child relationships.
-
-5. **Backward compatibility**: Should SAGA support both old `.saga/epics/` format and new `.saga/tasks/` format during transition? Or require migration?
+2. **Dashboard migration**: Dashboard currently reads `.saga/epics/` and `.saga/stories/`. Needs update to read `.saga/tasks/` tree structure and visualize pointer/child relationships.
