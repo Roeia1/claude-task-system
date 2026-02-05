@@ -36,6 +36,7 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 
 ### In Scope
 
+- Integration with existing infrastructure (hooks, worktree.js, implement.js, scope-validator.js)
 - SAGA types in `saga-types` package (`TaskList`, `Task`, conversion layer)
 - `tasklist.json` metadata file for each task list (context, children, execution state)
 - Nested folder structure in `.saga/tasks/` with descriptive filenames
@@ -235,6 +236,133 @@ Each worker (inside a leaf task list) receives context via prompt, then:
 
 Workers only see real executable tasks — no synthetic context task.
 
+## Integration with Existing Infrastructure
+
+This is not a complete rewrite. SAGA has established mechanisms for worktree isolation, context detection, scope validation, and session management. The new task list system builds on these foundations.
+
+### Preserved Mechanisms
+
+| Mechanism | Current Location | Integration |
+|-----------|-----------------|-------------|
+| **SessionStart hook** | `hooks/session-init.sh` | Reused for context detection; updated to recognize task list worktrees |
+| **Worktree creation** | `scripts/worktree.js` | Extended to create worktrees for leaf task lists |
+| **Orchestrator** | `scripts/implement.js` | Refactored to become the execution script; handles task list tree traversal |
+| **Scope validator** | `scripts/scope-validator.js` | Updated to validate worker access based on task list path |
+| **Tmux sessions** | Used by implement.js | Preserved for detached execution and dashboard monitoring |
+| **Dashboard file watcher** | `packages/dashboard/watcher.ts` | Updated to watch `.saga/tasks/` in addition to `.saga/epics/` |
+
+### Environment Variables
+
+The existing environment variable pattern is preserved and extended:
+
+**Core Variables (set by SessionStart hook):**
+| Variable | Current | New |
+|----------|---------|-----|
+| `SAGA_PROJECT_DIR` | Project root or worktree root | Unchanged |
+| `SAGA_PLUGIN_ROOT` | Plugin installation path | Unchanged |
+| `SAGA_TASK_CONTEXT` | `"main"` or `"story-worktree"` | `"main"` or `"tasklist-worktree"` |
+| `SAGA_SESSION_DIR` | `/tmp/saga-sessions` | Unchanged |
+
+**Worker Variables (set by execution script before spawning):**
+| Variable | Current | New |
+|----------|---------|-----|
+| `SAGA_EPIC_SLUG` | Epic identifier | Deprecated (use `SAGA_TASK_LIST_PATH`) |
+| `SAGA_STORY_SLUG` | Story identifier | Deprecated (use `SAGA_TASK_LIST_PATH`) |
+| `SAGA_STORY_DIR` | Path to story.md in worktree | Deprecated |
+| `SAGA_TASK_LIST_PATH` | N/A | Task list path (e.g., `"user-auth/setup-db"`) |
+| `SAGA_TASK_LIST_ID` | N/A | Flattened ID for Claude Code (e.g., `"saga__user-auth--setup-db"`) |
+
+### Context Detection
+
+The SessionStart hook (`hooks/session-init.sh`) detects execution context by checking if `.git` is a file (worktree) or directory (main repo):
+
+```bash
+if [ -f .git ]; then
+    # Inside a worktree - check if it's a task list worktree
+    worktree_path=$(pwd)
+    if [[ "$worktree_path" == *".saga/worktrees/tasks/"* ]]; then
+        SAGA_TASK_CONTEXT="tasklist-worktree"
+        # Extract task list path from worktree location
+        SAGA_TASK_LIST_PATH=$(echo "$worktree_path" | sed 's|.*\.saga/worktrees/tasks/||')
+    else
+        SAGA_TASK_CONTEXT="story-worktree"  # Legacy support
+    fi
+else
+    SAGA_TASK_CONTEXT="main"
+fi
+```
+
+### Worktree and Branch Naming
+
+**Answer to Open Question #3:**
+
+Task list paths are flattened using `--` as separator for collision-free, filesystem-safe names:
+
+| Task List Path | Branch Name | Worktree Path |
+|---------------|-------------|---------------|
+| `add-logout-button` | `tasklist/add-logout-button` | `.saga/worktrees/tasks/add-logout-button/` |
+| `user-auth/setup-db` | `tasklist/user-auth--setup-db` | `.saga/worktrees/tasks/user-auth--setup-db/` |
+| `user-auth/api/endpoints` | `tasklist/user-auth--api--endpoints` | `.saga/worktrees/tasks/user-auth--api--endpoints/` |
+
+**Rationale:**
+- `--` chosen over `/` (invalid in branch names) and `__` (used for Claude Code task list ID prefix)
+- Branch prefix `tasklist/` provides clear namespace separation from legacy `story-*` branches
+- Worktree path is flat (not nested) to simplify cleanup and avoid deep directory structures
+
+### Tmux Session Management
+
+The execution script spawns workers in detached tmux sessions, preserving the existing pattern:
+
+**Session naming:** `saga__tasklist__<flattened-path>__<pid>`
+
+Example: `saga__tasklist__user-auth--setup-db__12345`
+
+**Dashboard integration:**
+- Dashboard reads tmux sessions via `tmux list-sessions`
+- Filters by `saga__tasklist__` prefix to identify task list executions
+- Streams output from session output files for real-time monitoring
+
+### Scope Validation
+
+The scope validator is updated to use task list context:
+
+```javascript
+// Current: uses SAGA_EPIC_SLUG and SAGA_STORY_SLUG
+const allowedPaths = [
+  `.saga/epics/${epicSlug}/stories/${storySlug}/`,
+  // ... other allowed paths
+];
+
+// New: uses SAGA_TASK_LIST_PATH
+const taskListPath = process.env.SAGA_TASK_LIST_PATH;
+const allowedPaths = [
+  `.saga/tasks/${taskListPath}/`,
+  // Project files (for implementation work)
+  // ... other allowed paths
+];
+```
+
+### Dashboard Migration Path
+
+The dashboard needs to support both systems during transition:
+
+1. **Phase 1**: Add `.saga/tasks/` scanner alongside existing `.saga/epics/` scanner
+2. **Phase 2**: Unified view showing both legacy stories and new task lists
+3. **Phase 3**: Deprecate `.saga/epics/` support once migration complete
+
+File watcher updates:
+```typescript
+// Current paths
+const watchPaths = ['.saga/epics/', '.saga/archive/'];
+
+// New paths (additive)
+const watchPaths = [
+  '.saga/epics/',    // Legacy support
+  '.saga/archive/',  // Legacy support
+  '.saga/tasks/',    // New task lists
+];
+```
+
 ## Key Decisions
 
 ### SAGA Types Decoupled from Claude Code
@@ -369,4 +497,4 @@ execute(taskListPath: string): void
 
 2. **Dashboard migration**: Dashboard currently reads `.saga/epics/` and `.saga/stories/`. Needs update to read `.saga/tasks/` tree structure and visualize task list hierarchy.
 
-3. **Worktree/branch naming convention**: How should worktree paths and branch names be derived from task list paths? Need consistent, collision-free naming.
+3. ~~**Worktree/branch naming convention**~~: **Resolved** — See "Integration with Existing Infrastructure > Worktree and Branch Naming" section. Uses `--` as path separator, `tasklist/` branch prefix, flat worktree structure.
