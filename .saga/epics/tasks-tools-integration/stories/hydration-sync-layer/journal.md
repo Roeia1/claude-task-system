@@ -26,3 +26,35 @@
 - t3: Implement hydration service tests (service.ts exists but needs dedicated unit tests)
 - t4: Create sync hook script
 - t5: Namespace tests (namespace.ts exists but needs dedicated unit tests)
+
+## Session 2: 2026-02-06
+
+### Task: t2 - Implement SAGA-to-Claude task conversion
+
+**What was done:**
+- Created `packages/plugin-scripts/src/hydrate/conversion.ts` - Conversion module with `convertTask()`, `convertTasks()`, and `extractStatus()` functions
+- Created `packages/plugin-scripts/src/hydrate/conversion.test.ts` - 19 unit tests covering all conversion scenarios
+- Refactored `service.ts` to import `convertTasks` from the new `conversion.ts` module instead of using inline logic
+- All 26 hydrate tests pass (19 new + 7 existing CLI tests), lint clean
+
+**Decisions:**
+- Named the single-task function `convertTask(task, allTasks)` to clearly show it needs the full task list for `blocks` computation
+- Named the sync-back function `extractStatus()` instead of re-exporting `fromClaudeTask` directly, to make the intent clearer in plugin-scripts context
+- Kept `convertTasks(tasks)` as a batch wrapper that calls `convertTask` for each task with the full list
+- The `blocks` computation logic (scanning all tasks for `blockedBy` references) was extracted from `service.ts` into `conversion.ts`
+
+**Tests cover:**
+- Normal field mapping (id, subject, description, status, blockedBy)
+- Optional activeForm preservation
+- guidance/doneWhen → metadata mapping (both, only guidance, only doneWhen, neither)
+- blocks computation (empty, single blocker, multiple blockers, self-reference)
+- blockedBy preservation from original task
+- Batch conversion with correct blocks across task graph
+- Empty input, single task, ordering preservation
+- extractStatus for all three status values
+- extractStatus ignoring metadata, owner, blocks, and other Claude Code-specific fields
+
+**Next steps:**
+- t3: Implement hydration service tests (service.ts exists but needs dedicated unit tests)
+- t4: Create sync hook script
+- t5: Namespace tests (namespace.ts exists but needs dedicated unit tests)

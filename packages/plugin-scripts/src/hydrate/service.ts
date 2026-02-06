@@ -12,8 +12,8 @@ import {
   StorySchema,
   type Task,
   TaskSchema,
-  toClaudeTask,
 } from '@saga-ai/types';
+import { convertTasks } from './conversion.ts';
 import { generateTaskListId, getTaskListDir } from './namespace.ts';
 
 // ============================================================================
@@ -79,20 +79,6 @@ function readTasks(storyDir: string): Task[] {
     }
   }
   return tasks;
-}
-
-/**
- * Convert SAGA tasks to Claude Code format with computed blocks.
- */
-function convertTasks(tasks: Task[]): ClaudeCodeTask[] {
-  return tasks.map((task) => {
-    const blocks = tasks
-      .filter((other) => other.blockedBy.includes(task.id))
-      .map((other) => other.id);
-    const converted = toClaudeTask(task);
-    converted.blocks = blocks;
-    return converted;
-  });
 }
 
 /**
