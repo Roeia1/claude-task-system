@@ -140,3 +140,36 @@
 **Next steps:**
 - t6: Error handling and edge cases
 - t7: Integration tests
+
+## Session 6: 2026-02-06
+
+### Task: t6 - Add error handling and edge cases
+
+**What was done:**
+- Added 4 new tests to `packages/plugin-scripts/src/hydrate/service.test.ts` covering hydration error edge cases
+- Added 7 new tests to `packages/plugin-scripts/src/sync-hook.test.ts` covering sync-hook error edge cases
+- All 41 hydrate/sync tests pass (11 new + 30 existing for these two files), lint clean
+- No implementation changes needed — the existing code already had comprehensive error handling; this task verified every error path with tests
+
+**Tests added (service.test.ts):**
+- Permission failure: task list directory creation fails with read-only parent → throws "Failed to create task list directory"
+- Error message includes story directory path when directory is missing
+- Error message includes file name when task JSON is malformed
+- Error message includes path when story.json is missing
+
+**Tests added (sync-hook.test.ts):**
+- Write failure: read-only task file → returns not synced with "Failed to write task file"
+- Descriptive reason message for missing SAGA_PROJECT_DIR
+- Descriptive reason message for missing SAGA_STORY_ID
+- File path included in "Task file not found" reason
+- Parse error details included for malformed task file
+- Descriptive reason for empty stdin input
+- Descriptive reason for invalid JSON stdin
+
+**Decisions:**
+- No implementation changes were necessary — the hydration service and sync hook already had comprehensive error handling from t1-t4
+- Extracted `READONLY_PERMISSIONS` and `READWRITE_PERMISSIONS` constants to satisfy biome noMagicNumbers rule
+- Used `try/finally` pattern around chmod tests to ensure file permissions are restored even if assertions fail
+
+**Next steps:**
+- t7: Integration tests for full hydration-sync round trip

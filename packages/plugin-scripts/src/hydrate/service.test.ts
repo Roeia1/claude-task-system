@@ -5,6 +5,7 @@
  */
 
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -27,6 +28,8 @@ const TEST_TIMESTAMP = 1_700_000_000_000;
 const SESSION_TIMESTAMP_A = 1000;
 const SESSION_TIMESTAMP_B = 2000;
 const EXPECTED_MULTI_TASK_COUNT = 3;
+const READONLY_PERMISSIONS = 0o444;
+const READWRITE_PERMISSIONS = 0o755;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -368,6 +371,65 @@ describe('hydrate service', () => {
       const result = hydrate('mixed-files', SESSION_TIMESTAMP_A, projectDir, claudeTasksBase);
 
       expect(result.taskCount).toBe(1);
+    });
+
+    it('throws when task list directory cannot be created (permissions)', () => {
+      const story = makeStory({ id: 'perm-fail' });
+      const tasks = [makeTask({ id: 't1' })];
+      setupStory(projectDir, 'perm-fail', story, tasks);
+
+      // Make the claude tasks base directory read-only so mkdirSync fails
+      chmodSync(claudeTasksBase, READONLY_PERMISSIONS);
+
+      try {
+        expect(() =>
+          hydrate('perm-fail', SESSION_TIMESTAMP_A, projectDir, claudeTasksBase),
+        ).toThrow('Failed to create task list directory');
+      } finally {
+        // Restore permissions for cleanup
+        chmodSync(claudeTasksBase, READWRITE_PERMISSIONS);
+      }
+    });
+
+    it('includes the story directory path in missing directory error', () => {
+      try {
+        hydrate('nonexistent-path', SESSION_TIMESTAMP_A, projectDir, claudeTasksBase);
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        const message = (error as Error).message;
+        expect(message).toContain('Story directory not found');
+        expect(message).toContain('nonexistent-path');
+      }
+    });
+
+    it('includes the file name in malformed task error', () => {
+      const story = makeStory({ id: 'task-err-msg' });
+      setupStory(projectDir, 'task-err-msg', story, []);
+
+      const storyDir = join(projectDir, '.saga', 'stories', 'task-err-msg');
+      writeFileSync(join(storyDir, 'specific-task.json'), '<<<not json>>>');
+
+      try {
+        hydrate('task-err-msg', SESSION_TIMESTAMP_A, projectDir, claudeTasksBase);
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        const message = (error as Error).message;
+        expect(message).toContain('specific-task.json');
+      }
+    });
+
+    it('includes the story.json path in missing story.json error', () => {
+      const storyDir = join(projectDir, '.saga', 'stories', 'no-story-check');
+      mkdirSync(storyDir, { recursive: true });
+
+      try {
+        hydrate('no-story-check', SESSION_TIMESTAMP_A, projectDir, claudeTasksBase);
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        const message = (error as Error).message;
+        expect(message).toContain('story.json not found');
+        expect(message).toContain('no-story-check');
+      }
     });
   });
 });

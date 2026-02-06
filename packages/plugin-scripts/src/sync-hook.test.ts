@@ -1,4 +1,5 @@
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -19,6 +20,8 @@ describe('sync-hook', () => {
 
   const STORY_ID = 'my-story';
   const TASK_ID = 't1';
+  const READONLY_PERMISSIONS = 0o444;
+  const READWRITE_PERMISSIONS = 0o644;
 
   beforeEach(() => {
     process.env = { ...originalEnv };
@@ -235,6 +238,81 @@ describe('sync-hook', () => {
 
       expect(result.synced).toBe(false);
       expect(result.reason).toContain('parse');
+    });
+
+    it('returns not synced when task file is read-only (write failure)', () => {
+      const taskPath = join(projectDir, '.saga', 'stories', STORY_ID, `${TASK_ID}.json`);
+      writeFileSync(
+        taskPath,
+        JSON.stringify({
+          id: TASK_ID,
+          subject: 'Test',
+          description: 'Test task',
+          status: 'pending',
+          blockedBy: [],
+        }),
+      );
+      // Make the file read-only so writeFileSync fails
+      chmodSync(taskPath, READONLY_PERMISSIONS);
+
+      try {
+        const result = processSyncInput(makeHookInput(TASK_ID, 'completed'));
+
+        expect(result.synced).toBe(false);
+        expect(result.reason).toContain('Failed to write task file');
+      } finally {
+        // Restore permissions for cleanup
+        chmodSync(taskPath, READWRITE_PERMISSIONS);
+      }
+    });
+  });
+
+  // ============================================================================
+  // Error reason messages
+  // ============================================================================
+
+  describe('error reason messages', () => {
+    it('includes env var name when SAGA_PROJECT_DIR is missing', () => {
+      process.env.SAGA_PROJECT_DIR = undefined;
+      const result = processSyncInput(makeHookInput(TASK_ID, 'completed'));
+      expect(result.reason).toBe('SAGA_PROJECT_DIR not set');
+    });
+
+    it('includes env var name when SAGA_STORY_ID is missing', () => {
+      process.env.SAGA_STORY_ID = undefined;
+      writeTaskFile(TASK_ID, {
+        id: TASK_ID,
+        subject: 'Test',
+        description: 'Test',
+        status: 'pending',
+        blockedBy: [],
+      });
+      const result = processSyncInput(makeHookInput(TASK_ID, 'completed'));
+      expect(result.reason).toBe('SAGA_STORY_ID not set');
+    });
+
+    it('includes file path when task file is not found', () => {
+      const result = processSyncInput(makeHookInput('missing-task', 'completed'));
+      expect(result.reason).toContain('Task file not found');
+      expect(result.reason).toContain('missing-task');
+    });
+
+    it('includes parse error details for malformed task file', () => {
+      const taskPath = join(projectDir, '.saga', 'stories', STORY_ID, `${TASK_ID}.json`);
+      writeFileSync(taskPath, '<<<not json>>>');
+
+      const result = processSyncInput(makeHookInput(TASK_ID, 'completed'));
+      expect(result.reason).toContain('Failed to parse task file');
+    });
+
+    it('returns descriptive reason for empty stdin input', () => {
+      const result = processSyncInput('');
+      expect(result.reason).toBe('Invalid or missing hook input');
+    });
+
+    it('returns descriptive reason for invalid JSON stdin', () => {
+      const result = processSyncInput('not json at all');
+      expect(result.reason).toBe('Invalid or missing hook input');
     });
   });
 });
