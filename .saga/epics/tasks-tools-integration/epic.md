@@ -2,56 +2,70 @@
 
 ## Overview
 
-This epic replaces SAGA's markdown-based epic/story system with Claude Code's native Tasks tools. The current workflow uses `.md` files with YAML frontmatter to define and track work. The new system uses structured JSON task lists that workers consume directly via `TaskList`, `TaskGet`, and `TaskUpdate` tools.
+This epic replaces SAGA's markdown-based system with Claude Code's native Tasks tools. The current workflow uses `.md` files with YAML frontmatter to define and track work. The new system uses structured JSON files that workers consume via `TaskList`, `TaskGet`, and `TaskUpdate` tools.
 
-Everything becomes a "task list" — there is no distinction between "epic" and "story". A task list is a **worker capsule**: an isolated unit of work executed in its own worktree, branch, and PR.
+The domain model is:
 
-Task lists can be:
-- **Leaf**: Contains executable tasks, executed by a single worker
-- **Coordinator**: Contains child task lists with dependencies, orchestrates execution order
+- **Epic**: A group of connected stories with dependencies. Optional — only needed when a goal requires multiple stories.
+- **Story**: The worker capsule. A self-contained unit of work with its own task list, worktree, branch, and PR. Executed by a single worker.
+- **Task**: Atomic work item within a story. What the worker's headless runs see and execute via Claude Code's native task tools.
 
-The tree structure is optional — a single leaf task list is valid for simple goals.
+The source of truth lives in `.saga/stories/` and `.saga/epics/` (git-tracked, project-local). At execution time, SAGA hydrates tasks to `~/.claude/tasks/` for native tool compatibility, then syncs status back via tool hooks.
 
-The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At execution time, SAGA hydrates task lists to `~/.claude/tasks/` for native tool compatibility, then syncs status back via tool hooks.
+## Glossary
+
+| Term | Definition |
+|------|-----------|
+| **Epic** | A group of connected stories with dependencies between them. Optional — only needed when a goal requires multiple stories. Defines which stories exist and their execution order. |
+| **Story** | The worker capsule. A self-contained unit of work with its own task list, worktree, branch, and PR. Executed by a single worker. The fundamental unit of delivery in SAGA. |
+| **Task** | Atomic work item within a story. What the worker's headless runs see and execute via Claude Code's native task tools (`TaskList`, `TaskGet`, `TaskUpdate`). |
+| **Journal** | Part of the story. A log where the worker records key decisions, diversions, blockers, and resolutions during execution. Git-tracked alongside the story. |
+| **Blocker** | An obstacle encountered during execution that requires human decision. The worker documents it in the journal and exits. Execution pauses until a human resolves it. |
+| **Worker** | A node process responsible for implementing a story. Runs inside a session. Manages Claude Code headless runs, handles configuration (hydration, sync, cleanup), and streams output to a file. One worker per story. |
+| **Session** | The tmux detached session wrapping a worker. Created by the skill, monitorable via `tmux attach` or reading the output file. |
+| **Headless Run** | A single `claude -p` invocation spawned by the worker. Executes tasks using Claude Code's native task tools. The worker spawns multiple headless runs sequentially — each run picks up where the last left off. |
+| **Worktree** | An isolated git checkout for a story. Each story executes in its own worktree with a dedicated branch, enabling parallel story development. |
+| **Canonical Name** | The unique identifier for a story, used everywhere: folder name, branch, worktree, session. Uses `[a-z0-9-]`. For stories within an epic, the epic prefix is joined with `--` (e.g., `user-auth--setup-db`). |
 
 ## Goals
 
 - Enable workers to execute using Claude Code's native Tasks tools (`TaskList` → `TaskGet` → execute → `TaskUpdate`)
-- Replace markdown epic/story files with structured JSON task lists
-- Support task list nesting with dependencies between child task lists
-- Provide a SAGA execution script that manages task list execution
-- Maintain git-trackable task definitions in `.saga/tasks/` (JSON format, human-viewable via dashboard)
+- Replace markdown epic/story files with structured JSON
+- Support epics with multiple stories and dependencies between them
+- Provide a worker script that manages story execution end-to-end
+- Maintain git-trackable definitions in `.saga/stories/` and `.saga/epics/` (JSON format, human-viewable via dashboard)
 - Define SAGA-specific types in `saga-types` package, decoupled from Claude Code's task interface
 
 ## Success Metrics
 
-- Workers can execute task lists using native Tasks tools with proper status tracking
+- Workers can execute stories using native Tasks tools with proper status tracking
 - Task state is presented in the dashboard during execution
 - Cross-session task coordination works via `CLAUDE_CODE_TASK_LIST_ID`
-- Execution script handles leaf task list execution end-to-end (worktree, hydration, worker, PR)
-- Each leaf task list executes in its own worktree with dedicated branch and PR
-- Dashboard can visualize task list trees
+- Worker handles story execution end-to-end (hydration, headless runs, cleanup)
+- Each story executes in its own worktree with dedicated branch and PR
+- Dashboard can visualize epic/story trees
 
 ## Scope
 
 ### In Scope
 
-- Integration with existing infrastructure (hooks, worktree.js, implement.js, scope-validator.js)
-- SAGA types in `saga-types` package (`TaskList`, `Task`, conversion layer)
-- `tasklist.json` metadata file for each task list (context, children, execution state)
-- Flat folder structure in `.saga/tasks/` with canonical naming convention (`--` as hierarchy separator)
+- Integration with existing infrastructure (hooks, worktree.js, scope-validator.js)
+- SAGA types in `saga-types` package (`Story`, `Epic`, `Task`, conversion layer)
+- `story.json` metadata file for each story (context, execution state)
+- `epic.json` metadata file for each epic (children, dependencies)
+- Flat folder structure in `.saga/stories/` with canonical naming convention (`--` as hierarchy separator)
 - Hydration layer: convert SAGA tasks to Claude Code format, copy to `~/.claude/tasks/`
-- Sync layer via tool hooks: update status in `.saga/tasks/` using hooks on Tasks builtin tools
-- Execution script that manages leaf task list execution (deterministic, spawns worker, creates PR)
-- Context injection: task list context provided in worker prompt (not as a task)
-- Worker execution loop using native Tasks tools (only real tasks, no synthetic context task)
-- Skills for: breakdown (task list creation from defined goal), execution selection, review/discuss task lists
-- Dashboard visualization of task list trees
+- Sync layer via tool hooks: update status in `.saga/stories/` using hooks on Tasks builtin tools
+- Worker script (`worker.js`): a linear node process that manages story execution inside a tmux session
+- Context injection: story context provided in headless run prompt (not as a task)
+- Headless run execution loop using native Tasks tools (only real tasks, no synthetic context task)
+- Skills for: breakdown (story creation from defined goal), execution selection, review/discuss stories
+- Dashboard visualization of epic/story trees
 
 ### Out of Scope
 
 - Goal definition process (interactive brainstorming to define what to build) — separate effort
-- Coordinator task list orchestration (automated traversal of children in dependency order)
+- Epic orchestration (automated traversal of stories in dependency order)
 - Parallel worker execution (start with sequential, add parallelism later)
 - Import from external systems (JIRA, Linear, etc.)
 - Changes to Claude Code's native Tasks tools themselves
@@ -59,69 +73,70 @@ The source of truth lives in `.saga/tasks/` (git-tracked, project-local). At exe
 
 ## Non-Functional Requirements
 
-- Task list files stored as JSON (viewable via dashboard for human-readable presentation)
-- Filename and task ID must always be in sync (`{id}.json`)
+- Story and task files stored as JSON (viewable via dashboard for human-readable presentation)
+- Task filename and ID must always be in sync (`{id}.json`)
 - Workers must handle context window limits (task descriptions must be self-contained)
 - Must work with Claude Code v2.1.30+ headless mode (requires `CLAUDE_CODE_ENABLE_TASKS=true`)
 - Hydration/sync operations should minimize corruption risk (e.g., handle partial write failures gracefully)
 
 ## Technical Approach
 
-### Task List Storage
+### Storage
 
-Source of truth: `.saga/tasks/` with flat folder structure. Hierarchy is expressed through the `--` naming convention and the `children` array in `tasklist.json`, not through folder nesting.
+Source of truth: `.saga/stories/` for stories and `.saga/epics/` for epics. Stories use a flat folder structure. Hierarchy is expressed through the `--` naming convention and the `children` array in `epic.json`, not through folder nesting.
 
 **Naming convention:**
-- Individual task list IDs use `[a-z0-9-]` (lowercase, digits, single dashes)
+- Individual IDs use `[a-z0-9-]` (lowercase, digits, single dashes)
 - `--` (double dash) is the hierarchy separator — banned in individual IDs
 - The canonical name is used everywhere: folder name, branch, worktree, tmux session, env vars
 
-**Leaf task list** (simple feature, no nesting):
+**Standalone story** (simple feature, no epic):
 ```
-.saga/tasks/
+.saga/stories/
 └── add-logout-button/
-    ├── tasklist.json           ← metadata: id, title, description, guidance
+    ├── story.json              ← metadata: id, title, description, guidance
     ├── write-tests.json        ← task
     └── implement-button.json   ← task
 ```
 
-**Coordinator task list** (complex feature with children):
+**Epic with stories** (complex feature):
 ```
-.saga/tasks/
-├── user-authentication/                  ← coordinator (has children in tasklist.json)
-│   └── tasklist.json
-├── user-authentication--setup-database/  ← child leaf
-│   ├── tasklist.json
+.saga/epics/
+└── user-authentication/
+    └── epic.json               ← metadata with children array
+
+.saga/stories/
+├── user-authentication--setup-database/
+│   ├── story.json
 │   ├── write-tests.json
 │   └── create-migrations.json
-└── user-authentication--implement-api/   ← child leaf
-    ├── tasklist.json
+└── user-authentication--implement-api/
+    ├── story.json
     └── add-endpoints.json
 ```
 
 Runtime (for native tool compatibility): `~/.claude/tasks/saga__<canonical-name>/`
 
-### Task List Types
+### Story vs Epic
 
-**Leaf Task List**:
-- Has `tasklist.json` with no `children` array (or empty)
+**Story**:
+- Has `story.json` with metadata (no `children`)
 - Contains executable task files (`*.json`)
 - Executed by a single worker in its own worktree/branch/PR
 - Worker capsule: isolated execution environment
 
-**Coordinator Task List**:
-- Has `tasklist.json` with `children` array defining dependencies
-- References child task lists by ID (children are sibling folders in `.saga/tasks/`, not nested)
-- Execution script processes children sequentially in dependency order
-- Not directly executable — orchestrates child execution
+**Epic**:
+- Has `epic.json` with `children` array defining dependencies between stories
+- References stories by canonical name
+- Not directly executable — the user selects which story to execute via a plugin skill
 
 ### SAGA Types (in `saga-types` package)
 
-> **Breaking change**: The new `TaskList` and `Task` types replace the existing `Task` and related types in `saga-types` entirely. No backward compatibility with the old story-based types (`Task`, `StoryFrontmatter`, etc.).
+> **Breaking change**: The new `Story`, `Epic`, and `Task` types replace the existing types in `saga-types` entirely. No backward compatibility with the old markdown-based types (`Task`, `StoryFrontmatter`, etc.).
 
-**TaskList** (stored in `tasklist.json`):
+**Story** (stored in `story.json`):
 ```typescript
-interface TaskList {
+interface Story {
   id: string;
   title: string;
   description: string;
@@ -129,15 +144,24 @@ interface TaskList {
   doneWhen?: string;
   avoid?: string;
   status?: "pending" | "in_progress" | "completed";
-  // Coordinator only:
-  children?: Array<{
-    id: string;           // canonical name of child task list
-    blockedBy: string[];  // IDs of sibling children that must complete first
-  }>;
   // Execution state (populated at runtime):
   branch?: string;
   pr?: string;
   worktree?: string;
+}
+```
+
+**Epic** (stored in `epic.json`):
+```typescript
+interface Epic {
+  id: string;
+  title: string;
+  description: string;
+  children: Array<{
+    id: string;           // canonical name of child story
+    blockedBy: string[];  // IDs of sibling stories that must complete first
+  }>;
+  status?: "pending" | "in_progress" | "completed";
 }
 ```
 
@@ -149,7 +173,7 @@ interface Task {
   description: string;
   activeForm?: string;
   status: "pending" | "in_progress" | "completed";
-  blockedBy: string[];  // task IDs within same list
+  blockedBy: string[];  // task IDs within same story
   guidance?: string;
   doneWhen?: string;
 }
@@ -205,8 +229,8 @@ function fromClaudeTask(claudeTask: ClaudeCodeTask): Partial<Task> {
 ### Hydration & Sync
 
 **Hydration (before execution):**
-1. Read `tasklist.json` for context (used in worker prompt)
-2. Read task files from `.saga/tasks/<canonicalName>/`
+1. Read `story.json` for context (used in headless run prompt)
+2. Read task files from `.saga/stories/<canonicalName>/`
 3. Convert each SAGA task to Claude Code format
 4. Create `~/.claude/tasks/saga__<canonicalName>/`
 5. Write converted task files
@@ -214,43 +238,56 @@ function fromClaudeTask(claudeTask: ClaudeCodeTask): Partial<Task> {
 
 **Sync (via tool hooks):**
 - Tool hooks registered for `TaskUpdate`
-- Hooks intercept status changes and update `.saga/tasks/<canonicalName>/*.json`
+- Hooks intercept status changes and update `.saga/stories/<canonicalName>/*.json`
 - Only status is synced back (other fields are source-controlled in SAGA)
-- Workers may create tasks at runtime via `TaskCreate` for their own tracking; these are not synced back to `.saga/tasks/` and are discarded at cleanup
+- Headless runs may create tasks at runtime via `TaskCreate` for their own tracking; these are not synced back to `.saga/stories/` and are discarded at cleanup
 - Cleanup of `~/.claude/tasks/saga__<canonicalName>/` after execution completes
 
-### SAGA Execution Script
+### Worker Architecture
 
-A deterministic script manages leaf task list execution:
+The worker (`worker.js`) is a single linear node process that runs inside a tmux session. The skill creates the tmux session and runs the worker inside it.
 
-**For a leaf task list:**
-1. Create worktree and branch for this task list
-2. Create draft PR for the branch (allows dashboard tracking from the start; draft PRs can be created on empty branches via `gh pr create --draft`)
-3. Read `tasklist.json` for context
-4. Hydrate task files to `~/.claude/tasks/`
-5. Spawn headless worker with context in prompt:
-   ```bash
-   CLAUDE_CODE_ENABLE_TASKS=true \
-   CLAUDE_CODE_TASK_LIST_ID=saga__<canonicalName> \
-   claude -p "You are working on: ${title}
+**Flow:**
 
-   ${description}
+```
+Skill (interactive Claude)
+  ├─ Computes sessionName, outputFile
+  ├─ Creates tmux session: tmux new-session -d -s <name> "node worker.js <args>"
+  └─ Returns { sessionName, outputFile } to user
 
-   Guidance: ${guidance}
+[inside tmux] node worker.js
+  ├─ 1. Create worktree and branch for this story
+  ├─ 2. Create draft PR (allows dashboard tracking from the start)
+  ├─ 3. Read story.json for context
+  ├─ 4. Hydrate task files to ~/.claude/tasks/
+  ├─ 5. Loop: spawn headless runs
+  │     └─ claude -p "..." (with story context in prompt)
+  │        └─ Headless run executes tasks via native tools
+  │        └─ Worker checks exit status, spawns next run if needed
+  ├─ 6. Clean up ~/.claude/tasks/ after completion
+  └─ 7. Mark PR as ready for review
+```
 
-   Done when: ${doneWhen}
+**Headless run invocation:**
+```bash
+CLAUDE_CODE_ENABLE_TASKS=true \
+CLAUDE_CODE_TASK_LIST_ID=saga__<canonicalName> \
+claude -p "You are working on: ${title}
 
-   Execute the tasks in the task list using TaskList, TaskGet, and TaskUpdate."
-   ```
-6. Tool hooks sync status to `.saga/tasks/` during execution
-7. Clean up `~/.claude/tasks/` after completion
-8. Mark PR as ready for review
+${description}
 
-The execution script only handles leaf task lists. Coordinator orchestration (traversing children, respecting dependencies) is out of scope — the user selects which leaf task list to execute via a plugin skill.
+Guidance: ${guidance}
 
-### Worker Execution Loop
+Done when: ${doneWhen}
 
-Each worker (inside a leaf task list) receives context via prompt, then:
+Execute the tasks in the task list using TaskList, TaskGet, and TaskUpdate."
+```
+
+The worker only handles story execution. Epic orchestration (traversing stories, respecting dependencies) is out of scope — the user selects which story to execute via a plugin skill.
+
+### Headless Run Execution Loop
+
+Each headless run (inside a story's worktree) receives context via prompt, then:
 
 1. `TaskList` → find next pending unblocked task
 2. `TaskGet(<task-id>)` → load full description
@@ -259,43 +296,42 @@ Each worker (inside a leaf task list) receives context via prompt, then:
 5. `TaskList` → check for remaining pending/unblocked tasks
 6. Repeat until all tasks are completed, then self-terminate
 
-Workers self-terminate when `TaskList` shows all tasks completed. The execution script waits for the worker process to exit. Workers only see real executable tasks — no synthetic context task.
+Headless runs self-terminate when `TaskList` shows all tasks completed. The worker waits for the headless run process to exit. Headless runs only see real executable tasks — no synthetic context task.
 
 ### Error Handling
 
-**Worker crash (process dies mid-execution):**
-- Tasks left in `in_progress` status remain in that state in `.saga/tasks/`
-- Execution script detects non-zero exit code from the worker process
-- Task list is marked as failed; no automatic retry
-- User can re-run execution — the hydration layer reads current status from `.saga/tasks/`, so completed tasks are preserved and only remaining tasks are re-attempted
+**Headless run crash (process dies mid-execution):**
+- Tasks left in `in_progress` status remain in that state in `.saga/stories/`
+- Worker detects non-zero exit code from the headless run process
+- Story is marked as failed; no automatic retry
+- User can re-run execution — the hydration layer reads current status from `.saga/stories/`, so completed tasks are preserved and only remaining tasks are re-attempted
 
 **Stuck tasks:**
-- If a worker exits (crash or self-termination) with tasks still in `in_progress`, the execution script resets those tasks to `pending` before marking the task list as failed
+- If a headless run exits (crash or self-termination) with tasks still in `in_progress`, the worker resets those tasks to `pending` before marking the story as failed
 - This ensures a clean state for re-execution
 
 **Hydration failure:**
-- If writing to `~/.claude/tasks/` fails (permissions, disk space), execution script aborts before spawning the worker
-- No partial state to clean up since the worker never started
+- If writing to `~/.claude/tasks/` fails (permissions, disk space), worker aborts before spawning headless runs
+- No partial state to clean up since no headless run started
 
-**Sync failure (hook can't write to .saga/tasks/):**
-- Hook logs a warning but does not block the worker
-- Status drift between `~/.claude/tasks/` and `.saga/tasks/` is possible but recoverable
-- Post-execution reconciliation: execution script reads final state from `~/.claude/tasks/` and writes it to `.saga/tasks/` as a fallback
+**Sync failure (hook can't write to .saga/stories/):**
+- Hook logs a warning but does not block the headless run
+- Status drift between `~/.claude/tasks/` and `.saga/stories/` is possible but recoverable
+- Post-execution reconciliation: worker reads final state from `~/.claude/tasks/` and writes it to `.saga/stories/` as a fallback
 
 ## Integration with Existing Infrastructure
 
-This is not a complete rewrite. SAGA has established mechanisms for worktree isolation, context detection, scope validation, and session management. The new task list system builds on these foundations.
+This is not a complete rewrite. SAGA has established mechanisms for worktree isolation, context detection, scope validation, and session management. The new system builds on these foundations.
 
 ### Preserved Mechanisms
 
 | Mechanism | Current Location | Integration |
 |-----------|-----------------|-------------|
-| **SessionStart hook** | `hooks/session-init.sh` | Reused for context detection; updated to recognize task list worktrees |
-| **Worktree creation** | `scripts/worktree.js` | Extended to create worktrees for leaf task lists |
-| **Orchestrator** | `scripts/implement.js` | Refactored to become the execution script; handles leaf task list execution |
-| **Scope validator** | `scripts/scope-validator.js` | Updated to validate worker access based on task list path |
-| **Tmux sessions** | Used by implement.js | Preserved for detached execution and dashboard monitoring |
-| **Dashboard file watcher** | `packages/dashboard/watcher.ts` | Updated to watch `.saga/tasks/` in addition to `.saga/epics/` |
+| **SessionStart hook** | `hooks/session-init.sh` | Reused for context detection; updated to recognize story worktrees |
+| **Worktree creation** | `scripts/worktree.js` | Extended to create worktrees for stories |
+| **Scope validator** | `scripts/scope-validator.js` | Updated to validate worker access based on story path |
+| **Tmux sessions** | Used by implement.js | Session creation moves to the skill; worker.js is a linear script inside tmux |
+| **Dashboard file watcher** | `packages/dashboard/watcher.ts` | Updated to watch `.saga/stories/` and `.saga/epics/` |
 
 ### Environment Variables
 
@@ -306,17 +342,17 @@ The existing environment variable pattern is preserved and extended:
 |----------|---------|-----|
 | `SAGA_PROJECT_DIR` | Project root or worktree root | Unchanged |
 | `SAGA_PLUGIN_ROOT` | Plugin installation path | Unchanged |
-| `SAGA_TASK_CONTEXT` | `"main"` or `"story-worktree"` | `"main"` or `"tasklist-worktree"` |
+| `SAGA_TASK_CONTEXT` | `"main"` or `"story-worktree"` | Unchanged |
 | `SAGA_SESSION_DIR` | `/tmp/saga-sessions` | Unchanged |
 
-**Worker Variables (set by execution script before spawning):**
+**Worker Variables (set by worker.js or skill before spawning):**
 | Variable | Current | New |
 |----------|---------|-----|
-| `SAGA_EPIC_SLUG` | Epic identifier | Deprecated (use `SAGA_TASK_LIST_PATH`) |
-| `SAGA_STORY_SLUG` | Story identifier | Deprecated (use `SAGA_TASK_LIST_PATH`) |
+| `SAGA_EPIC_SLUG` | Epic identifier | Deprecated (use `SAGA_STORY_PATH`) |
+| `SAGA_STORY_SLUG` | Story identifier | Deprecated (use `SAGA_STORY_PATH`) |
 | `SAGA_STORY_DIR` | Path to story.md in worktree | Deprecated |
-| `SAGA_TASK_LIST_PATH` | N/A | Canonical task list name (e.g., `"user-auth--setup-db"`) |
-| `SAGA_TASK_LIST_ID` | N/A | Claude Code task list ID (e.g., `"saga__user-auth--setup-db"`) |
+| `SAGA_STORY_PATH` | N/A | Canonical story name (e.g., `"user-auth--setup-db"`) |
+| `SAGA_STORY_TASK_LIST_ID` | N/A | Claude Code task list ID (e.g., `"saga__user-auth--setup-db"`) |
 
 ### Context Detection
 
@@ -324,12 +360,12 @@ The SessionStart hook (`hooks/session-init.sh`) detects execution context by che
 
 ```bash
 if [ -f .git ]; then
-    # Inside a worktree - check if it's a task list worktree
+    # Inside a worktree - check if it's a story worktree
     worktree_path=$(pwd)
-    if [[ "$worktree_path" == *".saga/worktrees/tasks/"* ]]; then
-        SAGA_TASK_CONTEXT="tasklist-worktree"
-        # Extract canonical task list name directly from flat worktree folder
-        SAGA_TASK_LIST_PATH=$(echo "$worktree_path" | sed 's|.*\.saga/worktrees/tasks/||' | sed 's|/$||')
+    if [[ "$worktree_path" == *".saga/worktrees/stories/"* ]]; then
+        SAGA_TASK_CONTEXT="story-worktree"
+        # Extract canonical story name directly from flat worktree folder
+        SAGA_STORY_PATH=$(echo "$worktree_path" | sed 's|.*\.saga/worktrees/stories/||' | sed 's|/$||')
     fi
 else
     SAGA_TASK_CONTEXT="main"
@@ -338,37 +374,35 @@ fi
 
 ### Worktree and Branch Naming
 
-All derived paths use the canonical task list name directly:
+All derived paths use the canonical story name directly:
 
-| Canonical Name | Branch | Worktree | Task Folder |
+| Canonical Name | Branch | Worktree | Story Folder |
 |---------------|--------|----------|-------------|
-| `add-logout-button` | `tasklist/add-logout-button` | `.saga/worktrees/tasks/add-logout-button/` | `.saga/tasks/add-logout-button/` |
-| `user-auth--setup-db` | `tasklist/user-auth--setup-db` | `.saga/worktrees/tasks/user-auth--setup-db/` | `.saga/tasks/user-auth--setup-db/` |
-| `user-auth--api--endpoints` | `tasklist/user-auth--api--endpoints` | `.saga/worktrees/tasks/user-auth--api--endpoints/` | `.saga/tasks/user-auth--api--endpoints/` |
+| `add-logout-button` | `story/add-logout-button` | `.saga/worktrees/stories/add-logout-button/` | `.saga/stories/add-logout-button/` |
+| `user-auth--setup-db` | `story/user-auth--setup-db` | `.saga/worktrees/stories/user-auth--setup-db/` | `.saga/stories/user-auth--setup-db/` |
+| `user-auth--api--endpoints` | `story/user-auth--api--endpoints` | `.saga/worktrees/stories/user-auth--api--endpoints/` | `.saga/stories/user-auth--api--endpoints/` |
 
 **Rationale:**
 - One canonical name used everywhere — no conversion between forms
 - `--` chosen as hierarchy separator; individual IDs use `[a-z0-9-]` (ban `--` in individual IDs to prevent ambiguity)
-- Branch prefix `tasklist/` provides clear namespace separation
+- Branch prefix `story/` provides clear namespace separation
 
 ### Tmux Session Management
 
-The execution script spawns workers in detached tmux sessions, preserving the existing pattern:
+The skill creates tmux sessions for workers:
 
-**Session naming:** `saga-tl-<canonical-name>-<pid>`
+**Session naming:** `saga-story-<canonical-name>-<timestamp>`
 
-Example: `saga-tl-user-auth--setup-db-12345`
-
-**Rationale:** Single dash delimiters throughout. `tl` prefix (short for "task list") keeps sessions short and parseable. The canonical name already uses `--` for hierarchy, which is visually distinct from the single `-` structural delimiters.
+Example: `saga-story-user-auth--setup-db-1707000123456`
 
 **Dashboard integration:**
 - Dashboard reads tmux sessions via `tmux list-sessions`
-- Filters by `saga-tl-` prefix to identify task list executions
+- Filters by `saga-story-` prefix to identify story executions
 - Streams output from session output files for real-time monitoring
 
 ### Scope Validation
 
-The scope validator is updated to use task list context:
+The scope validator is updated to use story context:
 
 ```javascript
 // Current: uses SAGA_EPIC_SLUG and SAGA_STORY_SLUG
@@ -377,10 +411,10 @@ const allowedPaths = [
   // ... other allowed paths
 ];
 
-// New: uses SAGA_TASK_LIST_PATH (canonical name)
-const canonicalName = process.env.SAGA_TASK_LIST_PATH;
+// New: uses SAGA_STORY_PATH (canonical name)
+const canonicalName = process.env.SAGA_STORY_PATH;
 const allowedPaths = [
-  `.saga/tasks/${canonicalName}/`,
+  `.saga/stories/${canonicalName}/`,
   // Project files (for implementation work)
   // ... other allowed paths
 ];
@@ -390,9 +424,9 @@ const allowedPaths = [
 
 The dashboard needs to support both systems during transition:
 
-1. **Phase 1**: Add `.saga/tasks/` scanner alongside existing `.saga/epics/` scanner
-2. **Phase 2**: Unified view showing both legacy stories and new task lists
-3. **Phase 3**: Deprecate `.saga/epics/` support once migration complete
+1. **Phase 1**: Add `.saga/stories/` and `.saga/epics/` (JSON) scanner alongside existing markdown scanner
+2. **Phase 2**: Unified view showing both legacy and new formats
+3. **Phase 3**: Deprecate markdown support once migration complete
 
 File watcher updates:
 ```typescript
@@ -401,9 +435,9 @@ const watchPaths = ['.saga/epics/', '.saga/archive/'];
 
 // New paths (additive)
 const watchPaths = [
-  '.saga/epics/',    // Legacy support
-  '.saga/archive/',  // Legacy support
-  '.saga/tasks/',    // New task lists
+  '.saga/epics/',      // Legacy markdown + new JSON epics
+  '.saga/archive/',    // Legacy support
+  '.saga/stories/',    // New JSON stories
 ];
 ```
 
@@ -417,31 +451,31 @@ const watchPaths = [
 
 ### Context in Prompt, Not as Task
 
-- **Choice**: Inject task list context into worker prompt, not as a `_context` task
-- **Rationale**: Workers only see real executable tasks. Cleaner `TaskList` output. Context belongs in the prompt, not as a fake task.
-- **Alternatives**: Synthetic `_context` task (rejected: pollutes task list, workers must skip it)
+- **Choice**: Inject story context into headless run prompt, not as a `_context` task
+- **Rationale**: Headless runs only see real executable tasks. Cleaner `TaskList` output. Context belongs in the prompt, not as a fake task.
+- **Alternatives**: Synthetic `_context` task (rejected: pollutes task list, headless runs must skip it)
 
-### tasklist.json for Metadata
+### story.json for Metadata
 
-- **Choice**: Each task list has `tasklist.json` with metadata, separate from task files
-- **Rationale**: Clean separation of list metadata vs individual tasks. Children/dependencies defined in one place.
+- **Choice**: Each story has `story.json` with metadata, separate from task files
+- **Rationale**: Clean separation of story metadata vs individual tasks. Context and execution state in one place.
 - **Alternatives**: Context as first task (rejected: conflates metadata with tasks)
 
-### Children in tasklist.json, Not Pointer Tasks
+### Children in epic.json, Not Pointer Tasks
 
-- **Choice**: Coordinator task lists define children in `tasklist.json`, not as "pointer tasks"
-- **Rationale**: Children are not tasks — they're references to other task lists. Cleaner model: task lists contain only real tasks.
+- **Choice**: Epics define children in `epic.json`, not as "pointer tasks"
+- **Rationale**: Children are not tasks — they're references to stories. Cleaner model: stories contain only real tasks.
 - **Alternatives**: Pointer tasks (rejected: confusing, mixes orchestration with execution)
 
-### Leaf vs Coordinator Distinction
+### Story vs Epic Distinction
 
-- **Choice**: Task list is either a leaf (has tasks) or coordinator (has children), never both
-- **Rationale**: Each leaf = one worker capsule = one worktree/branch/PR. Clear execution model. Intuitive breakdown: coordinators define the major pieces, leaves define the work within each piece.
-- **Alternatives**: Mixed task lists with both tasks and children (rejected: unclear execution semantics, complicates worktree/branch model)
+- **Choice**: A story has tasks and is executed by a worker. An epic groups stories with dependencies. They are separate entities.
+- **Rationale**: Each story = one worker capsule = one worktree/branch/PR. Clear execution model. Epics define the major pieces, stories define the work within each piece.
+- **Alternatives**: Generic "task list" for everything (rejected: confusing terminology, collides with Claude Code's TaskList tool name). Mixed entities with both tasks and children (rejected: unclear execution semantics).
 
 ### Native Tasks as Runtime, SAGA as Source of Truth
 
-- **Choice**: `.saga/tasks/` is source of truth, hydrate to `~/.claude/tasks/` at runtime
+- **Choice**: `.saga/stories/` is source of truth, hydrate to `~/.claude/tasks/` at runtime
 - **Rationale**: Claude Code's task storage is not configurable (always `~/.claude/tasks/`), has no cleanup, and is not git-trackable. SAGA needs project-local, version-controlled storage.
 - **Alternatives**: Use `~/.claude/tasks/` directly (rejected: not git-trackable, no cleanup)
 
@@ -451,47 +485,63 @@ const watchPaths = [
 - **Rationale**: Human-readable in file explorer, self-documenting. Claude Code accepts non-numeric string IDs.
 - **Alternatives**: Numeric IDs (rejected: not human-readable), hash IDs (rejected: opaque)
 
-### Drop Epic/Story Terminology
-
-- **Choice**: Everything is a "task list", no distinction between epic and story
-- **Rationale**: Simpler mental model. Root vs child is just tree depth, not a different concept.
-- **Alternatives**: Keep epic/story (rejected: adds confusion when underlying format is the same)
-
 ### Runtime TaskCreate Allowed but Not Synced
 
-- **Choice**: Workers may create tasks at runtime via `TaskCreate` for their own tracking, but these are not synced back to `.saga/tasks/`
-- **Rationale**: Workers sometimes need to break down work further during execution. These ad-hoc tasks are ephemeral and discarded at cleanup. Only pre-defined tasks in `.saga/tasks/` are the source of truth.
+- **Choice**: Headless runs may create tasks at runtime via `TaskCreate` for their own tracking, but these are not synced back to `.saga/stories/`
+- **Rationale**: Headless runs sometimes need to break down work further during execution. These ad-hoc tasks are ephemeral and discarded at cleanup. Only pre-defined tasks in `.saga/stories/` are the source of truth.
 - **Alternatives**: Block `TaskCreate` entirely (rejected: too restrictive), sync new tasks back (rejected: adds complexity, blurs source of truth)
 
 ### Flat Canonical Naming
 
-- **Choice**: One canonical name (using `--` as hierarchy separator) used everywhere: `.saga/tasks/`, worktrees, branches, tmux sessions, env vars
+- **Choice**: One canonical name (using `--` as hierarchy separator) used everywhere: `.saga/stories/`, worktrees, branches, tmux sessions, env vars
 - **Rationale**: No conversion between forms. Individual IDs use `[a-z0-9-]`; `--` is banned in individual IDs to prevent ambiguity.
 - **Alternatives**: Nested folder structure with path-to-flat conversion (rejected: requires bidirectional conversion, error-prone)
 
+### Worker as Linear Node Process
+
+- **Choice**: Worker (`worker.js`) is a single linear node process running inside a tmux session created by the skill. No re-entry or bifurcation pattern.
+- **Rationale**: Simple architecture. The skill handles session creation (lightweight), the worker handles execution (heavyweight). One process, one responsibility.
+- **Alternatives**: Script that creates its own tmux and re-invokes itself (rejected: unnecessary indirection, confusing bifurcation via environment variable)
+
 ## Data Models
 
-### TaskList Schema (tasklist.json)
+### Story Schema (story.json)
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string | Yes | Unique identifier, matches folder name (canonical name) |
+| title | string | Yes | Human-readable title |
+| description | string | Yes | Full context for the story goal |
+| guidance | string | No | How to approach the work |
+| doneWhen | string | No | Completion criteria |
+| avoid | string | No | Patterns to avoid |
+| status | enum | No | "pending", "in_progress", "completed" |
+| branch | string | No | Git branch name (populated at execution) |
+| pr | string | No | Pull request URL (populated at execution) |
+| worktree | string | No | Worktree path (populated at execution) |
+
+### Epic Schema (epic.json)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | id | string | Yes | Unique identifier, matches folder name |
 | title | string | Yes | Human-readable title |
-| description | string | Yes | Full context for the task list goal |
-| guidance | string | No | How to approach the work |
-| doneWhen | string | No | Completion criteria |
-| avoid | string | No | Patterns to avoid |
+| description | string | Yes | Full context for the epic goal |
 | status | enum | No | "pending", "in_progress", "completed" |
-| children | array | No | Child task lists with dependencies (coordinator only) |
-| branch | string | No | Git branch name (populated at execution) |
-| pr | string | No | Pull request URL (populated at execution) |
-| worktree | string | No | Worktree path (populated at execution) |
+| children | array | Yes | Child stories with dependencies |
+
+### Epic Children Schema (in epic.json children array)
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string | Yes | Canonical name of the child story |
+| blockedBy | string[] | Yes | IDs of sibling stories that must complete first |
 
 ### Task Schema ({id}.json)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| id | string | Yes | Unique within task list, matches filename |
+| id | string | Yes | Unique within story, matches filename |
 | subject | string | Yes | Short imperative title |
 | description | string | Yes | Full context for execution |
 | activeForm | string | No | Present continuous for spinner ("Writing tests") |
@@ -500,59 +550,53 @@ const watchPaths = [
 | guidance | string | No | How to approach the work |
 | doneWhen | string | No | Completion criteria |
 
-### Child Reference Schema (in tasklist.json children array)
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | string | Yes | Canonical name of the child task list |
-| blockedBy | string[] | Yes | IDs of sibling children that must complete first |
-
 ## Interface Contracts
 
 ### Hydration Service
 
 ```
 hydrate(canonicalName: string): void
-  - Input: canonical task list name (e.g., "user-authentication--setup-database")
-  - Reads: .saga/tasks/<canonicalName>/tasklist.json (for context), *.json task files
+  - Input: canonical story name (e.g., "user-authentication--setup-database")
+  - Reads: .saga/stories/<canonicalName>/story.json (for context), *.json task files
   - Converts: SAGA tasks to Claude Code format
   - Output: Creates ~/.claude/tasks/saga__<canonicalName>/ with converted tasks
-  - Returns: TaskList metadata for prompt injection
+  - Returns: Story metadata for prompt injection
 ```
 
 ### Sync via Tool Hooks
 
 ```
 Tool hooks registered for: TaskUpdate
-  - Intercept status changes during worker execution
-  - Update status in .saga/tasks/<canonicalName>/*.json
+  - Intercept status changes during headless run execution
+  - Update status in .saga/stories/<canonicalName>/*.json
   - Cleanup ~/.claude/tasks/saga__<canonicalName>/ after execution completes
 ```
 
-### Execution Script
+### Worker Script
 
 ```
-execute(canonicalName: string): void
-  - Input: canonical name of a leaf task list (e.g., "user-authentication--setup-database")
+worker.js(canonicalName: string): void
+  - Input: canonical name of a story (e.g., "user-authentication--setup-database")
   - Creates worktree and branch, creates draft PR
   - Hydrates task files to ~/.claude/tasks/
-  - Spawns headless worker, waits for completion
+  - Loops: spawns headless runs, waits for completion, checks status
   - Cleans up runtime files, marks PR ready for review
+  - Streams output to file for dashboard monitoring
   - Output: All tasks completed, PR ready
 ```
 
 ## Tech Stack
 
 - **Types**: `saga-types` package with Zod schemas
-- **Storage**: JSON files in `.saga/tasks/` (source of truth) and `~/.claude/tasks/` (runtime)
+- **Storage**: JSON files in `.saga/stories/` and `.saga/epics/` (source of truth) and `~/.claude/tasks/` (runtime)
 - **Execution**: Claude Code headless mode with `CLAUDE_CODE_TASK_LIST_ID`
-- **Orchestration**: Bash scripts or Node.js for spawning workers and monitoring
-- **Dashboard**: Existing SAGA dashboard, updated to read `.saga/tasks/`
+- **Worker**: Node.js script (`worker.js`) running inside tmux
+- **Dashboard**: Existing SAGA dashboard, updated to read `.saga/stories/` and `.saga/epics/`
 
 ## Open Questions
 
 1. **`.highwatermark` management**: String IDs are confirmed to work with Claude Code. Remaining question: verify that hydrating a task list without a `.highwatermark` file (with pre-existing task files using string IDs) works correctly — Claude Code should auto-generate `.highwatermark` and handle its own task creation alongside SAGA-provided tasks. Needs experimental verification.
 
-2. **Dashboard migration**: Dashboard currently reads `.saga/epics/` and `.saga/stories/`. Needs update to read `.saga/tasks/` tree structure and visualize task list hierarchy.
+2. **Dashboard migration**: Dashboard currently reads `.saga/epics/` (markdown) and `.saga/stories/` (markdown). Needs update to read the new JSON format and visualize epic/story hierarchy.
 
 3. ~~**Worktree/branch naming convention**~~: **Resolved** — See "Worktree and Branch Naming" section and "Flat Canonical Naming" key decision. One canonical name used everywhere with `--` as hierarchy separator.
