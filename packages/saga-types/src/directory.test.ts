@@ -3,8 +3,6 @@ import {
   type ArchivePaths,
   createArchivePaths,
   createEpicPaths,
-  createFlatEpicPath,
-  createFlatStoryPaths,
   createSagaPaths,
   createStoryPaths,
   createTaskPath,
@@ -107,55 +105,6 @@ describe('ArchivePaths', () => {
   });
 });
 
-describe('createFlatStoryPaths', () => {
-  it('returns correct flat story paths', () => {
-    const paths = createFlatStoryPaths('/path/to/project', 'my-story');
-
-    expect(paths.storyId).toBe('my-story');
-    expect(paths.storyDir).toBe('/path/to/project/.saga/stories/my-story');
-    expect(paths.storyJson).toBe('/path/to/project/.saga/stories/my-story/story.json');
-    expect(paths.journalMd).toBe('/path/to/project/.saga/stories/my-story/journal.md');
-  });
-
-  it('handles trailing slash on project root', () => {
-    const paths = createFlatStoryPaths('/path/to/project/', 'auth-setup');
-
-    expect(paths.storyDir).toBe('/path/to/project/.saga/stories/auth-setup');
-    expect(paths.storyJson).toBe('/path/to/project/.saga/stories/auth-setup/story.json');
-    expect(paths.journalMd).toBe('/path/to/project/.saga/stories/auth-setup/journal.md');
-  });
-
-  it('handles story id with digits and dashes', () => {
-    const paths = createFlatStoryPaths('/project', 'story-123-abc');
-
-    expect(paths.storyId).toBe('story-123-abc');
-    expect(paths.storyDir).toBe('/project/.saga/stories/story-123-abc');
-  });
-});
-
-describe('createFlatEpicPath', () => {
-  it('returns correct flat epic path', () => {
-    const paths = createFlatEpicPath('/path/to/project', 'my-epic');
-
-    expect(paths.epicId).toBe('my-epic');
-    expect(paths.epicJson).toBe('/path/to/project/.saga/epics/my-epic.json');
-  });
-
-  it('handles trailing slash on project root', () => {
-    const paths = createFlatEpicPath('/path/to/project/', 'tasks-integration');
-
-    expect(paths.epicId).toBe('tasks-integration');
-    expect(paths.epicJson).toBe('/path/to/project/.saga/epics/tasks-integration.json');
-  });
-
-  it('handles epic id with digits', () => {
-    const paths = createFlatEpicPath('/project', 'epic-42');
-
-    expect(paths.epicId).toBe('epic-42');
-    expect(paths.epicJson).toBe('/project/.saga/epics/epic-42.json');
-  });
-});
-
 describe('createTaskPath', () => {
   it('returns correct task JSON file path', () => {
     const taskPath = createTaskPath('/path/to/project', 'my-story', 't1');
@@ -175,8 +124,8 @@ describe('createTaskPath', () => {
     expect(taskPath).toBe('/project/.saga/stories/auth-story/task-setup-db.json');
   });
 
-  it('constructs path consistent with createFlatStoryPaths', () => {
-    const storyPaths = createFlatStoryPaths('/project', 'my-story');
+  it('constructs path consistent with createStoryPaths', () => {
+    const storyPaths = createStoryPaths('/project', 'my-story');
     const taskPath = createTaskPath('/project', 'my-story', 't1');
 
     expect(taskPath).toBe(`${storyPaths.storyDir}/t1.json`);

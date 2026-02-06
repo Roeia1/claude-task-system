@@ -12,22 +12,22 @@ tasks:
     status: completed
   - id: t3
     title: Implement epic.json read/write utilities
-    status: pending
+    status: completed
   - id: t4
     title: Implement task JSON read/write utilities
-    status: pending
+    status: completed
   - id: t5
     title: Implement derived status computation
     status: completed
   - id: t6
     title: Implement ID validation and uniqueness enforcement
-    status: pending
+    status: completed
   - id: t7
     title: Update directory.ts path utilities for new structure
-    status: pending
+    status: completed
   - id: t8
     title: Integration tests for full read/write cycle
-    status: pending
+    status: completed
 ---
 
 ## Context

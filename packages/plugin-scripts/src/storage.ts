@@ -5,6 +5,7 @@ const STORY_ID_PATTERN = /^[a-z0-9-]+$/;
 
 import {
   createEpicPaths,
+  createSagaPaths,
   createStoryPaths,
   type Epic,
   EpicSchema,
@@ -159,9 +160,104 @@ export function listTasks(projectRoot: string, storyId: string): Task[] {
     .map((f) => {
       const taskPath = join(storyDir, f);
       const raw = readFileSync(taskPath, 'utf-8');
-      const parsed = JSON.parse(raw);
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new Error(`Malformed JSON in task file: ${taskPath}`);
+      }
+
       return TaskSchema.parse(parsed);
     });
+}
+
+/**
+ * List all epic JSON files in .saga/epics/, returning parsed Epic objects.
+ *
+ * Reads each .json file in the epics directory.
+ * Throws if the epics directory does not exist.
+ */
+export function listEpics(projectRoot: string): Epic[] {
+  const { epics } = createSagaPaths(projectRoot);
+
+  if (!existsSync(epics)) {
+    throw new Error(`Epics directory not found: ${epics}`);
+  }
+
+  const files = readdirSync(epics);
+
+  return files
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => {
+      const epicPath = join(epics, f);
+      const raw = readFileSync(epicPath, 'utf-8');
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new Error(`Malformed JSON in epic file: ${epicPath}`);
+      }
+
+      return EpicSchema.parse(parsed);
+    });
+}
+
+/**
+ * List all story folders in .saga/stories/, returning parsed Story objects.
+ *
+ * Reads each story directory's story.json file.
+ * Throws if the stories directory does not exist.
+ */
+export function listStories(projectRoot: string): Story[] {
+  const { stories } = createSagaPaths(projectRoot);
+
+  if (!existsSync(stories)) {
+    throw new Error(`Stories directory not found: ${stories}`);
+  }
+
+  const entries = readdirSync(stories, { withFileTypes: true });
+
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => {
+      const storyJsonPath = join(stories, entry.name, 'story.json');
+
+      if (!existsSync(storyJsonPath)) {
+        return null;
+      }
+
+      const raw = readFileSync(storyJsonPath, 'utf-8');
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new Error(`Malformed JSON in story file: ${storyJsonPath}`);
+      }
+
+      return StorySchema.parse(parsed);
+    })
+    .filter((story): story is Story => story !== null);
+}
+
+/**
+ * List stories that belong to a specific epic.
+ *
+ * Returns stories whose `epic` field matches the given epicId.
+ */
+export function listEpicStories(projectRoot: string, epicId: string): Story[] {
+  return listStories(projectRoot).filter((story) => story.epic === epicId);
+}
+
+/**
+ * List stories that do not belong to any epic.
+ *
+ * Returns stories whose `epic` field is undefined.
+ */
+export function listStandaloneStories(projectRoot: string): Story[] {
+  return listStories(projectRoot).filter((story) => story.epic === undefined);
 }
 
 /**
@@ -193,6 +289,19 @@ export function deriveStoryStatus(tasks: Pick<Task, 'status'>[]): TaskStatus {
  * - Otherwise -> "pending"
  * - Empty array -> "pending"
  */
+export function deriveEpicStatus(storyStatuses: TaskStatus[]): TaskStatus {
+  if (storyStatuses.length === 0) {
+    return 'pending';
+  }
+  if (storyStatuses.some((s) => s === 'in_progress')) {
+    return 'in_progress';
+  }
+  if (storyStatuses.every((s) => s === 'completed')) {
+    return 'completed';
+  }
+  return 'pending';
+}
+
 /**
  * Validate that a story ID matches the [a-z0-9-]+ pattern.
  *
@@ -214,17 +323,4 @@ export function ensureUniqueStoryId(projectRoot: string, id: string): void {
   if (existsSync(storyDir)) {
     throw new Error(`Story ID "${id}" already exists: ${storyDir}`);
   }
-}
-
-export function deriveEpicStatus(storyStatuses: TaskStatus[]): TaskStatus {
-  if (storyStatuses.length === 0) {
-    return 'pending';
-  }
-  if (storyStatuses.some((s) => s === 'in_progress')) {
-    return 'in_progress';
-  }
-  if (storyStatuses.every((s) => s === 'completed')) {
-    return 'completed';
-  }
-  return 'pending';
 }

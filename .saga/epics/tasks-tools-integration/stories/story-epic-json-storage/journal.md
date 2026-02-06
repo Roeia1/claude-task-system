@@ -236,3 +236,40 @@
 - saga-types: 88/88 pass (unchanged)
 
 **All story tasks complete (t1-t8).**
+
+## Session 9: 2026-02-06
+
+### PR Review Fixes and Additional Functions
+
+**Context:**
+Code review of PR #64 identified 6 issues. After discussion, all 6 were addressed. Additionally, two gaps were identified: missing `listEpics` function and no way to distinguish epic-bound vs standalone stories.
+
+**What was done:**
+
+1. **Fixed disconnected JSDoc for `deriveEpicStatus`** - Moved `deriveEpicStatus` function body up to be adjacent to its JSDoc comment, right after `deriveStoryStatus`. ID validation functions (`validateStoryId`, `ensureUniqueStoryId`) moved below.
+
+2. **Added `listStories` function + 6 tests** - New function reads `.saga/stories/`, filters to directories with `story.json`, parses each. Tests cover: happy path, empty directory, directories without story.json, non-directory entries, missing stories directory, malformed JSON.
+
+3. **Added try/catch to `listTasks` JSON.parse** - Previously used bare `JSON.parse` unlike `readTask` which wrapped it. Now throws descriptive error including the filename on corrupt JSON.
+
+4. **Removed `createFlatStoryPaths`/`createFlatEpicPath` aliases** - These were pure aliases (`const alias = original`) with zero new behavior. Removed from `directory.ts`, `index.ts`, and their 6 tests from `directory.test.ts`. No backward compatibility needed. Updated the `createTaskPath` consistency test to reference `createStoryPaths` instead.
+
+5. **Fixed `createTaskPath` to use `join()`** - Changed from template literal `` `${storyDir}/${taskId}.json` `` to `join(storyDir, \`${taskId}.json\`)`. Added `import { join } from 'node:path'` to `directory.ts`.
+
+6. **Fixed stale task statuses in story.md frontmatter** - Updated t3, t4, t6, t7, t8 from `status: pending` to `status: completed` to match journal's record.
+
+7. **Added `listEpics` function + 5 tests** - Reads `.saga/epics/*.json` files, parses each against `EpicSchema`. Tests cover: happy path, empty directory, non-JSON files, missing epics directory, malformed JSON.
+
+8. **Added `listEpicStories` + 3 tests** - Filters `listStories()` to stories whose `epic` field matches a given epicId. Tests cover: matching filter, no matches, excludes standalone stories.
+
+9. **Added `listStandaloneStories` + 3 tests** - Filters `listStories()` to stories with no `epic` field. Tests cover: standalone only, all have epics (empty result), none have epics (all returned).
+
+**Decisions:**
+- `listEpicStories` and `listStandaloneStories` delegate to `listStories` rather than re-reading the filesystem, keeping them thin filter functions
+- `listEpics` follows the same pattern as `listStories` but simpler (files not directories)
+- `listStories` gracefully skips directories without `story.json` (returns null, filtered out) rather than throwing
+- Added `createSagaPaths` to storage.ts imports to support `listStories` and `listEpics` accessing the root stories/epics directories
+
+**Test baseline:**
+- saga-types: 82/82 pass (was 88, minus 6 removed alias tests)
+- plugin-scripts storage: 117/117 pass (was 100, +5 listEpics, +6 listEpicStories/listStandaloneStories, +6 listStories)

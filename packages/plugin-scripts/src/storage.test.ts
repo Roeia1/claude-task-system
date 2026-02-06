@@ -15,6 +15,10 @@ import {
   deriveEpicStatus,
   deriveStoryStatus,
   ensureUniqueStoryId,
+  listEpicStories,
+  listEpics,
+  listStandaloneStories,
+  listStories,
   listTasks,
   readEpic,
   readStory,
@@ -456,6 +460,57 @@ describe('epic storage', () => {
   });
 });
 
+describe('listEpics', () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = realpathSync(mkdtempSync(join(tmpdir(), 'saga-list-epics-test-')));
+    mkdirSync(join(testDir, '.saga', 'epics'), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('returns all epics', () => {
+    writeEpic(testDir, { id: 'epic-a', title: 'Epic A', description: 'First', children: [] });
+    writeEpic(testDir, {
+      id: 'epic-b',
+      title: 'Epic B',
+      description: 'Second',
+      children: [{ id: 'story-1', blockedBy: [] }],
+    });
+
+    const epics = listEpics(testDir);
+    const ids = epics.map((e) => e.id).sort();
+    expect(ids).toEqual(['epic-a', 'epic-b']);
+  });
+
+  it('returns empty array when no epic files exist', () => {
+    const epics = listEpics(testDir);
+    expect(epics).toEqual([]);
+  });
+
+  it('ignores non-JSON files', () => {
+    writeEpic(testDir, { id: 'real-epic', title: 'Real', description: 'An epic', children: [] });
+    writeFileSync(join(testDir, '.saga', 'epics', 'notes.txt'), 'not an epic', 'utf-8');
+
+    const epics = listEpics(testDir);
+    expect(epics).toHaveLength(1);
+    expect(epics[0].id).toBe('real-epic');
+  });
+
+  it('throws when epics directory does not exist', () => {
+    rmSync(join(testDir, '.saga', 'epics'), { recursive: true, force: true });
+    expect(() => listEpics(testDir)).toThrow();
+  });
+
+  it('throws for malformed JSON', () => {
+    writeFileSync(join(testDir, '.saga', 'epics', 'bad.json'), '{ invalid }', 'utf-8');
+    expect(() => listEpics(testDir)).toThrow();
+  });
+});
+
 describe('task storage', () => {
   let testDir: string;
 
@@ -753,6 +808,142 @@ describe('task storage', () => {
     it('throws when story directory does not exist', () => {
       expect(() => listTasks(testDir, 'nonexistent')).toThrow();
     });
+  });
+});
+
+describe('listStories', () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = realpathSync(mkdtempSync(join(tmpdir(), 'saga-list-stories-test-')));
+    mkdirSync(join(testDir, '.saga', 'stories'), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('returns all stories', () => {
+    writeStory(testDir, { id: 'story-a', title: 'Story A', description: 'First' });
+    writeStory(testDir, { id: 'story-b', title: 'Story B', description: 'Second' });
+
+    const stories = listStories(testDir);
+    const ids = stories.map((s) => s.id).sort();
+    expect(ids).toEqual(['story-a', 'story-b']);
+  });
+
+  it('returns empty array when no story directories exist', () => {
+    const stories = listStories(testDir);
+    expect(stories).toEqual([]);
+  });
+
+  it('skips directories without story.json', () => {
+    writeStory(testDir, { id: 'valid-story', title: 'Valid', description: 'Has story.json' });
+    mkdirSync(join(testDir, '.saga', 'stories', 'empty-dir'), { recursive: true });
+
+    const stories = listStories(testDir);
+    expect(stories).toHaveLength(1);
+    expect(stories[0].id).toBe('valid-story');
+  });
+
+  it('ignores non-directory entries', () => {
+    writeStory(testDir, { id: 'real-story', title: 'Real', description: 'A story' });
+    writeFileSync(join(testDir, '.saga', 'stories', 'stray-file.txt'), 'not a story', 'utf-8');
+
+    const stories = listStories(testDir);
+    expect(stories).toHaveLength(1);
+    expect(stories[0].id).toBe('real-story');
+  });
+
+  it('throws when stories directory does not exist', () => {
+    rmSync(join(testDir, '.saga', 'stories'), { recursive: true, force: true });
+    expect(() => listStories(testDir)).toThrow();
+  });
+
+  it('throws for malformed story.json', () => {
+    const storyDir = join(testDir, '.saga', 'stories', 'bad-story');
+    mkdirSync(storyDir, { recursive: true });
+    writeFileSync(join(storyDir, 'story.json'), '{ invalid json }', 'utf-8');
+
+    expect(() => listStories(testDir)).toThrow();
+  });
+});
+
+describe('listEpicStories', () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = realpathSync(mkdtempSync(join(tmpdir(), 'saga-epic-stories-test-')));
+    mkdirSync(join(testDir, '.saga', 'stories'), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('returns only stories belonging to the given epic', () => {
+    writeStory(testDir, { id: 'story-a', title: 'A', description: 'A', epic: 'my-epic' });
+    writeStory(testDir, { id: 'story-b', title: 'B', description: 'B', epic: 'other-epic' });
+    writeStory(testDir, { id: 'story-c', title: 'C', description: 'C', epic: 'my-epic' });
+
+    const stories = listEpicStories(testDir, 'my-epic');
+    const ids = stories.map((s) => s.id).sort();
+    expect(ids).toEqual(['story-a', 'story-c']);
+  });
+
+  it('returns empty array when no stories match the epic', () => {
+    writeStory(testDir, { id: 'story-a', title: 'A', description: 'A', epic: 'other-epic' });
+
+    const stories = listEpicStories(testDir, 'my-epic');
+    expect(stories).toEqual([]);
+  });
+
+  it('excludes standalone stories (no epic field)', () => {
+    writeStory(testDir, { id: 'epic-story', title: 'E', description: 'E', epic: 'my-epic' });
+    writeStory(testDir, { id: 'standalone', title: 'S', description: 'S' });
+
+    const stories = listEpicStories(testDir, 'my-epic');
+    expect(stories).toHaveLength(1);
+    expect(stories[0].id).toBe('epic-story');
+  });
+});
+
+describe('listStandaloneStories', () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = realpathSync(mkdtempSync(join(tmpdir(), 'saga-standalone-stories-test-')));
+    mkdirSync(join(testDir, '.saga', 'stories'), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('returns only stories without an epic field', () => {
+    writeStory(testDir, { id: 'standalone-a', title: 'A', description: 'A' });
+    writeStory(testDir, { id: 'epic-story', title: 'E', description: 'E', epic: 'my-epic' });
+    writeStory(testDir, { id: 'standalone-b', title: 'B', description: 'B' });
+
+    const stories = listStandaloneStories(testDir);
+    const ids = stories.map((s) => s.id).sort();
+    expect(ids).toEqual(['standalone-a', 'standalone-b']);
+  });
+
+  it('returns empty array when all stories belong to epics', () => {
+    writeStory(testDir, { id: 'story-a', title: 'A', description: 'A', epic: 'epic-1' });
+    writeStory(testDir, { id: 'story-b', title: 'B', description: 'B', epic: 'epic-2' });
+
+    const stories = listStandaloneStories(testDir);
+    expect(stories).toEqual([]);
+  });
+
+  it('returns all stories when none belong to epics', () => {
+    writeStory(testDir, { id: 'solo-1', title: '1', description: '1' });
+    writeStory(testDir, { id: 'solo-2', title: '2', description: '2' });
+
+    const stories = listStandaloneStories(testDir);
+    expect(stories).toHaveLength(2);
   });
 });
 

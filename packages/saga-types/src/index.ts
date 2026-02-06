@@ -16,8 +16,6 @@ export {
   type ArchivePaths,
   createArchivePaths,
   createEpicPaths,
-  createFlatEpicPath,
-  createFlatStoryPaths,
   createSagaPaths,
   createStoryPaths,
   createTaskPath,
