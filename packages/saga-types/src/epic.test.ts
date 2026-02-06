@@ -1,185 +1,127 @@
-import { describe, expect, it } from "vitest";
-import {
-	type Epic,
-	EpicSchema,
-	type StoryCounts,
-	StoryCountsSchema,
-} from "./epic.ts";
-import type { Story } from "./story.ts";
+import { describe, expect, it } from 'vitest';
+import { type Epic, type EpicChild, EpicChildSchema, EpicSchema } from './epic.ts';
 
-describe("StoryCountsSchema", () => {
-	it("parses valid story counts", () => {
-		const counts: StoryCounts = {
-			total: 5,
-			ready: 2,
-			inProgress: 1,
-			blocked: 1,
-			completed: 1,
-		};
-		expect(StoryCountsSchema.parse(counts)).toEqual(counts);
-	});
+describe('EpicChildSchema', () => {
+  it('parses a valid epic child', () => {
+    const child: EpicChild = {
+      id: 'story-one',
+      blockedBy: [],
+    };
+    expect(EpicChildSchema.parse(child)).toEqual(child);
+  });
 
-	it("parses counts with all zeros", () => {
-		const counts: StoryCounts = {
-			total: 0,
-			ready: 0,
-			inProgress: 0,
-			blocked: 0,
-			completed: 0,
-		};
-		expect(StoryCountsSchema.parse(counts)).toEqual(counts);
-	});
+  it('parses a child with blockers', () => {
+    const child: EpicChild = {
+      id: 'story-two',
+      blockedBy: ['story-one', 'story-three'],
+    };
+    expect(EpicChildSchema.parse(child)).toEqual(child);
+  });
 
-	it("requires all fields", () => {
-		expect(() =>
-			StoryCountsSchema.parse({
-				total: 5,
-				ready: 2,
-				inProgress: 1,
-				blocked: 1,
-			}),
-		).toThrow(); // missing completed
+  it('rejects child missing id', () => {
+    expect(() => EpicChildSchema.parse({ blockedBy: [] })).toThrow();
+  });
 
-		expect(() =>
-			StoryCountsSchema.parse({
-				ready: 2,
-				inProgress: 1,
-				blocked: 1,
-				completed: 1,
-			}),
-		).toThrow(); // missing total
-	});
+  it('rejects child missing blockedBy', () => {
+    expect(() => EpicChildSchema.parse({ id: 'story-one' })).toThrow();
+  });
 });
 
-describe("EpicSchema", () => {
-	const sampleStory: Story = {
-		slug: "test-story",
-		path: ".saga/epics/my-epic/stories/test-story/story.md",
-		frontmatter: {
-			id: "test-story",
-			title: "Test Story",
-			status: "ready",
-			epic: "my-epic",
-			tasks: [{ id: "t1", title: "Task 1", status: "pending" }],
-		},
-		content: "## Context\n\nThis is the story content.",
-	};
+describe('EpicSchema', () => {
+  it('parses a valid epic with required fields and empty children', () => {
+    const epic: Epic = {
+      id: 'my-epic',
+      title: 'My Epic',
+      description: 'An epic for testing.',
+      children: [],
+    };
+    expect(EpicSchema.parse(epic)).toEqual(epic);
+  });
 
-	const sampleStoryCounts: StoryCounts = {
-		total: 1,
-		ready: 1,
-		inProgress: 0,
-		blocked: 0,
-		completed: 0,
-	};
+  it('parses an epic with children', () => {
+    const epic: Epic = {
+      id: 'feature-epic',
+      title: 'Feature Epic',
+      description: 'Epic with multiple stories.',
+      children: [
+        { id: 'story-one', blockedBy: [] },
+        { id: 'story-two', blockedBy: ['story-one'] },
+        { id: 'story-three', blockedBy: ['story-one', 'story-two'] },
+      ],
+    };
+    expect(EpicSchema.parse(epic)).toEqual(epic);
+  });
 
-	it("parses a complete epic with stories", () => {
-		const epic: Epic = {
-			slug: "my-epic",
-			path: ".saga/epics/my-epic/epic.md",
-			title: "My Epic",
-			content: "## Overview\n\nThis is the epic content.",
-			storyCounts: sampleStoryCounts,
-			stories: [sampleStory],
-		};
-		expect(EpicSchema.parse(epic)).toEqual(epic);
-	});
+  it('rejects epic missing id', () => {
+    expect(() =>
+      EpicSchema.parse({
+        title: 'Test',
+        description: 'Desc',
+        children: [],
+      }),
+    ).toThrow();
+  });
 
-	it("parses an archived epic", () => {
-		const epic: Epic = {
-			slug: "old-epic",
-			path: ".saga/archive/old-epic/epic.md",
-			title: "Old Epic",
-			content: "## Overview\n\nArchived epic.",
-			storyCounts: {
-				total: 2,
-				ready: 0,
-				inProgress: 0,
-				blocked: 0,
-				completed: 2,
-			},
-			stories: [],
-			archived: true,
-		};
-		expect(EpicSchema.parse(epic)).toEqual(epic);
-	});
+  it('rejects epic missing title', () => {
+    expect(() =>
+      EpicSchema.parse({
+        id: 'test',
+        description: 'Desc',
+        children: [],
+      }),
+    ).toThrow();
+  });
 
-	it("parses an epic with empty stories array", () => {
-		const epic: Epic = {
-			slug: "empty-epic",
-			path: ".saga/epics/empty-epic/epic.md",
-			title: "Empty Epic",
-			content: "## Overview\n\nNo stories yet.",
-			storyCounts: {
-				total: 0,
-				ready: 0,
-				inProgress: 0,
-				blocked: 0,
-				completed: 0,
-			},
-			stories: [],
-		};
-		expect(EpicSchema.parse(epic)).toEqual(epic);
-	});
+  it('rejects epic missing description', () => {
+    expect(() =>
+      EpicSchema.parse({
+        id: 'test',
+        title: 'Test',
+        children: [],
+      }),
+    ).toThrow();
+  });
 
-	it("parses epic with mixed story statuses", () => {
-		const readyStory: Story = { ...sampleStory, slug: "ready-story" };
-		const inProgressStory: Story = {
-			...sampleStory,
-			slug: "in-progress-story",
-			frontmatter: {
-				...sampleStory.frontmatter,
-				id: "in-progress-story",
-				status: "in_progress",
-			},
-		};
-		const completedStory: Story = {
-			...sampleStory,
-			slug: "completed-story",
-			frontmatter: {
-				...sampleStory.frontmatter,
-				id: "completed-story",
-				status: "completed",
-			},
-		};
+  it('rejects epic missing children', () => {
+    expect(() =>
+      EpicSchema.parse({
+        id: 'test',
+        title: 'Test',
+        description: 'Desc',
+      }),
+    ).toThrow();
+  });
 
-		const epic: Epic = {
-			slug: "mixed-epic",
-			path: ".saga/epics/mixed-epic/epic.md",
-			title: "Mixed Status Epic",
-			content: "## Overview",
-			storyCounts: {
-				total: 3,
-				ready: 1,
-				inProgress: 1,
-				blocked: 0,
-				completed: 1,
-			},
-			stories: [readyStory, inProgressStory, completedStory],
-		};
-		expect(EpicSchema.parse(epic)).toEqual(epic);
-	});
+  it('rejects epic with invalid children entries', () => {
+    expect(() =>
+      EpicSchema.parse({
+        id: 'test',
+        title: 'Test',
+        description: 'Desc',
+        children: [{ id: 'story-one' }], // missing blockedBy
+      }),
+    ).toThrow();
+  });
 
-	it("requires all fields", () => {
-		expect(() =>
-			EpicSchema.parse({
-				slug: "test",
-				path: "/path",
-				title: "Test",
-				content: "content",
-				// missing storyCounts and stories
-			}),
-		).toThrow();
+  it('rejects old epic fields (slug, path, content, storyCounts, stories, archived)', () => {
+    expect(() =>
+      EpicSchema.parse({
+        id: 'test',
+        title: 'Test',
+        description: 'Desc',
+        children: [],
+        slug: 'test',
+      }),
+    ).toThrow();
 
-		expect(() =>
-			EpicSchema.parse({
-				slug: "test",
-				path: "/path",
-				title: "Test",
-				storyCounts: sampleStoryCounts,
-				stories: [],
-				// missing content
-			}),
-		).toThrow();
-	});
+    expect(() =>
+      EpicSchema.parse({
+        id: 'test',
+        title: 'Test',
+        description: 'Desc',
+        children: [],
+        status: 'active',
+      }),
+    ).toThrow();
+  });
 });

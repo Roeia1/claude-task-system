@@ -63,3 +63,37 @@
 - t6: Update directory utilities
 - t7: Update barrel exports
 - t8: Final test verification
+
+## Session 3: 2026-02-06
+
+### Task: t3 - Define new Epic type and Zod schema
+
+**What was done:**
+- Rewrote `packages/saga-types/src/epic.ts` completely:
+  - Removed all old types: `StoryCounts`, `StoryCountsSchema`, old `Epic`/`EpicSchema`
+  - Removed import of `StorySchema` from `./story.ts` (Epic no longer embeds Story objects)
+  - Defined `EpicChildSchema` with `.strict()`: `id` (string), `blockedBy` (array of strings)
+  - Defined `EpicSchema` with `.strict()`: `id`, `title`, `description`, `children` (array of EpicChildSchema)
+  - No `status` field (derived from child story statuses at read time)
+- Rewrote `packages/saga-types/src/epic.test.ts` with 12 tests covering:
+  - EpicChild parsing (valid child, child with blockers, missing id, missing blockedBy)
+  - Epic parsing (required fields with empty children, children with dependencies)
+  - Missing required field rejection (id, title, description, children)
+  - Invalid children entries rejection
+  - Old field rejection (slug, status)
+
+**Decisions:**
+- Used `.strict()` on both `EpicChildSchema` and `EpicSchema` to actively reject unknown fields, consistent with the pattern established in StorySchema (t2).
+- No import from `./story.ts` needed -- Epic only references stories by ID via children, not by embedding Story objects.
+
+**Test results:**
+- 12 new epic tests pass
+- 57 total tests pass (no regressions)
+- Type errors in `index.ts` remain (expected, will be fixed in t7 - barrel exports)
+
+**Next steps:**
+- t4: Define ClaudeCodeTask type and schema
+- t5: Implement conversion functions
+- t6: Update directory utilities
+- t7: Update barrel exports
+- t8: Final test verification
