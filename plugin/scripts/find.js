@@ -5552,20 +5552,21 @@ function parseFrontmatter(content) {
   const body = content.slice(endIndex + FRONTMATTER_CLOSE_LENGTH).trim();
   const frontmatter = {};
   for (const line of frontmatterBlock.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
+    if (line.length === 0 || line[0] === " " || line[0] === "	" || line[0] === "-") {
       continue;
     }
-    const colonIndex = trimmed.indexOf(":");
+    const colonIndex = line.indexOf(":");
     if (colonIndex === -1) {
       continue;
     }
-    const key = trimmed.slice(0, colonIndex).trim();
-    let value = trimmed.slice(colonIndex + 1).trim();
+    const key = line.slice(0, colonIndex).trim();
+    let value = line.slice(colonIndex + 1).trim();
     if (typeof value === "string" && value.startsWith('"') && value.endsWith('"') || typeof value === "string" && value.startsWith("'") && value.endsWith("'")) {
       value = value.slice(1, -1);
     }
-    frontmatter[key] = value;
+    if (key) {
+      frontmatter[key] = value;
+    }
   }
   return { frontmatter, body };
 }
