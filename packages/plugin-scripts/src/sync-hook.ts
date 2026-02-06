@@ -46,6 +46,7 @@ function parseHookInput(raw: string): { taskId: string; status: string } | null 
       return null;
     }
     const { taskId, status } = toolInput;
+    // TaskUpdate calls without status (e.g. subject-only updates) are not relevant for sync
     if (!(taskId && status)) {
       return null;
     }
