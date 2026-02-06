@@ -118,3 +118,25 @@
 - t5: Namespace tests (namespace.ts exists but needs dedicated unit tests)
 - t6: Error handling and edge cases
 - t7: Integration tests
+
+## Session 5: 2026-02-06
+
+### Task: t5 - Handle per-session task list namespacing
+
+**What was done:**
+- Created `packages/plugin-scripts/src/hydrate/namespace.test.ts` - 18 unit tests covering all namespace functions
+- All 74 hydrate/sync tests pass (18 new + 56 existing), lint clean
+
+**Tests cover:**
+- `generateTaskListId()`: correct saga__ format, multiple hyphens, single-character story ID
+- `parseTaskListId()`: valid IDs, multiple hyphens, non-SAGA IDs, empty string, partial prefix, non-numeric timestamp, old epic+story format, uppercase, underscores
+- Round-trip consistency: simple, single-segment, and large timestamp scenarios
+- `getTaskListDir()`: default ~/.claude/tasks/ path, custom base directory, non-SAGA IDs
+
+**Decisions:**
+- Extracted magic timestamps to named constants to satisfy biome noMagicNumbers lint rule
+- Added biome-ignore comments for false-positive noSecrets warnings on describe block names
+
+**Next steps:**
+- t6: Error handling and edge cases
+- t7: Integration tests
