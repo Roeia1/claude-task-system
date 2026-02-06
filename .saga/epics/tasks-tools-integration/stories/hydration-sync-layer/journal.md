@@ -58,3 +58,32 @@
 - t3: Implement hydration service tests (service.ts exists but needs dedicated unit tests)
 - t4: Create sync hook script
 - t5: Namespace tests (namespace.ts exists but needs dedicated unit tests)
+
+## Session 3: 2026-02-06
+
+### Task: t3 - Implement hydration service tests (read, convert, write)
+
+**What was done:**
+- Created `packages/plugin-scripts/src/hydrate/service.test.ts` - 17 unit tests covering the `hydrate()` function
+- Tests use temp directories for both project source (`.saga/stories/`) and output (`~/.claude/tasks/`) to avoid filesystem side effects
+- All 36 hydrate tests pass (17 new + 19 conversion + 7 CLI), lint clean
+
+**Tests cover:**
+- Successful hydration: single task, multiple tasks, zero tasks
+- File I/O verification: Claude Code format files written with correct structure (id, subject, status, blocks, metadata)
+- Completed task preservation: all statuses (pending, in_progress, completed) are hydrated
+- Story metadata extraction: all optional fields present, none present, partial fields
+- Session namespacing: different timestamps create separate directories
+- Idempotency: re-hydration with same timestamp overwrites cleanly
+- Error handling: missing story directory, missing story.json, malformed JSON, schema validation failures (story and task)
+- Non-JSON file filtering: .md files in story directory are ignored
+
+**Decisions:**
+- Extracted magic numbers to constants (TEST_TIMESTAMP, SESSION_TIMESTAMP_A/B, EXPECTED_MULTI_TASK_COUNT) to satisfy biome lint rules
+- Used `realpathSync` on temp directories to handle macOS /tmp → /private/tmp symlinks
+
+**Next steps:**
+- t4: Create sync hook script
+- t5: Namespace tests (namespace.ts exists but needs dedicated unit tests)
+- t6: Error handling and edge cases
+- t7: Integration tests
