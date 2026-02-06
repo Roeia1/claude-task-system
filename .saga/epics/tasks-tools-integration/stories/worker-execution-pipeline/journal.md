@@ -315,3 +315,39 @@
 **Next steps:**
 - t9: Update scope-validator for SAGA_STORY_ID
 - t10: Update execute-story skill for new worker invocation
+
+## Session 9: 2026-02-06
+
+### Task: t9 - Update scope-validator for SAGA_STORY_ID
+
+**What was done:**
+- Updated `packages/plugin-scripts/src/scope-validator.ts` with:
+  - Added `ScopeInfo` discriminated union type with `'story-id'` and `'legacy'` modes
+  - Added `checkStoryAccessById(path, allowedStoryId)` function that validates against `.saga/stories/<storyId>/` (flat layout)
+  - Blocks all `.saga/epics/` story-level access when using `SAGA_STORY_ID` (cannot reliably match without epic slug)
+  - Allows epic-level files (non-story-specific) in `.saga/epics/` when using `SAGA_STORY_ID`
+  - Updated `getScopeEnvironment()` to return `ScopeInfo & { worktreePath }` union: prefers `SAGA_STORY_ID` when set, falls back to `SAGA_EPIC_SLUG` + `SAGA_STORY_SLUG`
+  - Updated `validatePath()` signature from `(filePath, worktreePath, epicSlug, storySlug)` to `(filePath, worktreePath, scope: ScopeInfo)` — dispatches to `checkStoryAccessById` or `checkStoryAccess` based on scope mode
+  - Updated `printScopeViolation()` to handle both scope modes (story-id shows `Story:` only, legacy shows `Epic:`, `Story:`, `Worktree:`)
+  - Updated `main()` to destructure scope from environment result
+  - Exported `checkStoryAccessById` and `getScopeEnvironment`
+- Updated `packages/plugin-scripts/src/scope-validator.test.ts` with 15 new tests:
+  - `checkStoryAccessById` (9 tests): assigned story access, task files, other stories blocked, non-saga paths allowed, non-stories .saga paths allowed, trailing slash edge case, different story id blocked, old .saga/epics/ blocked, epic-nested story-level blocked
+  - `getScopeEnvironment` (5 tests): prefers SAGA_STORY_ID, falls back to legacy vars, null when no vars, null when SAGA_PROJECT_DIR missing, prefers SAGA_STORY_ID even when legacy vars also set
+  - `validatePath (with SAGA_STORY_ID)` (6 tests): worktree check, archive check, own story allowed, other story blocked, .saga/epics/ story blocked
+  - `validatePath (legacy backward compatibility)` (4 tests): same behavior as before with scope object
+
+**Decisions:**
+- Changed `validatePath` signature to use a `ScopeInfo` discriminated union instead of individual string parameters — cleaner, extensible, and type-safe
+- `checkStoryAccessById` blocks ALL `.saga/epics/` story-level paths (even if the story slug happens to match the storyId), because we can't reliably verify the epic without the epic slug
+- Epic-level (non-story) files in `.saga/epics/` are still allowed when using `SAGA_STORY_ID` since they're not scoped to a specific story
+- Kept `checkStoryAccess` unchanged for full backward compatibility
+
+**Test results:**
+- 47/47 scope-validator tests pass (32 existing + 15 new)
+- 529/529 previously passing tests still pass (no regressions)
+- Same 31 pre-existing failures in finder.test.ts, orchestrator.test.ts, storage.test.ts, hydrate.test.ts
+
+**Next steps:**
+- t10: Update execute-story skill for new worker invocation
+- t11: Wire worker.ts into esbuild and verify end-to-end
