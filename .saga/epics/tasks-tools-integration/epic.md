@@ -27,6 +27,7 @@ The source of truth lives in `.saga/stories/` and `.saga/epics/` (git-tracked, p
 | **Session** | The tmux detached session wrapping a worker. Created by the skill, monitorable via `tmux attach` or reading the output file. |
 | **Headless Run** | A single `claude -p` invocation spawned by the worker. Executes tasks using Claude Code's native task tools. The worker spawns multiple headless runs sequentially — each run picks up where the last left off. |
 | **Worktree** | An isolated git checkout for a story. Each story executes in its own worktree with a dedicated branch, enabling parallel story development. |
+| **Dashboard** | An npm package (`@saga-ai/dashboard`) that provides a web view for monitoring and viewing epics, stories, and running worker statuses. Currently read-only. |
 
 ## Goals
 
@@ -240,7 +241,6 @@ function fromClaudeTask(claudeTask: ClaudeCodeTask): Partial<Task> {
 3. Convert each SAGA task to Claude Code format
 4. Create `~/.claude/tasks/saga__<storyId>/`
 5. Write converted task files
-6. Write `.highwatermark` file
 
 **Sync (via tool hooks):**
 - Tool hooks registered for `TaskUpdate`
@@ -262,8 +262,8 @@ Skill (interactive Claude)
   └─ Returns { sessionName, outputFile } to user
 
 [inside tmux] node worker.js
-  ├─ 1. Create worktree and branch for this story
-  ├─ 2. Create draft PR (allows dashboard tracking from the start)
+  ├─ 1. Create worktree and branch for this story (skip if already exists)
+  ├─ 2. Create draft PR (skip if already exists)
   ├─ 3. Read story.json for context
   ├─ 4. Hydrate task files to ~/.claude/tasks/
   ├─ 5. Loop: spawn headless runs
@@ -272,22 +272,34 @@ Skill (interactive Claude)
   │        └─ Worker checks exit status, spawns next run if needed
   ├─ 6. Clean up ~/.claude/tasks/ after completion
   └─ 7. Mark PR as ready for review
+
+**Idempotency**: The skill may be started multiple times for the same story (e.g., after resolving a blocker). All setup steps must be idempotent:
+- Worktree/branch creation: check if worktree already exists before creating
+- Draft PR creation: check if PR already exists for this branch before creating
+- Hydration: always re-hydrate from `.saga/stories/` (picks up current task statuses, so completed tasks are preserved)
 ```
 
 **Headless run invocation:**
+
+The worker reads `story.json` and injects its fields into a prompt template. The `story.json` and `epic.json` files are protected from modification by the headless run — any deviations or notes must be recorded in `journal.md` only.
+
 ```bash
 CLAUDE_CODE_ENABLE_TASKS=true \
 CLAUDE_CODE_TASK_LIST_ID=saga__<storyId> \
-claude -p "You are working on: ${title}
+claude -p "You are working on: ${story.title}
 
-${description}
+${story.description}
 
-Guidance: ${guidance}
+Guidance: ${story.guidance}
 
-Done when: ${doneWhen}
+Done when: ${story.doneWhen}
+
+Avoid: ${story.avoid}
 
 Execute the tasks in the task list using TaskList, TaskGet, and TaskUpdate."
 ```
+
+The prompt template is populated from `story.json` fields. Only non-empty fields are included.
 
 The worker only handles story execution. Epic orchestration (traversing stories, respecting dependencies) is out of scope — the user selects which story to execute via a plugin skill.
 
@@ -313,8 +325,8 @@ Headless runs self-terminate when `TaskList` shows all tasks completed. The work
 - User can re-run execution — the hydration layer reads current status from `.saga/stories/`, so completed tasks are preserved and only remaining tasks are re-attempted
 
 **Stuck tasks:**
-- If a headless run exits (crash or self-termination) with tasks still in `in_progress`, the worker resets those tasks to `pending` before marking the story as failed
-- This ensures a clean state for re-execution
+- If a headless run exits (crash or self-termination) with tasks still in `in_progress`, no special handling is needed
+- The next run will be aware of the current task statuses and can pick up where the previous run left off
 
 **Hydration failure:**
 - If writing to `~/.claude/tasks/` fails (permissions, disk space), worker aborts before spawning headless runs
@@ -333,11 +345,11 @@ This is not a complete rewrite. SAGA has established mechanisms for worktree iso
 
 | Mechanism | Current Location | Integration |
 |-----------|-----------------|-------------|
-| **SessionStart hook** | `hooks/session-init.sh` | Reused for context detection; updated to recognize story worktrees |
-| **Worktree creation** | `scripts/worktree.js` | Extended to create worktrees for stories |
-| **Scope validator** | `scripts/scope-validator.js` | Updated to validate worker access based on story path |
+| **SessionStart hook** | `hooks/session-init.sh` | Adjusted to recognize story worktrees |
+| **Worktree creation** | `scripts/worktree.js` | Adjusted to create worktrees for stories |
+| **Scope validator** | `scripts/scope-validator.js` | Adjusted to validate worker access based on story path |
 | **Tmux sessions** | Used by implement.js | Session creation moves to the skill; worker.js is a linear script inside tmux |
-| **Dashboard file watcher** | `packages/dashboard/watcher.ts` | Updated to watch `.saga/stories/` and `.saga/epics/` |
+| **Dashboard file watcher** | `packages/dashboard/watcher.ts` | Adjusted to watch `.saga/stories/` and `.saga/epics/` |
 
 ### Environment Variables
 
@@ -426,24 +438,15 @@ const allowedPaths = [
 ];
 ```
 
-### Dashboard Migration Path
+### Dashboard Changes
 
-The dashboard needs to support both systems during transition:
+The dashboard is adjusted to read the new JSON format directly. No backward compatibility with the old markdown format.
 
-1. **Phase 1**: Add `.saga/stories/` (JSON) and `.saga/epics/` (JSON) scanner alongside existing markdown scanner
-2. **Phase 2**: Unified view showing both legacy and new formats
-3. **Phase 3**: Deprecate markdown support once migration complete
-
-File watcher updates:
+File watcher paths:
 ```typescript
-// Current paths
-const watchPaths = ['.saga/epics/', '.saga/archive/'];
-
-// New paths (additive)
 const watchPaths = [
-  '.saga/epics/',      // Legacy markdown + new JSON epics
-  '.saga/archive/',    // Legacy support
-  '.saga/stories/',    // New JSON stories
+  '.saga/epics/',      // JSON epic files
+  '.saga/stories/',    // JSON story folders
 ];
 ```
 
@@ -582,7 +585,6 @@ hydrate(storyId: string): void
 Tool hooks registered for: TaskUpdate
   - Intercept status changes during headless run execution
   - Update status in .saga/stories/<storyId>/*.json
-  - Cleanup ~/.claude/tasks/saga__<storyId>/ after execution completes
 ```
 
 ### Worker Script
@@ -608,6 +610,4 @@ worker.js(storyId: string): void
 
 ## Open Questions
 
-1. **`.highwatermark` management**: String IDs are confirmed to work with Claude Code. Remaining question: verify that hydrating a task list without a `.highwatermark` file (with pre-existing task files using string IDs) works correctly — Claude Code should auto-generate `.highwatermark` and handle its own task creation alongside SAGA-provided tasks. Needs experimental verification.
-
-2. **Dashboard migration**: Dashboard currently reads `.saga/epics/` (markdown) and `.saga/stories/` (markdown). Needs update to read the new JSON format and visualize epic/story hierarchy.
+1. **Dashboard**: Dashboard currently reads `.saga/epics/` (markdown) and `.saga/stories/` (markdown). Needs update to read the new JSON format and visualize epic/story hierarchy.
