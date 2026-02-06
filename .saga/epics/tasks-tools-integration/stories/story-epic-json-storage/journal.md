@@ -145,3 +145,28 @@
 
 **Next steps:**
 - t6: Implement ID validation and uniqueness enforcement
+
+## Session 6: 2026-02-06
+
+### Task: t6 - Implement ID validation and uniqueness enforcement
+
+**What was done:**
+- Added `validateStoryId` and `ensureUniqueStoryId` functions to `packages/plugin-scripts/src/storage.ts`
+- Added 16 unit tests in `packages/plugin-scripts/src/storage.test.ts` (TDD approach)
+- `validateStoryId(id: string): boolean`: pure function that validates ID matches `/^[a-z0-9-]+$/` pattern
+- `ensureUniqueStoryId(projectRoot: string, id: string): void`: checks if `.saga/stories/<id>/` exists, throws descriptive error if it does
+
+**Tests cover:**
+- validateStoryId: accepts valid IDs (lowercase, digits, dashes, single char, digits-only), rejects invalid IDs (empty string, uppercase, spaces, underscores, special chars, dots, slashes)
+- ensureUniqueStoryId: passes when no directory exists, throws when directory exists, passes when other directories exist, error message includes story ID
+
+**Decisions:**
+- `validateStoryId` is a pure function with no file system access (as specified in task guidance)
+- `ensureUniqueStoryId` uses `createStoryPaths` + `existsSync` for the file system check
+- Error message includes both the story ID and the full path for debuggability
+
+**Test baseline:**
+- plugin-scripts: 289/320 pass (31 pre-existing failures unchanged, 16 new tests all pass)
+
+**Next steps:**
+- t7: Update directory.ts path utilities for new structure

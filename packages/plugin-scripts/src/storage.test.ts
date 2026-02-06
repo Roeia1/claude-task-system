@@ -14,10 +14,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   deriveEpicStatus,
   deriveStoryStatus,
+  ensureUniqueStoryId,
   listTasks,
   readEpic,
   readStory,
   readTask,
+  validateStoryId,
   writeEpic,
   writeStory,
   writeTask,
@@ -835,5 +837,90 @@ describe('deriveEpicStatus', () => {
 
   it('returns "completed" for a single completed status', () => {
     expect(deriveEpicStatus(['completed'])).toBe('completed');
+  });
+});
+
+describe('validateStoryId', () => {
+  it('accepts a simple lowercase id', () => {
+    expect(validateStoryId('auth-setup')).toBe(true);
+  });
+
+  it('accepts a single character id', () => {
+    expect(validateStoryId('a')).toBe(true);
+  });
+
+  it('accepts an id with digits', () => {
+    expect(validateStoryId('my-story-123')).toBe(true);
+  });
+
+  it('accepts an id with only digits', () => {
+    expect(validateStoryId('123')).toBe(true);
+  });
+
+  it('accepts an id with only dashes and letters', () => {
+    expect(validateStoryId('auth-setup-db')).toBe(true);
+  });
+
+  it('rejects an empty string', () => {
+    expect(validateStoryId('')).toBe(false);
+  });
+
+  it('rejects an id with uppercase letters', () => {
+    expect(validateStoryId('Auth-Setup')).toBe(false);
+  });
+
+  it('rejects an id with spaces', () => {
+    expect(validateStoryId('my story')).toBe(false);
+  });
+
+  it('rejects an id with underscores', () => {
+    expect(validateStoryId('my_story')).toBe(false);
+  });
+
+  it('rejects an id with special characters', () => {
+    expect(validateStoryId('story@1')).toBe(false);
+  });
+
+  it('rejects an id with dots', () => {
+    expect(validateStoryId('story.one')).toBe(false);
+  });
+
+  it('rejects an id with slashes', () => {
+    expect(validateStoryId('story/one')).toBe(false);
+  });
+});
+
+describe('ensureUniqueStoryId', () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = realpathSync(mkdtempSync(join(tmpdir(), 'saga-unique-id-test-')));
+    mkdirSync(join(testDir, '.saga', 'stories'), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('does not throw when no story directory exists with the given id', () => {
+    expect(() => ensureUniqueStoryId(testDir, 'new-story')).not.toThrow();
+  });
+
+  it('throws when a story directory already exists with the given id', () => {
+    mkdirSync(join(testDir, '.saga', 'stories', 'existing-story'), { recursive: true });
+
+    expect(() => ensureUniqueStoryId(testDir, 'existing-story')).toThrow('already exists');
+  });
+
+  it('does not throw when other story directories exist but not the given id', () => {
+    mkdirSync(join(testDir, '.saga', 'stories', 'other-story'), { recursive: true });
+
+    expect(() => ensureUniqueStoryId(testDir, 'new-story')).not.toThrow();
+  });
+
+  it('throws with a descriptive error message including the story id', () => {
+    mkdirSync(join(testDir, '.saga', 'stories', 'duplicate-story'), { recursive: true });
+
+    expect(() => ensureUniqueStoryId(testDir, 'duplicate-story')).toThrow('duplicate-story');
   });
 });

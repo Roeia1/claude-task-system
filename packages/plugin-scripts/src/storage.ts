@@ -1,5 +1,8 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+const STORY_ID_PATTERN = /^[a-z0-9-]+$/;
+
 import {
   createEpicPaths,
   createStoryPaths,
@@ -190,6 +193,29 @@ export function deriveStoryStatus(tasks: Pick<Task, 'status'>[]): TaskStatus {
  * - Otherwise -> "pending"
  * - Empty array -> "pending"
  */
+/**
+ * Validate that a story ID matches the [a-z0-9-]+ pattern.
+ *
+ * Returns true if the ID is valid, false otherwise.
+ * Pure function -- does not touch the file system.
+ */
+export function validateStoryId(id: string): boolean {
+  return STORY_ID_PATTERN.test(id);
+}
+
+/**
+ * Ensure a story ID is unique by checking if .saga/stories/<id>/ already exists.
+ *
+ * Throws a descriptive error if the directory exists.
+ */
+export function ensureUniqueStoryId(projectRoot: string, id: string): void {
+  const { storyDir } = createStoryPaths(projectRoot, id);
+
+  if (existsSync(storyDir)) {
+    throw new Error(`Story ID "${id}" already exists: ${storyDir}`);
+  }
+}
+
 export function deriveEpicStatus(storyStatuses: TaskStatus[]): TaskStatus {
   if (storyStatuses.length === 0) {
     return 'pending';
