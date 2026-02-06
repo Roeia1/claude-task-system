@@ -1,16 +1,27 @@
 {
-	"description": "Session initialization for SAGA plugin",
-	"hooks": {
-		"SessionStart": [
-			{
-				"matcher": "startup",
-				"hooks": [
-					{
-						"type": "command",
-						"command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-init.sh"
-					}
-				]
-			}
-		]
-	}
+  "description": "SAGA plugin hooks",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-init.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/sync-hook.js"
+          }
+        ]
+      }
+    ]
+  }
 }

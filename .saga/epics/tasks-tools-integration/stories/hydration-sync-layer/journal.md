@@ -87,3 +87,34 @@
 - t5: Namespace tests (namespace.ts exists but needs dedicated unit tests)
 - t6: Error handling and edge cases
 - t7: Integration tests
+
+## Session 4: 2026-02-06
+
+### Task: t4 - Create sync hook script for TaskUpdate interception
+
+**What was done:**
+- Created `packages/plugin-scripts/src/sync-hook.ts` - PostToolUse hook entry point that reads stdin JSON, extracts taskId/status, and writes status back to SAGA task file
+- Created `packages/plugin-scripts/src/sync-hook.test.ts` - 13 unit tests covering all sync-hook scenarios
+- Registered the hook in `plugin/hooks/hooks.json` as a PostToolUse hook matching `TaskUpdate`
+- Compiled to `plugin/scripts/sync-hook.js` via esbuild (built individually due to pre-existing `find/index.ts` build failure)
+- All 56 hydration+sync tests pass, lint clean
+
+**Decisions:**
+- Exported `processSyncInput(raw)` for unit testing; `main()` handles stdin reading and calls it
+- Used `createTaskPath()` from `@saga-ai/types` for consistent path construction
+- Sync failures log to stderr and always exit 0 (non-blocking per spec)
+- Runtime-created tasks (no matching file in `.saga/stories/`) are silently ignored with stderr log
+- Used same `isDirectExecution` guard pattern as `scope-validator.ts` to allow importing in tests without executing main
+
+**Tests cover:**
+- Successful sync: pending→in_progress, in_progress→completed status transitions
+- Field preservation: all other task fields unchanged after status sync
+- Runtime-created tasks: no matching file silently ignored, no file created
+- Malformed input: empty string, invalid JSON, missing tool_input, missing taskId, missing status
+- Missing env vars: SAGA_STORY_ID not set, SAGA_PROJECT_DIR not set
+- Malformed task file: non-JSON content in existing task file
+
+**Next steps:**
+- t5: Namespace tests (namespace.ts exists but needs dedicated unit tests)
+- t6: Error handling and edge cases
+- t7: Integration tests
