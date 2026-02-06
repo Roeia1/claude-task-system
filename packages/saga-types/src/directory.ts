@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+
 /**
  * SAGA Directory Structure Types
  *
@@ -6,17 +8,15 @@
  *
  * .saga/
  * ├── epics/
- * │   └── {epic-slug}/
- * │       ├── epic.md
- * │       └── stories/
- * │           └── {story-slug}/
- * │               ├── story.md
- * │               └── journal.md
+ * │   └── {epic-id}.json           # Single file per epic
+ * │
+ * ├── stories/
+ * │   └── {story-id}/
+ * │       ├── story.json
+ * │       └── journal.md
  * │
  * ├── worktrees/
- * │   └── {epic-slug}/
- * │       └── {story-slug}/          # Git worktree directory
- * │           └── .saga/...          # Nested saga structure
+ * │   └── {story-id}/              # Git worktree directory
  * │
  * └── archive/
  *     └── {epic-slug}/
@@ -28,85 +28,75 @@
  * Root-level SAGA directory paths
  */
 interface SagaPaths {
-	/** Project root directory (parent of .saga/) */
-	root: string;
-	/** .saga directory path */
-	saga: string;
-	/** .saga/epics directory path */
-	epics: string;
-	/** .saga/worktrees directory path */
-	worktrees: string;
-	/** .saga/archive directory path */
-	archive: string;
+  /** Project root directory (parent of .saga/) */
+  root: string;
+  /** .saga directory path */
+  saga: string;
+  /** .saga/epics directory path */
+  epics: string;
+  /** .saga/stories directory path */
+  stories: string;
+  /** .saga/worktrees directory path */
+  worktrees: string;
+  /** .saga/archive directory path */
+  archive: string;
 }
 
 /**
- * Epic directory paths
+ * Epic paths - single JSON file per epic
  */
 interface EpicPaths {
-	/** Epic slug identifier */
-	epicSlug: string;
-	/** Epic directory: .saga/epics/{epic-slug}/ */
-	epicDir: string;
-	/** Epic definition file: .saga/epics/{epic-slug}/epic.md */
-	epicMd: string;
-	/** Stories directory: .saga/epics/{epic-slug}/stories/ */
-	storiesDir: string;
+  /** Epic identifier */
+  epicId: string;
+  /** Epic JSON file: .saga/epics/{epic-id}.json */
+  epicJson: string;
 }
 
 /**
- * Story directory paths (within epics)
+ * Story directory paths (flat structure under .saga/stories/)
  */
 interface StoryPaths {
-	/** Epic slug identifier */
-	epicSlug: string;
-	/** Story slug identifier */
-	storySlug: string;
-	/** Story directory: .saga/epics/{epic-slug}/stories/{story-slug}/ */
-	storyDir: string;
-	/** Story definition file: .saga/epics/{epic-slug}/stories/{story-slug}/story.md */
-	storyMd: string;
-	/** Execution journal: .saga/epics/{epic-slug}/stories/{story-slug}/journal.md */
-	journalMd: string;
+  /** Story identifier */
+  storyId: string;
+  /** Story directory: .saga/stories/{story-id}/ */
+  storyDir: string;
+  /** Story definition file: .saga/stories/{story-id}/story.json */
+  storyJson: string;
+  /** Execution journal: .saga/stories/{story-id}/journal.md */
+  journalMd: string;
 }
 
 /**
- * Worktree directory paths
+ * Worktree directory paths (flat structure under .saga/worktrees/)
  */
 interface WorktreePaths {
-	/** Epic slug identifier */
-	epicSlug: string;
-	/** Story slug identifier */
-	storySlug: string;
-	/** Worktree directory: .saga/worktrees/{epic-slug}/{story-slug}/ */
-	worktreeDir: string;
-	/** Story.md path inside worktree's nested .saga structure */
-	storyMdInWorktree: string;
-	/** Journal.md path inside worktree's nested .saga structure */
-	journalMdInWorktree: string;
+  /** Story identifier */
+  storyId: string;
+  /** Worktree directory: .saga/worktrees/{story-id}/ */
+  worktreeDir: string;
 }
 
 /**
  * Archive directory paths
  */
 interface ArchivePaths {
-	/** Epic slug identifier */
-	epicSlug: string;
-	/** Story slug identifier (optional, for story-level archives) */
-	storySlug?: string;
-	/** Archived epic directory: .saga/archive/{epic-slug}/ */
-	archiveEpicDir: string;
-	/** Archived story directory: .saga/archive/{epic-slug}/{story-slug}/ */
-	archiveStoryDir?: string;
-	/** Archived story.md: .saga/archive/{epic-slug}/{story-slug}/story.md */
-	archiveStoryMd?: string;
+  /** Epic slug identifier */
+  epicSlug: string;
+  /** Story slug identifier (optional, for story-level archives) */
+  storySlug?: string;
+  /** Archived epic directory: .saga/archive/{epic-slug}/ */
+  archiveEpicDir: string;
+  /** Archived story directory: .saga/archive/{epic-slug}/{story-slug}/ */
+  archiveStoryDir?: string;
+  /** Archived story.md: .saga/archive/{epic-slug}/{story-slug}/story.md */
+  archiveStoryMd?: string;
 }
 
 /**
  * Normalize a project root path by removing trailing slashes
  */
 function normalizeRoot(projectRoot: string): string {
-	return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
+  return projectRoot.endsWith('/') ? projectRoot.slice(0, -1) : projectRoot;
 }
 
 /**
@@ -116,90 +106,68 @@ function normalizeRoot(projectRoot: string): string {
  * @returns SagaPaths object with all root-level paths
  */
 function createSagaPaths(projectRoot: string): SagaPaths {
-	const root = normalizeRoot(projectRoot);
-	const saga = `${root}/.saga`;
+  const root = normalizeRoot(projectRoot);
+  const saga = `${root}/.saga`;
 
-	return {
-		root,
-		saga,
-		epics: `${saga}/epics`,
-		worktrees: `${saga}/worktrees`,
-		archive: `${saga}/archive`,
-	};
+  return {
+    root,
+    saga,
+    epics: `${saga}/epics`,
+    stories: `${saga}/stories`,
+    worktrees: `${saga}/worktrees`,
+    archive: `${saga}/archive`,
+  };
 }
 
 /**
- * Create epic directory paths
+ * Create epic paths - points to a single JSON file
  *
  * @param projectRoot - Path to the project root directory
- * @param epicSlug - Epic slug identifier
- * @returns EpicPaths object with all epic-level paths
+ * @param epicId - Epic identifier
+ * @returns EpicPaths object with epic JSON file path
  */
-function createEpicPaths(projectRoot: string, epicSlug: string): EpicPaths {
-	const { epics } = createSagaPaths(projectRoot);
-	const epicDir = `${epics}/${epicSlug}`;
+function createEpicPaths(projectRoot: string, epicId: string): EpicPaths {
+  const { epics } = createSagaPaths(projectRoot);
 
-	return {
-		epicSlug,
-		epicDir,
-		epicMd: `${epicDir}/epic.md`,
-		storiesDir: `${epicDir}/stories`,
-	};
+  return {
+    epicId,
+    epicJson: `${epics}/${epicId}.json`,
+  };
 }
 
 /**
- * Create story directory paths (within the epics structure)
+ * Create story directory paths (flat structure)
  *
  * @param projectRoot - Path to the project root directory
- * @param epicSlug - Epic slug identifier
- * @param storySlug - Story slug identifier
+ * @param storyId - Story identifier
  * @returns StoryPaths object with all story-level paths
  */
-function createStoryPaths(
-	projectRoot: string,
-	epicSlug: string,
-	storySlug: string,
-): StoryPaths {
-	const { storiesDir } = createEpicPaths(projectRoot, epicSlug);
-	const storyDir = `${storiesDir}/${storySlug}`;
+function createStoryPaths(projectRoot: string, storyId: string): StoryPaths {
+  const { stories } = createSagaPaths(projectRoot);
+  const storyDir = `${stories}/${storyId}`;
 
-	return {
-		epicSlug,
-		storySlug,
-		storyDir,
-		storyMd: `${storyDir}/story.md`,
-		journalMd: `${storyDir}/journal.md`,
-	};
+  return {
+    storyId,
+    storyDir,
+    storyJson: `${storyDir}/story.json`,
+    journalMd: `${storyDir}/journal.md`,
+  };
 }
 
 /**
- * Create worktree directory paths
- *
- * Worktrees contain a nested .saga/ structure that mirrors the main project.
- * This allows the worktree to be self-contained.
+ * Create worktree directory paths (flat structure)
  *
  * @param projectRoot - Path to the project root directory
- * @param epicSlug - Epic slug identifier
- * @param storySlug - Story slug identifier
- * @returns WorktreePaths object with all worktree-level paths
+ * @param storyId - Story identifier
+ * @returns WorktreePaths object with worktree directory path
  */
-function createWorktreePaths(
-	projectRoot: string,
-	epicSlug: string,
-	storySlug: string,
-): WorktreePaths {
-	const { worktrees } = createSagaPaths(projectRoot);
-	const worktreeDir = `${worktrees}/${epicSlug}/${storySlug}`;
+function createWorktreePaths(projectRoot: string, storyId: string): WorktreePaths {
+  const { worktrees } = createSagaPaths(projectRoot);
 
-	const nestedStoryDir = `${worktreeDir}/.saga/epics/${epicSlug}/stories/${storySlug}`;
-
-	return {
-		epicSlug,
-		storySlug,
-		worktreeDir,
-		storyMdInWorktree: `${nestedStoryDir}/story.md`,
-		journalMdInWorktree: `${nestedStoryDir}/journal.md`,
-	};
+  return {
+    storyId,
+    worktreeDir: `${worktrees}/${storyId}`,
+  };
 }
 
 /**
@@ -211,37 +179,51 @@ function createWorktreePaths(
  * @returns ArchivePaths object with all archive-level paths
  */
 function createArchivePaths(
-	projectRoot: string,
-	epicSlug: string,
-	storySlug?: string,
+  projectRoot: string,
+  epicSlug: string,
+  storySlug?: string,
 ): ArchivePaths {
-	const { archive } = createSagaPaths(projectRoot);
-	const archiveEpicDir = `${archive}/${epicSlug}`;
+  const { archive } = createSagaPaths(projectRoot);
+  const archiveEpicDir = `${archive}/${epicSlug}`;
 
-	const result: ArchivePaths = {
-		epicSlug,
-		archiveEpicDir,
-	};
+  const result: ArchivePaths = {
+    epicSlug,
+    archiveEpicDir,
+  };
 
-	if (storySlug) {
-		const archiveStoryDir = `${archiveEpicDir}/${storySlug}`;
-		result.storySlug = storySlug;
-		result.archiveStoryDir = archiveStoryDir;
-		result.archiveStoryMd = `${archiveStoryDir}/story.md`;
-	}
+  if (storySlug) {
+    const archiveStoryDir = `${archiveEpicDir}/${storySlug}`;
+    result.storySlug = storySlug;
+    result.archiveStoryDir = archiveStoryDir;
+    result.archiveStoryMd = `${archiveStoryDir}/story.md`;
+  }
 
-	return result;
+  return result;
+}
+
+/**
+ * Create a task JSON file path
+ *
+ * @param projectRoot - Path to the project root directory
+ * @param storyId - Story identifier
+ * @param taskId - Task identifier
+ * @returns Path to the task JSON file: .saga/stories/{storyId}/{taskId}.json
+ */
+function createTaskPath(projectRoot: string, storyId: string, taskId: string): string {
+  const { storyDir } = createStoryPaths(projectRoot, storyId);
+  return join(storyDir, `${taskId}.json`);
 }
 
 export {
-	type ArchivePaths,
-	type EpicPaths,
-	type SagaPaths,
-	type StoryPaths,
-	type WorktreePaths,
-	createArchivePaths,
-	createEpicPaths,
-	createSagaPaths,
-	createStoryPaths,
-	createWorktreePaths,
+  type ArchivePaths,
+  type EpicPaths,
+  type SagaPaths,
+  type StoryPaths,
+  type WorktreePaths,
+  createArchivePaths,
+  createEpicPaths,
+  createSagaPaths,
+  createStoryPaths,
+  createTaskPath,
+  createWorktreePaths,
 };
