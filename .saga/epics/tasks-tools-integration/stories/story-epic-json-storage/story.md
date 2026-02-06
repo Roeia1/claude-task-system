@@ -6,7 +6,7 @@ epic: tasks-tools-integration
 tasks:
   - id: t1
     title: Create new directory structure and update /init skill
-    status: pending
+    status: completed
   - id: t2
     title: Implement story.json read/write utilities
     status: pending
