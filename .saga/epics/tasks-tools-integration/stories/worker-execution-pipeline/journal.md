@@ -385,3 +385,32 @@
 
 **Next steps:**
 - t11: Wire worker.ts into esbuild and verify end-to-end
+
+## Session 11: 2026-02-06
+
+### Task: t11 - Wire worker.ts into esbuild and verify end-to-end
+
+**What was done:**
+- Verified `packages/plugin-scripts/esbuild.config.mjs` automatically picks up `worker.ts` as an entry point (scans `src/*.ts` excluding test files)
+- Fixed pre-existing build failure in `find.ts` module:
+  - `find/index.ts` imported non-existent `StoryStatusSchema` from `@saga-ai/types` (types package removed story status since it's now derived from task statuses)
+  - `find/finder.ts` and `find/saga-scanner.ts` imported non-existent `type StoryStatus` from `@saga-ai/types`
+  - Defined `StoryStatus` type and `STORY_STATUSES` const locally in each file for backward compatibility with old story.md frontmatter format
+  - Replaced `StoryStatusSchema.safeParse()` with plain `STORY_STATUSES.includes()` to avoid `zod` dependency (not in plugin-scripts `package.json`)
+  - Fixed biome import ordering issues (types between imports)
+- Ran `pnpm build` — builds 9 scripts including `worker.ts`
+- Verified `plugin/scripts/worker.js` exists (145KB), includes shebang line (`#!/usr/bin/env node`)
+- Verified `node plugin/scripts/worker.js --help` prints usage information correctly
+- Ran full test suite: 529/529 pass (same 31 pre-existing failures, no regressions)
+
+**Decisions:**
+- Did not modify `esbuild.config.mjs` — automatic entry point scanning correctly picks up `worker.ts` (per task guidance: "Do not modify esbuild.config.mjs unless necessary")
+- Fixed `find.ts` build failure locally (not in `@saga-ai/types`) since `StoryStatus` is specific to the old story.md frontmatter format and doesn't belong in the new types package
+- Used plain TypeScript union type and const array instead of Zod schema to avoid undeclared dependency
+
+**Test results:**
+- 529/529 previously passing tests still pass (no regressions)
+- Same 31 pre-existing failures in finder.test.ts, orchestrator.test.ts, storage.test.ts, hydrate.test.ts
+- `pnpm build` succeeds, `node plugin/scripts/worker.js --help` works
+
+**All tasks complete (t1-t11). Story is FINISH.**

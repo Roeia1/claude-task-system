@@ -14,8 +14,10 @@ import {
   createSagaPaths,
   createStoryPaths,
   createWorktreePaths,
-  type StoryStatus,
 } from '@saga-ai/types';
+
+/** Story status from frontmatter (backward compatibility with old story.md format) */
+type StoryStatus = 'draft' | 'ready' | 'in_progress' | 'completed' | 'blocked';
 
 // ============================================================================
 // Constants

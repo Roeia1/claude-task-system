@@ -8,9 +8,12 @@
  */
 
 import { readdirSync } from 'node:fs';
-import { createSagaPaths, type StoryStatus } from '@saga-ai/types';
+import { createSagaPaths } from '@saga-ai/types';
 import Fuse, { type FuseResult } from 'fuse.js';
 import { epicsDirectoryExists, scanAllStories, worktreesDirectoryExists } from './saga-scanner.ts';
+
+/** Story status from frontmatter (backward compatibility with old story.md format) */
+type StoryStatus = 'draft' | 'ready' | 'in_progress' | 'completed' | 'blocked';
 
 // ============================================================================
 // Types

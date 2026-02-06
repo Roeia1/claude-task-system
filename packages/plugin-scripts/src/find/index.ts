@@ -19,9 +19,15 @@
 
 import { existsSync } from 'node:fs';
 import process from 'node:process';
-import { createSagaPaths, type StoryStatus, StoryStatusSchema } from '@saga-ai/types';
+import { createSagaPaths } from '@saga-ai/types';
 import { getProjectDir as getProjectDirEnv } from '../shared/env.ts';
 import { findEpic, findStory } from './finder.ts';
+
+// StoryStatus is defined locally here since the types package no longer includes
+// a status field in Story (status is now derived from task statuses).
+// This is kept for backward compatibility with the old story.md frontmatter format.
+const STORY_STATUSES = ['draft', 'ready', 'in_progress', 'completed', 'blocked'] as const;
+type StoryStatus = (typeof STORY_STATUSES)[number];
 
 // ============================================================================
 // Project Discovery
@@ -144,9 +150,8 @@ function resolveStatus(statusArg: string | undefined): StoryStatus | undefined {
   if (!statusArg) {
     return undefined;
   }
-  const parsed = StoryStatusSchema.safeParse(statusArg);
-  if (!parsed.success) {
-    const validValues = StoryStatusSchema.options.join(', ');
+  if (!STORY_STATUSES.includes(statusArg as StoryStatus)) {
+    const validValues = STORY_STATUSES.join(', ');
     console.log(
       JSON.stringify(
         {
@@ -159,7 +164,7 @@ function resolveStatus(statusArg: string | undefined): StoryStatus | undefined {
     );
     process.exit(1);
   }
-  return parsed.data;
+  return statusArg as StoryStatus;
 }
 
 // ============================================================================
