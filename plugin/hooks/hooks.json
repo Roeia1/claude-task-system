@@ -1,16 +1,16 @@
 {
-	"description": "Session initialization for SAGA plugin",
-	"hooks": {
-		"SessionStart": [
-			{
-				"matcher": "startup",
-				"hooks": [
-					{
-						"type": "command",
-						"command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-init.sh"
-					}
-				]
-			}
-		]
-	}
+  "description": "SAGA plugin hooks",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-init.sh"
+          }
+        ]
+      }
+    ]
+  }
 }

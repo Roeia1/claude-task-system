@@ -11,34 +11,6 @@ import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import process2 from "node:process";
 
-// ../saga-types/src/directory.ts
-function normalizeRoot(projectRoot) {
-  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
-}
-function createSagaPaths(projectRoot) {
-  const root = normalizeRoot(projectRoot);
-  const saga = `${root}/.saga`;
-  return {
-    root,
-    saga,
-    epics: `${saga}/epics`,
-    worktrees: `${saga}/worktrees`,
-    archive: `${saga}/archive`
-  };
-}
-function createWorktreePaths(projectRoot, epicSlug, storySlug) {
-  const { worktrees } = createSagaPaths(projectRoot);
-  const worktreeDir = `${worktrees}/${epicSlug}/${storySlug}`;
-  const nestedStoryDir = `${worktreeDir}/.saga/epics/${epicSlug}/stories/${storySlug}`;
-  return {
-    epicSlug,
-    storySlug,
-    worktreeDir,
-    storyMdInWorktree: `${nestedStoryDir}/story.md`,
-    journalMdInWorktree: `${nestedStoryDir}/journal.md`
-  };
-}
-
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
 __export(external_exports, {
@@ -4080,50 +4052,68 @@ var coerce = {
 };
 var NEVER = INVALID;
 
-// ../saga-types/src/story.ts
-var StoryStatusSchema = external_exports.enum([
-  "ready",
-  "in_progress",
-  "blocked",
-  "completed"
-]);
+// ../saga-types/src/task.ts
 var TaskStatusSchema = external_exports.enum(["pending", "in_progress", "completed"]);
 var TaskSchema = external_exports.object({
   id: external_exports.string(),
-  title: external_exports.string(),
-  status: TaskStatusSchema
+  subject: external_exports.string(),
+  description: external_exports.string(),
+  activeForm: external_exports.string().optional(),
+  status: TaskStatusSchema,
+  blockedBy: external_exports.array(external_exports.string()),
+  guidance: external_exports.string().optional(),
+  doneWhen: external_exports.string().optional()
 });
-var StoryFrontmatterSchema = external_exports.object({
+var StoryIdSchema = external_exports.string().regex(/^[a-z0-9-]+$/);
+
+// ../saga-types/src/claude-code-task.ts
+var ClaudeCodeTaskSchema = external_exports.object({
   id: external_exports.string(),
-  title: external_exports.string(),
-  status: StoryStatusSchema,
-  epic: external_exports.string(),
-  tasks: external_exports.array(TaskSchema)
-});
-var StorySchema = external_exports.object({
-  slug: external_exports.string(),
-  path: external_exports.string(),
-  frontmatter: StoryFrontmatterSchema,
-  content: external_exports.string()
+  subject: external_exports.string(),
+  description: external_exports.string(),
+  activeForm: external_exports.string().optional(),
+  status: TaskStatusSchema,
+  owner: external_exports.string().optional(),
+  blocks: external_exports.array(external_exports.string()),
+  blockedBy: external_exports.array(external_exports.string()),
+  metadata: external_exports.record(external_exports.string(), external_exports.unknown()).optional()
 });
 
+// ../saga-types/src/directory.ts
+function normalizeRoot(projectRoot) {
+  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
+}
+function createSagaPaths(projectRoot) {
+  const root = normalizeRoot(projectRoot);
+  const saga = `${root}/.saga`;
+  return {
+    root,
+    saga,
+    epics: `${saga}/epics`,
+    stories: `${saga}/stories`,
+    worktrees: `${saga}/worktrees`,
+    archive: `${saga}/archive`
+  };
+}
+function createWorktreePaths(projectRoot, storyId) {
+  const { worktrees } = createSagaPaths(projectRoot);
+  return {
+    storyId,
+    worktreeDir: `${worktrees}/${storyId}`
+  };
+}
+
 // ../saga-types/src/epic.ts
-var StoryCountsSchema = external_exports.object({
-  total: external_exports.number(),
-  ready: external_exports.number(),
-  inProgress: external_exports.number(),
-  blocked: external_exports.number(),
-  completed: external_exports.number()
-});
+var EpicChildSchema = external_exports.object({
+  id: external_exports.string(),
+  blockedBy: external_exports.array(external_exports.string())
+}).strict();
 var EpicSchema = external_exports.object({
-  slug: external_exports.string(),
-  path: external_exports.string(),
+  id: external_exports.string(),
   title: external_exports.string(),
-  content: external_exports.string(),
-  storyCounts: StoryCountsSchema,
-  stories: external_exports.array(StorySchema),
-  archived: external_exports.boolean().optional()
-});
+  description: external_exports.string(),
+  children: external_exports.array(EpicChildSchema)
+}).strict();
 
 // ../saga-types/src/session.ts
 var SessionStatusSchema = external_exports.enum(["running", "completed"]);
@@ -4147,6 +4137,20 @@ var SessionSchema = external_exports.object({
   /** Preview of the last lines of output */
   outputPreview: external_exports.string().optional()
 });
+
+// ../saga-types/src/story.ts
+var StorySchema = external_exports.object({
+  id: external_exports.string(),
+  title: external_exports.string(),
+  description: external_exports.string(),
+  epic: external_exports.string().optional(),
+  guidance: external_exports.string().optional(),
+  doneWhen: external_exports.string().optional(),
+  avoid: external_exports.string().optional(),
+  branch: external_exports.string().optional(),
+  pr: external_exports.string().optional(),
+  worktree: external_exports.string().optional()
+}).strict();
 
 // src/shared/env.ts
 import process from "node:process";
