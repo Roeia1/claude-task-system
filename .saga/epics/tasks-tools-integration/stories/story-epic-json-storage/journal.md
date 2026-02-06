@@ -198,3 +198,41 @@
 
 **Next steps:**
 - t8: Integration tests for full read/write cycle
+
+## Session 8: 2026-02-06
+
+### Task: t8 - Integration tests for full read/write cycle
+
+**What was done:**
+- Created `packages/plugin-scripts/src/storage.integration.test.ts` with 11 integration tests (TDD approach)
+- Tests exercise cross-function workflows, not duplicating unit test coverage
+
+**Test scenarios:**
+1. Story with tasks and derived status (4 tests):
+   - Create story with 3 tasks, read back, verify all-pending derives "pending"
+   - Story with one in_progress task derives "in_progress"
+   - Full lifecycle: pending -> in_progress -> completed via task updates
+   - Read individual tasks back by ID after writing
+
+2. Epic with stories and derived status (4 tests):
+   - Create epic with 2 children stories, derive epic status from story statuses (all pending)
+   - Epic derives "in_progress" when one story has in_progress tasks
+   - Epic derives "completed" when all stories' tasks are completed
+   - Full epic lifecycle: pending -> in_progress -> completed through task state changes
+
+3. ID validation and uniqueness (3 tests):
+   - Validate ID, ensure unique, create story, verify uniqueness throws on duplicate
+   - Invalid ID rejected by validateStoryId before any file system operations
+   - Multiple stories with different valid IDs coexist, each fails uniqueness after creation
+
+**Decisions:**
+- Put integration tests in a separate file (`storage.integration.test.ts`) to keep them distinct from unit tests
+- Used temp directories for isolation (same pattern as unit tests)
+- Focused on cross-function interactions: write -> read -> list -> derive status chain
+- The `getEpicStatus` helper in the lifecycle test encapsulates the full derive chain
+
+**Test baseline:**
+- plugin-scripts: 300/331 pass (31 pre-existing failures unchanged, 11 new integration tests all pass)
+- saga-types: 88/88 pass (unchanged)
+
+**All story tasks complete (t1-t8).**
