@@ -132,18 +132,18 @@ function parseFrontmatter(content: string): {
   const frontmatter: Record<string, unknown> = {};
 
   for (const line of frontmatterBlock.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) {
+    // Skip indented/nested lines (e.g. tasks array items) — only parse top-level keys
+    if (line.length === 0 || line[0] === ' ' || line[0] === '\t' || line[0] === '-') {
       continue;
     }
 
-    const colonIndex = trimmed.indexOf(':');
+    const colonIndex = line.indexOf(':');
     if (colonIndex === -1) {
       continue;
     }
 
-    const key = trimmed.slice(0, colonIndex).trim();
-    let value: string | unknown[] = trimmed.slice(colonIndex + 1).trim();
+    const key = line.slice(0, colonIndex).trim();
+    let value: string | unknown[] = line.slice(colonIndex + 1).trim();
 
     // Handle quoted values
     if (
@@ -153,7 +153,9 @@ function parseFrontmatter(content: string): {
       value = value.slice(1, -1);
     }
 
-    frontmatter[key] = value;
+    if (key) {
+      frontmatter[key] = value;
+    }
   }
 
   return { frontmatter, body };
