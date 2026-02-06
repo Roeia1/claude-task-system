@@ -128,3 +128,29 @@
 - t6: Update directory utilities
 - t7: Update barrel exports
 - t8: Final test verification
+
+## Session 5: 2026-02-06
+
+### Task: t5 - Implement toClaudeTask and fromClaudeTask conversion functions
+
+**What was done:**
+- Created `packages/saga-types/src/conversion.ts` with two pure functions:
+  - `toClaudeTask(sagaTask: Task): ClaudeCodeTask` -- maps SAGA task fields to Claude Code format. `guidance` and `doneWhen` go into `metadata` (only when present). `blocks` is always `[]`. `activeForm` carried through when present.
+  - `fromClaudeTask(claudeTask: ClaudeCodeTask): Pick<Task, 'status'>` -- extracts only `status` from the Claude Code task. All other fields are source-controlled in SAGA and not synced back.
+- Created `packages/saga-types/src/conversion.test.ts` with 11 tests covering:
+  - `toClaudeTask`: required field mapping, activeForm passthrough, guidance/doneWhen in metadata (both, each individually, neither), blocks always empty
+  - `fromClaudeTask`: status extraction for all three status values, ignoring metadata and other fields
+
+**Decisions:**
+- Used `Pick<Task, 'status'>` as return type for `fromClaudeTask` instead of `Partial<Task>` for stronger typing -- the function always returns exactly `{ status }`.
+- `metadata` is omitted entirely from the output when neither `guidance` nor `doneWhen` is present (rather than setting it to `{}`), keeping the output clean.
+- `activeForm` is conditionally spread to avoid including `undefined` values in the output object.
+
+**Test results:**
+- 11 new conversion tests pass
+- 78 total tests pass (no regressions)
+
+**Next steps:**
+- t6: Update directory utilities
+- t7: Update barrel exports
+- t8: Final test verification
