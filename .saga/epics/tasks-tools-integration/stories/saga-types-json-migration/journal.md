@@ -97,3 +97,34 @@
 - t6: Update directory utilities
 - t7: Update barrel exports
 - t8: Final test verification
+
+## Session 4: 2026-02-06
+
+### Task: t4 - Define ClaudeCodeTask type and schema
+
+**What was done:**
+- Created `packages/saga-types/src/claude-code-task.ts`:
+  - Imports `TaskStatusSchema` from `./task.ts` (reuse, not duplicate)
+  - Defined `ClaudeCodeTaskSchema` with: `id`, `subject`, `description` (required strings), `activeForm?` (optional string), `status` (TaskStatusSchema), `owner?` (optional string), `blocks` (required string array), `blockedBy` (required string array), `metadata?` (optional record of string to unknown)
+  - Exported `ClaudeCodeTask` inferred type
+- Created `packages/saga-types/src/claude-code-task.test.ts` with 10 tests covering:
+  - Valid task parsing (all required fields, all fields including optionals)
+  - Optional field omission (activeForm, owner, metadata)
+  - Missing required field rejection (id, subject, description, blocks, blockedBy)
+  - Invalid status value rejection
+  - Arbitrary metadata values (strings, numbers, nested objects)
+
+**Decisions:**
+- Reused `TaskStatusSchema` from `task.ts` rather than defining a separate status enum, since SAGA tasks and Claude Code tasks share the same status values.
+- Used `z.record(z.string(), z.unknown())` for metadata to allow arbitrary key-value pairs as specified.
+- Did not use `.strict()` on ClaudeCodeTaskSchema since Claude Code may add additional fields we don't control.
+
+**Test results:**
+- 10 new ClaudeCodeTask tests pass
+- 67 total tests pass (no regressions)
+
+**Next steps:**
+- t5: Implement conversion functions
+- t6: Update directory utilities
+- t7: Update barrel exports
+- t8: Final test verification
