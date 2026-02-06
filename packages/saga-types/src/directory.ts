@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+
 /**
  * SAGA Directory Structure Types
  *
@@ -199,6 +201,19 @@ function createArchivePaths(
   return result;
 }
 
+/**
+ * Create a task JSON file path
+ *
+ * @param projectRoot - Path to the project root directory
+ * @param storyId - Story identifier
+ * @param taskId - Task identifier
+ * @returns Path to the task JSON file: .saga/stories/{storyId}/{taskId}.json
+ */
+function createTaskPath(projectRoot: string, storyId: string, taskId: string): string {
+  const { storyDir } = createStoryPaths(projectRoot, storyId);
+  return join(storyDir, `${taskId}.json`);
+}
+
 export {
   type ArchivePaths,
   type EpicPaths,
@@ -209,5 +224,6 @@ export {
   createEpicPaths,
   createSagaPaths,
   createStoryPaths,
+  createTaskPath,
   createWorktreePaths,
 };

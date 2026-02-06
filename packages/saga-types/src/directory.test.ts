@@ -5,6 +5,7 @@ import {
   createEpicPaths,
   createSagaPaths,
   createStoryPaths,
+  createTaskPath,
   createWorktreePaths,
   type EpicPaths,
   type SagaPaths,
@@ -101,5 +102,32 @@ describe('ArchivePaths', () => {
     expect(paths.storySlug).toBe('my-story');
     expect(paths.archiveStoryDir).toBe('/path/to/project/.saga/archive/my-epic/my-story');
     expect(paths.archiveStoryMd).toBe('/path/to/project/.saga/archive/my-epic/my-story/story.md');
+  });
+});
+
+describe('createTaskPath', () => {
+  it('returns correct task JSON file path', () => {
+    const taskPath = createTaskPath('/path/to/project', 'my-story', 't1');
+
+    expect(taskPath).toBe('/path/to/project/.saga/stories/my-story/t1.json');
+  });
+
+  it('handles trailing slash on project root', () => {
+    const taskPath = createTaskPath('/path/to/project/', 'my-story', 't2');
+
+    expect(taskPath).toBe('/path/to/project/.saga/stories/my-story/t2.json');
+  });
+
+  it('handles task id with dashes and digits', () => {
+    const taskPath = createTaskPath('/project', 'auth-story', 'task-setup-db');
+
+    expect(taskPath).toBe('/project/.saga/stories/auth-story/task-setup-db.json');
+  });
+
+  it('constructs path consistent with createStoryPaths', () => {
+    const storyPaths = createStoryPaths('/project', 'my-story');
+    const taskPath = createTaskPath('/project', 'my-story', 't1');
+
+    expect(taskPath).toBe(`${storyPaths.storyDir}/t1.json`);
   });
 });

@@ -18,6 +18,7 @@ export {
   createEpicPaths,
   createSagaPaths,
   createStoryPaths,
+  createTaskPath,
   createWorktreePaths,
   type EpicPaths,
   type SagaPaths,
