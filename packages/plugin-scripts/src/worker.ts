@@ -33,6 +33,8 @@
  */
 
 import process from 'node:process';
+import { getProjectDir } from './shared/env.ts';
+import { setupWorktree } from './worker/setup-worktree.ts';
 
 // ============================================================================
 // Types
@@ -188,11 +190,6 @@ function parseArgs(args: string[]): { storyId: string; options: WorkerOptions } 
 // Pipeline Steps (stubs for now, implemented in later tasks)
 // ============================================================================
 
-function setupWorktree(_storyId: string): void {
-  // t2: Implement worktree and branch setup
-  process.stdout.write(`[worker] Step 1: Setup worktree for story/${_storyId}\n`);
-}
-
 function createDraftPr(_storyId: string): void {
   // t3: Implement draft PR creation
   process.stdout.write(`[worker] Step 2: Create draft PR for story/${_storyId}\n`);
@@ -237,7 +234,11 @@ function main(): void {
   process.stdout.write(`[worker] Starting pipeline for story: ${storyId}\n`);
 
   // Step 1: Setup worktree and branch
-  setupWorktree(storyId);
+  const projectDir = getProjectDir();
+  const worktreeResult = setupWorktree(storyId, projectDir);
+  process.stdout.write(
+    `[worker] Step 1: ${worktreeResult.alreadyExisted ? 'Worktree exists' : 'Created worktree'} at ${worktreeResult.worktreePath}\n`,
+  );
 
   // Step 2: Create draft PR
   createDraftPr(storyId);
