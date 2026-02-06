@@ -184,3 +184,28 @@
 **Next steps:**
 - t7: Update barrel exports
 - t8: Final test verification
+
+## Session 7: 2026-02-06
+
+### Task: t7 - Update barrel exports in index.ts
+
+**What was done:**
+- Rewrote `packages/saga-types/src/index.ts` to export from all new and modified modules:
+  - Added exports from `./task.ts`: `Task`, `TaskSchema`, `TaskStatus`, `TaskStatusSchema`, `StoryIdSchema`
+  - Updated `./story.ts` exports: only `Story`, `StorySchema` (removed old `StoryFrontmatter`, `StoryFrontmatterSchema`, `StoryStatus`, `StoryStatusSchema`, old `Task`/`TaskSchema`/`TaskStatus`/`TaskStatusSchema`)
+  - Updated `./epic.ts` exports: `Epic`, `EpicChild`, `EpicChildSchema`, `EpicSchema` (removed old `StoryCounts`, `StoryCountsSchema`)
+  - Added exports from `./claude-code-task.ts`: `ClaudeCodeTask`, `ClaudeCodeTaskSchema`
+  - Added exports from `./conversion.ts`: `toClaudeTask`, `fromClaudeTask`
+  - Kept `./directory.ts` and `./session.ts` exports unchanged
+- Updated `packages/saga-types/package.json` exports map:
+  - Added `./task.ts`, `./claude-code-task.ts`, `./conversion.ts` subpath entries
+
+**Decisions:**
+- Organized exports by logical grouping (task, story, epic, claude-code-task, conversion, directory, session) for readability.
+
+**Test results:**
+- `tsc --noEmit` passes with no errors
+- 78 total tests pass (7 test files, no regressions)
+
+**Next steps:**
+- t8: Update and verify all tests pass (final verification)
