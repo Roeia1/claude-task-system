@@ -4437,10 +4437,13 @@ function buildPrompt(meta) {
   lines.push("Execute the tasks in the task list using TaskList, TaskGet, and TaskUpdate.");
   return lines.join("\n");
 }
+function getTaskFiles(storyDir) {
+  return readdirSync2(storyDir).filter((f) => f.endsWith(".json") && f !== "story.json");
+}
 function checkAllTasksCompleted(storyDir) {
-  const files = readdirSync2(storyDir).filter((f) => f.endsWith(".json") && f !== "story.json");
+  const files = getTaskFiles(storyDir);
   if (files.length === 0) {
-    return true;
+    return false;
   }
   for (const file of files) {
     const filePath = join3(storyDir, file);
@@ -4541,6 +4544,12 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, pro
   const prompt = buildPrompt(storyMeta);
   const startTime = Date.now();
   const { storyDir } = createStoryPaths(projectDir, storyId);
+  const taskFiles = getTaskFiles(storyDir);
+  if (taskFiles.length === 0) {
+    throw new Error(
+      `No task files found in ${storyDir}. The story must have at least one task file (e.g., t1.json) to execute.`
+    );
+  }
   const config = {
     prompt,
     model,
@@ -4566,7 +4575,7 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, pro
 
 // src/worker/setup-worktree.ts
 import { execFileSync as execFileSync3 } from "node:child_process";
-import { existsSync as existsSync2, mkdirSync as mkdirSync3 } from "node:fs";
+import { existsSync as existsSync2, mkdirSync as mkdirSync3, rmSync } from "node:fs";
 import { dirname as dirname2 } from "node:path";
 import process6 from "node:process";
 function runGit(args, cwd) {
@@ -4597,9 +4606,16 @@ function setupWorktree(storyId, projectDir) {
   const branch = `story/${storyId}`;
   const { worktreeDir } = createWorktreePaths(projectDir, storyId);
   if (existsSync2(worktreeDir)) {
-    process6.stdout.write(`[worker] Worktree already exists: ${worktreeDir}
+    const valid = runGit(["rev-parse", "--git-dir"], worktreeDir);
+    if (valid.success) {
+      process6.stdout.write(`[worker] Worktree already exists: ${worktreeDir}
 `);
-    return { worktreePath: worktreeDir, branch, alreadyExisted: true };
+      return { worktreePath: worktreeDir, branch, alreadyExisted: true };
+    }
+    process6.stdout.write(`[worker] Removing broken worktree: ${worktreeDir}
+`);
+    runGit(["worktree", "remove", "--force", worktreeDir], projectDir);
+    rmSync(worktreeDir, { recursive: true, force: true });
   }
   const mainBranch = getMainBranch(projectDir);
   runGit(["fetch", "origin", mainBranch], projectDir);

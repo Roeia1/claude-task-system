@@ -3,8 +3,8 @@
 #
 # Verifies context detection for:
 # - Main repo (non-worktree)
-# - New flat worktree layout: .saga/worktrees/<storyId>/
-# - Old nested worktree layout: .saga/worktrees/<epicSlug>/<storySlug>/
+# - Flat worktree layout: .saga/worktrees/<storyId>/
+# - Old nested worktree layout: .saga/worktrees/<epicSlug>/<storySlug>/ (gets full path as storyId)
 #
 # Usage: bash plugin/hooks/session-init.test.sh
 
@@ -13,6 +13,15 @@ set -euo pipefail
 TESTS_PASSED=0
 TESTS_FAILED=0
 HOOK_SCRIPT="$(cd "$(dirname "$0")" && pwd)/session-init.sh"
+
+# Accumulating cleanup: collect all temp dirs to clean up on EXIT
+CLEANUP_DIRS=()
+cleanup() {
+    for dir in "${CLEANUP_DIRS[@]}"; do
+        rm -rf "$dir" 2>/dev/null || true
+    done
+}
+trap cleanup EXIT
 
 # Helper: create a git repo with a worktree at the given relative path
 setup_test_repo() {
@@ -32,19 +41,6 @@ setup_test_repo() {
         mkdir -p "$(dirname "$worktree_abs")"
         git worktree add "$worktree_abs" -b "test-branch-$$" --quiet 2>/dev/null
     fi
-}
-
-# Helper: run the hook in a directory and capture env file + stdout
-run_hook_in_dir() {
-    local dir="$1"
-    local env_file="$dir/.test-env"
-    : > "$env_file"
-
-    local output
-    output=$(cd "$dir" && CLAUDE_ENV_FILE="$env_file" CLAUDE_PROJECT_DIR="$dir" CLAUDE_PLUGIN_ROOT="/mock/plugin" bash "$HOOK_SCRIPT" 2>&1)
-
-    echo "ENV_FILE=$env_file"
-    echo "OUTPUT=$output"
 }
 
 # Helper: assert a variable is in the env file
@@ -106,7 +102,7 @@ assert_output_contains() {
 # =============================================================================
 echo "Test 1: Main repo sets SAGA_TASK_CONTEXT=main"
 TEST_DIR=$(mktemp -d)
-trap "rm -rf $TEST_DIR" EXIT
+CLEANUP_DIRS+=("$TEST_DIR")
 
 setup_test_repo "$TEST_DIR" ""
 ENV_FILE="$TEST_DIR/main/.test-env"
@@ -115,14 +111,13 @@ OUTPUT=$(cd "$TEST_DIR/main" && CLAUDE_ENV_FILE="$ENV_FILE" CLAUDE_PROJECT_DIR="
 
 assert_env_contains "$ENV_FILE" 'SAGA_TASK_CONTEXT="main"' "SAGA_TASK_CONTEXT is main"
 assert_env_not_contains "$ENV_FILE" 'SAGA_STORY_ID' "SAGA_STORY_ID is not set"
-rm -rf "$TEST_DIR"
 
 # =============================================================================
-# Test 2: New flat worktree layout → SAGA_TASK_CONTEXT=story-worktree, SAGA_STORY_ID set
+# Test 2: Flat worktree layout → SAGA_TASK_CONTEXT=story-worktree, SAGA_STORY_ID set
 # =============================================================================
-echo "Test 2: New flat worktree (.saga/worktrees/<storyId>) sets SAGA_STORY_ID"
+echo "Test 2: Flat worktree (.saga/worktrees/<storyId>) sets SAGA_STORY_ID"
 TEST_DIR=$(mktemp -d)
-trap "rm -rf $TEST_DIR" EXIT
+CLEANUP_DIRS+=("$TEST_DIR")
 
 setup_test_repo "$TEST_DIR" ".saga/worktrees/auth-setup-db"
 WT_DIR="$TEST_DIR/main/.saga/worktrees/auth-setup-db"
@@ -133,14 +128,13 @@ OUTPUT=$(cd "$WT_DIR" && CLAUDE_ENV_FILE="$ENV_FILE" CLAUDE_PROJECT_DIR="$WT_DIR
 assert_env_contains "$ENV_FILE" 'SAGA_TASK_CONTEXT="story-worktree"' "SAGA_TASK_CONTEXT is story-worktree"
 assert_env_contains "$ENV_FILE" 'SAGA_STORY_ID="auth-setup-db"' "SAGA_STORY_ID is set to storyId"
 assert_output_contains "$OUTPUT" "SAGA_STORY_ID: auth-setup-db" "stdout shows SAGA_STORY_ID"
-rm -rf "$TEST_DIR"
 
 # =============================================================================
-# Test 3: Old nested worktree layout → SAGA_TASK_CONTEXT=story-worktree, no SAGA_STORY_ID
+# Test 3: Old nested worktree layout → SAGA_STORY_ID set to full path (will fail downstream)
 # =============================================================================
-echo "Test 3: Old nested worktree (.saga/worktrees/<epic>/<story>) still works"
+echo "Test 3: Old nested worktree sets SAGA_STORY_ID to full after-worktrees path"
 TEST_DIR=$(mktemp -d)
-trap "rm -rf $TEST_DIR" EXIT
+CLEANUP_DIRS+=("$TEST_DIR")
 
 setup_test_repo "$TEST_DIR" ".saga/worktrees/my-epic/my-story"
 WT_DIR="$TEST_DIR/main/.saga/worktrees/my-epic/my-story"
@@ -149,15 +143,14 @@ ENV_FILE="$WT_DIR/.test-env"
 OUTPUT=$(cd "$WT_DIR" && CLAUDE_ENV_FILE="$ENV_FILE" CLAUDE_PROJECT_DIR="$WT_DIR" CLAUDE_PLUGIN_ROOT="/mock" bash "$HOOK_SCRIPT" 2>&1)
 
 assert_env_contains "$ENV_FILE" 'SAGA_TASK_CONTEXT="story-worktree"' "SAGA_TASK_CONTEXT is story-worktree"
-assert_env_not_contains "$ENV_FILE" 'SAGA_STORY_ID' "SAGA_STORY_ID is not set for old layout"
-rm -rf "$TEST_DIR"
+assert_env_contains "$ENV_FILE" 'SAGA_STORY_ID="my-epic/my-story"' "SAGA_STORY_ID is set to full nested path"
 
 # =============================================================================
-# Test 4: New flat worktree with different storyId
+# Test 4: Different storyId is extracted correctly
 # =============================================================================
 echo "Test 4: Different storyId is extracted correctly"
 TEST_DIR=$(mktemp -d)
-trap "rm -rf $TEST_DIR" EXIT
+CLEANUP_DIRS+=("$TEST_DIR")
 
 setup_test_repo "$TEST_DIR" ".saga/worktrees/worker-execution-pipeline"
 WT_DIR="$TEST_DIR/main/.saga/worktrees/worker-execution-pipeline"
@@ -166,7 +159,6 @@ ENV_FILE="$WT_DIR/.test-env"
 OUTPUT=$(cd "$WT_DIR" && CLAUDE_ENV_FILE="$ENV_FILE" CLAUDE_PROJECT_DIR="$WT_DIR" CLAUDE_PLUGIN_ROOT="/mock" bash "$HOOK_SCRIPT" 2>&1)
 
 assert_env_contains "$ENV_FILE" 'SAGA_STORY_ID="worker-execution-pipeline"' "SAGA_STORY_ID is worker-execution-pipeline"
-rm -rf "$TEST_DIR"
 
 # =============================================================================
 # Summary

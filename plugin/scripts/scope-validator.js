@@ -35,61 +35,48 @@ function isWithinWorktree(filePath, worktreePath) {
   }
   return true;
 }
-function checkStoryAccessById(path, allowedStoryId) {
-  if (path.includes(".saga/stories/")) {
-    const parts = path.split("/");
-    const storiesIdx = parts.indexOf("stories");
-    if (storiesIdx === -1 || parts.length <= storiesIdx + 1) {
-      return false;
-    }
-    const pathStoryId = parts[storiesIdx + 1];
-    if (!pathStoryId) {
-      return false;
-    }
-    return pathStoryId === allowedStoryId;
+function checkStoriesPath(parts, allowedStoryId) {
+  const sagaIdx = parts.indexOf(".saga");
+  if (sagaIdx === -1) {
+    return false;
   }
-  if (path.includes(".saga/epics/")) {
-    const parts = path.split("/");
-    const epicsIdx = parts.indexOf("epics");
-    if (epicsIdx === -1) {
-      return true;
-    }
-    const storiesFolderIndex = 2;
-    if (parts.length > epicsIdx + storiesFolderIndex && parts[epicsIdx + storiesFolderIndex] === "stories") {
-      return false;
-    }
+  const storiesIdx = sagaIdx + 1;
+  if (parts[storiesIdx] !== "stories" || parts.length <= storiesIdx + 1) {
+    return false;
+  }
+  const pathStoryId = parts[storiesIdx + 1];
+  if (!pathStoryId) {
+    return false;
+  }
+  return pathStoryId === allowedStoryId;
+}
+function checkEpicsPath(parts) {
+  const sagaIdx = parts.indexOf(".saga");
+  if (sagaIdx === -1) {
     return true;
+  }
+  const epicsIdx = sagaIdx + 1;
+  if (parts[epicsIdx] !== "epics") {
+    return true;
+  }
+  const storiesFolderIndex = 2;
+  if (parts.length > epicsIdx + storiesFolderIndex && parts[epicsIdx + storiesFolderIndex] === "stories") {
+    return false;
   }
   return true;
 }
-function checkStoryAccess(path, allowedEpic, allowedStory) {
-  if (!path.includes(".saga/epics/")) {
-    return true;
+function checkStoryAccessById(path, allowedStoryId) {
+  if (path.includes(".saga/stories/")) {
+    return checkStoriesPath(path.split("/"), allowedStoryId);
   }
-  const parts = path.split("/");
-  const epicsIdx = parts.indexOf("epics");
-  if (epicsIdx === -1) {
-    return true;
+  if (path.includes(".saga/epics/")) {
+    return checkEpicsPath(path.split("/"));
   }
-  if (parts.length <= epicsIdx + 1) {
-    return true;
-  }
-  const pathEpic = parts[epicsIdx + 1];
-  const storiesFolderIndex = 2;
-  const storySlugIndex = 3;
-  if (parts.length > epicsIdx + storySlugIndex && parts[epicsIdx + storiesFolderIndex] === "stories") {
-    const pathStory = parts[epicsIdx + storySlugIndex];
-    return pathEpic === allowedEpic && pathStory === allowedStory;
-  }
-  return pathEpic === allowedEpic;
+  return true;
 }
 function printScopeViolation(filePath, scope, worktreePath, reason) {
-  const scopeLines = scope.mode === "story-id" ? [
+  const scopeLines = [
     `\u2502    Story:    ${scope.storyId.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`,
-    `\u2502    Worktree: ${worktreePath.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`
-  ] : [
-    `\u2502    Epic:     ${scope.epicSlug.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`,
-    `\u2502    Story:    ${scope.storySlug.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`,
     `\u2502    Worktree: ${worktreePath.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`
   ];
   const message = [
@@ -124,33 +111,13 @@ function getScopeEnvironment() {
     return null;
   }
   const storyId = process.env.SAGA_STORY_ID || "";
-  if (storyId) {
-    return { mode: "story-id", storyId, worktreePath };
-  }
-  const epicSlug = process.env.SAGA_EPIC_SLUG || "";
-  const storySlug = process.env.SAGA_STORY_SLUG || "";
-  if (!(epicSlug && storySlug)) {
-    const missing = [];
-    if (!epicSlug) {
-      missing.push("SAGA_EPIC_SLUG");
-    }
-    if (!storySlug) {
-      missing.push("SAGA_STORY_SLUG");
-    }
+  if (!storyId) {
     process.stderr.write(
-      `scope-validator: Missing required environment variables: ${missing.join(", ")}
-
-Neither SAGA_STORY_ID nor SAGA_EPIC_SLUG/SAGA_STORY_SLUG are set.
-The scope validator cannot verify file access without these variables.
-This is a configuration error - the orchestrator should set these variables.
-
-You MUST exit with status BLOCKED and set blocker to:
-"Scope validator misconfigured: missing ${missing.join(", ")}"
-`
+      'scope-validator: Missing required environment variable: SAGA_STORY_ID\n\nThe scope validator cannot verify file access without this variable.\nThis is a configuration error - the worker should set SAGA_STORY_ID.\n\nYou MUST exit with status BLOCKED and set blocker to:\n"Scope validator misconfigured: missing SAGA_STORY_ID"\n'
     );
     return null;
   }
-  return { mode: "legacy", epicSlug, storySlug, worktreePath };
+  return { storyId, worktreePath };
 }
 function validatePath(filePath, worktreePath, scope) {
   const normPath = normalizePath(filePath);
@@ -160,11 +127,7 @@ function validatePath(filePath, worktreePath, scope) {
   if (isArchiveAccess(normPath)) {
     return "Access to archive folder blocked\nReason: The archive folder contains completed stories and is read-only during execution.";
   }
-  if (scope.mode === "story-id") {
-    if (!checkStoryAccessById(normPath, scope.storyId)) {
-      return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
-    }
-  } else if (!checkStoryAccess(normPath, scope.epicSlug, scope.storySlug)) {
+  if (!checkStoryAccessById(normPath, scope.storyId)) {
     return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
   }
   return null;
@@ -192,7 +155,6 @@ if (isDirectExecution) {
   main();
 }
 export {
-  checkStoryAccess,
   checkStoryAccessById,
   getFilePathFromInput,
   getScopeEnvironment,

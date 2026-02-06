@@ -13,7 +13,7 @@ When you start a session, follow these steps in order:
 ### 1. Read Your Tasks
 
 Use `TaskList` to see all tasks and their current statuses. Identify the next task to work on:
-- Find tasks with status `open` or `in_progress`
+- Find tasks with status `pending` or `in_progress`
 - Respect `blockedBy` dependencies — skip tasks whose blockers are incomplete
 - Pick the first unblocked, incomplete task
 

@@ -1,152 +1,20 @@
 /**
- * Tests for finder utility
+ * Tests for finder utility - JSON-based story and epic resolution
  */
 
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { createEpicPaths, createSagaPaths, createWorktreePaths } from '@saga-ai/types';
+import { join } from 'node:path';
+import { createSagaPaths, createStoryPaths, createWorktreePaths } from '@saga-ai/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { extractContext, findEpic, findStory } from './finder.ts';
-import { parseFrontmatter } from './saga-scanner.ts';
+import { findEpic, findStory } from './finder.ts';
 
 // ============================================================================
 // Test Constants
 // ============================================================================
 
-/** Length for testing context truncation */
-const TEST_LONG_CONTEXT_LENGTH = 400;
-
-/** Maximum length for context extraction in tests */
-const TEST_MAX_CONTEXT_LENGTH = 300;
-
 /** Regex pattern for error message matching in findStory tests */
-const WORKTREES_EPICS_ERROR_REGEX = /worktrees|epics/;
-
-describe('parseFrontmatter', () => {
-  it('should parse simple frontmatter', () => {
-    const content = `---
-id: test-story
-title: Test Story
-status: draft
-epic: test-epic
----
-Body content here`;
-
-    const result = parseFrontmatter(content);
-
-    expect(result.frontmatter.id).toBe('test-story');
-    expect(result.frontmatter.title).toBe('Test Story');
-    expect(result.frontmatter.status).toBe('draft');
-    expect(result.frontmatter.epic).toBe('test-epic');
-    expect(result.body).toBe('Body content here');
-  });
-
-  it('should handle content without frontmatter', () => {
-    const content = 'Just some content without frontmatter';
-
-    const result = parseFrontmatter(content);
-
-    expect(result.frontmatter).toEqual({});
-    expect(result.body).toBe(content);
-  });
-
-  it('should handle empty content', () => {
-    const result = parseFrontmatter('');
-
-    expect(result.frontmatter).toEqual({});
-    expect(result.body).toBe('');
-  });
-
-  it('should handle values with colons', () => {
-    const content = `---
-title: Story: The Beginning
----
-Body`;
-
-    const result = parseFrontmatter(content);
-
-    expect(result.frontmatter.title).toBe('Story: The Beginning');
-  });
-
-  it('should handle quoted values', () => {
-    const content = `---
-title: "Quoted Title"
-description: 'Single Quoted'
----
-Body`;
-
-    const result = parseFrontmatter(content);
-
-    expect(result.frontmatter.title).toBe('Quoted Title');
-    expect(result.frontmatter.description).toBe('Single Quoted');
-  });
-});
-
-describe('extractContext', () => {
-  it('should extract context section', () => {
-    const body = `# Story
-
-## Context
-
-This is the context section with important information.
-
-## Tasks
-
-- Task 1
-- Task 2`;
-
-    const result = extractContext(body);
-
-    expect(result).toBe('This is the context section with important information.');
-  });
-
-  it('should truncate long context', () => {
-    const longContext = 'A'.repeat(TEST_LONG_CONTEXT_LENGTH);
-    const body = `## Context\n\n${longContext}\n\n## Tasks`;
-
-    const result = extractContext(body, TEST_MAX_CONTEXT_LENGTH);
-
-    expect(result.length).toBe(TEST_MAX_CONTEXT_LENGTH);
-    expect(result.endsWith('...')).toBe(true);
-  });
-
-  it('should return empty string if no context section', () => {
-    const body = `# Story
-
-## Tasks
-
-- Task 1`;
-
-    const result = extractContext(body);
-
-    expect(result).toBe('');
-  });
-
-  it('should handle context at end of file', () => {
-    const body = `# Story
-
-## Context
-
-This context goes to the end of file.`;
-
-    const result = extractContext(body);
-
-    expect(result).toBe('This context goes to the end of file.');
-  });
-
-  it('should be case-insensitive for section header', () => {
-    const body = `## CONTEXT
-
-This is context.
-
-## Tasks`;
-
-    const result = extractContext(body);
-
-    expect(result).toBe('This is context.');
-  });
-});
+const STORIES_ERROR_REGEX = /stories/;
 
 describe('findEpic', () => {
   let testDir: string;
@@ -163,8 +31,15 @@ describe('findEpic', () => {
     const { epics } = createSagaPaths(testDir);
     mkdirSync(epics, { recursive: true });
     for (const slug of slugs) {
-      const { epicDir } = createEpicPaths(testDir, slug);
-      mkdirSync(epicDir);
+      writeFileSync(
+        join(epics, `${slug}.json`),
+        JSON.stringify({
+          id: slug,
+          title: slug,
+          description: `Epic ${slug}`,
+          children: [],
+        }),
+      );
     }
   }
 
@@ -270,29 +145,46 @@ describe('findStory', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
+  /**
+   * Create a story in .saga/stories/{storyId}/story.json with optional tasks
+   */
   function setupStory(
-    epicSlug: string,
-    storySlug: string,
-    frontmatter: Record<string, string>,
-    body = '',
+    storyId: string,
+    storyData: Record<string, unknown>,
+    tasks: Array<{ id: string; status: string }> = [],
+    options: { withWorktree?: boolean } = {},
   ): void {
-    // Get the story.md path inside the worktree and create its directory
-    const { storyMdInWorktree } = createWorktreePaths(testDir, epicSlug, storySlug);
-    const storyDir = dirname(storyMdInWorktree);
-    mkdirSync(storyDir, { recursive: true });
+    const storyPaths = createStoryPaths(testDir, storyId);
+    mkdirSync(storyPaths.storyDir, { recursive: true });
 
-    const frontmatterStr = Object.entries(frontmatter)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join('\n');
-    const content = `---\n${frontmatterStr}\n---\n${body}`;
-    writeFileSync(storyMdInWorktree, content);
+    writeFileSync(storyPaths.storyJson, JSON.stringify(storyData, null, 2));
+
+    for (const task of tasks) {
+      const taskPath = join(storyPaths.storyDir, `${task.id}.json`);
+      writeFileSync(
+        taskPath,
+        JSON.stringify({
+          id: task.id,
+          subject: `Task ${task.id}`,
+          description: 'Test task',
+          status: task.status,
+          blockedBy: [],
+        }),
+      );
+    }
+
+    if (options.withWorktree) {
+      const worktreePaths = createWorktreePaths(testDir, storyId);
+      mkdirSync(worktreePaths.worktreeDir, { recursive: true });
+    }
   }
 
   it('should find story by exact slug match', async () => {
-    setupStory('auth-epic', 'implement-login', {
+    setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
-      status: 'draft',
+      description: 'Add login functionality',
+      epic: 'auth-epic',
     });
 
     const result = await findStory(testDir, 'implement-login');
@@ -301,16 +193,17 @@ describe('findStory', () => {
     if (result.found) {
       expect(result.data.slug).toBe('implement-login');
       expect(result.data.title).toBe('Implement Login Feature');
-      expect(result.data.status).toBe('draft');
+      expect(result.data.status).toBe('pending'); // no tasks = pending
       expect(result.data.epicSlug).toBe('auth-epic');
     }
   });
 
   it('should find story by title match', async () => {
-    setupStory('auth-epic', 'implement-login', {
+    setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
-      status: 'draft',
+      description: 'Add login functionality',
+      epic: 'auth-epic',
     });
 
     const result = await findStory(testDir, 'login feature');
@@ -322,10 +215,11 @@ describe('findStory', () => {
   });
 
   it('should find story with case-insensitive match', async () => {
-    setupStory('auth-epic', 'implement-login', {
+    setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
-      status: 'draft',
+      description: 'Add login functionality',
+      epic: 'auth-epic',
     });
 
     const result = await findStory(testDir, 'IMPLEMENT-LOGIN');
@@ -334,10 +228,11 @@ describe('findStory', () => {
   });
 
   it('should normalize underscore to space in query', async () => {
-    setupStory('auth-epic', 'implement-login', {
+    setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
-      status: 'draft',
+      description: 'Add login functionality',
+      epic: 'auth-epic',
     });
 
     const result = await findStory(testDir, 'implement_login');
@@ -345,60 +240,57 @@ describe('findStory', () => {
     expect(result.found).toBe(true);
   });
 
-  it('should extract context from story body', async () => {
-    setupStory(
-      'auth-epic',
-      'implement-login',
-      {
-        id: 'implement-login',
-        title: 'Implement Login Feature',
-        status: 'draft',
-      },
-      `## Context
-
-This story implements the login feature for the application.
-
-## Tasks
-
-- Task 1`,
-    );
+  it('should include description from story.json', async () => {
+    setupStory('implement-login', {
+      id: 'implement-login',
+      title: 'Implement Login Feature',
+      description: 'This story implements the login feature for the application.',
+      epic: 'auth-epic',
+    });
 
     const result = await findStory(testDir, 'implement-login');
 
     expect(result.found).toBe(true);
     if (result.found) {
-      expect(result.data.context).toBe(
+      expect(result.data.description).toBe(
         'This story implements the login feature for the application.',
       );
     }
   });
 
   it('should return storyPath and worktreePath', async () => {
-    setupStory('auth-epic', 'implement-login', {
-      id: 'implement-login',
-      title: 'Implement Login',
-      status: 'draft',
-    });
+    setupStory(
+      'implement-login',
+      {
+        id: 'implement-login',
+        title: 'Implement Login',
+        description: 'Login feature',
+      },
+      [],
+      { withWorktree: true },
+    );
 
     const result = await findStory(testDir, 'implement-login');
 
     expect(result.found).toBe(true);
     if (result.found) {
-      expect(result.data.storyPath).toContain('story.md');
+      expect(result.data.storyPath).toContain('story.json');
       expect(result.data.worktreePath).toContain('implement-login');
     }
   });
 
   it('should return multiple matches when ambiguous', async () => {
-    setupStory('auth-epic', 'login-ui', {
+    setupStory('login-ui', {
       id: 'login-ui',
       title: 'Login UI',
-      status: 'draft',
+      description: 'UI for login',
+      epic: 'auth-epic',
     });
-    setupStory('auth-epic', 'login-api', {
+    setupStory('login-api', {
       id: 'login-api',
       title: 'Login API',
-      status: 'draft',
+      description: 'API for login',
+      epic: 'auth-epic',
     });
 
     const result = await findStory(testDir, 'login');
@@ -409,20 +301,21 @@ This story implements the login feature for the application.
     }
   });
 
-  it('should return error when no worktrees or epics directory', async () => {
+  it('should return error when no stories directory', async () => {
     const result = await findStory(testDir, 'anything');
 
     expect(result.found).toBe(false);
     if (!result.found && 'error' in result) {
-      expect(result.error).toMatch(WORKTREES_EPICS_ERROR_REGEX);
+      expect(result.error).toMatch(STORIES_ERROR_REGEX);
     }
   });
 
   it('should return error when no match found', async () => {
-    setupStory('auth-epic', 'implement-login', {
+    setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login',
-      status: 'draft',
+      description: 'Login feature',
+      epic: 'auth-epic',
     });
 
     const result = await findStory(testDir, 'nonexistent');
@@ -433,25 +326,10 @@ This story implements the login feature for the application.
     }
   });
 
-  it('should use "slug" field if "id" not present', async () => {
-    setupStory('auth-epic', 'implement-login', {
-      slug: 'implement-login',
+  it('should fallback to directory name if no id in story.json', async () => {
+    setupStory('implement-login', {
       title: 'Implement Login',
-      status: 'draft',
-    });
-
-    const result = await findStory(testDir, 'implement-login');
-
-    expect(result.found).toBe(true);
-    if (result.found) {
-      expect(result.data.slug).toBe('implement-login');
-    }
-  });
-
-  it('should fallback to directory name if no id/slug in frontmatter', async () => {
-    setupStory('auth-epic', 'implement-login', {
-      title: 'Implement Login',
-      status: 'draft',
+      description: 'Login feature',
     });
 
     const result = await findStory(testDir, 'implement-login');
@@ -463,10 +341,11 @@ This story implements the login feature for the application.
   });
 
   it('should find story with typo using fuzzy matching', async () => {
-    setupStory('auth-epic', 'implement-login', {
+    setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
-      status: 'draft',
+      description: 'Login feature',
+      epic: 'auth-epic',
     });
 
     // "implment" has a typo (missing 'e')
@@ -479,10 +358,11 @@ This story implements the login feature for the application.
   });
 
   it('should find story by fuzzy title match', async () => {
-    setupStory('auth-epic', 'implement-login', {
+    setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
-      status: 'draft',
+      description: 'Login feature',
+      epic: 'auth-epic',
     });
 
     // Fuzzy match on title
@@ -491,6 +371,44 @@ This story implements the login feature for the application.
     expect(result.found).toBe(true);
     if (result.found) {
       expect(result.data.slug).toBe('implement-login');
+    }
+  });
+
+  it('should filter stories by status', async () => {
+    setupStory(
+      'story-a',
+      {
+        id: 'story-a',
+        title: 'Story A',
+        description: 'First story',
+        epic: 'test-epic',
+      },
+      [
+        { id: 't1', status: 'completed' },
+        { id: 't2', status: 'completed' },
+      ],
+    );
+    setupStory(
+      'story-b',
+      {
+        id: 'story-b',
+        title: 'Story B',
+        description: 'Second story',
+        epic: 'test-epic',
+      },
+      [{ id: 't1', status: 'in_progress' }],
+    );
+
+    const resultCompleted = await findStory(testDir, 'story', { status: 'completed' });
+    expect(resultCompleted.found).toBe(true);
+    if (resultCompleted.found) {
+      expect(resultCompleted.data.slug).toBe('story-a');
+    }
+
+    const resultInProgress = await findStory(testDir, 'story', { status: 'in_progress' });
+    expect(resultInProgress.found).toBe(true);
+    if (resultInProgress.found) {
+      expect(resultInProgress.data.slug).toBe('story-b');
     }
   });
 });

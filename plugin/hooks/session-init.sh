@@ -7,11 +7,7 @@
 #
 # All SAGA environment variables use the SAGA_ prefix for namespacing.
 #
-# NOTE: Story-specific variables (SAGA_EPIC_SLUG, SAGA_STORY_SLUG, SAGA_STORY_DIR)
-# are NOT set here for the old layout. They are only set by the worker orchestrator
-# when spawning headless Claude workers. See ENVIRONMENT.md for details.
-#
-# For the new flat worktree layout (.saga/worktrees/<storyId>/), this hook
+# For the flat worktree layout (.saga/worktrees/<storyId>/), this hook
 # detects the story ID and sets SAGA_STORY_ID.
 
 # =============================================================================
@@ -30,14 +26,8 @@ if [ -f .git ]; then
     if [ -n "$WORKTREE_PATH" ] && [[ "$WORKTREE_PATH" == *"/.saga/worktrees/"* ]]; then
         SAGA_TASK_CONTEXT="story-worktree"
 
-        # Extract the portion after .saga/worktrees/
-        AFTER_WORKTREES="${WORKTREE_PATH##*/.saga/worktrees/}"
-
-        # New flat layout: single component (no slash) = .saga/worktrees/<storyId>/
-        # Old nested layout: two components (has slash) = .saga/worktrees/<epicSlug>/<storySlug>/
-        if [[ "$AFTER_WORKTREES" != *"/"* ]]; then
-            SAGA_STORY_ID="$AFTER_WORKTREES"
-        fi
+        # Extract story ID from flat layout: .saga/worktrees/<storyId>/
+        SAGA_STORY_ID="${WORKTREE_PATH##*/.saga/worktrees/}"
     fi
 fi
 

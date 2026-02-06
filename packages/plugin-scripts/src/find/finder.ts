@@ -8,12 +8,14 @@
  */
 
 import { readdirSync } from 'node:fs';
+import type { TaskStatus } from '@saga-ai/types';
 import { createSagaPaths } from '@saga-ai/types';
 import Fuse, { type FuseResult } from 'fuse.js';
-import { epicsDirectoryExists, scanAllStories, worktreesDirectoryExists } from './saga-scanner.ts';
+import type { ScannedStory } from './saga-scanner.ts';
+import { epicsDirectoryExists, scanStories, storiesDirectoryExists } from './saga-scanner.ts';
 
-/** Story status from frontmatter (backward compatibility with old story.md format) */
-type StoryStatus = 'draft' | 'ready' | 'in_progress' | 'completed' | 'blocked';
+/** Regex pattern for stripping .json extension from file names */
+const JSON_EXT_PATTERN = /\.json$/;
 
 // ============================================================================
 // Types
@@ -26,8 +28,8 @@ interface EpicInfo {
 interface StoryInfo {
   slug: string;
   title: string;
-  status: StoryStatus;
-  context: string;
+  status: TaskStatus;
+  description: string;
   epicSlug: string;
   storyPath: string;
   worktreePath: string;
@@ -39,7 +41,7 @@ type FindResult<T> =
   | { found: false; error: string };
 
 interface FindStoryOptions {
-  status?: StoryStatus;
+  status?: TaskStatus;
 }
 
 // ============================================================================
@@ -56,43 +58,6 @@ const MATCH_THRESHOLD = 0.6;
 // Score difference threshold for considering matches "similar"
 // If multiple matches have scores within this range of the best, return all as ambiguous
 const SCORE_SIMILARITY_THRESHOLD = 0.1;
-
-// Default maximum length for extracted context
-const DEFAULT_CONTEXT_MAX_LENGTH = 300;
-
-// Length of the ellipsis suffix "..."
-const ELLIPSIS_LENGTH = 3;
-
-// Regex pattern for extracting ## Context section (case-insensitive)
-const CONTEXT_SECTION_REGEX = /##\s*Context\s*\n+([\s\S]*?)(?=\n##|$)/i;
-
-// ============================================================================
-// Context Extraction
-// ============================================================================
-
-/**
- * Extract the ## Context section from story body
- *
- * @param body - The markdown body content
- * @param maxLength - Maximum length of extracted context (default 300)
- * @returns The context text, truncated if necessary
- */
-function extractContext(body: string, maxLength = DEFAULT_CONTEXT_MAX_LENGTH): string {
-  // Look for ## Context section (case-insensitive)
-  const contextMatch = body.match(CONTEXT_SECTION_REGEX);
-
-  if (!contextMatch) {
-    return '';
-  }
-
-  const context = contextMatch[1].trim();
-
-  if (context.length > maxLength) {
-    return `${context.slice(0, maxLength - ELLIPSIS_LENGTH)}...`;
-  }
-
-  return context;
-}
 
 // ============================================================================
 // Normalization
@@ -113,10 +78,10 @@ function normalize(str: string): string {
 
 function toStoryInfo(story: ScannedStory): StoryInfo {
   return {
-    slug: story.slug,
+    slug: story.id,
     title: story.title,
     status: story.status,
-    context: extractContext(story.body),
+    description: story.description,
     epicSlug: story.epicSlug,
     storyPath: story.storyPath,
     worktreePath: story.worktreePath || '',
@@ -161,13 +126,15 @@ function processFuzzyResults<T>(results: FuseResult<T>[]): FindResult<T> {
 // ============================================================================
 
 /**
- * Get all epic slugs from the epics directory
+ * Get all epic slugs from the epics directory.
+ *
+ * Now reads *.json files (not directories) from .saga/epics/.
  */
 function getEpicSlugs(projectPath: string): string[] {
   const sagaPaths = createSagaPaths(projectPath);
   return readdirSync(sagaPaths.epics, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name);
+    .filter((d) => d.isFile() && d.name.endsWith('.json'))
+    .map((d) => d.name.replace(JSON_EXT_PATTERN, ''));
 }
 
 /**
@@ -209,8 +176,7 @@ function fuzzySearchEpics(epicSlugs: string[], query: string): FindResult<EpicIn
 /**
  * Find an epic by slug using fuzzy matching
  *
- * Epic resolution only uses folder names in .saga/epics/,
- * never reads epic.md files.
+ * Epic resolution uses .json file names in .saga/epics/.
  *
  * @param projectPath - Path to the project root
  * @param query - The identifier to resolve
@@ -286,7 +252,7 @@ async function loadAndFilterStories(
   query: string,
   options: FindStoryOptions,
 ): Promise<FindResult<StoryInfo> | StoryInfo[]> {
-  const scannedStories = await scanAllStories(projectPath);
+  const scannedStories = await scanStories(projectPath);
 
   if (scannedStories.length === 0) {
     return { found: false, error: `No story found matching '${query}'` };
@@ -315,10 +281,10 @@ async function loadAndFilterStories(
 /**
  * Find a story by slug or title using fuzzy matching
  *
- * Story resolution searches for stories in all locations:
- * - .saga/worktrees/<epic>/<story>/ (worktrees)
- * - .saga/epics/<epic>/stories/<story>/ (main epics)
- * - .saga/archive/<epic>/<story>/ (archived)
+ * Story resolution searches for stories in:
+ * - .saga/stories/{story-id}/story.json
+ *
+ * Worktree and journal paths are detected automatically.
  *
  * Uses the shared saga-scanner for directory traversal.
  *
@@ -332,10 +298,10 @@ async function findStory(
   query: string,
   options: FindStoryOptions = {},
 ): Promise<FindResult<StoryInfo>> {
-  if (!(worktreesDirectoryExists(projectPath) || epicsDirectoryExists(projectPath))) {
+  if (!storiesDirectoryExists(projectPath)) {
     return {
       found: false,
-      error: 'No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first.',
+      error: 'No .saga/stories/ directory found. Run /generate-stories first.',
     };
   }
 
@@ -365,6 +331,6 @@ async function findStory(
 // Exports
 // ============================================================================
 
-export { extractContext, findEpic, findStory };
+export { findEpic, findStory };
 export type { EpicInfo, FindResult, FindStoryOptions, StoryInfo };
 export type { ScannedEpic, ScannedStory } from './saga-scanner.ts';

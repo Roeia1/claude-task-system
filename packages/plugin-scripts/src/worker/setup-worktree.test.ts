@@ -135,6 +135,33 @@ describe('setupWorktree', () => {
     expect(existsSync(result.worktreePath)).toBe(true);
   });
 
+  it('should detect and recreate broken worktree', () => {
+    // Create a valid worktree first
+    const result1 = setupWorktree('broken-wt', testDir);
+    expect(result1.alreadyExisted).toBe(false);
+
+    // Break the worktree by removing it via git and re-creating a plain directory
+    execSync(`git worktree remove "${result1.worktreePath}" --force`, {
+      cwd: testDir,
+      stdio: 'pipe',
+    });
+    mkdirSync(result1.worktreePath, { recursive: true });
+    // Write a broken .git file (not a valid gitdir reference)
+    writeFileSync(join(result1.worktreePath, '.git'), 'gitdir: /nonexistent/path');
+
+    // setupWorktree should detect the broken worktree and recreate it
+    const result2 = setupWorktree('broken-wt', testDir);
+    expect(result2.alreadyExisted).toBe(false);
+    expect(existsSync(result2.worktreePath)).toBe(true);
+
+    // Verify the worktree is now valid
+    const gitDir = execSync('git rev-parse --git-dir', {
+      cwd: result2.worktreePath,
+      encoding: 'utf-8',
+    }).trim();
+    expect(gitDir).toBeTruthy();
+  });
+
   it('should handle multiple worktrees for different stories', () => {
     const result1 = setupWorktree('story-a', testDir);
     const result2 = setupWorktree('story-b', testDir);

@@ -85,14 +85,22 @@ function buildPrompt(meta: StoryMeta): string {
 // ============================================================================
 
 /**
+ * Get the list of task JSON files in a story directory (excluding story.json).
+ */
+function getTaskFiles(storyDir: string): string[] {
+  return readdirSync(storyDir).filter((f) => f.endsWith('.json') && f !== 'story.json');
+}
+
+/**
  * Check if all SAGA tasks in a story directory are completed.
  * Reads task JSON files (excluding story.json) and checks their status.
+ * Returns false if there are no task files.
  */
 function checkAllTasksCompleted(storyDir: string): boolean {
-  const files = readdirSync(storyDir).filter((f) => f.endsWith('.json') && f !== 'story.json');
+  const files = getTaskFiles(storyDir);
 
   if (files.length === 0) {
-    return true;
+    return false;
   }
 
   for (const file of files) {
@@ -268,6 +276,15 @@ async function runHeadlessLoop(
   const prompt = buildPrompt(storyMeta);
   const startTime = Date.now();
   const { storyDir } = createStoryPaths(projectDir, storyId);
+
+  // Validate that the story has tasks before starting the loop
+  const taskFiles = getTaskFiles(storyDir);
+  if (taskFiles.length === 0) {
+    throw new Error(
+      `No task files found in ${storyDir}. ` +
+        'The story must have at least one task file (e.g., t1.json) to execute.',
+    );
+  }
 
   const config: LoopConfig = {
     prompt,

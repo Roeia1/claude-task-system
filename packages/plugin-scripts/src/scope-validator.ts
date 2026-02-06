@@ -6,13 +6,10 @@
  * - Files outside the worktree directory
  * - .saga/archive/ (completed stories)
  * - Other stories' files in .saga/stories/ (when SAGA_STORY_ID is set)
- * - Other stories' files in .saga/epics/ (legacy mode with SAGA_EPIC_SLUG/SAGA_STORY_SLUG)
  *
  * Environment variables (set by SessionStart hook via CLAUDE_ENV_FILE):
  * - SAGA_PROJECT_DIR: Absolute path to the project/worktree directory (always required)
- * - SAGA_STORY_ID: The current story identifier (preferred, new flat layout)
- * - SAGA_EPIC_SLUG: The current epic identifier (legacy, fallback)
- * - SAGA_STORY_SLUG: The current story identifier (legacy, fallback)
+ * - SAGA_STORY_ID: The current story identifier (required)
  *
  * Input: Tool input JSON is read from stdin
  * Exit codes:
@@ -36,18 +33,9 @@ const REASON_WIDTH = 56;
 // Types
 // ============================================================================
 
-interface StoryIdScope {
-  mode: 'story-id';
+interface ScopeInfo {
   storyId: string;
 }
-
-interface LegacyScope {
-  mode: 'legacy';
-  epicSlug: string;
-  storySlug: string;
-}
-
-type ScopeInfo = StoryIdScope | LegacyScope;
 
 // ============================================================================
 // Input Parsing
@@ -116,100 +104,71 @@ function isWithinWorktree(filePath: string, worktreePath: string): boolean {
 }
 
 /**
+ * Check if a .saga/stories/ path matches the allowed story ID.
+ * Returns true if access is allowed, false if blocked.
+ */
+function checkStoriesPath(parts: string[], allowedStoryId: string): boolean {
+  const sagaIdx = parts.indexOf('.saga');
+  if (sagaIdx === -1) {
+    return false;
+  }
+
+  const storiesIdx = sagaIdx + 1;
+  if (parts[storiesIdx] !== 'stories' || parts.length <= storiesIdx + 1) {
+    return false;
+  }
+
+  const pathStoryId = parts[storiesIdx + 1];
+  if (!pathStoryId) {
+    return false;
+  }
+
+  return pathStoryId === allowedStoryId;
+}
+
+/**
+ * Check if a .saga/epics/ path is allowed.
+ * Blocks story-level access within epics (cannot match without epic slug).
+ * Returns true if access is allowed, false if blocked.
+ */
+function checkEpicsPath(parts: string[]): boolean {
+  const sagaIdx = parts.indexOf('.saga');
+  if (sagaIdx === -1) {
+    return true;
+  }
+
+  const epicsIdx = sagaIdx + 1;
+  if (parts[epicsIdx] !== 'epics') {
+    return true;
+  }
+
+  const storiesFolderIndex = 2;
+  if (
+    parts.length > epicsIdx + storiesFolderIndex &&
+    parts[epicsIdx + storiesFolderIndex] === 'stories'
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Check if path is within the allowed story scope using SAGA_STORY_ID.
  * Validates against .saga/stories/<storyId>/ (flat layout).
  * Blocks all .saga/epics/ story-level access (cannot reliably match without epic slug).
  * Returns true if access is allowed, false if blocked.
  */
 function checkStoryAccessById(path: string, allowedStoryId: string): boolean {
-  // Check the new flat .saga/stories/ layout
   if (path.includes('.saga/stories/')) {
-    const parts = path.split('/');
-    const storiesIdx = parts.indexOf('stories');
-
-    // Need at least a story ID component after 'stories'
-    if (storiesIdx === -1 || parts.length <= storiesIdx + 1) {
-      return false;
-    }
-
-    const pathStoryId = parts[storiesIdx + 1];
-    // Empty string after trailing slash
-    if (!pathStoryId) {
-      return false;
-    }
-
-    return pathStoryId === allowedStoryId;
+    return checkStoriesPath(path.split('/'), allowedStoryId);
   }
 
-  // Block all .saga/epics/ story-level access when using SAGA_STORY_ID
-  // We cannot reliably match the old epic+story pair with just a storyId
   if (path.includes('.saga/epics/')) {
-    const parts = path.split('/');
-    const epicsIdx = parts.indexOf('epics');
-
-    if (epicsIdx === -1) {
-      return true;
-    }
-
-    // Check if this path goes into a stories/ subfolder
-    const storiesFolderIndex = 2;
-    if (
-      parts.length > epicsIdx + storiesFolderIndex &&
-      parts[epicsIdx + storiesFolderIndex] === 'stories'
-    ) {
-      // Block all epic-nested story access when using SAGA_STORY_ID
-      return false;
-    }
-
-    // Allow epic-level files (not story-specific) — they're not scoped
-    return true;
+    return checkEpicsPath(path.split('/'));
   }
 
-  // Not a .saga/stories/ or .saga/epics/ path - allow
   return true;
-}
-
-/**
- * Check if path is within the allowed story scope (legacy mode).
- * Validates against .saga/epics/<epicSlug>/stories/<storySlug>/.
- * Returns true if access is allowed, false if blocked.
- */
-function checkStoryAccess(path: string, allowedEpic: string, allowedStory: string): boolean {
-  if (!path.includes('.saga/epics/')) {
-    return true;
-  }
-
-  const parts = path.split('/');
-  const epicsIdx = parts.indexOf('epics');
-
-  if (epicsIdx === -1) {
-    // No 'epics' in path - not a story file
-    return true;
-  }
-
-  // Check if path has epic component
-  if (parts.length <= epicsIdx + 1) {
-    // Just epics folder itself
-    return true;
-  }
-
-  const pathEpic = parts[epicsIdx + 1];
-
-  // Path indices for story folder structure: .saga/epics/{epicSlug}/stories/{storySlug}
-  const storiesFolderIndex = 2;
-  const storySlugIndex = 3;
-
-  // Check if this is in stories folder
-  if (
-    parts.length > epicsIdx + storySlugIndex &&
-    parts[epicsIdx + storiesFolderIndex] === 'stories'
-  ) {
-    const pathStory = parts[epicsIdx + storySlugIndex];
-    // Allow if matches current epic and story
-    return pathEpic === allowedEpic && pathStory === allowedStory;
-  }
-  // Not in a story folder - allow epic-level access for same epic
-  return pathEpic === allowedEpic;
 }
 
 // ============================================================================
@@ -225,17 +184,10 @@ function printScopeViolation(
   worktreePath: string,
   reason: string,
 ): void {
-  const scopeLines =
-    scope.mode === 'story-id'
-      ? [
-          `│    Story:    ${scope.storyId.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}│`,
-          `│    Worktree: ${worktreePath.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}│`,
-        ]
-      : [
-          `│    Epic:     ${scope.epicSlug.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}│`,
-          `│    Story:    ${scope.storySlug.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}│`,
-          `│    Worktree: ${worktreePath.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}│`,
-        ];
+  const scopeLines = [
+    `│    Story:    ${scope.storyId.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}│`,
+    `│    Worktree: ${worktreePath.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}│`,
+  ];
 
   const message = [
     '',
@@ -276,7 +228,7 @@ async function readStdinInput(): Promise<string> {
 
 /**
  * Get required environment variables for scope validation.
- * Prefers SAGA_STORY_ID (new flat layout) over SAGA_EPIC_SLUG/SAGA_STORY_SLUG (legacy).
+ * Requires SAGA_STORY_ID to be set.
  * Returns null if required variables are missing, with error output to stderr.
  */
 function getScopeEnvironment(): (ScopeInfo & { worktreePath: string }) | null {
@@ -293,36 +245,19 @@ function getScopeEnvironment(): (ScopeInfo & { worktreePath: string }) | null {
     return null;
   }
 
-  // Prefer SAGA_STORY_ID (new flat layout)
   const storyId = process.env.SAGA_STORY_ID || '';
-  if (storyId) {
-    return { mode: 'story-id', storyId, worktreePath };
-  }
-
-  // Fall back to legacy SAGA_EPIC_SLUG + SAGA_STORY_SLUG
-  const epicSlug = process.env.SAGA_EPIC_SLUG || '';
-  const storySlug = process.env.SAGA_STORY_SLUG || '';
-
-  if (!(epicSlug && storySlug)) {
-    const missing: string[] = [];
-    if (!epicSlug) {
-      missing.push('SAGA_EPIC_SLUG');
-    }
-    if (!storySlug) {
-      missing.push('SAGA_STORY_SLUG');
-    }
+  if (!storyId) {
     process.stderr.write(
-      `scope-validator: Missing required environment variables: ${missing.join(', ')}\n\n` +
-        'Neither SAGA_STORY_ID nor SAGA_EPIC_SLUG/SAGA_STORY_SLUG are set.\n' +
-        'The scope validator cannot verify file access without these variables.\n' +
-        'This is a configuration error - the orchestrator should set these variables.\n\n' +
+      'scope-validator: Missing required environment variable: SAGA_STORY_ID\n\n' +
+        'The scope validator cannot verify file access without this variable.\n' +
+        'This is a configuration error - the worker should set SAGA_STORY_ID.\n\n' +
         'You MUST exit with status BLOCKED and set blocker to:\n' +
-        `"Scope validator misconfigured: missing ${missing.join(', ')}"\n`,
+        '"Scope validator misconfigured: missing SAGA_STORY_ID"\n',
     );
     return null;
   }
 
-  return { mode: 'legacy', epicSlug, storySlug, worktreePath };
+  return { storyId, worktreePath };
 }
 
 // ============================================================================
@@ -344,11 +279,7 @@ function validatePath(filePath: string, worktreePath: string, scope: ScopeInfo):
     return 'Access to archive folder blocked\nReason: The archive folder contains completed stories and is read-only during execution.';
   }
 
-  if (scope.mode === 'story-id') {
-    if (!checkStoryAccessById(normPath, scope.storyId)) {
-      return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
-    }
-  } else if (!checkStoryAccess(normPath, scope.epicSlug, scope.storySlug)) {
+  if (!checkStoryAccessById(normPath, scope.storyId)) {
     return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
   }
 
@@ -400,7 +331,6 @@ if (isDirectExecution) {
 // ============================================================================
 
 export {
-  checkStoryAccess,
   checkStoryAccessById,
   getFilePathFromInput,
   getScopeEnvironment,

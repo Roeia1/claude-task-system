@@ -1,7 +1,6 @@
 import process from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  checkStoryAccess,
   checkStoryAccessById,
   getFilePathFromInput,
   getScopeEnvironment,
@@ -122,52 +121,6 @@ describe('scope-validator', () => {
     });
   });
 
-  describe('checkStoryAccess', () => {
-    it('should allow access to assigned story', () => {
-      expect(
-        checkStoryAccess('.saga/epics/my-epic/stories/my-story/story.md', 'my-epic', 'my-story'),
-      ).toBe(true);
-    });
-
-    it('should block access to other stories in same epic', () => {
-      expect(
-        checkStoryAccess('.saga/epics/my-epic/stories/other-story/story.md', 'my-epic', 'my-story'),
-      ).toBe(false);
-    });
-
-    it('should block access to other epics', () => {
-      expect(
-        checkStoryAccess(
-          '.saga/epics/other-epic/stories/some-story/story.md',
-          'my-epic',
-          'my-story',
-        ),
-      ).toBe(false);
-    });
-
-    it('should allow access to epic-level files in same epic', () => {
-      expect(checkStoryAccess('.saga/epics/my-epic/epic.md', 'my-epic', 'my-story')).toBe(true);
-    });
-
-    it('should block access to other epics epic-level files', () => {
-      expect(checkStoryAccess('.saga/epics/other-epic/epic.md', 'my-epic', 'my-story')).toBe(false);
-    });
-
-    it('should allow access to non-saga paths', () => {
-      expect(checkStoryAccess('src/components/Button.tsx', 'my-epic', 'my-story')).toBe(true);
-      expect(checkStoryAccess('package.json', 'my-epic', 'my-story')).toBe(true);
-    });
-
-    it('should block access to epics folder with trailing slash (edge case)', () => {
-      // Trailing slash creates empty path component after 'epics', which doesn't match allowed epic
-      expect(checkStoryAccess('.saga/epics/', 'my-epic', 'my-story')).toBe(false);
-    });
-
-    it('should allow access to paths not in .saga/epics/', () => {
-      expect(checkStoryAccess('.saga/worktrees/', 'my-epic', 'my-story')).toBe(true);
-    });
-  });
-
   describe('check story access by id', () => {
     it('should allow access to assigned story in .saga/stories/<storyId>/', () => {
       expect(checkStoryAccessById('.saga/stories/auth-setup-db/story.json', 'auth-setup-db')).toBe(
@@ -206,6 +159,22 @@ describe('scope-validator', () => {
       ).toBe(false);
     });
 
+    it('should not be confused by unrelated stories/ directory before .saga/', () => {
+      // A project-level 'stories' dir should not affect matching
+      expect(
+        checkStoryAccessById(
+          '/project/stories/.saga/stories/auth-setup-db/task.json',
+          'auth-setup-db',
+        ),
+      ).toBe(true);
+      expect(
+        checkStoryAccessById(
+          '/project/stories/.saga/stories/other-story/task.json',
+          'auth-setup-db',
+        ),
+      ).toBe(false);
+    });
+
     it('should also validate against old .saga/epics/ paths (block other epics)', () => {
       // When using SAGA_STORY_ID, old epic-nested paths for other stories should be blocked
       expect(
@@ -224,31 +193,17 @@ describe('scope-validator', () => {
   });
 
   describe('getScopeEnvironment', () => {
-    it('should prefer SAGA_STORY_ID when set', () => {
+    it('should return scope when SAGA_STORY_ID is set', () => {
       process.env.SAGA_PROJECT_DIR = '/project/worktree';
       process.env.SAGA_STORY_ID = 'auth-setup-db';
       const env = getScopeEnvironment();
       expect(env).not.toBeNull();
       expect(env?.storyId).toBe('auth-setup-db');
-      expect(env?.mode).toBe('story-id');
     });
 
-    it('should fall back to SAGA_EPIC_SLUG + SAGA_STORY_SLUG when SAGA_STORY_ID is not set', () => {
-      process.env.SAGA_PROJECT_DIR = '/project/worktree';
-      process.env.SAGA_EPIC_SLUG = 'my-epic';
-      process.env.SAGA_STORY_SLUG = 'my-story';
-      const env = getScopeEnvironment();
-      expect(env).not.toBeNull();
-      expect(env?.epicSlug).toBe('my-epic');
-      expect(env?.storySlug).toBe('my-story');
-      expect(env?.mode).toBe('legacy');
-    });
-
-    it('should return null when no scope variables are set', () => {
+    it('should return null when SAGA_STORY_ID is not set', () => {
       process.env.SAGA_PROJECT_DIR = '/project/worktree';
       process.env.SAGA_STORY_ID = undefined;
-      process.env.SAGA_EPIC_SLUG = undefined;
-      process.env.SAGA_STORY_SLUG = undefined;
       const env = getScopeEnvironment();
       expect(env).toBeNull();
     });
@@ -259,91 +214,20 @@ describe('scope-validator', () => {
       const env = getScopeEnvironment();
       expect(env).toBeNull();
     });
-
-    it('should prefer SAGA_STORY_ID even when legacy vars are also set', () => {
-      process.env.SAGA_PROJECT_DIR = '/project/worktree';
-      process.env.SAGA_STORY_ID = 'auth-setup-db';
-      process.env.SAGA_EPIC_SLUG = 'my-epic';
-      process.env.SAGA_STORY_SLUG = 'my-story';
-      const env = getScopeEnvironment();
-      expect(env).not.toBeNull();
-      expect(env?.mode).toBe('story-id');
-      expect(env?.storyId).toBe('auth-setup-db');
-    });
   });
 
-  describe('validatePath (with SAGA_STORY_ID)', () => {
-    it('should allow valid paths within worktree when using storyId', () => {
+  describe('validatePath', () => {
+    it('should allow valid paths within worktree', () => {
       expect(
         validatePath('/project/worktree/src/file.ts', '/project/worktree', {
-          mode: 'story-id',
           storyId: 'auth-setup-db',
-        }),
-      ).toBeNull();
-    });
-
-    it('should block paths outside worktree when using storyId', () => {
-      const result = validatePath('/other/project/file.ts', '/project/worktree', {
-        mode: 'story-id',
-        storyId: 'auth-setup-db',
-      });
-      expect(result).toContain('Access outside worktree blocked');
-    });
-
-    it('should block archive access when using storyId', () => {
-      const result = validatePath(
-        '/project/worktree/.saga/archive/old-story/file.md',
-        '/project/worktree',
-        { mode: 'story-id', storyId: 'auth-setup-db' },
-      );
-      expect(result).toContain('Access to archive folder blocked');
-    });
-
-    it('should allow own story access in .saga/stories/ when using storyId', () => {
-      expect(
-        validatePath(
-          '/project/worktree/.saga/stories/auth-setup-db/story.json',
-          '/project/worktree',
-          { mode: 'story-id', storyId: 'auth-setup-db' },
-        ),
-      ).toBeNull();
-    });
-
-    it('should block other story access in .saga/stories/ when using storyId', () => {
-      const result = validatePath(
-        '/project/worktree/.saga/stories/other-story/story.json',
-        '/project/worktree',
-        { mode: 'story-id', storyId: 'auth-setup-db' },
-      );
-      expect(result).toContain('Access to other story blocked');
-    });
-
-    it('should block .saga/epics/ story access when using storyId', () => {
-      const result = validatePath(
-        '/project/worktree/.saga/epics/some-epic/stories/some-story/file.md',
-        '/project/worktree',
-        { mode: 'story-id', storyId: 'auth-setup-db' },
-      );
-      expect(result).toContain('Access to other story blocked');
-    });
-  });
-
-  describe('validatePath (legacy backward compatibility)', () => {
-    it('should allow valid paths within story scope', () => {
-      expect(
-        validatePath('/project/worktree/src/file.ts', '/project/worktree', {
-          mode: 'legacy',
-          epicSlug: 'my-epic',
-          storySlug: 'my-story',
         }),
       ).toBeNull();
     });
 
     it('should block paths outside worktree', () => {
       const result = validatePath('/other/project/file.ts', '/project/worktree', {
-        mode: 'legacy',
-        epicSlug: 'my-epic',
-        storySlug: 'my-story',
+        storyId: 'auth-setup-db',
       });
       expect(result).toContain('Access outside worktree blocked');
     });
@@ -352,16 +236,35 @@ describe('scope-validator', () => {
       const result = validatePath(
         '/project/worktree/.saga/archive/old-story/file.md',
         '/project/worktree',
-        { mode: 'legacy', epicSlug: 'my-epic', storySlug: 'my-story' },
+        { storyId: 'auth-setup-db' },
       );
       expect(result).toContain('Access to archive folder blocked');
     });
 
-    it('should block other story access', () => {
+    it('should allow own story access in .saga/stories/', () => {
+      expect(
+        validatePath(
+          '/project/worktree/.saga/stories/auth-setup-db/story.json',
+          '/project/worktree',
+          { storyId: 'auth-setup-db' },
+        ),
+      ).toBeNull();
+    });
+
+    it('should block other story access in .saga/stories/', () => {
       const result = validatePath(
-        '/project/worktree/.saga/epics/my-epic/stories/other-story/story.md',
+        '/project/worktree/.saga/stories/other-story/story.json',
         '/project/worktree',
-        { mode: 'legacy', epicSlug: 'my-epic', storySlug: 'my-story' },
+        { storyId: 'auth-setup-db' },
+      );
+      expect(result).toContain('Access to other story blocked');
+    });
+
+    it('should block .saga/epics/ story access', () => {
+      const result = validatePath(
+        '/project/worktree/.saga/epics/some-epic/stories/some-story/file.md',
+        '/project/worktree',
+        { storyId: 'auth-setup-db' },
       );
       expect(result).toContain('Access to other story blocked');
     });

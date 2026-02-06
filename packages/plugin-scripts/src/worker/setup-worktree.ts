@@ -10,7 +10,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
 import process from 'node:process';
 import { createWorktreePaths } from '@saga-ai/types';
@@ -52,10 +52,17 @@ function setupWorktree(storyId: string, projectDir: string): SetupWorktreeResult
   const branch = `story/${storyId}`;
   const { worktreeDir } = createWorktreePaths(projectDir, storyId);
 
-  // Idempotent: if worktree directory already exists, skip
+  // Idempotent: if worktree directory already exists, validate and reuse
   if (existsSync(worktreeDir)) {
-    process.stdout.write(`[worker] Worktree already exists: ${worktreeDir}\n`);
-    return { worktreePath: worktreeDir, branch, alreadyExisted: true };
+    const valid = runGit(['rev-parse', '--git-dir'], worktreeDir);
+    if (valid.success) {
+      process.stdout.write(`[worker] Worktree already exists: ${worktreeDir}\n`);
+      return { worktreePath: worktreeDir, branch, alreadyExisted: true };
+    }
+    // Broken worktree (e.g., leftover from crash) — remove and recreate below
+    process.stdout.write(`[worker] Removing broken worktree: ${worktreeDir}\n`);
+    runGit(['worktree', 'remove', '--force', worktreeDir], projectDir);
+    rmSync(worktreeDir, { recursive: true, force: true });
   }
 
   // Fetch latest main branch before creating

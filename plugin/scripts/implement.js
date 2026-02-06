@@ -11,7 +11,7 @@ import process4 from "node:process";
 // src/implement/index.ts
 import { spawnSync as spawnSync2 } from "node:child_process";
 import { existsSync as existsSync4 } from "node:fs";
-import { join as join4 } from "node:path";
+import { join as join3 } from "node:path";
 import process3 from "node:process";
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
@@ -4098,13 +4098,6 @@ function createSagaPaths(projectRoot) {
     archive: `${saga}/archive`
   };
 }
-function createEpicPaths(projectRoot, epicId) {
-  const { epics } = createSagaPaths(projectRoot);
-  return {
-    epicId,
-    epicJson: `${epics}/${epicId}.json`
-  };
-}
 function createStoryPaths(projectRoot, storyId) {
   const { stories } = createSagaPaths(projectRoot);
   const storyDir = `${stories}/${storyId}`;
@@ -4121,21 +4114,6 @@ function createWorktreePaths(projectRoot, storyId) {
     storyId,
     worktreeDir: `${worktrees}/${storyId}`
   };
-}
-function createArchivePaths(projectRoot, epicSlug, storySlug) {
-  const { archive } = createSagaPaths(projectRoot);
-  const archiveEpicDir = `${archive}/${epicSlug}`;
-  const result = {
-    epicSlug,
-    archiveEpicDir
-  };
-  if (storySlug) {
-    const archiveStoryDir = `${archiveEpicDir}/${storySlug}`;
-    result.storySlug = storySlug;
-    result.archiveStoryDir = archiveStoryDir;
-    result.archiveStoryMd = `${archiveStoryDir}/story.md`;
-  }
-  return result;
 }
 
 // ../saga-types/src/epic.ts
@@ -5509,11 +5487,6 @@ Fuse.config = Config;
 // src/find/saga-scanner.ts
 import { existsSync } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
-import { join } from "node:path";
-var FRONTMATTER_START_OFFSET = 3;
-var FRONTMATTER_OPEN_LENGTH = 4;
-var FRONTMATTER_CLOSE_LENGTH = 4;
-var STORY_MD_SUFFIX_PATTERN = /\/story\.md$/;
 async function isDirectory(path) {
   try {
     const stats = await stat(path);
@@ -5530,211 +5503,97 @@ async function fileExists(path) {
     return false;
   }
 }
-function parseFrontmatter(content) {
-  if (!content?.startsWith("---")) {
-    return { frontmatter: {}, body: content };
+function deriveStoryStatus(tasks) {
+  if (tasks.length === 0) {
+    return "pending";
   }
-  const endIndex = content.indexOf("\n---", FRONTMATTER_START_OFFSET);
-  if (endIndex === -1) {
-    return { frontmatter: {}, body: content };
+  if (tasks.every((t) => t.status === "completed")) {
+    return "completed";
   }
-  const frontmatterBlock = content.slice(FRONTMATTER_OPEN_LENGTH, endIndex);
-  const body = content.slice(endIndex + FRONTMATTER_CLOSE_LENGTH).trim();
-  const frontmatter = {};
-  for (const line of frontmatterBlock.split("\n")) {
-    if (line.length === 0 || line[0] === " " || line[0] === "	" || line[0] === "-") {
-      continue;
-    }
-    const colonIndex = line.indexOf(":");
-    if (colonIndex === -1) {
-      continue;
-    }
-    const key = line.slice(0, colonIndex).trim();
-    let value = line.slice(colonIndex + 1).trim();
-    if (typeof value === "string" && value.startsWith('"') && value.endsWith('"') || typeof value === "string" && value.startsWith("'") && value.endsWith("'")) {
-      value = value.slice(1, -1);
-    }
-    if (key) {
-      frontmatter[key] = value;
-    }
+  if (tasks.some((t) => t.status === "in_progress")) {
+    return "in_progress";
   }
-  return { frontmatter, body };
+  return "pending";
 }
-async function parseStoryFile(storyPath, epicSlug, options = {}) {
+async function readTaskFiles(storyDir) {
   try {
-    const content = await readFile(storyPath, "utf-8");
-    const storyDir = storyPath.replace(STORY_MD_SUFFIX_PATTERN, "");
-    const dirName = storyDir.split("/").pop() || "unknown";
-    const parsed = parseFrontmatter(content);
-    const frontmatter = parsed.frontmatter;
-    const body = parsed.body;
-    const journalPath = join(storyDir, "journal.md");
-    const hasJournal = await fileExists(journalPath);
-    return {
-      slug: frontmatter.id || frontmatter.slug || dirName,
-      title: frontmatter.title || dirName,
-      status: frontmatter.status || "ready",
-      epicSlug,
-      storyPath,
-      worktreePath: options.worktreePath,
-      journalPath: hasJournal ? journalPath : void 0,
-      archived: options.archived,
-      frontmatter,
-      body
-    };
+    const entries = await readdir(storyDir);
+    const taskFiles = entries.filter((entry) => entry.endsWith(".json") && entry !== "story.json");
+    const tasks = await Promise.all(
+      taskFiles.map(async (file) => {
+        try {
+          const content = await readFile(`${storyDir}/${file}`, "utf-8");
+          const parsed = JSON.parse(content);
+          return { status: parsed.status || "pending" };
+        } catch {
+          return { status: "pending" };
+        }
+      })
+    );
+    return tasks;
   } catch {
-    return null;
-  }
-}
-async function scanWorktrees(sagaRoot) {
-  const sagaPaths = createSagaPaths(sagaRoot);
-  if (!await isDirectory(sagaPaths.worktrees)) {
     return [];
   }
-  const epicEntries = await readdir(sagaPaths.worktrees);
-  const epicPromises = epicEntries.map(async (epicSlug) => {
-    const epicWorktreesDir = join(sagaPaths.worktrees, epicSlug);
-    if (!await isDirectory(epicWorktreesDir)) {
-      return [];
-    }
-    const storyEntries = await readdir(epicWorktreesDir);
-    const storyPromises = storyEntries.map(async (storySlug) => {
-      const worktreePaths = createWorktreePaths(sagaRoot, epicSlug, storySlug);
-      if (!await isDirectory(worktreePaths.worktreeDir)) {
-        return null;
-      }
-      return await parseStoryFile(worktreePaths.storyMdInWorktree, epicSlug, {
-        worktreePath: worktreePaths.worktreeDir
-      });
-    });
-    const stories = await Promise.all(storyPromises);
-    return stories.filter((story) => story !== null);
-  });
-  const epicStories = await Promise.all(epicPromises);
-  return epicStories.flat();
 }
-async function scanEpicsStories(sagaRoot) {
+async function scanStories(sagaRoot) {
   const sagaPaths = createSagaPaths(sagaRoot);
-  if (!await isDirectory(sagaPaths.epics)) {
+  if (!await isDirectory(sagaPaths.stories)) {
     return [];
   }
-  const epicEntries = await readdir(sagaPaths.epics);
-  const epicPromises = epicEntries.map(async (epicSlug) => {
-    const epicPaths = createEpicPaths(sagaRoot, epicSlug);
-    if (!await isDirectory(epicPaths.storiesDir)) {
-      return [];
+  const storyEntries = await readdir(sagaPaths.stories);
+  const storyPromises = storyEntries.map(async (storyId) => {
+    const storyPaths = createStoryPaths(sagaRoot, storyId);
+    if (!await isDirectory(storyPaths.storyDir)) {
+      return null;
     }
-    const storyEntries = await readdir(epicPaths.storiesDir);
-    const storyPromises = storyEntries.map(async (storySlug) => {
-      const storyPaths = createStoryPaths(sagaRoot, epicSlug, storySlug);
-      if (!await isDirectory(storyPaths.storyDir)) {
-        return null;
+    try {
+      const content = await readFile(storyPaths.storyJson, "utf-8");
+      const storyData = JSON.parse(content);
+      const tasks = await readTaskFiles(storyPaths.storyDir);
+      const status = deriveStoryStatus(tasks);
+      const worktreePaths = createWorktreePaths(sagaRoot, storyId);
+      const hasWorktree = await isDirectory(worktreePaths.worktreeDir);
+      const hasJournal = await fileExists(storyPaths.journalMd);
+      const scanned = {
+        id: storyData.id || storyId,
+        title: storyData.title || storyId,
+        description: storyData.description || "",
+        status,
+        epicSlug: storyData.epic || "",
+        storyPath: storyPaths.storyJson
+      };
+      if (hasWorktree) {
+        scanned.worktreePath = worktreePaths.worktreeDir;
       }
-      return await parseStoryFile(storyPaths.storyMd, epicSlug);
-    });
-    const stories = await Promise.all(storyPromises);
-    return stories.filter((story) => story !== null);
+      if (hasJournal) {
+        scanned.journalPath = storyPaths.journalMd;
+      }
+      return scanned;
+    } catch {
+      return null;
+    }
   });
-  const epicStories = await Promise.all(epicPromises);
-  return epicStories.flat();
+  const stories = await Promise.all(storyPromises);
+  return stories.filter((story) => story !== null);
 }
-async function scanArchive(sagaRoot) {
-  const sagaPaths = createSagaPaths(sagaRoot);
-  if (!await isDirectory(sagaPaths.archive)) {
-    return [];
-  }
-  const epicEntries = await readdir(sagaPaths.archive);
-  const epicPromises = epicEntries.map(async (epicSlug) => {
-    const archivePaths = createArchivePaths(sagaRoot, epicSlug);
-    if (!await isDirectory(archivePaths.archiveEpicDir)) {
-      return [];
-    }
-    const storyEntries = await readdir(archivePaths.archiveEpicDir);
-    const storyPromises = storyEntries.map(async (storySlug) => {
-      const storyArchivePaths = createArchivePaths(sagaRoot, epicSlug, storySlug);
-      if (!(storyArchivePaths.archiveStoryDir && await isDirectory(storyArchivePaths.archiveStoryDir))) {
-        return null;
-      }
-      if (!storyArchivePaths.archiveStoryMd) {
-        return null;
-      }
-      return await parseStoryFile(storyArchivePaths.archiveStoryMd, epicSlug, {
-        archived: true
-      });
-    });
-    const stories = await Promise.all(storyPromises);
-    return stories.filter((story) => story !== null);
-  });
-  const epicStories = await Promise.all(epicPromises);
-  return epicStories.flat();
-}
-async function scanAllStories(sagaRoot) {
-  const [worktreeStories, epicsStories, archivedStories] = await Promise.all([
-    scanWorktrees(sagaRoot),
-    scanEpicsStories(sagaRoot),
-    scanArchive(sagaRoot)
-  ]);
-  const seen = /* @__PURE__ */ new Set();
-  const result = [];
-  for (const story of worktreeStories) {
-    const key = `${story.epicSlug}/${story.slug}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(story);
-    }
-  }
-  for (const story of epicsStories) {
-    const key = `${story.epicSlug}/${story.slug}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(story);
-    }
-  }
-  for (const story of archivedStories) {
-    const key = `${story.epicSlug}/${story.slug}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(story);
-    }
-  }
-  return result;
-}
-function worktreesDirectoryExists(projectPath) {
+function storiesDirectoryExists(projectPath) {
   const sagaPaths = createSagaPaths(projectPath);
-  return existsSync(sagaPaths.worktrees);
-}
-function epicsDirectoryExists(projectPath) {
-  const sagaPaths = createSagaPaths(projectPath);
-  return existsSync(sagaPaths.epics);
+  return existsSync(sagaPaths.stories);
 }
 
 // src/find/finder.ts
 var FUZZY_THRESHOLD = 0.3;
 var MATCH_THRESHOLD = 0.6;
 var SCORE_SIMILARITY_THRESHOLD = 0.1;
-var DEFAULT_CONTEXT_MAX_LENGTH = 300;
-var ELLIPSIS_LENGTH = 3;
-var CONTEXT_SECTION_REGEX = /##\s*Context\s*\n+([\s\S]*?)(?=\n##|$)/i;
-function extractContext(body, maxLength = DEFAULT_CONTEXT_MAX_LENGTH) {
-  const contextMatch = body.match(CONTEXT_SECTION_REGEX);
-  if (!contextMatch) {
-    return "";
-  }
-  const context = contextMatch[1].trim();
-  if (context.length > maxLength) {
-    return `${context.slice(0, maxLength - ELLIPSIS_LENGTH)}...`;
-  }
-  return context;
-}
 function normalize(str) {
   return str.toLowerCase().replace(/[-_]/g, " ");
 }
 function toStoryInfo(story) {
   return {
-    slug: story.slug,
+    slug: story.id,
     title: story.title,
     status: story.status,
-    context: extractContext(story.body),
+    description: story.description,
     epicSlug: story.epicSlug,
     storyPath: story.storyPath,
     worktreePath: story.worktreePath || ""
@@ -5781,7 +5640,7 @@ function fuzzySearchStories(allStories, query) {
   return processFuzzyResults(results);
 }
 async function loadAndFilterStories(projectPath, query, options) {
-  const scannedStories = await scanAllStories(projectPath);
+  const scannedStories = await scanStories(projectPath);
   if (scannedStories.length === 0) {
     return { found: false, error: `No story found matching '${query}'` };
   }
@@ -5798,10 +5657,10 @@ async function loadAndFilterStories(projectPath, query, options) {
   return allStories;
 }
 async function findStory(projectPath, query, options = {}) {
-  if (!(worktreesDirectoryExists(projectPath) || epicsDirectoryExists(projectPath))) {
+  if (!storiesDirectoryExists(projectPath)) {
     return {
       found: false,
-      error: "No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first."
+      error: "No .saga/stories/ directory found. Run /generate-stories first."
     };
   }
   const storiesOrError = await loadAndFilterStories(projectPath, query, options);
@@ -5840,7 +5699,7 @@ function getPluginRoot() {
 
 // src/implement/orchestrator.ts
 import { existsSync as existsSync3, readFileSync } from "node:fs";
-import { join as join3 } from "node:path";
+import { join as join2 } from "node:path";
 
 // src/implement/scope-config.ts
 var SCOPE_VALIDATED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep"];
@@ -5867,7 +5726,7 @@ function buildScopeSettings() {
 // src/implement/session-manager.ts
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync as existsSync2, mkdirSync, writeFileSync } from "node:fs";
-import { join as join2 } from "node:path";
+import { join } from "node:path";
 import process2 from "node:process";
 
 // src/implement/types.ts
@@ -6206,9 +6065,9 @@ function validateSessionSlugs(epicSlug, storySlug) {
 }
 function createSessionFiles(sessionName, command) {
   const sessionDir = getSessionDir();
-  const outputFile = join2(sessionDir, `${sessionName}.out`);
-  const commandFilePath = join2(sessionDir, `${sessionName}.cmd`);
-  const wrapperScriptPath = join2(sessionDir, `${sessionName}.sh`);
+  const outputFile = join(sessionDir, `${sessionName}.out`);
+  const commandFilePath = join(sessionDir, `${sessionName}.cmd`);
+  const wrapperScriptPath = join(sessionDir, `${sessionName}.sh`);
   writeFileSync(commandFilePath, command, { mode: 384 });
   const wrapperScriptContent = generateWrapperScript(
     commandFilePath,
@@ -6308,7 +6167,7 @@ function spawnWorkerAsync(prompt, model, settings, workingDir, workerEnv) {
   });
 }
 function buildDetachedCommand(storySlug, pluginRoot, options) {
-  const scriptPath = join2(pluginRoot, "scripts", "implement.js");
+  const scriptPath = join(pluginRoot, "scripts", "implement.js");
   const parts = ["node", scriptPath, storySlug];
   if (options.maxCycles !== void 0) {
     parts.push("--max-cycles", String(options.maxCycles));
@@ -6325,7 +6184,7 @@ function buildDetachedCommand(storySlug, pluginRoot, options) {
 // src/implement/orchestrator.ts
 function getSkillRoot() {
   const pluginRoot = getPluginRoot();
-  return join3(pluginRoot, "skills", "execute-story");
+  return join2(pluginRoot, "skills", "execute-story");
 }
 function validateStoryFiles(epicSlug, storySlug) {
   const projectDir = getProjectDir();
@@ -6357,7 +6216,7 @@ This may indicate an incomplete story setup.`
 }
 function loadWorkerPrompt() {
   const skillRoot = getSkillRoot();
-  const promptPath = join3(skillRoot, WORKER_PROMPT_RELATIVE);
+  const promptPath = join2(skillRoot, WORKER_PROMPT_RELATIVE);
   if (!existsSync3(promptPath)) {
     throw new Error(`Worker prompt not found at ${promptPath}`);
   }
@@ -6612,7 +6471,7 @@ function checkWorkerPrompt() {
     };
   }
   const skillRoot = getSkillRoot();
-  const workerPromptPath = join4(skillRoot, WORKER_PROMPT_RELATIVE);
+  const workerPromptPath = join3(skillRoot, WORKER_PROMPT_RELATIVE);
   const exists = existsSync4(workerPromptPath);
   return {
     name: "Worker prompt",

@@ -1,13 +1,6 @@
 import process from 'node:process';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  getEpicSlug,
-  getPluginRoot,
-  getProjectDir,
-  getStoryId,
-  getStorySlug,
-  getStoryTaskListId,
-} from './env.ts';
+import { getPluginRoot, getProjectDir, getStoryId, getStoryTaskListId } from './env.ts';
 
 describe('env', () => {
   const originalEnv = { ...process.env };
@@ -71,30 +64,6 @@ describe('env', () => {
     it('throws with descriptive message mentioning worker context', () => {
       process.env.SAGA_STORY_TASK_LIST_ID = undefined;
       expect(() => getStoryTaskListId()).toThrow('worker context');
-    });
-  });
-
-  describe('getEpicSlug (deprecated)', () => {
-    it('returns SAGA_EPIC_SLUG when set', () => {
-      process.env.SAGA_EPIC_SLUG = 'my-epic';
-      expect(getEpicSlug()).toBe('my-epic');
-    });
-
-    it('throws when SAGA_EPIC_SLUG is not set', () => {
-      process.env.SAGA_EPIC_SLUG = undefined;
-      expect(() => getEpicSlug()).toThrow('SAGA_EPIC_SLUG');
-    });
-  });
-
-  describe('getStorySlug (deprecated)', () => {
-    it('returns SAGA_STORY_SLUG when set', () => {
-      process.env.SAGA_STORY_SLUG = 'my-story';
-      expect(getStorySlug()).toBe('my-story');
-    });
-
-    it('throws when SAGA_STORY_SLUG is not set', () => {
-      process.env.SAGA_STORY_SLUG = undefined;
-      expect(() => getStorySlug()).toThrow('SAGA_STORY_SLUG');
     });
   });
 });

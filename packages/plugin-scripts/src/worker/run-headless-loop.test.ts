@@ -172,6 +172,12 @@ describe('checkAllTasksCompleted', () => {
     expect(checkAllTasksCompleted(storyDir)).toBe(false);
   });
 
+  it('should return false when there are no task files', () => {
+    mockReaddirSync.mockReturnValue(['story.json'] as unknown as ReturnType<typeof readdirSync>);
+
+    expect(checkAllTasksCompleted(storyDir)).toBe(false);
+  });
+
   it('should exclude story.json from task checking', () => {
     mockReaddirSync.mockReturnValue(['t1.json', 'story.json'] as unknown as ReturnType<
       typeof readdirSync
@@ -204,6 +210,14 @@ describe('runHeadlessLoop', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('should throw when story has no task files', async () => {
+    mockReaddirSync.mockReturnValue(['story.json'] as unknown as ReturnType<typeof readdirSync>);
+
+    await expect(
+      runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {}),
+    ).rejects.toThrow('No task files found');
   });
 
   it('should spawn claude with correct environment variables', async () => {
@@ -493,6 +507,9 @@ describe('runHeadlessLoop', () => {
   it('should handle spawn error gracefully', async () => {
     const child = createMockChild();
     mockSpawn.mockReturnValue(child);
+
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'pending' }));
 
     const promise = runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
       maxCycles: 1,

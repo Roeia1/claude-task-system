@@ -70,39 +70,3 @@ export function getStoryTaskListId(): string {
   }
   return taskListId;
 }
-
-/**
- * Get SAGA_EPIC_SLUG from environment.
- * @deprecated Use getStoryId() instead. The story ID is now the primary identifier,
- * replacing the old epic-slug + story-slug pair. This function remains for backward
- * compatibility during migration.
- * @throws Error if not set
- */
-export function getEpicSlug(): string {
-  const epicSlug = process.env.SAGA_EPIC_SLUG;
-  if (!epicSlug) {
-    throw new Error(
-      'SAGA_EPIC_SLUG environment variable is not set.\n' +
-        'This script must be run from a SAGA session where env vars are set.',
-    );
-  }
-  return epicSlug;
-}
-
-/**
- * Get SAGA_STORY_SLUG from environment.
- * @deprecated Use getStoryId() instead. The story ID is now the primary identifier,
- * replacing the old epic-slug + story-slug pair. This function remains for backward
- * compatibility during migration.
- * @throws Error if not set
- */
-export function getStorySlug(): string {
-  const storySlug = process.env.SAGA_STORY_SLUG;
-  if (!storySlug) {
-    throw new Error(
-      'SAGA_STORY_SLUG environment variable is not set.\n' +
-        'This script must be run from a SAGA session where env vars are set.',
-    );
-  }
-  return storySlug;
-}
