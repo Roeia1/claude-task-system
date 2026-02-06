@@ -199,6 +199,37 @@ function createArchivePaths(
   return result;
 }
 
+/**
+ * Create flat story directory paths (alias for createStoryPaths)
+ *
+ * @param projectRoot - Path to the project root directory
+ * @param storyId - Story identifier
+ * @returns StoryPaths object with storyId, storyDir, storyJson, journalMd
+ */
+const createFlatStoryPaths = createStoryPaths;
+
+/**
+ * Create flat epic path (alias for createEpicPaths)
+ *
+ * @param projectRoot - Path to the project root directory
+ * @param epicId - Epic identifier
+ * @returns EpicPaths object with epicId, epicJson
+ */
+const createFlatEpicPath = createEpicPaths;
+
+/**
+ * Create a task JSON file path
+ *
+ * @param projectRoot - Path to the project root directory
+ * @param storyId - Story identifier
+ * @param taskId - Task identifier
+ * @returns Path to the task JSON file: .saga/stories/{storyId}/{taskId}.json
+ */
+function createTaskPath(projectRoot: string, storyId: string, taskId: string): string {
+  const { storyDir } = createStoryPaths(projectRoot, storyId);
+  return `${storyDir}/${taskId}.json`;
+}
+
 export {
   type ArchivePaths,
   type EpicPaths,
@@ -207,7 +238,10 @@ export {
   type WorktreePaths,
   createArchivePaths,
   createEpicPaths,
+  createFlatEpicPath,
+  createFlatStoryPaths,
   createSagaPaths,
   createStoryPaths,
+  createTaskPath,
   createWorktreePaths,
 };

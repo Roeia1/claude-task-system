@@ -170,3 +170,31 @@
 
 **Next steps:**
 - t7: Update directory.ts path utilities for new structure
+
+## Session 7: 2026-02-06
+
+### Task: t7 - Update directory.ts path utilities for new structure
+
+**What was done:**
+- Added `createFlatStoryPaths` (alias for `createStoryPaths`) to `packages/saga-types/src/directory.ts`
+- Added `createFlatEpicPath` (alias for `createEpicPaths`) to `packages/saga-types/src/directory.ts`
+- Added new `createTaskPath(projectRoot, storyId, taskId)` function returning `.saga/stories/<storyId>/<taskId>.json`
+- Added 10 new tests to `packages/saga-types/src/directory.test.ts` (TDD approach)
+- Exported all new functions from `packages/saga-types/src/index.ts`
+- Existing path utilities remain unchanged for backward compatibility
+
+**Tests cover:**
+- createFlatStoryPaths: correct paths, trailing slash handling, digits and dashes in IDs
+- createFlatEpicPath: correct path, trailing slash handling, digits in IDs
+- createTaskPath: correct path, trailing slash handling, dashes and digits in task IDs, consistency with createFlatStoryPaths
+
+**Decisions:**
+- `createFlatStoryPaths` and `createFlatEpicPath` are aliases (not copies) of `createStoryPaths` and `createEpicPaths` since the existing functions already produce the correct flat-structure paths (they were updated in a prior story)
+- `createTaskPath` returns a plain string (not an object) since there is only one path to construct for a task file
+
+**Test baseline:**
+- saga-types: 88/88 tests pass (was 78, +10 new directory tests)
+- plugin-scripts: 289/320 pass (31 pre-existing failures unchanged)
+
+**Next steps:**
+- t8: Integration tests for full read/write cycle
