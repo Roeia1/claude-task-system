@@ -31,3 +31,35 @@
 - t6: Update directory utilities
 - t7: Update barrel exports
 - t8: Final test verification
+
+## Session 2: 2026-02-06
+
+### Task: t2 - Define new Story type and Zod schema
+
+**What was done:**
+- Rewrote `packages/saga-types/src/story.ts` completely:
+  - Removed all old types: `StoryStatus`, `StoryStatusSchema`, `StoryFrontmatter`, `StoryFrontmatterSchema`, old `Task`/`TaskSchema`/`TaskStatus`/`TaskStatusSchema`
+  - Defined new `StorySchema` with `.strict()`: `id`, `title`, `description` (required), `epic?`, `guidance?`, `doneWhen?`, `avoid?`, `branch?`, `pr?`, `worktree?` (optional)
+  - No `status` field (derived at read time)
+  - No `tasks` field (tasks are separate files)
+- Rewrote `packages/saga-types/src/story.test.ts` with 10 tests covering:
+  - Valid story parsing (required fields, all fields, partial fields)
+  - Missing required field rejection (id, title, description)
+  - Strict mode rejection of `status`, `tasks`, and old markdown fields
+  - Non-string value rejection
+
+**Decisions:**
+- Used `.strict()` on StorySchema to actively reject unknown fields rather than silently stripping them. This enforces that no old fields (`status`, `tasks`, `slug`, `frontmatter`, `content`) can be stored.
+
+**Test results:**
+- 10 new story tests pass
+- 2 expected epic test failures (epic.test.ts uses old Story type, will be fixed in t3)
+- Type errors in epic.test.ts and index.ts are expected cascading from removed types (t3 and t7 will fix)
+
+**Next steps:**
+- t3: Define new Epic type and Zod schema
+- t4: Define ClaudeCodeTask type and schema
+- t5: Implement conversion functions
+- t6: Update directory utilities
+- t7: Update barrel exports
+- t8: Final test verification
