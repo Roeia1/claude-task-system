@@ -209,3 +209,44 @@
 **Next steps:**
 - t6: Implement PR readiness marking and exit handling
 - t7: Update environment variables and shared/env.ts
+
+## Session 6: 2026-02-06
+
+### Task: t6 - Implement PR readiness marking and exit handling
+
+**What was done:**
+- Created `packages/plugin-scripts/src/worker/mark-pr-ready.ts` with:
+  - `markPrReady(storyId, worktreePath, allCompleted)` function that marks draft PR as ready via `gh pr ready story/<storyId>`
+  - Only marks ready when `allCompleted=true`; skips when tasks are incomplete (timeout/max-cycles)
+  - Handles missing PR gracefully (catches error, logs warning, does not throw)
+  - Uses `execFileSync` with `cwd: worktreePath` consistent with other worker modules
+  - `buildStatusSummary(allCompleted, cycles, elapsedMinutes)` returns structured summary with exit code: 0 for success, 2 for timeout/max-cycles
+  - `writeOutputFile(outputFile, summary)` writes JSON summary to disk for dashboard monitoring, creates parent directories, skips when undefined
+- Created `packages/plugin-scripts/src/worker/mark-pr-ready.test.ts` with 17 tests:
+  - markPrReady: calls `gh pr ready` when allCompleted, skips when incomplete, handles missing PR, logs warning, logs success, uses correct branch format, uses utf-8 encoding
+  - buildStatusSummary: exit code 0 for completed, exit code 2 for incomplete, includes cycles/elapsedMinutes/allCompleted/status fields
+  - writeOutputFile: writes JSON to file, skips when undefined, creates parent directories, writes valid JSON
+- Updated `packages/plugin-scripts/src/worker.ts`:
+  - Added `--output-file <path>` CLI option for dashboard monitoring
+  - Replaced stub `markPrReady` with real import from `./worker/mark-pr-ready.ts`
+  - Added `buildStatusSummary` and `writeOutputFile` integration
+  - Updated `main()` to exit with proper exit codes (0 success, 2 timeout)
+  - Updated usage help text with new option
+- Updated `packages/plugin-scripts/src/worker.test.ts`:
+  - Added 2 tests for `--output-file` option (requires value, accepts path)
+
+**Decisions:**
+- Exit code 1 is reserved for errors (thrown exceptions caught in main's `.catch()`); exit code 2 is for timeout/max-cycles (non-error incomplete state)
+- `markPrReady` takes `worktreePath` as cwd parameter (not just storyId) since it needs to run `gh` in the worktree directory
+- `writeOutputFile` creates parent directories to support arbitrary output paths from `--output-file`
+- Status summary uses `"completed"` / `"incomplete"` strings (matching the accepted vocabulary in the codebase)
+
+**Test results:**
+- 17/17 new mark-pr-ready tests pass
+- 2/2 new CLI --output-file tests pass
+- 495/495 previously passing tests still pass (no regressions)
+- Same 31 pre-existing failures in finder.test.ts, orchestrator.test.ts, storage.test.ts, hydrate.test.ts
+
+**Next steps:**
+- t7: Update environment variables and shared/env.ts
+- t8: Update session-init hook for story-based context detection

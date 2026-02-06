@@ -20,6 +20,7 @@
  *   --max-cycles <n>    Maximum worker cycles (default: 10)
  *   --max-time <n>      Maximum time in minutes (default: 60)
  *   --model <model>     Model to use (default: opus)
+ *   --output-file <path> Write status summary JSON to file (for dashboard monitoring)
  *   --help, -h          Show this help message
  *
  * Environment (required):
@@ -36,6 +37,8 @@ import process from 'node:process';
 import { getProjectDir } from './shared/env.ts';
 import { createDraftPr } from './worker/create-draft-pr.ts';
 import { hydrateTasks } from './worker/hydrate-tasks.ts';
+import type { StatusSummary } from './worker/mark-pr-ready.ts';
+import { buildStatusSummary, markPrReady, writeOutputFile } from './worker/mark-pr-ready.ts';
 import { runHeadlessLoop } from './worker/run-headless-loop.ts';
 import { setupWorktree } from './worker/setup-worktree.ts';
 
@@ -47,6 +50,7 @@ interface WorkerOptions {
   maxCycles?: number;
   maxTime?: number;
   model?: string;
+  outputFile?: string;
 }
 
 // ============================================================================
@@ -63,10 +67,11 @@ Arguments:
   story-id      The ID of the story to execute
 
 Options:
-  --max-cycles <n>    Maximum worker cycles (default: 10)
-  --max-time <n>      Maximum time in minutes (default: 60)
-  --model <model>     Model to use (default: opus)
-  --help, -h          Show this help message
+  --max-cycles <n>       Maximum worker cycles (default: 10)
+  --max-time <n>         Maximum time in minutes (default: 60)
+  --model <model>        Model to use (default: opus)
+  --output-file <path>   Write status summary JSON to file
+  --help, -h             Show this help message
 
 Environment (required):
   SAGA_PROJECT_DIR       Project root directory
@@ -122,16 +127,20 @@ function parseIntOption(name: string, iter: IterableIterator<string>): number | 
   return value;
 }
 
-function processArg(
+function parseStringOption(name: string, iter: IterableIterator<string>): string | null {
+  const raw = consumeNextArg(iter);
+  if (raw === null) {
+    printError(`${name} requires a value`);
+    return null;
+  }
+  return raw;
+}
+
+function processOption(
   arg: string,
   iter: IterableIterator<string>,
   options: WorkerOptions,
-  state: { storyId?: string },
-): boolean {
-  if (arg === '--help' || arg === '-h') {
-    printUsage();
-    process.exit(0);
-  }
+): boolean | null {
   if (arg === '--max-cycles') {
     const value = parseIntOption('--max-cycles', iter);
     if (value === null) {
@@ -149,13 +158,37 @@ function processArg(
     return true;
   }
   if (arg === '--model') {
-    const raw = consumeNextArg(iter);
+    const raw = parseStringOption('--model', iter);
     if (raw === null) {
-      printError('--model requires a value');
       return false;
     }
     options.model = raw;
     return true;
+  }
+  if (arg === '--output-file') {
+    const raw = parseStringOption('--output-file', iter);
+    if (raw === null) {
+      return false;
+    }
+    options.outputFile = raw;
+    return true;
+  }
+  return null; // Not a recognized option
+}
+
+function processArg(
+  arg: string,
+  iter: IterableIterator<string>,
+  options: WorkerOptions,
+  state: { storyId?: string },
+): boolean {
+  if (arg === '--help' || arg === '-h') {
+    printUsage();
+    process.exit(0);
+  }
+  const optionResult = processOption(arg, iter, options);
+  if (optionResult !== null) {
+    return optionResult;
   }
   if (arg.startsWith('-') && arg !== '-') {
     printError(`Unknown option: ${arg}`);
@@ -190,36 +223,13 @@ function parseArgs(args: string[]): { storyId: string; options: WorkerOptions } 
 }
 
 // ============================================================================
-// Pipeline Steps (stubs for now, implemented in later tasks)
-// ============================================================================
-
-// createDraftPr is imported from ./worker/create-draft-pr.ts
-// hydrateTasks is imported from ./worker/hydrate-tasks.ts
-// runHeadlessLoop is imported from ./worker/run-headless-loop.ts
-
-function markPrReady(_storyId: string, _allCompleted: boolean): void {
-  // t6: Implement PR readiness marking
-  process.stdout.write('[worker] Step 6: Mark PR ready\n');
-}
-
-// ============================================================================
 // Main Entry Point
 // ============================================================================
 
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-
-  const parsed = parseArgs(args);
-  if (!parsed) {
-    process.exit(1);
-  }
-
-  const { storyId, options } = parsed;
-
-  process.stdout.write(`[worker] Starting pipeline for story: ${storyId}\n`);
+async function runPipeline(storyId: string, options: WorkerOptions): Promise<StatusSummary> {
+  const projectDir = getProjectDir();
 
   // Step 1: Setup worktree and branch
-  const projectDir = getProjectDir();
   const worktreeResult = setupWorktree(storyId, projectDir);
   process.stdout.write(
     `[worker] Step 1: ${worktreeResult.alreadyExisted ? 'Worktree exists' : 'Created worktree'} at ${worktreeResult.worktreePath}\n`,
@@ -232,8 +242,7 @@ async function main(): Promise<void> {
   );
 
   // Step 3 & 4: Read story.json and hydrate tasks
-  const hydrationResult = hydrateTasks(storyId, projectDir);
-  const { taskListId, storyMeta } = hydrationResult;
+  const { taskListId, storyMeta } = hydrateTasks(storyId, projectDir);
 
   // Step 5: Headless run loop
   const result = await runHeadlessLoop(
@@ -246,11 +255,28 @@ async function main(): Promise<void> {
   );
 
   // Step 6: Mark PR ready (if all tasks completed)
-  markPrReady(storyId, result.allCompleted);
+  markPrReady(storyId, worktreeResult.worktreePath, result.allCompleted);
+
+  return buildStatusSummary(result.allCompleted, result.cycles, result.elapsedMinutes);
+}
+
+async function main(): Promise<void> {
+  const parsed = parseArgs(process.argv.slice(2));
+  if (!parsed) {
+    process.exit(1);
+  }
+
+  const { storyId, options } = parsed;
+  process.stdout.write(`[worker] Starting pipeline for story: ${storyId}\n`);
+
+  const summary = await runPipeline(storyId, options);
 
   process.stdout.write(
-    `[worker] Pipeline complete. All tasks done: ${result.allCompleted}, cycles: ${result.cycles}, elapsed: ${result.elapsedMinutes.toFixed(1)}m\n`,
+    `[worker] Pipeline complete. Status: ${summary.status}, cycles: ${summary.cycles}, elapsed: ${summary.elapsedMinutes.toFixed(1)}m\n`,
   );
+
+  writeOutputFile(options.outputFile, summary);
+  process.exit(summary.exitCode);
 }
 
 // Run main
