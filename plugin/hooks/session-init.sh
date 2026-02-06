@@ -8,14 +8,18 @@
 # All SAGA environment variables use the SAGA_ prefix for namespacing.
 #
 # NOTE: Story-specific variables (SAGA_EPIC_SLUG, SAGA_STORY_SLUG, SAGA_STORY_DIR)
-# are NOT set here. They are only set by the worker orchestrator when spawning
-# headless Claude workers. See ENVIRONMENT.md for details.
+# are NOT set here for the old layout. They are only set by the worker orchestrator
+# when spawning headless Claude workers. See ENVIRONMENT.md for details.
+#
+# For the new flat worktree layout (.saga/worktrees/<storyId>/), this hook
+# detects the story ID and sets SAGA_STORY_ID.
 
 # =============================================================================
 # Context Detection (worktree vs main repo)
 # =============================================================================
 
 SAGA_TASK_CONTEXT="main"
+SAGA_STORY_ID=""
 
 # Detect worktree vs main repo by checking if .git is a file or directory
 # - Worktree: .git is a file pointing to the main repo
@@ -25,6 +29,15 @@ if [ -f .git ]; then
     WORKTREE_PATH=$(git rev-parse --show-toplevel 2>/dev/null)
     if [ -n "$WORKTREE_PATH" ] && [[ "$WORKTREE_PATH" == *"/.saga/worktrees/"* ]]; then
         SAGA_TASK_CONTEXT="story-worktree"
+
+        # Extract the portion after .saga/worktrees/
+        AFTER_WORKTREES="${WORKTREE_PATH##*/.saga/worktrees/}"
+
+        # New flat layout: single component (no slash) = .saga/worktrees/<storyId>/
+        # Old nested layout: two components (has slash) = .saga/worktrees/<epicSlug>/<storySlug>/
+        if [[ "$AFTER_WORKTREES" != *"/"* ]]; then
+            SAGA_STORY_ID="$AFTER_WORKTREES"
+        fi
     fi
 fi
 
@@ -38,6 +51,11 @@ if [ -n "$CLAUDE_ENV_FILE" ]; then
     echo "export SAGA_PLUGIN_ROOT=\"$CLAUDE_PLUGIN_ROOT\"" >> "$CLAUDE_ENV_FILE"
     echo "export SAGA_TASK_CONTEXT=\"$SAGA_TASK_CONTEXT\"" >> "$CLAUDE_ENV_FILE"
     echo "export SAGA_SESSION_DIR=\"/tmp/saga-sessions\"" >> "$CLAUDE_ENV_FILE"
+
+    # Story-specific variables (only set in new flat worktree layout)
+    if [ -n "$SAGA_STORY_ID" ]; then
+        echo "export SAGA_STORY_ID=\"$SAGA_STORY_ID\"" >> "$CLAUDE_ENV_FILE"
+    fi
 fi
 
 # =============================================================================
@@ -49,6 +67,9 @@ echo ""
 echo "SAGA_PROJECT_DIR: $CLAUDE_PROJECT_DIR"
 echo "SAGA_PLUGIN_ROOT: $CLAUDE_PLUGIN_ROOT"
 echo "SAGA_TASK_CONTEXT: $SAGA_TASK_CONTEXT"
+if [ -n "$SAGA_STORY_ID" ]; then
+    echo "SAGA_STORY_ID: $SAGA_STORY_ID"
+fi
 echo ""
 echo "These variables are available via the Bash tool: echo \$VARIABLE_NAME"
 

@@ -282,3 +282,36 @@
 **Next steps:**
 - t8: Update session-init hook for story-based context detection
 - t9: Update scope-validator for SAGA_STORY_ID
+
+## Session 8: 2026-02-06
+
+### Task: t8 - Update session-init hook for story-based context detection
+
+**What was done:**
+- Updated `plugin/hooks/session-init.sh` to detect the new flat worktree layout:
+  - Extracts the portion after `.saga/worktrees/` from the worktree path
+  - New flat layout (single component, no slash): sets `SAGA_STORY_ID` to the story ID
+  - Old nested layout (two components, has slash): keeps existing behavior, does not set `SAGA_STORY_ID`
+  - `SAGA_TASK_CONTEXT="story-worktree"` is set for both layouts (backward compatible)
+  - `SAGA_STORY_ID` is persisted to `CLAUDE_ENV_FILE` when set
+  - `SAGA_STORY_ID` is output in the stdout context section when set
+- Created `plugin/hooks/session-init.test.sh` with 8 test assertions:
+  - Main repo: `SAGA_TASK_CONTEXT=main`, no `SAGA_STORY_ID`
+  - New flat worktree (`.saga/worktrees/auth-setup-db`): `SAGA_TASK_CONTEXT=story-worktree`, `SAGA_STORY_ID=auth-setup-db`, stdout shows `SAGA_STORY_ID`
+  - Old nested worktree (`.saga/worktrees/my-epic/my-story`): `SAGA_TASK_CONTEXT=story-worktree`, no `SAGA_STORY_ID`
+  - Different storyId (`worker-execution-pipeline`): correctly extracted
+
+**Decisions:**
+- Differentiated new vs old layout by checking if the path after `.saga/worktrees/` contains a slash — single component = new flat layout, multiple components = old nested layout
+- Used bash parameter expansion (`${WORKTREE_PATH##*/.saga/worktrees/}`) for efficient path extraction without external commands
+- Created a bash test script since the hook is a shell script (no vitest infrastructure for .sh files)
+- Did NOT set `SAGA_STORY_TASK_LIST_ID` in the hook — per task guidance, that is only set by the worker at runtime
+
+**Test results:**
+- 8/8 new hook tests pass
+- 509/509 previously passing plugin-scripts tests still pass (no regressions)
+- Same 31 pre-existing failures in finder.test.ts, orchestrator.test.ts, storage.test.ts, hydrate.test.ts
+
+**Next steps:**
+- t9: Update scope-validator for SAGA_STORY_ID
+- t10: Update execute-story skill for new worker invocation
