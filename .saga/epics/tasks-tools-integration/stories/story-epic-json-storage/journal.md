@@ -59,3 +59,29 @@
 
 **Next steps:**
 - t3: Implement epic.json read/write utilities
+
+## Session 3: 2026-02-06
+
+### Task: t3 - Implement epic.json read/write utilities
+
+**What was done:**
+- Added `writeEpic` and `readEpic` functions to `packages/plugin-scripts/src/storage.ts`
+- Added 16 unit tests for epic storage in `packages/plugin-scripts/src/storage.test.ts` (TDD approach)
+- `writeEpic(projectRoot, epic)`: validates against EpicSchema, writes to `.saga/epics/<epic.id>.json` with pretty-printed JSON + trailing newline
+- `readEpic(projectRoot, epicId)`: reads `.saga/epics/<epicId>.json`, parses JSON, validates against EpicSchema, returns typed Epic object
+- Uses `@saga-ai/types` for EpicSchema, Epic type, and createEpicPaths path utility
+- Epics are single files (not directories), consistent with the new storage format
+
+**Tests cover:**
+- writeEpic: valid content, pretty printing, empty children, multiple children with blockedBy, overwrite, missing ID, missing children field, extra fields (strict), invalid children structure
+- readEpic: happy path, empty children, missing file, malformed JSON, schema mismatch, invalid children, round-trip
+
+**Decisions:**
+- Added epic functions to same `storage.ts` module alongside story functions (as planned in t2)
+- No directory creation needed for epics since they are single files in the existing `.saga/epics/` directory
+
+**Test baseline:**
+- plugin-scripts: 230/261 pass (31 pre-existing failures unchanged, 16 new epic tests all pass)
+
+**Next steps:**
+- t4: Implement task JSON read/write utilities
