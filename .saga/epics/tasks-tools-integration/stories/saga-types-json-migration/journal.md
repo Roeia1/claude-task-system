@@ -154,3 +154,33 @@
 - t6: Update directory utilities
 - t7: Update barrel exports
 - t8: Final test verification
+
+## Session 6: 2026-02-06
+
+### Task: t6 - Update SagaPaths and directory utilities for new flat structure
+
+**What was done:**
+- Rewrote `packages/saga-types/src/directory.ts` to reflect the new flat directory layout:
+  - `SagaPaths`: added `stories` field for `.saga/stories/` path
+  - `EpicPaths`: changed to return `epicId` + `epicJson` (`.saga/epics/<id>.json`) -- single file, not directory. Removed `epicDir`, `epicMd`, `storiesDir`, `epicSlug`
+  - `StoryPaths`: changed signature to `(projectRoot, storyId)` -- no more `epicSlug` parameter. Returns `storyId`, `storyDir` (`.saga/stories/<story-id>/`), `storyJson` (`.saga/stories/<story-id>/story.json`), `journalMd` (`.saga/stories/<story-id>/journal.md`)
+  - `WorktreePaths`: changed signature to `(projectRoot, storyId)` -- no more `epicSlug`/`storySlug` parameters. Returns `storyId`, `worktreeDir` (`.saga/worktrees/<story-id>/`). Removed `storyMdInWorktree`/`journalMdInWorktree`
+  - `ArchivePaths`: kept as-is (still uses epic/story slug pattern)
+- Rewrote `packages/saga-types/src/directory.test.ts` with 10 tests covering:
+  - SagaPaths with `stories` field, trailing slash normalization
+  - EpicPaths with `epicId` + `epicJson` single file path
+  - StoryPaths under flat `.saga/stories/<story-id>/` structure
+  - WorktreePaths under flat `.saga/worktrees/<story-id>/`
+  - ArchivePaths unchanged (still passing)
+
+**Decisions:**
+- Kept `ArchivePaths` and `createArchivePaths` unchanged -- the archive structure still uses the old epic/story slug pattern, and this can be updated separately if needed.
+- Updated the directory structure comment at the top of the file to document the new flat layout.
+
+**Test results:**
+- 10 directory tests pass
+- 78 total tests pass (no regressions)
+
+**Next steps:**
+- t7: Update barrel exports
+- t8: Final test verification
