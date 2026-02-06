@@ -35,6 +35,7 @@
 import process from 'node:process';
 import { getProjectDir } from './shared/env.ts';
 import { createDraftPr } from './worker/create-draft-pr.ts';
+import { hydrateTasks } from './worker/hydrate-tasks.ts';
 import { setupWorktree } from './worker/setup-worktree.ts';
 
 // ============================================================================
@@ -192,13 +193,7 @@ function parseArgs(args: string[]): { storyId: string; options: WorkerOptions } 
 // ============================================================================
 
 // createDraftPr is imported from ./worker/create-draft-pr.ts
-
-function hydrateTasks(_storyId: string): string {
-  // t4: Implement hydration step
-  const taskListId = `saga__${_storyId}__${Date.now()}`;
-  process.stdout.write(`[worker] Step 4: Hydrate tasks → ${taskListId}\n`);
-  return taskListId;
-}
+// hydrateTasks is imported from ./worker/hydrate-tasks.ts
 
 function runHeadlessLoop(
   _storyId: string,
@@ -244,10 +239,9 @@ function main(): void {
     `[worker] Step 2: ${prResult.alreadyExisted ? 'PR exists' : 'Created draft PR'}: ${prResult.prUrl}\n`,
   );
 
-  // Step 3: Read story.json (done implicitly during hydration)
-
-  // Step 4: Hydrate tasks
-  const taskListId = hydrateTasks(storyId);
+  // Step 3 & 4: Read story.json and hydrate tasks
+  const hydrationResult = hydrateTasks(storyId, projectDir);
+  const { taskListId } = hydrationResult;
 
   // Step 5: Headless run loop
   const result = runHeadlessLoop(storyId, taskListId, options);

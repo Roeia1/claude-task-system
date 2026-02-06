@@ -120,3 +120,46 @@
 **Next steps:**
 - t4: Implement hydration step
 - t5: Implement headless run loop with prompt injection
+
+## Session 4: 2026-02-06
+
+### Task: t4 - Implement hydration step
+
+**What was done:**
+- Created `packages/plugin-scripts/src/worker/hydrate-tasks.ts` with:
+  - `hydrateTasks(storyId, projectDir, claudeTasksBase?)` function that delegates to the existing hydration service
+  - Generates a session timestamp via `Date.now()` for per-session task list namespacing
+  - Calls `hydrate()` from `./hydrate/service.ts` (the existing Hydration & Sync Layer implementation)
+  - Logs step 4 progress with task count and taskListId
+  - Returns the full `HydrationResult` (taskListId, taskCount, storyMeta) for use in subsequent pipeline steps
+- Created `packages/plugin-scripts/src/worker/hydrate-tasks.test.ts` with 10 tests:
+  - Returns taskListId with `saga__<storyId>__<timestamp>` format
+  - Returns storyMeta with title and description
+  - Returns storyMeta with optional fields (guidance, doneWhen, avoid) when present
+  - Omits optional storyMeta fields when not present
+  - Returns correct task count
+  - Writes Claude Code format task files to the task list directory
+  - Computes `blocks` from reverse dependency analysis
+  - Preserves task status during hydration
+  - Throws when story directory does not exist
+  - Puts guidance and doneWhen into task metadata
+- Updated `packages/plugin-scripts/src/worker.ts`:
+  - Imports `hydrateTasks` from `./worker/hydrate-tasks.ts`
+  - Removed the stub `hydrateTasks` function
+  - Calls real `hydrateTasks(storyId, projectDir)` in step 3 & 4 of `main()`
+  - Destructures `taskListId` from `hydrationResult` for use in headless loop
+
+**Decisions:**
+- Reused the existing `hydrate()` service from the Hydration & Sync Layer story rather than reimplementing inline (per task guidance: "If the hydration service is available, use it")
+- Kept the wrapper thin — just generates timestamp, calls service, logs, returns result
+- Tests use real temp directories (not mocked fs) following the pattern established in `hydrate/service.test.ts`
+- `Date.now()` is mocked in tests for deterministic task list IDs
+
+**Test results:**
+- 10/10 new tests pass
+- 452/452 previously passing tests still pass (no regressions)
+- Same 31 pre-existing failures in finder.test.ts, orchestrator.test.ts, storage.test.ts, hydrate.test.ts
+
+**Next steps:**
+- t5: Implement headless run loop with prompt injection
+- t6: Implement PR readiness marking and exit handling
