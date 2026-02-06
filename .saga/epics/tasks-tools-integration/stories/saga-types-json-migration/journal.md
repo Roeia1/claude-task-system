@@ -209,3 +209,39 @@
 
 **Next steps:**
 - t8: Update and verify all tests pass (final verification)
+
+## Session 8: 2026-02-06
+
+### Task: t8 - Update and verify all tests pass
+
+**What was done:**
+- Ran `pnpm --filter @saga-ai/types test` -- all 78 tests pass across 7 test files:
+  - `task.test.ts`: 18 tests (TaskStatus, Task schema, StoryId validation)
+  - `story.test.ts`: 10 tests (new Story schema, strict mode)
+  - `epic.test.ts`: 12 tests (EpicChild, Epic schema, old field rejection)
+  - `claude-code-task.test.ts`: 10 tests (ClaudeCodeTask schema)
+  - `conversion.test.ts`: 11 tests (toClaudeTask/fromClaudeTask)
+  - `directory.test.ts`: 10 tests (new flat path structure)
+  - `session.test.ts`: 7 tests (unchanged, still passing)
+- Ran `pnpm --filter @saga-ai/types typecheck` (`tsc --noEmit`) -- passes with no errors
+- Verified no old types remain (`StoryFrontmatter`, `StoryStatus`, `StoryCounts`, etc. fully removed)
+- Committed formatting-only changes (tabs→spaces, double→single quotes) in session.ts, session.test.ts, tsconfig.json, vitest.config.ts that were left from a previous session
+
+**Acceptance criteria verification:**
+- [x] `TaskSchema` validates `{ id, subject, description, activeForm?, status, blockedBy, guidance?, doneWhen? }`
+- [x] `TaskStatusSchema` validates `"pending" | "in_progress" | "completed"` only
+- [x] `StorySchema` validates `{ id, title, description, epic?, guidance?, doneWhen?, avoid?, branch?, pr?, worktree? }` with no `status`
+- [x] `EpicSchema` validates `{ id, title, description, children: [{ id, blockedBy }] }` with no `status`
+- [x] `ClaudeCodeTaskSchema` validates Claude Code native task format
+- [x] `toClaudeTask()` maps guidance/doneWhen to metadata, blocks=[]
+- [x] `fromClaudeTask()` returns `{ status }` only
+- [x] `createSagaPaths()` includes `.saga/stories/`
+- [x] `createEpicPaths()` returns `epicJson` for `.saga/epics/<id>.json`
+- [x] `createStoryPaths(projectRoot, storyId)` returns paths under `.saga/stories/<story-id>/`
+- [x] `createWorktreePaths(projectRoot, storyId)` returns `.saga/worktrees/<story-id>/`
+- [x] Story ID validation rejects invalid characters
+- [x] All old markdown-based types removed
+- [x] `vitest run` passes (78/78)
+- [x] `tsc --noEmit` passes
+
+**All tasks complete. Story is done.**
