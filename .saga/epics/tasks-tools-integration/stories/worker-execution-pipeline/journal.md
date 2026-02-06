@@ -250,3 +250,35 @@
 **Next steps:**
 - t7: Update environment variables and shared/env.ts
 - t8: Update session-init hook for story-based context detection
+
+## Session 7: 2026-02-06
+
+### Task: t7 - Update environment variables and shared/env.ts
+
+**What was done:**
+- Updated `packages/plugin-scripts/src/shared/env.ts` with:
+  - `getStoryId()` — reads `SAGA_STORY_ID`, throws with descriptive message mentioning "worker context" if not set
+  - `getStoryTaskListId()` — reads `SAGA_STORY_TASK_LIST_ID`, throws with descriptive message mentioning "worker context" if not set
+  - `getEpicSlug()` — reads `SAGA_EPIC_SLUG`, marked with `@deprecated` JSDoc tag pointing to `getStoryId()`
+  - `getStorySlug()` — reads `SAGA_STORY_SLUG`, marked with `@deprecated` JSDoc tag pointing to `getStoryId()`
+- Created `packages/plugin-scripts/src/shared/env.test.ts` with 14 tests:
+  - getProjectDir: returns value when set, throws when not set
+  - getPluginRoot: returns value when set, throws when not set
+  - getStoryId: returns value when set, throws when not set, throws with "worker context" message
+  - getStoryTaskListId: returns value when set, throws when not set, throws with "worker context" message
+  - getEpicSlug (deprecated): returns value when set, throws when not set
+  - getStorySlug (deprecated): returns value when set, throws when not set
+
+**Decisions:**
+- Added `getEpicSlug()` and `getStorySlug()` as deprecated getters even though no formal getters existed before — this provides a centralized, documented place for the deprecation and gives callers a migration path
+- Kept `getProjectDir()` and `getPluginRoot()` unchanged (not deprecated — they are still needed)
+- Error messages for new getters mention "worker context" to distinguish from the session-level env vars
+
+**Test results:**
+- 14/14 new tests pass
+- 509/509 previously passing tests still pass (no regressions)
+- Same 31 pre-existing failures in finder.test.ts, orchestrator.test.ts, storage.test.ts, hydrate.test.ts
+
+**Next steps:**
+- t8: Update session-init hook for story-based context detection
+- t9: Update scope-validator for SAGA_STORY_ID
