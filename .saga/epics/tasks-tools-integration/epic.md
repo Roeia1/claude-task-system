@@ -1,5 +1,7 @@
 # Tasks Tools Integration
 
+> **Note**: This epic uses the old directory+markdown format. The new single-file JSON format (`.saga/epics/<id>.json`) described below will apply after implementation.
+
 ## Overview
 
 This epic replaces SAGA's markdown-based system with Claude Code's native Tasks tools. The current workflow uses `.md` files with YAML frontmatter to define and track work. The new system uses structured JSON files that workers consume via `TaskList`, `TaskGet`, and `TaskUpdate` tools.
@@ -119,7 +121,9 @@ Stories use a flat folder structure with globally unique IDs. Epic-to-story rela
     └── add-endpoints.json
 ```
 
-Runtime (for native tool compatibility): `~/.claude/tasks/saga__<story-id>/`
+Runtime (for native tool compatibility): `~/.claude/tasks/saga__<story-id>__<session-timestamp>/`
+
+Each worker session gets its own task list namespace. This avoids collisions between runs of the same story and eliminates the need for cleanup.
 
 ### Story vs Epic
 
@@ -150,7 +154,10 @@ interface Story {
   guidance?: string;
   doneWhen?: string;
   avoid?: string;
-  status?: "pending" | "in_progress" | "completed";
+  // No status field — derived from task statuses at read time:
+  //   any task in_progress → "in_progress"
+  //   all tasks completed  → "completed"
+  //   otherwise            → "pending"
   // Execution state (populated at runtime):
   branch?: string;
   pr?: string;
@@ -168,7 +175,10 @@ interface Epic {
     id: string;           // story ID
     blockedBy: string[];  // IDs of sibling stories that must complete first
   }>;
-  status?: "pending" | "in_progress" | "completed";
+  // No status field — derived from child story statuses at read time:
+  //   any story in_progress → "in_progress"
+  //   all stories completed → "completed"
+  //   otherwise             → "pending"
 }
 ```
 
@@ -239,15 +249,15 @@ function fromClaudeTask(claudeTask: ClaudeCodeTask): Partial<Task> {
 1. Read `story.json` for context (used in headless run prompt)
 2. Read task files from `.saga/stories/<storyId>/`
 3. Convert each SAGA task to Claude Code format
-4. Create `~/.claude/tasks/saga__<storyId>/`
+4. Create `~/.claude/tasks/saga__<storyId>__<sessionTimestamp>/`
 5. Write converted task files
 
 **Sync (via tool hooks):**
 - Tool hooks registered for `TaskUpdate`
 - Hooks intercept status changes and update `.saga/stories/<storyId>/*.json`
 - Only status is synced back (other fields are source-controlled in SAGA)
-- Headless runs may create tasks at runtime via `TaskCreate` for their own tracking; these are not synced back to `.saga/stories/` and are discarded at cleanup
-- Cleanup of `~/.claude/tasks/saga__<storyId>/` after execution completes
+- Headless runs may create tasks at runtime via `TaskCreate` for their own tracking; these are not synced back to `.saga/stories/`
+- No cleanup needed — each session uses its own task list namespace (`saga__<storyId>__<sessionTimestamp>`), so old task lists are inert
 
 ### Worker Architecture
 
@@ -270,22 +280,23 @@ Skill (interactive Claude)
   │     └─ claude -p "..." (with story context in prompt)
   │        └─ Headless run executes tasks via native tools
   │        └─ Worker checks exit status, spawns next run if needed
-  ├─ 6. Clean up ~/.claude/tasks/ after completion
-  └─ 7. Mark PR as ready for review
+  └─ 6. Mark PR as ready for review
+```
 
 **Idempotency**: The skill may be started multiple times for the same story (e.g., after resolving a blocker). All setup steps must be idempotent:
 - Worktree/branch creation: check if worktree already exists before creating
 - Draft PR creation: check if PR already exists for this branch before creating
 - Hydration: always re-hydrate from `.saga/stories/` (picks up current task statuses, so completed tasks are preserved)
-```
 
 **Headless run invocation:**
 
 The worker reads `story.json` and injects its fields into a prompt template. The `story.json` and `epic.json` files are protected from modification by the headless run — any deviations or notes must be recorded in `journal.md` only.
 
+> **Prerequisite**: `CLAUDE_CODE_ENABLE_TASKS=true` is required for headless runs to access the native Tasks tools. Without it, `TaskList`/`TaskGet`/`TaskUpdate` are unavailable and execution will fail. The worker sets this automatically.
+
 ```bash
 CLAUDE_CODE_ENABLE_TASKS=true \
-CLAUDE_CODE_TASK_LIST_ID=saga__<storyId> \
+CLAUDE_CODE_TASK_LIST_ID=saga__<storyId>__<sessionTimestamp> \
 claude -p "You are working on: ${story.title}
 
 ${story.description}
@@ -319,14 +330,11 @@ Headless runs self-terminate when `TaskList` shows all tasks completed. The work
 ### Error Handling
 
 **Headless run crash (process dies mid-execution):**
-- Tasks left in `in_progress` status remain in that state in `.saga/stories/`
 - Worker detects non-zero exit code from the headless run process
-- Story is marked as failed; no automatic retry
-- User can re-run execution — the hydration layer reads current status from `.saga/stories/`, so completed tasks are preserved and only remaining tasks are re-attempted
-
-**Stuck tasks:**
-- If a headless run exits (crash or self-termination) with tasks still in `in_progress`, no special handling is needed
-- The next run will be aware of the current task statuses and can pick up where the previous run left off
+- No automatic retry (story status is derived from tasks — incomplete tasks remain pending/in_progress)
+- `.saga/stories/` reflects the last synced state — the user sees the story as incomplete
+- User re-runs execution → fresh per-session task list, hydrated from `.saga/stories/`
+- The headless run reads the actual branch state and reconciles — work already done on the branch is recognized even if task status in `.saga/stories/` is stale
 
 **Hydration failure:**
 - If writing to `~/.claude/tasks/` fails (permissions, disk space), worker aborts before spawning headless runs
@@ -334,8 +342,8 @@ Headless runs self-terminate when `TaskList` shows all tasks completed. The work
 
 **Sync failure (hook can't write to .saga/stories/):**
 - Hook logs a warning but does not block the headless run
-- Status drift between `~/.claude/tasks/` and `.saga/stories/` is possible but recoverable
-- Post-execution reconciliation: worker reads final state from `~/.claude/tasks/` and writes it to `.saga/stories/` as a fallback
+- Status drift between runtime task list and `.saga/stories/` is possible
+- On re-run, the headless run reconciles with actual branch state — stale task statuses in `.saga/stories/` do not cause duplicate work
 
 ## Integration with Existing Infrastructure
 
@@ -348,7 +356,7 @@ This is not a complete rewrite. SAGA has established mechanisms for worktree iso
 | **SessionStart hook** | `hooks/session-init.sh` | Adjusted to recognize story worktrees |
 | **Worktree creation** | `scripts/worktree.js` | Adjusted to create worktrees for stories |
 | **Scope validator** | `scripts/scope-validator.js` | Adjusted to validate worker access based on story path |
-| **Tmux sessions** | Used by implement.js | Session creation moves to the skill; worker.js is a linear script inside tmux |
+| **Tmux sessions** | Used by execute-story skill | Session creation moves to the skill; worker.js is a linear script inside tmux |
 | **Dashboard file watcher** | `packages/dashboard/watcher.ts` | Adjusted to watch `.saga/stories/` and `.saga/epics/` |
 
 ### Environment Variables
@@ -370,7 +378,7 @@ The existing environment variable pattern is preserved and extended:
 | `SAGA_STORY_SLUG` | Story identifier | Deprecated (use `SAGA_STORY_ID`) |
 | `SAGA_STORY_DIR` | Path to story.md in worktree | Deprecated |
 | `SAGA_STORY_ID` | N/A | Story ID (e.g., `"auth-setup-db"`) |
-| `SAGA_STORY_TASK_LIST_ID` | N/A | Claude Code task list ID (e.g., `"saga__auth-setup-db"`) |
+| `SAGA_STORY_TASK_LIST_ID` | N/A | Claude Code task list ID (e.g., `"saga__auth-setup-db__1707000123456"`) |
 
 ### Context Detection
 
@@ -494,6 +502,12 @@ const watchPaths = [
 - **Rationale**: Claude Code's task storage is not configurable (always `~/.claude/tasks/`), has no cleanup, and is not git-trackable. SAGA needs project-local, version-controlled storage.
 - **Alternatives**: Use `~/.claude/tasks/` directly (rejected: not git-trackable, no cleanup)
 
+### Per-Session Task List (No Cleanup)
+
+- **Choice**: Each worker session gets its own task list namespace (`saga__<storyId>__<sessionTimestamp>`). No cleanup of `~/.claude/tasks/` is performed.
+- **Rationale**: Eliminates collision between runs of the same story and removes the cleanup step entirely. Old session task lists are inert. On re-run after a crash, the headless run reconciles with the actual branch state rather than relying on task list state from a previous session.
+- **Alternatives**: Shared per-story task list with cleanup (rejected: cleanup adds complexity, crash leaves stale state, collision risk on re-run)
+
 ### Descriptive Filenames and IDs
 
 - **Choice**: Filename = `{id}.json`, IDs are descriptive slugs (e.g., `write-migration-tests`)
@@ -503,7 +517,7 @@ const watchPaths = [
 ### Runtime TaskCreate Allowed but Not Synced
 
 - **Choice**: Headless runs may create tasks at runtime via `TaskCreate` for their own tracking, but these are not synced back to `.saga/stories/`
-- **Rationale**: Headless runs sometimes need to break down work further during execution. These ad-hoc tasks are ephemeral and discarded at cleanup. Only pre-defined tasks in `.saga/stories/` are the source of truth.
+- **Rationale**: Headless runs sometimes need to break down work further during execution. These ad-hoc tasks live only in the session's task list and are not synced back. Only pre-defined tasks in `.saga/stories/` are the source of truth.
 - **Alternatives**: Block `TaskCreate` entirely (rejected: too restrictive), sync new tasks back (rejected: adds complexity, blurs source of truth)
 
 ### Globally Unique Story IDs
@@ -511,6 +525,12 @@ const watchPaths = [
 - **Choice**: Story IDs must be globally unique across the project. IDs use `[a-z0-9-]`. Enforced at creation time by the generation skill.
 - **Rationale**: Enables flat storage in `.saga/stories/` without namespacing. Clean IDs everywhere (branches, worktrees, sessions). No collision risk.
 - **Alternatives**: Namespace by epic ID with `--` separator (rejected: ugly IDs, implicit relationships, requires parsing)
+
+### Derived Status (No Stored Status on Story or Epic)
+
+- **Choice**: Story and epic status is derived at read time from their children, not stored as a field
+- **Rationale**: Single source of truth — task status is the only stored status. No risk of story/epic status drifting out of sync with actual task progress. Derivation rules are simple: any child `in_progress` → parent `in_progress`; all children `completed` → parent `completed`; otherwise `pending`.
+- **Alternatives**: Stored status field managed by worker (rejected: redundant data, drift risk, requires explicit transition logic)
 
 ### Worker as Linear Node Process
 
@@ -531,10 +551,11 @@ const watchPaths = [
 | guidance | string | No | How to approach the work |
 | doneWhen | string | No | Completion criteria |
 | avoid | string | No | Patterns to avoid |
-| status | enum | No | "pending", "in_progress", "completed" |
 | branch | string | No | Git branch name (populated at execution) |
 | pr | string | No | Pull request URL (populated at execution) |
 | worktree | string | No | Worktree path (populated at execution) |
+
+Story status is derived at read time from task statuses: any task `in_progress` → story is `in_progress`; all tasks `completed` → story is `completed`; otherwise `pending`. No `status` field is stored.
 
 ### Epic Schema (<epic-id>.json)
 
@@ -543,8 +564,9 @@ const watchPaths = [
 | id | string | Yes | Unique identifier, matches filename (without .json) |
 | title | string | Yes | Human-readable title |
 | description | string | Yes | Full context for the epic goal |
-| status | enum | No | "pending", "in_progress", "completed" |
 | children | array | Yes | Child stories with dependencies |
+
+Epic status is derived at read time from child story statuses: any story `in_progress` → epic is `in_progress`; all stories `completed` → epic is `completed`; otherwise `pending`. No `status` field is stored.
 
 ### Epic Children Schema (in children array)
 
@@ -575,7 +597,7 @@ hydrate(storyId: string): void
   - Input: story ID (e.g., "auth-setup-database")
   - Reads: .saga/stories/<storyId>/story.json (for context), *.json task files
   - Converts: SAGA tasks to Claude Code format
-  - Output: Creates ~/.claude/tasks/saga__<storyId>/ with converted tasks
+  - Output: Creates ~/.claude/tasks/saga__<storyId>__<sessionTimestamp>/ with converted tasks
   - Returns: Story metadata for prompt injection
 ```
 
@@ -595,7 +617,7 @@ worker.js(storyId: string): void
   - Creates worktree and branch, creates draft PR
   - Hydrates task files to ~/.claude/tasks/
   - Loops: spawns headless runs, waits for completion, checks status
-  - Cleans up runtime files, marks PR ready for review
+  - Marks PR ready for review
   - Streams output to file for dashboard monitoring
   - Output: All tasks completed, PR ready
 ```
@@ -608,6 +630,3 @@ worker.js(storyId: string): void
 - **Worker**: Node.js script (`worker.js`) running inside tmux
 - **Dashboard**: Existing SAGA dashboard, updated to read `.saga/stories/` and `.saga/epics/`
 
-## Open Questions
-
-1. **Dashboard**: Dashboard currently reads `.saga/epics/` (markdown) and `.saga/stories/` (markdown). Needs update to read the new JSON format and visualize epic/story hierarchy.
