@@ -351,3 +351,37 @@
 **Next steps:**
 - t10: Update execute-story skill for new worker invocation
 - t11: Wire worker.ts into esbuild and verify end-to-end
+
+## Session 10: 2026-02-06
+
+### Task: t10 - Update execute-story skill for new worker invocation
+
+**What was done:**
+- Updated `plugin/skills/execute-story/SKILL.md` with:
+  - Changed argument-hint from `<story-slug>` to `<story-id>`
+  - Updated "Resolve story" task to extract `data.slug` as `storyId` (bridging old find.js output to new worker input)
+  - Replaced "Run implementation orchestrator" task with "Run worker" task that creates a tmux session directly and invokes `node $SAGA_PLUGIN_ROOT/scripts/worker.js <storyId>` with `--max-cycles 10 --max-time 60 --model opus --output-file`
+  - Updated session naming from `saga__<epic>__<story>__<timestamp>` to `saga-story-<storyId>-<timestamp>`
+  - Updated status output format: removed Epic field, changed Worktree to `.saga/worktrees/<storyId>/`, updated exit status descriptions to match worker exit codes (0, 1, 2)
+  - Updated notes section to describe the new worker pipeline and native Tasks tools
+- Updated `plugin/skills/execute-story/worker-prompt.md` with:
+  - Replaced story.md-based instructions with native Tasks tools (`TaskList`, `TaskGet`, `TaskUpdate`)
+  - Session startup now uses `TaskList` to find tasks instead of reading story.md
+  - Task execution uses `TaskGet` for full details and `TaskUpdate` for status changes
+  - Removed journal.md references (task status is tracked via Tasks tools)
+  - Removed ONGOING/FINISH/BLOCKED structured output signals (worker checks task completion directly)
+  - Updated scope rules to reference `.saga/stories/` (flat layout) instead of `.saga/epics/`
+  - Updated commit format to use `<story-id>` instead of `$SAGA_EPIC_SLUG-$SAGA_STORY_SLUG`
+
+**Decisions:**
+- No TypeScript code or tests needed for this task — it only updates markdown skill definition and prompt template files
+- Kept using find.js for story resolution since the find command hasn't been migrated yet (will use `data.slug` as `storyId`)
+- Skill now creates tmux session directly (via Bash) rather than delegating to implement.js — the worker handles the full pipeline internally
+- Worker-prompt.md is now a reference for headless runs; actual prompt injection is done programmatically by `buildPrompt()` in `run-headless-loop.ts`
+
+**Test results:**
+- 529/529 previously passing tests still pass (no regressions)
+- Same 31 pre-existing failures in finder.test.ts, orchestrator.test.ts, storage.test.ts, hydrate.test.ts
+
+**Next steps:**
+- t11: Wire worker.ts into esbuild and verify end-to-end
