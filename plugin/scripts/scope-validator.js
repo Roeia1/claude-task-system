@@ -6,7 +6,7 @@ import process from "node:process";
 var EXIT_ALLOWED = 0;
 var EXIT_BLOCKED = 2;
 var FILE_PATH_WIDTH = 50;
-var EPIC_STORY_WIDTH = 43;
+var SCOPE_VALUE_WIDTH = 43;
 var REASON_WIDTH = 56;
 function getFilePathFromInput(hookInput) {
   try {
@@ -35,28 +35,50 @@ function isWithinWorktree(filePath, worktreePath) {
   }
   return true;
 }
-function checkStoryAccess(path, allowedEpic, allowedStory) {
-  if (!path.includes(".saga/epics/")) {
-    return true;
+function checkStoriesPath(parts, allowedStoryId) {
+  const sagaIdx = parts.indexOf(".saga");
+  if (sagaIdx === -1) {
+    return false;
   }
-  const parts = path.split("/");
-  const epicsIdx = parts.indexOf("epics");
-  if (epicsIdx === -1) {
-    return true;
+  const storiesIdx = sagaIdx + 1;
+  if (parts[storiesIdx] !== "stories" || parts.length <= storiesIdx + 1) {
+    return false;
   }
-  if (parts.length <= epicsIdx + 1) {
-    return true;
+  const pathStoryId = parts[storiesIdx + 1];
+  if (!pathStoryId) {
+    return false;
   }
-  const pathEpic = parts[epicsIdx + 1];
-  const storiesFolderIndex = 2;
-  const storySlugIndex = 3;
-  if (parts.length > epicsIdx + storySlugIndex && parts[epicsIdx + storiesFolderIndex] === "stories") {
-    const pathStory = parts[epicsIdx + storySlugIndex];
-    return pathEpic === allowedEpic && pathStory === allowedStory;
-  }
-  return pathEpic === allowedEpic;
+  return pathStoryId === allowedStoryId;
 }
-function printScopeViolation(filePath, epicSlug, storySlug, worktreePath, reason) {
+function checkEpicsPath(parts) {
+  const sagaIdx = parts.indexOf(".saga");
+  if (sagaIdx === -1) {
+    return true;
+  }
+  const epicsIdx = sagaIdx + 1;
+  if (parts[epicsIdx] !== "epics") {
+    return true;
+  }
+  const storiesFolderIndex = 2;
+  if (parts.length > epicsIdx + storiesFolderIndex && parts[epicsIdx + storiesFolderIndex] === "stories") {
+    return false;
+  }
+  return true;
+}
+function checkStoryAccessById(path, allowedStoryId) {
+  if (path.includes(".saga/stories/")) {
+    return checkStoriesPath(path.split("/"), allowedStoryId);
+  }
+  if (path.includes(".saga/epics/")) {
+    return checkEpicsPath(path.split("/"));
+  }
+  return true;
+}
+function printScopeViolation(filePath, scope, worktreePath, reason) {
+  const scopeLines = [
+    `\u2502    Story:    ${scope.storyId.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`,
+    `\u2502    Worktree: ${worktreePath.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`
+  ];
   const message = [
     "",
     "\u256D\u2500 Scope Violation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E",
@@ -66,9 +88,7 @@ function printScopeViolation(filePath, epicSlug, storySlug, worktreePath, reason
     `\u2502  ${reason.split("\n")[0].padEnd(REASON_WIDTH)}\u2502`,
     "\u2502                                                           \u2502",
     "\u2502  Current scope:                                           \u2502",
-    `\u2502    Epic:     ${epicSlug.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}\u2502`,
-    `\u2502    Story:    ${storySlug.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}\u2502`,
-    `\u2502    Worktree: ${worktreePath.slice(0, EPIC_STORY_WIDTH).padEnd(EPIC_STORY_WIDTH)}\u2502`,
+    ...scopeLines,
     "\u2502                                                           \u2502",
     "\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F",
     ""
@@ -84,34 +104,22 @@ async function readStdinInput() {
 }
 function getScopeEnvironment() {
   const worktreePath = process.env.SAGA_PROJECT_DIR || "";
-  const epicSlug = process.env.SAGA_EPIC_SLUG || "";
-  const storySlug = process.env.SAGA_STORY_SLUG || "";
-  const missing = [];
   if (!worktreePath) {
-    missing.push("SAGA_PROJECT_DIR");
-  }
-  if (!epicSlug) {
-    missing.push("SAGA_EPIC_SLUG");
-  }
-  if (!storySlug) {
-    missing.push("SAGA_STORY_SLUG");
-  }
-  if (missing.length > 0) {
     process.stderr.write(
-      `scope-validator: Missing required environment variables: ${missing.join(", ")}
-
-The scope validator cannot verify file access without these variables.
-This is a configuration error - the orchestrator should set these variables.
-
-You MUST exit with status BLOCKED and set blocker to:
-"Scope validator misconfigured: missing ${missing.join(", ")}"
-`
+      'scope-validator: Missing required environment variable: SAGA_PROJECT_DIR\n\nThe scope validator cannot verify file access without this variable.\nThis is a configuration error - the orchestrator should set this variable.\n\nYou MUST exit with status BLOCKED and set blocker to:\n"Scope validator misconfigured: missing SAGA_PROJECT_DIR"\n'
     );
     return null;
   }
-  return { worktreePath, epicSlug, storySlug };
+  const storyId = process.env.SAGA_STORY_ID || "";
+  if (!storyId) {
+    process.stderr.write(
+      'scope-validator: Missing required environment variable: SAGA_STORY_ID\n\nThe scope validator cannot verify file access without this variable.\nThis is a configuration error - the worker should set SAGA_STORY_ID.\n\nYou MUST exit with status BLOCKED and set blocker to:\n"Scope validator misconfigured: missing SAGA_STORY_ID"\n'
+    );
+    return null;
+  }
+  return { storyId, worktreePath };
 }
-function validatePath(filePath, worktreePath, epicSlug, storySlug) {
+function validatePath(filePath, worktreePath, scope) {
   const normPath = normalizePath(filePath);
   if (!isWithinWorktree(normPath, worktreePath)) {
     return "Access outside worktree blocked\nReason: Workers can only access files within their assigned worktree directory.";
@@ -119,7 +127,7 @@ function validatePath(filePath, worktreePath, epicSlug, storySlug) {
   if (isArchiveAccess(normPath)) {
     return "Access to archive folder blocked\nReason: The archive folder contains completed stories and is read-only during execution.";
   }
-  if (!checkStoryAccess(normPath, epicSlug, storySlug)) {
+  if (!checkStoryAccessById(normPath, scope.storyId)) {
     return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
   }
   return null;
@@ -134,9 +142,10 @@ async function main() {
   if (!filePath) {
     process.exit(EXIT_ALLOWED);
   }
-  const violation = validatePath(filePath, env.worktreePath, env.epicSlug, env.storySlug);
+  const { worktreePath, ...scope } = env;
+  const violation = validatePath(filePath, worktreePath, scope);
   if (violation) {
-    printScopeViolation(filePath, env.epicSlug, env.storySlug, env.worktreePath, violation);
+    printScopeViolation(filePath, scope, worktreePath, violation);
     process.exit(EXIT_BLOCKED);
   }
   process.exit(EXIT_ALLOWED);
@@ -146,8 +155,9 @@ if (isDirectExecution) {
   main();
 }
 export {
-  checkStoryAccess,
+  checkStoryAccessById,
   getFilePathFromInput,
+  getScopeEnvironment,
   isArchiveAccess,
   isWithinWorktree,
   normalizePath,
