@@ -173,3 +173,31 @@
 
 **Next steps:**
 - t7: Integration tests for full hydration-sync round trip
+
+## Session 7: 2026-02-06
+
+### Task: t7 - Write integration tests for full hydration-sync round trip
+
+**What was done:**
+- Created `packages/plugin-scripts/src/hydrate/integration.test.ts` - 10 integration tests covering the complete hydration-sync workflow
+- All 412 hydrate/sync tests pass (10 new + 402 existing), lint clean
+
+**Tests cover:**
+- Full round trip: create SAGA tasks with dependency graph → hydrate to Claude Code format → verify blocks/blockedBy/metadata → sync TaskUpdate back → verify SAGA source updated with status preserved
+- Multiple sequential status transitions: pending → in_progress → completed via sync hook
+- Runtime-created tasks: sync for tasks not in SAGA source is silently ignored, no file created
+- Per-session isolation: two hydrations with different timestamps create separate directories with independent task files
+- Session independence: modifying a task in one session's directory does not affect the other
+- Idempotency: re-hydration with same timestamp overwrites cleanly, reflecting source changes
+- Synced status preservation: status changes synced in session 1 are picked up when re-hydrating for session 2
+- Complex task graph: diamond dependency chain with correct blocks/blockedBy computation across 4 tasks
+- Multi-session workflow: work through tasks in session 1 via sync, re-hydrate for session 2, verify full graph state
+- File listing: hydrated directory contains exactly the expected task files (no extras)
+
+**Decisions:**
+- Used the same temp directory pattern as service.test.ts (realpathSync + mkdtempSync) for macOS compatibility
+- Tested the sync hook via its exported `processSyncInput()` function (same as unit tests) rather than spawning a subprocess, since the integration boundary is the function call, not the stdin interface
+- Used deterministic timestamps (TIMESTAMP_SESSION_1/2) to avoid test flakiness
+
+**All tasks complete:**
+This was the final task (t7). All 7 tasks for the hydration-sync-layer story are now done.
