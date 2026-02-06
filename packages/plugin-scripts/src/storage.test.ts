@@ -9,9 +9,17 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { Epic, Story } from '@saga-ai/types';
+import type { Epic, Story, Task } from '@saga-ai/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { readEpic, readStory, writeEpic, writeStory } from './storage.ts';
+import {
+  listTasks,
+  readEpic,
+  readStory,
+  readTask,
+  writeEpic,
+  writeStory,
+  writeTask,
+} from './storage.ts';
 
 describe('story storage', () => {
   let testDir: string;
@@ -440,6 +448,306 @@ describe('epic storage', () => {
       writeEpic(testDir, epic);
       const result = readEpic(testDir, 'round-trip-epic');
       expect(result).toEqual(epic);
+    });
+  });
+});
+
+describe('task storage', () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = realpathSync(mkdtempSync(join(tmpdir(), 'saga-task-storage-test-')));
+    mkdirSync(join(testDir, '.saga', 'stories'), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  const makeTask = (overrides: Partial<Task> = {}): Task => ({
+    id: 't1',
+    subject: 'Test task',
+    description: 'A test task',
+    status: 'pending',
+    blockedBy: [],
+    ...overrides,
+  });
+
+  describe('writeTask', () => {
+    it('creates task JSON file with valid content', () => {
+      const task = makeTask();
+
+      writeTask(testDir, 'my-story', task);
+
+      const filePath = join(testDir, '.saga', 'stories', 'my-story', 't1.json');
+      expect(existsSync(filePath)).toBe(true);
+
+      const contents = readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(contents);
+      expect(parsed).toEqual(task);
+    });
+
+    it('creates the story directory if it does not exist', () => {
+      const task = makeTask();
+
+      writeTask(testDir, 'new-story', task);
+
+      const dirPath = join(testDir, '.saga', 'stories', 'new-story');
+      expect(existsSync(dirPath)).toBe(true);
+    });
+
+    it('writes pretty-printed JSON with trailing newline', () => {
+      const task = makeTask();
+
+      writeTask(testDir, 'pretty-story', task);
+
+      const filePath = join(testDir, '.saga', 'stories', 'pretty-story', 't1.json');
+      const contents = readFileSync(filePath, 'utf-8');
+      expect(contents).toBe(`${JSON.stringify(task, null, 2)}\n`);
+    });
+
+    it('writes all optional fields when present', () => {
+      const task = makeTask({
+        id: 't2',
+        activeForm: 'Testing active form',
+        guidance: 'Some guidance',
+        doneWhen: 'When tests pass',
+      });
+
+      writeTask(testDir, 'full-story', task);
+
+      const filePath = join(testDir, '.saga', 'stories', 'full-story', 't2.json');
+      const parsed = JSON.parse(readFileSync(filePath, 'utf-8'));
+      expect(parsed).toEqual(task);
+    });
+
+    it('writes task with in_progress status', () => {
+      const task = makeTask({ status: 'in_progress' });
+
+      writeTask(testDir, 'status-story', task);
+
+      const filePath = join(testDir, '.saga', 'stories', 'status-story', 't1.json');
+      const parsed = JSON.parse(readFileSync(filePath, 'utf-8'));
+      expect(parsed.status).toBe('in_progress');
+    });
+
+    it('writes task with completed status', () => {
+      const task = makeTask({ status: 'completed' });
+
+      writeTask(testDir, 'status-story', task);
+
+      const filePath = join(testDir, '.saga', 'stories', 'status-story', 't1.json');
+      const parsed = JSON.parse(readFileSync(filePath, 'utf-8'));
+      expect(parsed.status).toBe('completed');
+    });
+
+    it('overwrites an existing task file', () => {
+      const task1 = makeTask({ subject: 'Original' });
+      const task2 = makeTask({ subject: 'Updated' });
+
+      writeTask(testDir, 'overwrite-story', task1);
+      writeTask(testDir, 'overwrite-story', task2);
+
+      const filePath = join(testDir, '.saga', 'stories', 'overwrite-story', 't1.json');
+      const parsed = JSON.parse(readFileSync(filePath, 'utf-8'));
+      expect(parsed.subject).toBe('Updated');
+    });
+
+    it('throws for a task missing required id field', () => {
+      const invalid = {
+        subject: 'No ID',
+        description: 'Missing ID',
+        status: 'pending',
+        blockedBy: [],
+      } as unknown as Task;
+
+      expect(() => writeTask(testDir, 'my-story', invalid)).toThrow();
+    });
+
+    it('throws for a task with invalid status', () => {
+      const invalid = {
+        id: 't1',
+        subject: 'Bad status',
+        description: 'Invalid status value',
+        status: 'blocked',
+        blockedBy: [],
+      } as unknown as Task;
+
+      expect(() => writeTask(testDir, 'my-story', invalid)).toThrow();
+    });
+
+    it('throws for a task missing required blockedBy field', () => {
+      const invalid = {
+        id: 't1',
+        subject: 'No blockedBy',
+        description: 'Missing blockedBy',
+        status: 'pending',
+      } as unknown as Task;
+
+      expect(() => writeTask(testDir, 'my-story', invalid)).toThrow();
+    });
+
+    it('writes multiple tasks to the same story directory', () => {
+      const task1 = makeTask({ id: 't1' });
+      const task2 = makeTask({ id: 't2', subject: 'Second task' });
+      const task3 = makeTask({ id: 't3', subject: 'Third task' });
+
+      writeTask(testDir, 'multi-story', task1);
+      writeTask(testDir, 'multi-story', task2);
+      writeTask(testDir, 'multi-story', task3);
+
+      expect(existsSync(join(testDir, '.saga', 'stories', 'multi-story', 't1.json'))).toBe(true);
+      expect(existsSync(join(testDir, '.saga', 'stories', 'multi-story', 't2.json'))).toBe(true);
+      expect(existsSync(join(testDir, '.saga', 'stories', 'multi-story', 't3.json'))).toBe(true);
+    });
+  });
+
+  describe('readTask', () => {
+    it('reads and parses a valid task JSON file', () => {
+      const task = makeTask();
+
+      writeTask(testDir, 'read-story', task);
+      const result = readTask(testDir, 'read-story', 't1');
+      expect(result).toEqual(task);
+    });
+
+    it('reads task with all optional fields', () => {
+      const task = makeTask({
+        activeForm: 'Testing',
+        guidance: 'Follow TDD',
+        doneWhen: 'All tests pass',
+      });
+
+      writeTask(testDir, 'full-story', task);
+      const result = readTask(testDir, 'full-story', 't1');
+      expect(result).toEqual(task);
+    });
+
+    it('throws when story directory does not exist', () => {
+      expect(() => readTask(testDir, 'nonexistent', 't1')).toThrow();
+    });
+
+    it('throws when task file does not exist', () => {
+      mkdirSync(join(testDir, '.saga', 'stories', 'empty-story'), { recursive: true });
+      expect(() => readTask(testDir, 'empty-story', 't1')).toThrow();
+    });
+
+    it('throws for malformed JSON', () => {
+      const storyDir = join(testDir, '.saga', 'stories', 'bad-json');
+      mkdirSync(storyDir, { recursive: true });
+      writeFileSync(join(storyDir, 't1.json'), '{ invalid json }', 'utf-8');
+
+      expect(() => readTask(testDir, 'bad-json', 't1')).toThrow();
+    });
+
+    it('throws for JSON that does not match the Task schema', () => {
+      const storyDir = join(testDir, '.saga', 'stories', 'bad-schema');
+      mkdirSync(storyDir, { recursive: true });
+      writeFileSync(
+        join(storyDir, 't1.json'),
+        JSON.stringify({ id: 't1', wrong: 'field' }),
+        'utf-8',
+      );
+
+      expect(() => readTask(testDir, 'bad-schema', 't1')).toThrow();
+    });
+
+    it('round-trips write then read correctly', () => {
+      const task = makeTask({
+        id: 't5',
+        subject: 'Round trip task',
+        blockedBy: ['t3', 't4'],
+        guidance: 'Some guidance',
+      });
+
+      writeTask(testDir, 'round-trip-story', task);
+      const result = readTask(testDir, 'round-trip-story', 't5');
+      expect(result).toEqual(task);
+    });
+  });
+
+  describe('listTasks', () => {
+    it('returns all tasks for a story', () => {
+      const task1 = makeTask({ id: 't1', subject: 'First' });
+      const task2 = makeTask({ id: 't2', subject: 'Second' });
+      const task3 = makeTask({ id: 't3', subject: 'Third' });
+
+      writeTask(testDir, 'list-story', task1);
+      writeTask(testDir, 'list-story', task2);
+      writeTask(testDir, 'list-story', task3);
+
+      const tasks = listTasks(testDir, 'list-story');
+
+      const ids = tasks.map((t) => t.id).sort();
+      expect(ids).toEqual(['t1', 't2', 't3']);
+    });
+
+    it('excludes story.json from task listing', () => {
+      const task = makeTask();
+      writeTask(testDir, 'with-story-json', task);
+
+      // Also write a story.json in the same directory
+      const storyDir = join(testDir, '.saga', 'stories', 'with-story-json');
+      writeFileSync(
+        join(storyDir, 'story.json'),
+        JSON.stringify({ id: 'with-story-json', title: 'Test', description: 'Test' }),
+        'utf-8',
+      );
+
+      const tasks = listTasks(testDir, 'with-story-json');
+      expect(tasks).toHaveLength(1);
+      expect(tasks[0].id).toBe('t1');
+    });
+
+    it('excludes journal.md from task listing', () => {
+      const task = makeTask();
+      writeTask(testDir, 'with-journal', task);
+
+      // Also write a journal.md in the same directory
+      const storyDir = join(testDir, '.saga', 'stories', 'with-journal');
+      writeFileSync(join(storyDir, 'journal.md'), '# Journal', 'utf-8');
+
+      const tasks = listTasks(testDir, 'with-journal');
+      expect(tasks).toHaveLength(1);
+      expect(tasks[0].id).toBe('t1');
+    });
+
+    it('excludes non-JSON files from task listing', () => {
+      const task = makeTask();
+      writeTask(testDir, 'with-extras', task);
+
+      const storyDir = join(testDir, '.saga', 'stories', 'with-extras');
+      writeFileSync(join(storyDir, 'notes.txt'), 'some notes', 'utf-8');
+      writeFileSync(join(storyDir, '.gitkeep'), '', 'utf-8');
+
+      const tasks = listTasks(testDir, 'with-extras');
+      expect(tasks).toHaveLength(1);
+      expect(tasks[0].id).toBe('t1');
+    });
+
+    it('returns empty array for story with no task files', () => {
+      mkdirSync(join(testDir, '.saga', 'stories', 'empty-story'), { recursive: true });
+
+      const tasks = listTasks(testDir, 'empty-story');
+      expect(tasks).toEqual([]);
+    });
+
+    it('returns empty array for story with only story.json and journal.md', () => {
+      const storyDir = join(testDir, '.saga', 'stories', 'no-tasks');
+      mkdirSync(storyDir, { recursive: true });
+      writeFileSync(
+        join(storyDir, 'story.json'),
+        JSON.stringify({ id: 'no-tasks', title: 'Test', description: 'Test' }),
+        'utf-8',
+      );
+      writeFileSync(join(storyDir, 'journal.md'), '# Journal', 'utf-8');
+
+      const tasks = listTasks(testDir, 'no-tasks');
+      expect(tasks).toEqual([]);
+    });
+
+    it('throws when story directory does not exist', () => {
+      expect(() => listTasks(testDir, 'nonexistent')).toThrow();
     });
   });
 });

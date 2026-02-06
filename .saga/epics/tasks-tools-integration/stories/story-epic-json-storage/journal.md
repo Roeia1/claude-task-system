@@ -85,3 +85,32 @@
 
 **Next steps:**
 - t4: Implement task JSON read/write utilities
+
+## Session 4: 2026-02-06
+
+### Task: t4 - Implement task JSON read/write utilities
+
+**What was done:**
+- Added `writeTask`, `readTask`, and `listTasks` functions to `packages/plugin-scripts/src/storage.ts`
+- Added 17 unit tests for task storage in `packages/plugin-scripts/src/storage.test.ts` (TDD approach)
+- `writeTask(projectRoot, storyId, task)`: validates against TaskSchema, creates story directory if needed, writes to `.saga/stories/<storyId>/<task.id>.json`
+- `readTask(projectRoot, storyId, taskId)`: reads `.saga/stories/<storyId>/<taskId>.json`, parses JSON, validates against TaskSchema, returns typed Task object
+- `listTasks(projectRoot, storyId)`: reads story directory, filters to only `.json` files excluding `story.json`, parses each into Task objects
+- Uses `@saga-ai/types` for TaskSchema, Task type, and createStoryPaths path utility
+- Task status IS stored (unlike story/epic status which is derived)
+
+**Tests cover:**
+- writeTask: valid content, directory creation, pretty printing, optional fields, status values (pending/in_progress/completed), overwrite, missing id, invalid status, missing blockedBy, multiple tasks in same directory
+- readTask: happy path, optional fields, missing story directory, missing task file, malformed JSON, schema mismatch, round-trip
+- listTasks: multiple tasks, excludes story.json, excludes journal.md, excludes non-JSON files, empty story folder, story with only story.json and journal.md, missing story directory
+
+**Decisions:**
+- Added task functions to same `storage.ts` module alongside story and epic functions (consistent pattern)
+- Used `createStoryPaths` for directory path since task path utilities in directory.ts are not yet available (t7 scope)
+- `listTasks` filters by `.json` extension and excludes `story.json` specifically, which naturally excludes journal.md and other non-JSON files
+
+**Test baseline:**
+- plugin-scripts: 255/286 pass (31 pre-existing failures unchanged, 17 new task tests all pass)
+
+**Next steps:**
+- t5: Implement derived status computation

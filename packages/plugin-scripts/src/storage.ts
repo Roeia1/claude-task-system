@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   createEpicPaths,
   createStoryPaths,
@@ -6,6 +7,8 @@ import {
   EpicSchema,
   type Story,
   StorySchema,
+  type Task,
+  TaskSchema,
 } from '@saga-ai/types';
 
 /**
@@ -86,4 +89,73 @@ export function readEpic(projectRoot: string, epicId: string): Epic {
   }
 
   return EpicSchema.parse(parsed);
+}
+
+/**
+ * Write a task JSON file to .saga/stories/<storyId>/<task.id>.json
+ *
+ * Creates the story directory if it does not exist.
+ * Validates the task object against the TaskSchema before writing.
+ */
+export function writeTask(projectRoot: string, storyId: string, task: Task): void {
+  const validated = TaskSchema.parse(task);
+  const { storyDir } = createStoryPaths(projectRoot, storyId);
+
+  if (!existsSync(storyDir)) {
+    mkdirSync(storyDir, { recursive: true });
+  }
+
+  const taskPath = join(storyDir, `${validated.id}.json`);
+  writeFileSync(taskPath, `${JSON.stringify(validated, null, 2)}\n`, 'utf-8');
+}
+
+/**
+ * Read a task JSON file from .saga/stories/<storyId>/<taskId>.json
+ *
+ * Parses and validates the JSON against the TaskSchema.
+ * Throws if the file does not exist or contains invalid data.
+ */
+export function readTask(projectRoot: string, storyId: string, taskId: string): Task {
+  const { storyDir } = createStoryPaths(projectRoot, storyId);
+  const taskPath = join(storyDir, `${taskId}.json`);
+
+  if (!existsSync(taskPath)) {
+    throw new Error(`Task file not found: ${taskPath}`);
+  }
+
+  const raw = readFileSync(taskPath, 'utf-8');
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`Malformed JSON in task file: ${taskPath}`);
+  }
+
+  return TaskSchema.parse(parsed);
+}
+
+/**
+ * List all task files in a story folder, returning parsed Task objects.
+ *
+ * Excludes story.json, journal.md, and any non-JSON files.
+ * Throws if the story directory does not exist.
+ */
+export function listTasks(projectRoot: string, storyId: string): Task[] {
+  const { storyDir } = createStoryPaths(projectRoot, storyId);
+
+  if (!existsSync(storyDir)) {
+    throw new Error(`Story directory not found: ${storyDir}`);
+  }
+
+  const files = readdirSync(storyDir);
+
+  return files
+    .filter((f) => f.endsWith('.json') && f !== 'story.json')
+    .map((f) => {
+      const taskPath = join(storyDir, f);
+      const raw = readFileSync(taskPath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      return TaskSchema.parse(parsed);
+    });
 }
