@@ -9,7 +9,7 @@ tasks:
     status: completed
   - id: t2
     title: Implement story.json read/write utilities
-    status: pending
+    status: completed
   - id: t3
     title: Implement epic.json read/write utilities
     status: pending

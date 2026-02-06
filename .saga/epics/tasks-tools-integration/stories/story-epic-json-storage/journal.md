@@ -23,3 +23,39 @@
 
 **Next steps:**
 - t2: Implement story.json read/write utilities
+
+## Session 2: 2026-02-06
+
+### Task: t2 - Implement story.json read/write utilities
+
+**What was done:**
+- Created `packages/plugin-scripts/src/storage.ts` with `writeStory` and `readStory` functions
+- Created `packages/plugin-scripts/src/storage.test.ts` with 14 unit tests (TDD approach)
+- `writeStory(projectRoot, story)`: validates against StorySchema, creates directory if needed, writes pretty-printed JSON with trailing newline
+- `readStory(projectRoot, storyId)`: reads file, parses JSON, validates against StorySchema, returns typed Story object
+- Uses `@saga-ai/types` for StorySchema, Story type, and createStoryPaths path utility
+- Uses synchronous fs operations (readFileSync/writeFileSync) per task guidance
+
+**Tests cover:**
+- Happy path: write and read valid stories
+- Optional fields: all optional fields preserved in round-trip
+- Directory creation: auto-creates story directory
+- Pretty printing: JSON.stringify with 2-space indent + trailing newline
+- Overwrite: writing to existing story replaces content
+- Error: missing ID field rejected by schema
+- Error: extra fields rejected by strict schema
+- Error: nonexistent story directory
+- Error: empty directory (no story.json)
+- Error: malformed JSON
+- Error: JSON not matching schema
+- Round-trip: write then read produces identical object
+
+**Decisions:**
+- Used a single `storage.ts` module to host story functions; epic and task utilities (t3, t4) will be added to same file
+- Leveraged existing `@saga-ai/types` StorySchema and createStoryPaths rather than defining local types (schemas already exist from prior story)
+
+**Test baseline:**
+- plugin-scripts: 214/245 pass (31 pre-existing failures unchanged, 14 new tests all pass)
+
+**Next steps:**
+- t3: Implement epic.json read/write utilities
