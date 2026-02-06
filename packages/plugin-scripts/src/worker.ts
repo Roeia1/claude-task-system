@@ -36,6 +36,7 @@ import process from 'node:process';
 import { getProjectDir } from './shared/env.ts';
 import { createDraftPr } from './worker/create-draft-pr.ts';
 import { hydrateTasks } from './worker/hydrate-tasks.ts';
+import { runHeadlessLoop } from './worker/run-headless-loop.ts';
 import { setupWorktree } from './worker/setup-worktree.ts';
 
 // ============================================================================
@@ -194,16 +195,7 @@ function parseArgs(args: string[]): { storyId: string; options: WorkerOptions } 
 
 // createDraftPr is imported from ./worker/create-draft-pr.ts
 // hydrateTasks is imported from ./worker/hydrate-tasks.ts
-
-function runHeadlessLoop(
-  _storyId: string,
-  _taskListId: string,
-  _options: WorkerOptions,
-): { allCompleted: boolean; cycles: number } {
-  // t5: Implement headless run loop
-  process.stdout.write('[worker] Step 5: Run headless loop\n');
-  return { allCompleted: false, cycles: 0 };
-}
+// runHeadlessLoop is imported from ./worker/run-headless-loop.ts
 
 function markPrReady(_storyId: string, _allCompleted: boolean): void {
   // t6: Implement PR readiness marking
@@ -214,7 +206,7 @@ function markPrReady(_storyId: string, _allCompleted: boolean): void {
 // Main Entry Point
 // ============================================================================
 
-function main(): void {
+async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
   const parsed = parseArgs(args);
@@ -241,24 +233,31 @@ function main(): void {
 
   // Step 3 & 4: Read story.json and hydrate tasks
   const hydrationResult = hydrateTasks(storyId, projectDir);
-  const { taskListId } = hydrationResult;
+  const { taskListId, storyMeta } = hydrationResult;
 
   // Step 5: Headless run loop
-  const result = runHeadlessLoop(storyId, taskListId, options);
+  const result = await runHeadlessLoop(
+    storyId,
+    taskListId,
+    worktreeResult.worktreePath,
+    storyMeta,
+    projectDir,
+    options,
+  );
 
   // Step 6: Mark PR ready (if all tasks completed)
   markPrReady(storyId, result.allCompleted);
 
-  process.stdout.write(`[worker] Pipeline complete. All tasks done: ${result.allCompleted}\n`);
+  process.stdout.write(
+    `[worker] Pipeline complete. All tasks done: ${result.allCompleted}, cycles: ${result.cycles}, elapsed: ${result.elapsedMinutes.toFixed(1)}m\n`,
+  );
 }
 
 // Run main
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   process.stderr.write(`Error: ${error instanceof Error ? error.message : String(error)}\n`);
   process.exit(1);
-}
+});
 
 export type { WorkerOptions };
 export { parseArgs };

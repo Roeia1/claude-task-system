@@ -163,3 +163,49 @@
 **Next steps:**
 - t5: Implement headless run loop with prompt injection
 - t6: Implement PR readiness marking and exit handling
+
+## Session 5: 2026-02-06
+
+### Task: t5 - Implement headless run loop with prompt injection
+
+**What was done:**
+- Created `packages/plugin-scripts/src/worker/run-headless-loop.ts` with:
+  - `buildPrompt(meta)` function that builds a headless run prompt from story metadata, only including non-empty fields (title, description, guidance, doneWhen, avoid), with Tasks tool instruction footer
+  - `checkAllTasksCompleted(storyDir)` function that reads SAGA task JSON files (excluding story.json) and returns true only if all have `status: 'completed'`
+  - `spawnHeadlessRun()` internal function that spawns `claude -p "<prompt>" --model <model> --verbose --dangerously-skip-permissions` with environment variables: `CLAUDE_CODE_ENABLE_TASKS=true`, `CLAUDE_CODE_TASK_LIST_ID`, `SAGA_STORY_ID`, `SAGA_STORY_TASK_LIST_ID`
+  - `runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, options)` main function implementing the cycle loop with:
+    - Max cycles limit (default 10)
+    - Max time limit (default 60 minutes)
+    - Model selection (default opus)
+    - Task completion checking after each cycle
+    - Stdout/stderr streaming from child processes
+    - Graceful spawn error handling (counts cycle, skips task check)
+    - Returns `{ allCompleted, cycles, elapsedMinutes }`
+- Created `packages/plugin-scripts/src/worker/run-headless-loop.test.ts` with 24 tests:
+  - `buildPrompt`: includes all non-empty fields, omits undefined fields, includes Tasks tool footer, handles mixed presence of optional fields
+  - `checkAllTasksCompleted`: returns true when all completed, false when some not completed, false when pending, excludes story.json
+  - `runHeadlessLoop`: verifies environment variables (CLAUDE_CODE_ENABLE_TASKS, CLAUDE_CODE_TASK_LIST_ID, SAGA_STORY_ID, SAGA_STORY_TASK_LIST_ID), model flag, default model, worktree as cwd, allCompleted detection, multi-cycle looping, maxCycles limit, default maxCycles of 10, maxTime limit, elapsedMinutes, prompt injection from metadata, --dangerously-skip-permissions flag, spawn error handling, stdout streaming, stdio configuration
+- Updated `packages/plugin-scripts/src/worker.ts`:
+  - Imports `runHeadlessLoop` from `./worker/run-headless-loop.ts`
+  - Removed stub `runHeadlessLoop` function
+  - Made `main()` async (returns `Promise<void>`) since `runHeadlessLoop` is async
+  - Passes `worktreePath`, `storyMeta`, and `projectDir` to `runHeadlessLoop`
+  - Updated pipeline complete log to include cycles and elapsed time
+  - Changed error handling to use `.catch()` on the async main call
+
+**Decisions:**
+- Used `spawn` from `node:child_process` (not `execFileSync`) per task guidance to stream output
+- Used a `while` loop instead of `for` to avoid double-increment bug
+- On spawn error, counts the cycle but skips task completion check (since sync layer may not have updated files)
+- Passes `SAGA_STORY_ID` and `SAGA_STORY_TASK_LIST_ID` env vars to spawned process for session-init hook compatibility
+- Task completion is checked by reading SAGA task files from `.saga/stories/<storyId>/` (sync layer updates these)
+- Tests use mocked `spawn`, `readdirSync`, and `readFileSync` with vitest fake timers for time-based tests
+
+**Test results:**
+- 24/24 new tests pass
+- 476/476 previously passing tests still pass (no regressions)
+- Same 31 pre-existing failures in finder.test.ts, orchestrator.test.ts, storage.test.ts, hydrate.test.ts
+
+**Next steps:**
+- t6: Implement PR readiness marking and exit handling
+- t7: Update environment variables and shared/env.ts
