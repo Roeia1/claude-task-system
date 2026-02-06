@@ -114,3 +114,34 @@
 
 **Next steps:**
 - t5: Implement derived status computation
+
+## Session 5: 2026-02-06
+
+### Task: t5 - Implement derived status computation
+
+**What was done:**
+- Added `deriveStoryStatus` and `deriveEpicStatus` functions to `packages/plugin-scripts/src/storage.ts`
+- Added 18 unit tests for derived status computation in `packages/plugin-scripts/src/storage.test.ts` (TDD approach)
+- `deriveStoryStatus(tasks: Pick<Task, 'status'>[])`: derives story status from task statuses
+  - Any task `in_progress` -> `"in_progress"`
+  - All tasks `completed` -> `"completed"`
+  - Otherwise (including empty array) -> `"pending"`
+- `deriveEpicStatus(storyStatuses: TaskStatus[])`: derives epic status from story statuses
+  - Same derivation rules as story status but applied to story status strings
+- Both are pure functions with no I/O -- they operate on arrays of status values
+- Used `TaskStatus` type from `@saga-ai/types` for return types (same enum values: pending/in_progress/completed)
+
+**Tests cover:**
+- deriveStoryStatus: empty array, all pending, any in_progress, mixed with in_progress, all completed, completed+pending (no in_progress), single pending, single in_progress, single completed
+- deriveEpicStatus: empty array, all pending, any in_progress, mixed with in_progress, all completed, completed+pending (no in_progress), single pending, single in_progress, single completed
+
+**Decisions:**
+- Used `Pick<Task, 'status'>` as the parameter type for `deriveStoryStatus` to accept minimal objects (only need `status` field), making it flexible for callers
+- Used `TaskStatus` as both the input and return type since story/epic statuses share the same enum values (pending/in_progress/completed)
+- Kept functions in `storage.ts` alongside the read/write utilities for cohesion
+
+**Test baseline:**
+- plugin-scripts: 273/304 pass (31 pre-existing failures unchanged, 18 new derive tests all pass)
+
+**Next steps:**
+- t6: Implement ID validation and uniqueness enforcement

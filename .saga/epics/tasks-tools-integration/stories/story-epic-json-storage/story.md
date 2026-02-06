@@ -18,7 +18,7 @@ tasks:
     status: pending
   - id: t5
     title: Implement derived status computation
-    status: pending
+    status: completed
   - id: t6
     title: Implement ID validation and uniqueness enforcement
     status: pending

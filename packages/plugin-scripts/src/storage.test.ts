@@ -12,6 +12,8 @@ import { join } from 'node:path';
 import type { Epic, Story, Task } from '@saga-ai/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  deriveEpicStatus,
+  deriveStoryStatus,
   listTasks,
   readEpic,
   readStory,
@@ -749,5 +751,89 @@ describe('task storage', () => {
     it('throws when story directory does not exist', () => {
       expect(() => listTasks(testDir, 'nonexistent')).toThrow();
     });
+  });
+});
+
+describe('deriveStoryStatus', () => {
+  it('returns "pending" for an empty task array', () => {
+    expect(deriveStoryStatus([])).toBe('pending');
+  });
+
+  it('returns "pending" when all tasks are pending', () => {
+    expect(deriveStoryStatus([{ status: 'pending' }, { status: 'pending' }])).toBe('pending');
+  });
+
+  it('returns "in_progress" when any task is in_progress', () => {
+    expect(
+      deriveStoryStatus([{ status: 'pending' }, { status: 'in_progress' }, { status: 'pending' }]),
+    ).toBe('in_progress');
+  });
+
+  it('returns "in_progress" when some tasks are completed and one is in_progress', () => {
+    expect(
+      deriveStoryStatus([
+        { status: 'completed' },
+        { status: 'in_progress' },
+        { status: 'pending' },
+      ]),
+    ).toBe('in_progress');
+  });
+
+  it('returns "completed" when all tasks are completed', () => {
+    expect(deriveStoryStatus([{ status: 'completed' }, { status: 'completed' }])).toBe('completed');
+  });
+
+  it('returns "pending" when some tasks are completed and rest are pending (no in_progress)', () => {
+    expect(deriveStoryStatus([{ status: 'completed' }, { status: 'pending' }])).toBe('pending');
+  });
+
+  it('returns "pending" for a single pending task', () => {
+    expect(deriveStoryStatus([{ status: 'pending' }])).toBe('pending');
+  });
+
+  it('returns "in_progress" for a single in_progress task', () => {
+    expect(deriveStoryStatus([{ status: 'in_progress' }])).toBe('in_progress');
+  });
+
+  it('returns "completed" for a single completed task', () => {
+    expect(deriveStoryStatus([{ status: 'completed' }])).toBe('completed');
+  });
+});
+
+describe('deriveEpicStatus', () => {
+  it('returns "pending" for an empty status array', () => {
+    expect(deriveEpicStatus([])).toBe('pending');
+  });
+
+  it('returns "pending" when all stories are pending', () => {
+    expect(deriveEpicStatus(['pending', 'pending'])).toBe('pending');
+  });
+
+  it('returns "in_progress" when any story is in_progress', () => {
+    expect(deriveEpicStatus(['pending', 'in_progress', 'pending'])).toBe('in_progress');
+  });
+
+  it('returns "in_progress" when some stories are completed and one is in_progress', () => {
+    expect(deriveEpicStatus(['completed', 'in_progress', 'pending'])).toBe('in_progress');
+  });
+
+  it('returns "completed" when all stories are completed', () => {
+    expect(deriveEpicStatus(['completed', 'completed'])).toBe('completed');
+  });
+
+  it('returns "pending" when some stories are completed and rest are pending (no in_progress)', () => {
+    expect(deriveEpicStatus(['completed', 'pending'])).toBe('pending');
+  });
+
+  it('returns "pending" for a single pending status', () => {
+    expect(deriveEpicStatus(['pending'])).toBe('pending');
+  });
+
+  it('returns "in_progress" for a single in_progress status', () => {
+    expect(deriveEpicStatus(['in_progress'])).toBe('in_progress');
+  });
+
+  it('returns "completed" for a single completed status', () => {
+    expect(deriveEpicStatus(['completed'])).toBe('completed');
   });
 });

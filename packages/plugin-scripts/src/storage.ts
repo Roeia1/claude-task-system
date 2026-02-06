@@ -9,6 +9,7 @@ import {
   StorySchema,
   type Task,
   TaskSchema,
+  type TaskStatus,
 } from '@saga-ai/types';
 
 /**
@@ -158,4 +159,46 @@ export function listTasks(projectRoot: string, storyId: string): Task[] {
       const parsed = JSON.parse(raw);
       return TaskSchema.parse(parsed);
     });
+}
+
+/**
+ * Derive story status from its task statuses.
+ *
+ * - If any task is "in_progress" -> "in_progress"
+ * - If all tasks are "completed" -> "completed"
+ * - Otherwise -> "pending"
+ * - Empty array -> "pending"
+ */
+export function deriveStoryStatus(tasks: Pick<Task, 'status'>[]): TaskStatus {
+  if (tasks.length === 0) {
+    return 'pending';
+  }
+  if (tasks.some((t) => t.status === 'in_progress')) {
+    return 'in_progress';
+  }
+  if (tasks.every((t) => t.status === 'completed')) {
+    return 'completed';
+  }
+  return 'pending';
+}
+
+/**
+ * Derive epic status from story statuses.
+ *
+ * - If any story is "in_progress" -> "in_progress"
+ * - If all stories are "completed" -> "completed"
+ * - Otherwise -> "pending"
+ * - Empty array -> "pending"
+ */
+export function deriveEpicStatus(storyStatuses: TaskStatus[]): TaskStatus {
+  if (storyStatuses.length === 0) {
+    return 'pending';
+  }
+  if (storyStatuses.some((s) => s === 'in_progress')) {
+    return 'in_progress';
+  }
+  if (storyStatuses.every((s) => s === 'completed')) {
+    return 'completed';
+  }
+  return 'pending';
 }
