@@ -77,3 +77,46 @@
 **Next steps:**
 - t3: Implement draft PR creation (idempotent)
 - t4: Implement hydration step
+
+## Session 3: 2026-02-06
+
+### Task: t3 - Implement draft PR creation (idempotent)
+
+**What was done:**
+- Created `packages/plugin-scripts/src/worker/create-draft-pr.ts` with:
+  - `createDraftPr(storyId, worktreePath)` function implementing idempotent draft PR creation
+  - Checks for existing PR via `gh pr list --head story/<storyId> --json number,url --limit 1`
+  - If PR exists, returns `alreadyExisted: true` with the existing PR URL
+  - Pushes branch to origin before creating PR (`git push -u origin story/<storyId>`)
+  - Creates draft PR via `gh pr create --draft --title "Story: <storyId>" --body "..."`
+  - Returns `CreateDraftPrResult` with `prUrl` and `alreadyExisted` fields
+  - Handles malformed JSON from `gh pr list` gracefully (treats as no existing PR)
+  - Throws descriptive error if `gh pr create` fails
+- Created `packages/plugin-scripts/src/worker/create-draft-pr.test.ts` with 8 tests:
+  - Creates draft PR when none exists
+  - Skips PR creation when PR already exists (idempotent)
+  - Uses PR title format "Story: <storyId>"
+  - Pushes branch before creating PR
+  - Runs commands with worktree as cwd
+  - Handles malformed JSON from gh pr list gracefully
+  - Throws when gh pr create fails
+  - Includes --body with story ID in PR creation
+- Updated `packages/plugin-scripts/src/worker.ts`:
+  - Imports `createDraftPr` from `./worker/create-draft-pr.ts`
+  - Replaced stub with real implementation call, passing `worktreeResult.worktreePath`
+  - Logs whether PR was created or already existed
+
+**Decisions:**
+- Used mocked `execFileSync` (not real git/gh) since PR creation involves external services
+- Separated `findExistingPr` and `pushBranch` as private helper functions for clarity
+- Kept the function synchronous (using `execFileSync`) consistent with setup-worktree pattern
+- PR body includes story ID for traceability
+
+**Test results:**
+- 8/8 new tests pass
+- 442/442 previously passing tests still pass (no regressions)
+- Same 31 pre-existing failures in finder.test.ts, orchestrator.test.ts, storage.test.ts, hydrate.test.ts
+
+**Next steps:**
+- t4: Implement hydration step
+- t5: Implement headless run loop with prompt injection

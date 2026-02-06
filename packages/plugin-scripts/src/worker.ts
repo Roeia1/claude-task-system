@@ -34,6 +34,7 @@
 
 import process from 'node:process';
 import { getProjectDir } from './shared/env.ts';
+import { createDraftPr } from './worker/create-draft-pr.ts';
 import { setupWorktree } from './worker/setup-worktree.ts';
 
 // ============================================================================
@@ -190,10 +191,7 @@ function parseArgs(args: string[]): { storyId: string; options: WorkerOptions } 
 // Pipeline Steps (stubs for now, implemented in later tasks)
 // ============================================================================
 
-function createDraftPr(_storyId: string): void {
-  // t3: Implement draft PR creation
-  process.stdout.write(`[worker] Step 2: Create draft PR for story/${_storyId}\n`);
-}
+// createDraftPr is imported from ./worker/create-draft-pr.ts
 
 function hydrateTasks(_storyId: string): string {
   // t4: Implement hydration step
@@ -241,7 +239,10 @@ function main(): void {
   );
 
   // Step 2: Create draft PR
-  createDraftPr(storyId);
+  const prResult = createDraftPr(storyId, worktreeResult.worktreePath);
+  process.stdout.write(
+    `[worker] Step 2: ${prResult.alreadyExisted ? 'PR exists' : 'Created draft PR'}: ${prResult.prUrl}\n`,
+  );
 
   // Step 3: Read story.json (done implicitly during hydration)
 
