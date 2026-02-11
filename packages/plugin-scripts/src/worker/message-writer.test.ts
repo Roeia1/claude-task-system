@@ -11,6 +11,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { SagaWorkerMessage } from '@saga-ai/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createFileMessageWriter, createNoopMessageWriter } from './message-writer.ts';
 
@@ -56,11 +57,17 @@ describe('createFileMessageWriter', () => {
     const nestedPath = join(testDir, 'nested', 'deep', 'output.jsonl');
     const writer = createFileMessageWriter(nestedPath);
 
-    writer.write({ type: 'test', data: 'hello' });
+    const msg: SagaWorkerMessage = {
+      type: 'saga_worker',
+      subtype: 'pipeline_start',
+      timestamp: '2026-01-01T00:00:00Z',
+      storyId: 'test',
+    };
+    writer.write(msg);
 
     expect(existsSync(nestedPath)).toBe(true);
     const content = readFileSync(nestedPath, 'utf-8');
-    expect(JSON.parse(content.trimEnd())).toEqual({ type: 'test', data: 'hello' });
+    expect(JSON.parse(content.trimEnd())).toEqual(msg);
   });
 
   it('should produce multiple lines for multiple messages', () => {
@@ -68,16 +75,38 @@ describe('createFileMessageWriter', () => {
     const filePath = join(testDir, 'output.jsonl');
     const writer = createFileMessageWriter(filePath);
 
-    writer.write({ type: 'msg', id: 1 });
-    writer.write({ type: 'msg', id: 2 });
-    writer.write({ type: 'msg', id: 3 });
+    const msgs: SagaWorkerMessage[] = [
+      {
+        type: 'saga_worker',
+        subtype: 'pipeline_start',
+        timestamp: '2026-01-01T00:00:00Z',
+        storyId: 'test',
+      },
+      {
+        type: 'saga_worker',
+        subtype: 'cycle_start',
+        timestamp: '2026-01-01T00:01:00Z',
+        cycle: 1,
+        maxCycles: 10,
+      },
+      {
+        type: 'saga_worker',
+        subtype: 'cycle_end',
+        timestamp: '2026-01-01T00:02:00Z',
+        cycle: 1,
+        exitCode: 0,
+      },
+    ];
+    for (const msg of msgs) {
+      writer.write(msg);
+    }
 
     const content = readFileSync(filePath, 'utf-8');
     const lines = content.trimEnd().split('\n');
     expect(lines).toHaveLength(THREE_MESSAGES);
-    expect(JSON.parse(lines[0])).toEqual({ type: 'msg', id: 1 });
-    expect(JSON.parse(lines[1])).toEqual({ type: 'msg', id: 2 });
-    expect(JSON.parse(lines[2])).toEqual({ type: 'msg', id: THREE_MESSAGES });
+    expect(JSON.parse(lines[0])).toEqual(msgs[0]);
+    expect(JSON.parse(lines[1])).toEqual(msgs[1]);
+    expect(JSON.parse(lines[2])).toEqual(msgs[2]);
   });
 
   it('should each line be valid JSON individually', () => {
@@ -85,8 +114,23 @@ describe('createFileMessageWriter', () => {
     const filePath = join(testDir, 'output.jsonl');
     const writer = createFileMessageWriter(filePath);
 
-    writer.write({ nested: { key: 'value' }, array: [1, 2] });
-    writer.write({ type: 'simple' });
+    writer.write({
+      type: 'saga_worker',
+      subtype: 'pipeline_end',
+      timestamp: '2026-01-01T00:00:00Z',
+      storyId: 'test',
+      status: 'completed',
+      exitCode: 0,
+      cycles: 3,
+      elapsedMinutes: 12.5,
+    });
+    writer.write({
+      type: 'saga_worker',
+      subtype: 'pipeline_step',
+      timestamp: '2026-01-01T00:00:01Z',
+      step: 1,
+      message: 'Setup worktree',
+    });
 
     const content = readFileSync(filePath, 'utf-8');
     const lines = content.trimEnd().split('\n');
@@ -99,12 +143,25 @@ describe('createFileMessageWriter', () => {
 describe('createNoopMessageWriter', () => {
   it('should not throw when write is called', () => {
     const writer = createNoopMessageWriter();
-    expect(() => writer.write({ type: 'test' })).not.toThrow();
+    const msg: SagaWorkerMessage = {
+      type: 'saga_worker',
+      subtype: 'pipeline_start',
+      timestamp: '2026-01-01T00:00:00Z',
+      storyId: 'test',
+    };
+    expect(() => writer.write(msg)).not.toThrow();
   });
 
   it('should not create any files', () => {
     const writer = createNoopMessageWriter();
-    writer.write({ type: 'test' });
+    const msg: SagaWorkerMessage = {
+      type: 'saga_worker',
+      subtype: 'cycle_start',
+      timestamp: '2026-01-01T00:00:00Z',
+      cycle: 1,
+      maxCycles: 10,
+    };
+    writer.write(msg);
     // No assertion needed - just verifying no side effects / no throw
   });
 });

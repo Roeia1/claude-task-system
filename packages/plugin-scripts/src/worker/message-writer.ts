@@ -7,9 +7,13 @@
 
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
+import type { SagaWorkerMessage } from '@saga-ai/types';
+
+export type WorkerMessage = SagaWorkerMessage | SDKMessage;
 
 export interface MessageWriter {
-  write(message: unknown): void;
+  write(message: WorkerMessage): void;
 }
 
 /**
@@ -20,7 +24,7 @@ export function createFileMessageWriter(filePath: string): MessageWriter {
   let dirCreated = false;
 
   return {
-    write(message: unknown): void {
+    write(message: WorkerMessage): void {
       if (!dirCreated) {
         mkdirSync(dirname(filePath), { recursive: true });
         dirCreated = true;

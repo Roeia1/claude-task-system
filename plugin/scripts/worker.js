@@ -13410,6 +13410,7 @@ function createScopeValidatorHook(worktreePath, storyId) {
         hookSpecificOutput: {
           hookEventName: "PreToolUse",
           permissionDecision: "deny",
+          // SDK hook output expects a single-line reason; take only the first line
           permissionDecisionReason: violation.split("\n")[0]
         }
       });
@@ -13486,6 +13487,11 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
         },
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
+        sandbox: {
+          enabled: true,
+          autoAllowBashIfSandboxed: true,
+          allowUnsandboxedCommands: false
+        },
         hooks: {
           [PRE_TOOL_USE]: [
             {

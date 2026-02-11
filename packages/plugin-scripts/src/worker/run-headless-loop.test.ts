@@ -16,7 +16,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoryMeta } from '../hydrate/service.ts';
-import type { MessageWriter } from './message-writer.ts';
+import type { MessageWriter, WorkerMessage } from './message-writer.ts';
 import { buildPrompt, checkAllTasksCompleted, runHeadlessLoop } from './run-headless-loop.ts';
 
 // Mock Agent SDK
@@ -63,7 +63,8 @@ const MOCK_USAGE = {
 function createMockQuery(
   subtype: 'success' | 'error_during_execution' = 'success',
 ): ReturnType<typeof query> {
-  function* generate() {
+  async function* generate() {
+    await Promise.resolve();
     if (subtype === 'success') {
       yield {
         type: 'result' as const,
@@ -100,7 +101,7 @@ function createMockQuery(
       };
     }
   }
-  // Cast to match the Query return type (async generator with extra methods)
+  // Cast to match the Query return type (async generator with extra control methods)
   return generate() as unknown as ReturnType<typeof query>;
 }
 
@@ -109,7 +110,8 @@ function createMockQuery(
  * Used to test that SDK messages are forwarded to the message writer.
  */
 function createMockQueryWithAssistant(): ReturnType<typeof query> {
-  function* generate() {
+  async function* generate() {
+    await Promise.resolve();
     yield {
       type: 'assistant' as const,
       message: { role: 'assistant', content: 'Working on it' },
@@ -610,11 +612,11 @@ describe('runHeadlessLoop', () => {
   });
 
   describe('messagesWriter', () => {
-    function createMockWriter(): MessageWriter & { messages: unknown[] } {
-      const messages: unknown[] = [];
+    function createMockWriter(): MessageWriter & { messages: WorkerMessage[] } {
+      const messages: WorkerMessage[] = [];
       return {
         messages,
-        write(message: unknown) {
+        write(message: WorkerMessage) {
           messages.push(message);
         },
       };
@@ -635,7 +637,7 @@ describe('runHeadlessLoop', () => {
 
       // Should contain both the assistant and result SDK messages
       const sdkMessages = writer.messages.filter(
-        (m: unknown) => (m as { type: string }).type !== 'saga_worker',
+        (m) => (m as { type: string }).type !== 'saga_worker',
       );
       expect(sdkMessages.length).toBeGreaterThanOrEqual(2);
       expect((sdkMessages[0] as { type: string }).type).toBe('assistant');
@@ -656,7 +658,7 @@ describe('runHeadlessLoop', () => {
       });
 
       const cycleStarts = writer.messages.filter(
-        (m: unknown) =>
+        (m) =>
           (m as { type: string; subtype?: string }).type === 'saga_worker' &&
           (m as { type: string; subtype?: string }).subtype === 'cycle_start',
       );
@@ -681,7 +683,7 @@ describe('runHeadlessLoop', () => {
       });
 
       const cycleEnds = writer.messages.filter(
-        (m: unknown) =>
+        (m) =>
           (m as { type: string; subtype?: string }).type === 'saga_worker' &&
           (m as { type: string; subtype?: string }).subtype === 'cycle_end',
       );
@@ -712,12 +714,12 @@ describe('runHeadlessLoop', () => {
       });
 
       const cycleStarts = writer.messages.filter(
-        (m: unknown) =>
+        (m) =>
           (m as { type: string; subtype?: string }).type === 'saga_worker' &&
           (m as { type: string; subtype?: string }).subtype === 'cycle_start',
       );
       const cycleEnds = writer.messages.filter(
-        (m: unknown) =>
+        (m) =>
           (m as { type: string; subtype?: string }).type === 'saga_worker' &&
           (m as { type: string; subtype?: string }).subtype === 'cycle_end',
       );

@@ -170,6 +170,7 @@ function createScopeValidatorHook(worktreePath, storyId) {
         hookSpecificOutput: {
           hookEventName: "PreToolUse",
           permissionDecision: "deny",
+          // SDK hook output expects a single-line reason; take only the first line
           permissionDecisionReason: violation.split("\n")[0]
         }
       });
