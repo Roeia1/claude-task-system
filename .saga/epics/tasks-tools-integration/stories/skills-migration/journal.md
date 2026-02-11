@@ -145,3 +145,30 @@
 
 **Next steps:**
 - t6: Migrate /resolve-blocker skill for flat story paths
+
+## Session: 2026-02-11T19:30Z
+
+### Task: t6 - Migrate /resolve-blocker skill for flat story paths
+
+**What was done:**
+- Rewrote `plugin/skills/resolve-blocker/SKILL.md` for flat story paths:
+  - Changed `argument-hint` from `"[story-slug]"` to `"[story-id]"`
+  - `data.slug` and `data.epicSlug` → `data.storyId` in "Check Resolution Result"
+  - Removed `Epic: <epicSlug>` from disambiguation options
+  - Removed `EPIC_SLUG` and `STORY_SLUG` variables, replaced with single `STORY_ID`
+  - Paths changed from `.saga/worktrees/$EPIC_SLUG/$STORY_SLUG` → `.saga/worktrees/$STORY_ID`
+  - Story dir changed from `.saga/epics/$EPIC_SLUG/stories/$STORY_SLUG` → `.saga/stories/$STORY_ID`
+  - `story.md` → `story.json` in file references and cat commands
+  - All `/implement $STORY_SLUG` → `/execute-story $STORY_ID` (3 occurrences: no blocker, already resolved, confirm completion)
+  - Updated "Extract" items in step 3 to match JSON fields (title/description/status vs title/context/guidance)
+
+**Decisions:**
+- Left blocker/resolution markdown format in journal.md unchanged (steps 4-8 analysis process untouched)
+- No changes to the analysis, proposal, or approval workflow (steps 5-8)
+
+**Test results:**
+- No code tests needed (SKILL.md is a markdown skill definition)
+- Full suite: 553 passing, 11 pre-existing failures — no regressions
+
+**Next steps:**
+- t7: Migrate /list-sessions skill for new session naming
