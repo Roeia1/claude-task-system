@@ -1,5 +1,5 @@
 /**
- * Tests for saga find command
+ * Tests for saga find command (integration tests against compiled find.js)
  */
 
 import { execSync } from 'node:child_process';
@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { createEpicPaths, createSagaPaths, createWorktreePaths } from '@saga-ai/types';
+import { createSagaPaths, createStoryPaths } from '@saga-ai/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -54,35 +54,51 @@ describe('find command', () => {
     }
   }
 
-  function setupEpic(slug: string): void {
-    const { epicDir } = createEpicPaths(testDir, slug);
-    mkdirSync(epicDir, { recursive: true });
+  function setupEpic(epicId: string): void {
+    const { epics } = createSagaPaths(testDir);
+    mkdirSync(epics, { recursive: true });
+    writeFileSync(
+      join(epics, `${epicId}.json`),
+      JSON.stringify({
+        id: epicId,
+        title: epicId,
+        description: `Epic ${epicId}`,
+        children: [],
+      }),
+    );
   }
 
   function setupStory(
-    epicSlug: string,
-    storySlug: string,
-    frontmatter: Record<string, string>,
-    body = '',
+    storyId: string,
+    storyData: Record<string, unknown>,
+    tasks: Array<{ id: string; status: string }> = [],
   ): void {
-    // Get the story.md path inside the worktree and create its directory
-    const { storyMdInWorktree } = createWorktreePaths(testDir, epicSlug, storySlug);
-    const storyDir = dirname(storyMdInWorktree);
-    mkdirSync(storyDir, { recursive: true });
+    const storyPaths = createStoryPaths(testDir, storyId);
+    mkdirSync(storyPaths.storyDir, { recursive: true });
+    writeFileSync(storyPaths.storyJson, JSON.stringify(storyData, null, 2));
 
-    const frontmatterStr = Object.entries(frontmatter)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join('\n');
-    const content = `---\n${frontmatterStr}\n---\n${body}`;
-    writeFileSync(storyMdInWorktree, content);
+    for (const task of tasks) {
+      const taskPath = join(storyPaths.storyDir, `${task.id}.json`);
+      writeFileSync(
+        taskPath,
+        JSON.stringify({
+          id: task.id,
+          subject: `Task ${task.id}`,
+          description: 'Test task',
+          status: task.status,
+          blockedBy: [],
+        }),
+      );
+    }
   }
 
   describe('story search (default)', () => {
-    it('should find story by exact slug', () => {
-      setupStory('auth-epic', 'implement-login', {
+    it('should find story by exact ID', () => {
+      setupStory('implement-login', {
         id: 'implement-login',
         title: 'Implement Login',
-        status: 'draft',
+        description: 'Add login functionality',
+        epic: 'auth-epic',
       });
 
       const result = runScript(['implement-login']);
@@ -90,19 +106,19 @@ describe('find command', () => {
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
       expect(output.found).toBe(true);
-      expect(output.data.slug).toBe('implement-login');
+      expect(output.data.storyId).toBe('implement-login');
     });
 
     it('should output JSON with story data', () => {
       setupStory(
-        'auth-epic',
         'implement-login',
         {
           id: 'implement-login',
           title: 'Implement Login Feature',
-          status: 'in-progress',
+          description: 'Login context here.',
+          epic: 'auth-epic',
         },
-        '## Context\n\nLogin context here.',
+        [{ id: 't1', status: 'in_progress' }],
       );
 
       const result = runScript(['implement-login']);
@@ -111,20 +127,19 @@ describe('find command', () => {
       const output = JSON.parse(result.stdout);
       expect(output.found).toBe(true);
       expect(output.data).toMatchObject({
-        slug: 'implement-login',
+        storyId: 'implement-login',
         title: 'Implement Login Feature',
-        status: 'in-progress',
-        context: 'Login context here.',
-        epicSlug: 'auth-epic',
+        status: 'in_progress',
+        description: 'Login context here.',
+        epicId: 'auth-epic',
       });
-      expect(output.data.storyPath).toContain('story.md');
-      expect(output.data.worktreePath).toContain('implement-login');
+      expect(output.data.storyPath).toContain('story.json');
     });
 
     it('should exit 1 when no story found', () => {
-      // Create .saga/worktrees dir but no stories
-      const { worktrees } = createSagaPaths(testDir);
-      mkdirSync(worktrees, { recursive: true });
+      // Create .saga/stories dir but no stories
+      const { stories } = createSagaPaths(testDir);
+      mkdirSync(stories, { recursive: true });
 
       const result = runScript(['nonexistent']);
 
@@ -135,15 +150,17 @@ describe('find command', () => {
     });
 
     it('should return matches when ambiguous', () => {
-      setupStory('auth-epic', 'login-ui', {
+      setupStory('login-ui', {
         id: 'login-ui',
         title: 'Login UI',
-        status: 'draft',
+        description: 'UI for login',
+        epic: 'auth-epic',
       });
-      setupStory('auth-epic', 'login-api', {
+      setupStory('login-api', {
         id: 'login-api',
         title: 'Login API',
-        status: 'draft',
+        description: 'API for login',
+        epic: 'auth-epic',
       });
 
       const result = runScript(['login']);
@@ -156,7 +173,7 @@ describe('find command', () => {
   });
 
   describe('epic search (--type epic)', () => {
-    it('should find epic by exact slug', () => {
+    it('should find epic by exact ID', () => {
       setupEpic('user-authentication');
 
       const result = runScript(['user-authentication', '--type', 'epic']);
@@ -164,7 +181,7 @@ describe('find command', () => {
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
       expect(output.found).toBe(true);
-      expect(output.data.slug).toBe('user-authentication');
+      expect(output.data.id).toBe('user-authentication');
     });
 
     it('should find epic by partial match', () => {
@@ -175,7 +192,7 @@ describe('find command', () => {
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
       expect(output.found).toBe(true);
-      expect(output.data.slug).toBe('user-authentication');
+      expect(output.data.id).toBe('user-authentication');
     });
 
     it('should exit 1 when no epic found', () => {

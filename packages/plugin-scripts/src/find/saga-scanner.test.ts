@@ -140,7 +140,7 @@ describe('scanStories', () => {
     expect(stories[0].id).toBe('implement-login');
     expect(stories[0].title).toBe('Implement Login Feature');
     expect(stories[0].description).toBe('Add login functionality to the app');
-    expect(stories[0].epicSlug).toBe('auth-epic');
+    expect(stories[0].epicId).toBe('auth-epic');
     expect(stories[0].status).toBe('pending'); // no tasks = pending
   });
 
@@ -247,7 +247,7 @@ describe('scanStories', () => {
     const stories = await scanStories(testDir);
 
     expect(stories).toHaveLength(1);
-    expect(stories[0].epicSlug).toBe('');
+    expect(stories[0].epicId).toBe('');
   });
 
   it('should scan multiple stories', async () => {
