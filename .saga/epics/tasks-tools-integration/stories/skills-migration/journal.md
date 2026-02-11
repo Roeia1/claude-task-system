@@ -172,3 +172,26 @@
 
 **Next steps:**
 - t7: Migrate /list-sessions skill for new session naming
+
+## Session: 2026-02-11T19:35Z
+
+### Task: t7 - Migrate /list-sessions skill for new session naming
+
+**What was done:**
+- Rewrote `plugin/skills/list-sessions/SKILL.md` for new session naming format:
+  - Session name format changed from `saga-<epic-slug>-<story-slug>-<timestamp>` to `saga-story-<storyId>-<timestamp>`
+  - Parsing instructions updated: remove `saga-story-` prefix, last 13 digits are timestamp, remainder is storyId
+  - Table columns changed from `| Epic | Story | Started | Session Name |` to `| Story | Started | Session Name |`
+  - All example session names use new format (e.g., `saga-story-login-flow-1704067200000`)
+  - Removed Epic column and all references to epic in session parsing
+  - Removed ambiguity note about epic/story separation (no longer relevant with `saga-story-` prefix)
+
+**Decisions:**
+- Kept the dashboard CLI command unchanged (`npx @saga-ai/dashboard sessions list`) — the dashboard will need its own update to produce the new session name format, but this skill defines how to parse whatever it receives
+
+**Test results:**
+- No code tests needed (SKILL.md is a markdown skill definition)
+- Full suite: 553 passing, 11 pre-existing failures — no regressions
+
+**Next steps:**
+- t8: Build and verify compiled scripts
