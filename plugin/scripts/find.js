@@ -5569,7 +5569,7 @@ async function scanStories(sagaRoot) {
         title: storyData.title || storyId,
         description: storyData.description || "",
         status,
-        epicSlug: storyData.epic || "",
+        epicId: storyData.epic || "",
         storyPath: storyPaths.storyJson
       };
       if (hasWorktree) {
@@ -5605,11 +5605,11 @@ function normalize(str) {
 }
 function toStoryInfo(story) {
   return {
-    slug: story.id,
+    storyId: story.id,
     title: story.title,
     status: story.status,
     description: story.description,
-    epicSlug: story.epicSlug,
+    epicId: story.epicId,
     storyPath: story.storyPath,
     worktreePath: story.worktreePath || ""
   };
@@ -5630,22 +5630,22 @@ function processFuzzyResults(results) {
   }
   return { found: false, matches: results.map((r) => r.item) };
 }
-function getEpicSlugs(projectPath) {
+function getEpicIds(projectPath) {
   const sagaPaths = createSagaPaths(projectPath);
   return readdirSync(sagaPaths.epics, { withFileTypes: true }).filter((d) => d.isFile() && d.name.endsWith(".json")).map((d) => d.name.replace(JSON_EXT_PATTERN, ""));
 }
-function findExactEpicMatch(epicSlugs, queryNormalized) {
-  for (const slug of epicSlugs) {
-    if (slug.toLowerCase() === queryNormalized) {
-      return { slug };
+function findExactEpicMatch(epicIds, queryNormalized) {
+  for (const id of epicIds) {
+    if (id.toLowerCase() === queryNormalized) {
+      return { id };
     }
   }
   return null;
 }
-function fuzzySearchEpics(epicSlugs, query) {
-  const epics = epicSlugs.map((slug) => ({ slug }));
+function fuzzySearchEpics(epicIds, query) {
+  const epics = epicIds.map((id) => ({ id }));
   const fuse = new Fuse(epics, {
-    keys: ["slug"],
+    keys: ["id"],
     threshold: MATCH_THRESHOLD,
     includeScore: true
   });
@@ -5659,20 +5659,20 @@ function findEpic(projectPath, query) {
   if (!epicsDirectoryExists(projectPath)) {
     return { found: false, error: "No .saga/epics/ directory found" };
   }
-  const epicSlugs = getEpicSlugs(projectPath);
-  if (epicSlugs.length === 0) {
+  const epicIds = getEpicIds(projectPath);
+  if (epicIds.length === 0) {
     return { found: false, error: `No epic found matching '${query}'` };
   }
   const queryNormalized = query.toLowerCase().replace(/_/g, "-");
-  const exactMatch = findExactEpicMatch(epicSlugs, queryNormalized);
+  const exactMatch = findExactEpicMatch(epicIds, queryNormalized);
   if (exactMatch) {
     return { found: true, data: exactMatch };
   }
-  return fuzzySearchEpics(epicSlugs, query);
+  return fuzzySearchEpics(epicIds, query);
 }
 function findExactStoryMatch(allStories, queryNormalized) {
   for (const story of allStories) {
-    if (normalize(story.slug) === queryNormalized) {
+    if (normalize(story.storyId) === queryNormalized) {
       return story;
     }
   }
@@ -5681,8 +5681,8 @@ function findExactStoryMatch(allStories, queryNormalized) {
 function fuzzySearchStories(allStories, query) {
   const fuse = new Fuse(allStories, {
     keys: [
-      { name: "slug", weight: 2 },
-      // Prioritize slug matches
+      { name: "storyId", weight: 2 },
+      // Prioritize ID matches
       { name: "title", weight: 1 }
     ],
     threshold: MATCH_THRESHOLD,
@@ -5747,7 +5747,7 @@ function printHelp() {
   const validStatuses = TaskStatusSchema.options.join(", ");
   console.log(`Usage: find <query> [options]
 
-Find epics or stories by slug/title using fuzzy matching.
+Find epics or stories by ID/title using fuzzy matching.
 
 Arguments:
   query    The identifier to search for (partial match supported)
@@ -5766,7 +5766,7 @@ Output (JSON):
   { "found": false, "error": "..." }         # No match or error
 
 Examples:
-  find implement-login                        # Find story by slug
+  find implement-login                        # Find story by ID
   find auth --type epic                       # Find epic by partial name
   find login --status in_progress             # Find in-progress stories matching "login"
 `);

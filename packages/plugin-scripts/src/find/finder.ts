@@ -1,7 +1,7 @@
 /**
  * Finder utility for resolving epic and story identifiers
  *
- * This module provides functions to find epics and stories by slug or title
+ * This module provides functions to find epics and stories by ID or title
  * with fuzzy matching support powered by Fuse.js.
  *
  * Uses the shared saga-scanner for directory traversal.
@@ -22,15 +22,15 @@ const JSON_EXT_PATTERN = /\.json$/;
 // ============================================================================
 
 interface EpicInfo {
-  slug: string;
+  id: string;
 }
 
 interface StoryInfo {
-  slug: string;
+  storyId: string;
   title: string;
   status: TaskStatus;
   description: string;
-  epicSlug: string;
+  epicId: string;
   storyPath: string;
   worktreePath: string;
 }
@@ -78,11 +78,11 @@ function normalize(str: string): string {
 
 function toStoryInfo(story: ScannedStory): StoryInfo {
   return {
-    slug: story.id,
+    storyId: story.id,
     title: story.title,
     status: story.status,
     description: story.description,
-    epicSlug: story.epicSlug,
+    epicId: story.epicId,
     storyPath: story.storyPath,
     worktreePath: story.worktreePath || '',
   };
@@ -126,11 +126,11 @@ function processFuzzyResults<T>(results: FuseResult<T>[]): FindResult<T> {
 // ============================================================================
 
 /**
- * Get all epic slugs from the epics directory.
+ * Get all epic IDs from the epics directory.
  *
- * Now reads *.json files (not directories) from .saga/epics/.
+ * Reads *.json files from .saga/epics/.
  */
-function getEpicSlugs(projectPath: string): string[] {
+function getEpicIds(projectPath: string): string[] {
   const sagaPaths = createSagaPaths(projectPath);
   return readdirSync(sagaPaths.epics, { withFileTypes: true })
     .filter((d) => d.isFile() && d.name.endsWith('.json'))
@@ -138,12 +138,12 @@ function getEpicSlugs(projectPath: string): string[] {
 }
 
 /**
- * Find exact match for epic slug
+ * Find exact match for epic ID
  */
-function findExactEpicMatch(epicSlugs: string[], queryNormalized: string): EpicInfo | null {
-  for (const slug of epicSlugs) {
-    if (slug.toLowerCase() === queryNormalized) {
-      return { slug };
+function findExactEpicMatch(epicIds: string[], queryNormalized: string): EpicInfo | null {
+  for (const id of epicIds) {
+    if (id.toLowerCase() === queryNormalized) {
+      return { id };
     }
   }
   return null;
@@ -152,10 +152,10 @@ function findExactEpicMatch(epicSlugs: string[], queryNormalized: string): EpicI
 /**
  * Perform fuzzy search on epics
  */
-function fuzzySearchEpics(epicSlugs: string[], query: string): FindResult<EpicInfo> {
-  const epics = epicSlugs.map((slug) => ({ slug }));
+function fuzzySearchEpics(epicIds: string[], query: string): FindResult<EpicInfo> {
+  const epics = epicIds.map((id) => ({ id }));
   const fuse = new Fuse(epics, {
-    keys: ['slug'],
+    keys: ['id'],
     threshold: MATCH_THRESHOLD,
     includeScore: true,
   });
@@ -174,7 +174,7 @@ function fuzzySearchEpics(epicSlugs: string[], query: string): FindResult<EpicIn
 // ============================================================================
 
 /**
- * Find an epic by slug using fuzzy matching
+ * Find an epic by ID using fuzzy matching
  *
  * Epic resolution uses .json file names in .saga/epics/.
  *
@@ -187,9 +187,9 @@ function findEpic(projectPath: string, query: string): FindResult<EpicInfo> {
     return { found: false, error: 'No .saga/epics/ directory found' };
   }
 
-  const epicSlugs = getEpicSlugs(projectPath);
+  const epicIds = getEpicIds(projectPath);
 
-  if (epicSlugs.length === 0) {
+  if (epicIds.length === 0) {
     return { found: false, error: `No epic found matching '${query}'` };
   }
 
@@ -197,13 +197,13 @@ function findEpic(projectPath: string, query: string): FindResult<EpicInfo> {
   const queryNormalized = query.toLowerCase().replace(/_/g, '-');
 
   // Check for exact match first (fast path)
-  const exactMatch = findExactEpicMatch(epicSlugs, queryNormalized);
+  const exactMatch = findExactEpicMatch(epicIds, queryNormalized);
   if (exactMatch) {
     return { found: true, data: exactMatch };
   }
 
   // Use fuzzy search
-  return fuzzySearchEpics(epicSlugs, query);
+  return fuzzySearchEpics(epicIds, query);
 }
 
 // ============================================================================
@@ -211,11 +211,11 @@ function findEpic(projectPath: string, query: string): FindResult<EpicInfo> {
 // ============================================================================
 
 /**
- * Find exact match for story slug
+ * Find exact match for story ID
  */
 function findExactStoryMatch(allStories: StoryInfo[], queryNormalized: string): StoryInfo | null {
   for (const story of allStories) {
-    if (normalize(story.slug) === queryNormalized) {
+    if (normalize(story.storyId) === queryNormalized) {
       return story;
     }
   }
@@ -228,7 +228,7 @@ function findExactStoryMatch(allStories: StoryInfo[], queryNormalized: string): 
 function fuzzySearchStories(allStories: StoryInfo[], query: string): FindResult<StoryInfo> {
   const fuse = new Fuse(allStories, {
     keys: [
-      { name: 'slug', weight: 2 }, // Prioritize slug matches
+      { name: 'storyId', weight: 2 }, // Prioritize ID matches
       { name: 'title', weight: 1 },
     ],
     threshold: MATCH_THRESHOLD,
@@ -279,7 +279,7 @@ async function loadAndFilterStories(
 // ============================================================================
 
 /**
- * Find a story by slug or title using fuzzy matching
+ * Find a story by ID or title using fuzzy matching
  *
  * Story resolution searches for stories in:
  * - .saga/stories/{story-id}/story.json

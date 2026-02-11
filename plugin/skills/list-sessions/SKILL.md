@@ -19,9 +19,9 @@ The command above outputs a JSON array of session objects:
 ```json
 [
   {
-    "name": "saga-epic-slug-story-slug-1704067200000",
+    "name": "saga-story-my-story-id-1704067200000",
     "status": "running",
-    "outputFile": "/tmp/saga-sessions/saga-epic-slug-story-slug-1704067200000.out"
+    "outputFile": "/tmp/saga-sessions/saga-story-my-story-id-1704067200000.out"
   }
 ]
 ```
@@ -34,8 +34,7 @@ No SAGA sessions are currently running.
 ```
 
 **If sessions exist**, parse each session name to extract:
-- **Epic**: The segment after `saga-` (e.g., `epic-slug`)
-- **Story**: The segments between epic and timestamp (e.g., `story-slug`)
+- **Story**: The story ID extracted from the session name
 - **Started**: Calculate elapsed time from the Unix timestamp suffix (milliseconds)
 
 Present in a table format:
@@ -43,9 +42,9 @@ Present in a table format:
 ```
 ## Running Sessions
 
-| Epic | Story | Started | Session Name |
-|------|-------|---------|--------------|
-| auth | login-flow | 2h 30m ago | saga-auth-login-flow-1704067200000 |
+| Story | Started | Session Name |
+|-------|---------|--------------|
+| login-flow | 2h 30m ago | saga-story-login-flow-1704067200000 |
 
 To stream logs: `saga sessions logs <session-name>`
 To kill session: `saga sessions kill <session-name>`
@@ -53,12 +52,14 @@ To kill session: `saga sessions kill <session-name>`
 
 ### 3. Session Name Parsing
 
-The session name format is: `saga-<epic-slug>-<story-slug>-<timestamp>`
+The session name format is: `saga-story-<storyId>-<timestamp>`
 
 To extract components:
-1. Remove the `saga-` prefix
-2. The last segment (after final `-`) is the timestamp (13-digit Unix ms)
-3. The remaining string contains `<epic-slug>-<story-slug>`
-4. Epic and story slugs can contain hyphens, so use the known epic/story from context or display the full middle portion
+1. Remove the `saga-story-` prefix
+2. The last 13 digits (after the final `-`) are the timestamp (Unix milliseconds)
+3. Everything between the prefix and the timestamp is the `storyId`
 
-**Note**: If exact epic/story separation is ambiguous, display the combined slug.
+**Example**: `saga-story-auth-login-flow-1704067200000`
+- Remove prefix `saga-story-` → `auth-login-flow-1704067200000`
+- Last 13 digits after final `-` → timestamp `1704067200000`
+- Remainder → storyId `auth-login-flow`

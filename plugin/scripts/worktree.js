@@ -4201,9 +4201,9 @@ function getMainBranch(cwd) {
   }
   return "main";
 }
-function createWorktree(projectPath, epicSlug, storySlug) {
-  const branchName = `story-${storySlug}-epic-${epicSlug}`;
-  const worktreePaths = createWorktreePaths(projectPath, epicSlug, storySlug);
+function createWorktree(projectPath, storyId) {
+  const branchName = `story/${storyId}`;
+  const worktreePaths = createWorktreePaths(projectPath, storyId);
   if (branchExists(branchName, projectPath)) {
     return {
       success: false,
@@ -4247,13 +4247,12 @@ function createWorktree(projectPath, epicSlug, storySlug) {
   };
 }
 function printHelp() {
-  console.log(`Usage: worktree <epic-slug> <story-slug>
+  console.log(`Usage: worktree <storyId>
 
 Create a git worktree for story isolation.
 
 Arguments:
-  epic-slug    The epic identifier
-  story-slug   The story identifier
+  storyId      The story identifier
 
 Options:
   --help       Show this help message
@@ -4266,7 +4265,7 @@ Output (JSON):
   { "success": false, "error": "..." }
 
 Examples:
-  worktree my-epic my-story
+  worktree my-story-id
 `);
 }
 function parseArgs(args) {
@@ -4282,10 +4281,7 @@ function parseArgs(args) {
     }
   }
   if (positional.length > 0) {
-    result.epicSlug = positional[0];
-  }
-  if (positional.length >= 2) {
-    result.storySlug = positional[1];
+    result.storyId = positional[0];
   }
   return result;
 }
@@ -4295,8 +4291,8 @@ function main() {
     printHelp();
     process2.exit(0);
   }
-  if (!(args.epicSlug && args.storySlug)) {
-    console.error("Error: Both epic-slug and story-slug are required.\n");
+  if (!args.storyId) {
+    console.error("Error: storyId is required.\n");
     printHelp();
     process2.exit(1);
   }
@@ -4311,7 +4307,7 @@ function main() {
     console.log(JSON.stringify(result2, null, 2));
     process2.exit(1);
   }
-  const result = createWorktree(projectPath, args.epicSlug, args.storySlug);
+  const result = createWorktree(projectPath, args.storyId);
   console.log(JSON.stringify(result, null, 2));
   if (!result.success) {
     process2.exit(1);

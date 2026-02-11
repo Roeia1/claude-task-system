@@ -39,34 +39,25 @@ These are computed by `hooks/session-init.sh` when a Claude Code session starts.
 
 **Note**: All paths are absolute. `SAGA_PROJECT_DIR` points to different locations depending on context:
 - In main repo: The project root directory (e.g., `/Users/name/my-project`)
-- In worktree: The worktree root (e.g., `/Users/name/my-project/.saga/worktrees/{epic}/{story}`)
+- In worktree: The worktree root (e.g., `/Users/name/my-project/.saga/worktrees/{storyId}`)
 
 ### Worker Environment Variables
 
-These variables are **only** set when spawning headless Claude workers via `saga implement`. They are NOT set during interactive sessions.
+These variables are **only** set when the worker script (`worker.ts`) spawns headless Claude runs. They are NOT set during interactive sessions.
 
-The worker orchestrator (`implement.ts`) sets these before spawning each worker:
+The worker's headless run loop (`worker/run-headless-loop.ts`) sets these before spawning each `claude -p` process:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `SAGA_EPIC_SLUG` | Epic identifier | `"user-auth"` |
-| `SAGA_STORY_SLUG` | Story identifier | `"login-flow"` |
-| `SAGA_STORY_DIR` | Absolute path to story files | `/Users/name/.../worktree/.saga/epics/user-auth/stories/login-flow` |
-
-**Note**: All paths are absolute, consistent with `SAGA_PROJECT_DIR` and `SAGA_PLUGIN_ROOT`.
+| `SAGA_STORY_ID` | Story identifier | `"login-flow"` |
+| `SAGA_STORY_TASK_LIST_ID` | Claude Code native Tasks list identifier for the story | `"saga-login-flow-1707600000"` |
+| `CLAUDE_CODE_ENABLE_TASKS` | Enables Claude Code native Tasks tools | `"true"` |
+| `CLAUDE_CODE_TASK_LIST_ID` | Claude Code Tasks list ID (same value as `SAGA_STORY_TASK_LIST_ID`) | `"saga-login-flow-1707600000"` |
 
 Workers use these variables for:
-- Reading `story.md` and `journal.md` via `$SAGA_STORY_DIR`
-- Commit messages: `feat($SAGA_EPIC_SLUG-$SAGA_STORY_SLUG): description`
-- Scope validation (the `scope-validator` hook uses these to enforce access boundaries)
-
-### Internal Variables (Set by CLI)
-
-These are set by the SAGA CLI for internal use. They are not set during normal interactive sessions.
-
-| Variable | Description | Values |
-|----------|-------------|--------|
-| `SAGA_INTERNAL_SESSION` | Indicates CLI is running inside a tmux session spawned by `saga implement`. Used to prevent creating nested tmux sessions. | `"1"` when inside tmux session |
+- Scope validation (the `scope-validator` hook uses `SAGA_STORY_ID` to enforce access boundaries)
+- Task sync (the `sync-hook` uses `SAGA_STORY_ID` to sync task status back to story files)
+- Commit messages: `feat(<storyId>): description`
 
 ## Context Detection
 
@@ -90,12 +81,12 @@ When you run `claude` interactively in a SAGA project:
 
 ### Worker Sessions (Headless)
 
-When `saga implement` spawns headless workers:
+When the `/execute-story` skill launches a worker via `worker.js`:
 
-1. The orchestrator sets worker env vars before spawning `claude -p`
-2. Worker receives: `SAGA_EPIC_SLUG`, `SAGA_STORY_SLUG`, `SAGA_STORY_DIR`
-3. SessionStart hook also runs, setting core variables
-4. Worker prompt can use all variables in bash commands
+1. The worker script runs the pipeline (worktree setup, draft PR, task hydration)
+2. The headless run loop sets worker env vars before spawning `claude -p`
+3. Worker receives: `SAGA_STORY_ID`, `SAGA_STORY_TASK_LIST_ID`, `CLAUDE_CODE_ENABLE_TASKS`, `CLAUDE_CODE_TASK_LIST_ID`
+4. SessionStart hook also runs, setting core variables
 
 ## Usage Patterns
 
@@ -110,8 +101,7 @@ Read the file at `${SAGA_PLUGIN_ROOT}/templates/example.md`
 ### In Worker Prompt (Bash commands)
 
 ```bash
-cat $SAGA_STORY_DIR/story.md
-git commit -m "feat($SAGA_EPIC_SLUG-$SAGA_STORY_SLUG): description"
+git commit -m "feat(<storyId>): description"
 ```
 
 ### In TypeScript Scripts
@@ -132,7 +122,7 @@ If you need to add a new environment variable:
 1. **Document it here first** - add to the appropriate table above
 2. **Determine the scope**:
    - Session variables: Set in `hooks/session-init.sh`
-   - Worker variables: Set in `implement/session-manager.ts`
+   - Worker variables: Set in `worker/run-headless-loop.ts`
 3. **Use the SAGA_ prefix** - all SAGA variables must be namespaced
 4. **Use consistent naming** - the same name should be used everywhere
 
@@ -157,18 +147,22 @@ If you need to add a new environment variable:
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Worker Session (Headless)                     │
 ├─────────────────────────────────────────────────────────────────┤
-│  saga implement                                                  │
-│  └── Finds story, validates worktree                             │
-│  └── Sets worker env: SAGA_EPIC_SLUG, SAGA_STORY_SLUG, SAGA_STORY_DIR│
+│  /execute-story skill                                            │
+│  └── Finds story, updates worktree branch                        │
+│  └── Launches worker.js in tmux session                          │
 │                          ↓                                       │
-│  Spawns: claude -p <worker-prompt>                               │
-│  └── Worker inherits env vars                                    │
+│  Worker Pipeline (worker.ts)                                     │
+│  └── Setup worktree, create draft PR, hydrate tasks              │
+│  └── Sets worker env: SAGA_STORY_ID, SAGA_STORY_TASK_LIST_ID    │
+│                          ↓                                       │
+│  Spawns: claude -p <prompt> (headless run loop)                  │
+│  └── Headless Claude inherits env vars                           │
 │  └── SessionStart hook also runs (sets core vars)                │
 │                          ↓                                       │
-│  Worker Execution                                                │
-│  └── Uses $SAGA_STORY_DIR to read story.md, journal.md           │
-│  └── Uses $SAGA_EPIC_SLUG-$SAGA_STORY_SLUG in commits            │
-│  └── scope-validator enforces access boundaries                  │
+│  Headless Execution                                              │
+│  └── Uses native Tasks tools (TaskList, TaskGet, TaskUpdate)     │
+│  └── scope-validator uses SAGA_STORY_ID for access boundaries    │
+│  └── sync-hook syncs task status back to story files             │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -189,16 +183,17 @@ These variables are available via the Bash tool: echo $VARIABLE_NAME
 ```
 # Session Context
 
-SAGA_PROJECT_DIR: /Users/name/my-project/.saga/worktrees/user-auth/login-flow
+SAGA_PROJECT_DIR: /Users/name/my-project/.saga/worktrees/login-flow
 SAGA_PLUGIN_ROOT: /Users/name/my-project/.claude/plugins/saga
 SAGA_TASK_CONTEXT: story-worktree
 
 These variables are available via the Bash tool: echo $VARIABLE_NAME
 ```
 
-**Worker session** (in addition to above, has these env vars set by orchestrator):
+**Headless worker run** (in addition to above, has these env vars set by worker pipeline):
 ```
-SAGA_EPIC_SLUG=user-auth
-SAGA_STORY_SLUG=login-flow
-SAGA_STORY_DIR=/Users/name/my-project/.saga/worktrees/user-auth/login-flow/.saga/epics/user-auth/stories/login-flow
+SAGA_STORY_ID=login-flow
+SAGA_STORY_TASK_LIST_ID=saga-login-flow-1707600000
+CLAUDE_CODE_ENABLE_TASKS=true
+CLAUDE_CODE_TASK_LIST_ID=saga-login-flow-1707600000
 ```

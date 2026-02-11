@@ -1,7 +1,7 @@
 /**
- * saga find command - Find epics or stories by slug/title
+ * saga find command - Find epics or stories by ID/title
  *
- * This command resolves flexible identifiers to epic slugs or story metadata.
+ * This command resolves flexible identifiers to epic IDs or story metadata.
  *
  * Usage:
  *   node find.js <query>                        # Find a story (default)
@@ -54,7 +54,7 @@ function printHelp(): void {
   const validStatuses = TaskStatusSchema.options.join(', ');
   console.log(`Usage: find <query> [options]
 
-Find epics or stories by slug/title using fuzzy matching.
+Find epics or stories by ID/title using fuzzy matching.
 
 Arguments:
   query    The identifier to search for (partial match supported)
@@ -73,7 +73,7 @@ Output (JSON):
   { "found": false, "error": "..." }         # No match or error
 
 Examples:
-  find implement-login                        # Find story by slug
+  find implement-login                        # Find story by ID
   find auth --type epic                       # Find epic by partial name
   find login --status in_progress             # Find in-progress stories matching "login"
 `);

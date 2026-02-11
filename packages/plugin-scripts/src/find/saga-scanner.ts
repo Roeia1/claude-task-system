@@ -37,7 +37,7 @@ interface ScannedStory {
   /** Derived status from task files */
   status: TaskStatus;
   /** Parent epic id (from story.json "epic" field, or '' if not set) */
-  epicSlug: string;
+  epicId: string;
   /** Full path to story.json */
   storyPath: string;
   /** Full path to worktree directory (if exists) */
@@ -187,7 +187,7 @@ async function scanStories(sagaRoot: string): Promise<ScannedStory[]> {
         title: storyData.title || storyId,
         description: storyData.description || '',
         status,
-        epicSlug: storyData.epic || '',
+        epicId: storyData.epic || '',
         storyPath: storyPaths.storyJson,
       };
 

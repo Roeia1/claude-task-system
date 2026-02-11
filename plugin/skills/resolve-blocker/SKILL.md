@@ -1,7 +1,7 @@
 ---
 name: resolve-blocker
 description: Resolve a blocker for a blocked story
-argument-hint: "[story-slug]"
+argument-hint: "[story-id]"
 user-invocable: true
 disable-model-invocation: true
 allowed-tools:
@@ -24,14 +24,14 @@ allowed-tools:
 
 The `saga find` command ran above. Handle the result:
 
-- **If found=true**: Extract `data.slug` and `data.epicSlug`, continue to step 2
+- **If found=true**: Extract `data.storyId`, continue to step 2
 - **If found=false with matches array**: Use AskUserQuestion to disambiguate:
   ```
   question: "Which story's blocker do you want to resolve?"
   header: "Story"
   multiSelect: false
   options: [
-    {label: "<slug>", description: "<title> (Epic: <epicSlug>, Status: <status>)"}
+    {label: "<storyId>", description: "<title> (Status: <status>)"}
     ...for each story in the matches array
   ]
   ```
@@ -42,14 +42,13 @@ The `saga find` command ran above. Handle the result:
 
 Compute paths to story files:
 ```
-EPIC_SLUG=<epic_slug from resolution>
-STORY_SLUG=<story_slug from resolution>
-WORKTREE="$SAGA_PROJECT_DIR/.saga/worktrees/$EPIC_SLUG/$STORY_SLUG"
-STORY_DIR=".saga/epics/$EPIC_SLUG/stories/$STORY_SLUG"
+STORY_ID=<storyId from resolution>
+WORKTREE="$SAGA_PROJECT_DIR/.saga/worktrees/$STORY_ID"
+STORY_DIR=".saga/stories/$STORY_ID"
 ```
 
 Story files within the worktree:
-- `$WORKTREE/$STORY_DIR/story.md` - Story definition
+- `$WORKTREE/$STORY_DIR/story.json` - Story definition
 - `$WORKTREE/$STORY_DIR/journal.md` - Execution journal
 
 ### 3. Read Story Context
@@ -57,12 +56,12 @@ Story files within the worktree:
 Read the story definition to understand what's being built:
 
 ```bash
-cat $WORKTREE/$STORY_DIR/story.md
+cat $WORKTREE/$STORY_DIR/story.json
 ```
 
 Extract:
-- Story title and context
-- Tasks and their guidance
+- Story title and description
+- Tasks and their status
 - References and patterns
 
 ### 4. Read Journal and Find Blocker
@@ -108,14 +107,14 @@ A resolution entry has this format:
 No Unresolved Blocker Found
 ===============================================================
 
-Story $STORY_SLUG is not blocked. journal.md does not contain any
+Story $STORY_ID is not blocked. journal.md does not contain any
 unresolved blocker entries.
 
 If you expected a blocker:
 - Check journal.md for the blocker entry format
 - Ensure the implementation exited with BLOCKED status
 
-To resume implementation: /implement $STORY_SLUG
+To resume implementation: /execute-story $STORY_ID
 ===============================================================
 ```
 **STOP** - do not continue
@@ -129,7 +128,7 @@ Blocker Already Resolved
 The blocker "$BLOCKER_TITLE" already has a resolution in journal.md.
 
 To resume implementation with the resolution applied:
-  /implement $STORY_SLUG
+  /execute-story $STORY_ID
 ===============================================================
 ```
 **STOP** - do not continue
@@ -143,7 +142,7 @@ Display the blocker context to the human:
 Blocker Analysis: $BLOCKER_TITLE
 ===============================================================
 
-Story: $STORY_SLUG ($STORY_TITLE)
+Story: $STORY_ID ($STORY_TITLE)
 Blocked Task: $BLOCKER_TASK
 
 ---------------------------------------------------------------
@@ -288,7 +287,7 @@ Blocker: $BLOCKER_TITLE
 Decision: $DECISION
 
 To resume implementation with this resolution:
-  /implement $STORY_SLUG
+  /execute-story $STORY_ID
 
 The next worker will read the resolution from journal.md and
 apply the guidance to complete the blocked task.
