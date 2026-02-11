@@ -1,17 +1,18 @@
 /**
  * Headless run loop for the worker pipeline (step 5)
  *
- * Builds a prompt from story metadata, spawns headless Claude runs with
- * CLAUDE_CODE_ENABLE_TASKS and CLAUDE_CODE_TASK_LIST_ID environment variables,
- * and loops until all tasks are completed or limits are reached.
+ * Builds a prompt from story metadata, runs headless Claude sessions via
+ * the Agent SDK with CLAUDE_CODE_ENABLE_TASKS and CLAUDE_CODE_TASK_LIST_ID
+ * environment variables, and loops until all tasks are completed or limits are reached.
  */
 
-import { spawn } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
+import { query } from '@anthropic-ai/claude-agent-sdk';
 import { createStoryPaths } from '@saga-ai/types';
 import type { StoryMeta } from '../hydrate/service.ts';
+import { createScopeValidatorHook } from '../scope-validator-hook.ts';
 
 // ============================================================================
 // Constants
@@ -27,6 +28,13 @@ const ENV_ENABLE_TASKS = 'CLAUDE_CODE_ENABLE_TASKS';
 const ENV_TASK_LIST_ID = 'CLAUDE_CODE_TASK_LIST_ID';
 const ENV_STORY_ID = 'SAGA_STORY_ID';
 const ENV_STORY_TASK_LIST_ID = 'SAGA_STORY_TASK_LIST_ID';
+
+// Tools to scope-validate (file-accessing tools)
+const SCOPE_TOOLS = ['Read', 'Write', 'Edit', 'Glob', 'Grep'];
+const SCOPE_TOOL_MATCHER = SCOPE_TOOLS.join('|');
+
+// SDK hook event name (PascalCase per SDK API)
+const PRE_TOOL_USE = 'PreToolUse' as const;
 
 // ============================================================================
 // Types
@@ -120,49 +128,53 @@ function checkAllTasksCompleted(storyDir: string): boolean {
 // ============================================================================
 
 /**
- * Spawn a single headless Claude run and wait for it to complete.
+ * Run a single headless Claude session via the Agent SDK and wait for it to complete.
  */
-function spawnHeadlessRun(
+async function spawnHeadlessRun(
   prompt: string,
   model: string,
   taskListId: string,
   storyId: string,
   worktreePath: string,
 ): Promise<{ exitCode: number | null }> {
-  return new Promise((resolve) => {
-    const args = ['-p', prompt, '--model', model, '--verbose', '--dangerously-skip-permissions'];
+  try {
+    let exitCode: number | null = 0;
 
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      [ENV_ENABLE_TASKS]: 'true',
-      [ENV_TASK_LIST_ID]: taskListId,
-      [ENV_STORY_ID]: storyId,
-      [ENV_STORY_TASK_LIST_ID]: taskListId,
-    };
+    for await (const message of query({
+      prompt,
+      options: {
+        model,
+        cwd: worktreePath,
+        env: {
+          ...process.env,
+          [ENV_ENABLE_TASKS]: 'true',
+          [ENV_TASK_LIST_ID]: taskListId,
+          [ENV_STORY_ID]: storyId,
+          [ENV_STORY_TASK_LIST_ID]: taskListId,
+        },
+        permissionMode: 'bypassPermissions',
+        allowDangerouslySkipPermissions: true,
+        hooks: {
+          [PRE_TOOL_USE]: [
+            {
+              matcher: SCOPE_TOOL_MATCHER,
+              hooks: [createScopeValidatorHook(worktreePath, storyId)],
+            },
+          ],
+        },
+      },
+    })) {
+      if (message.type === 'result') {
+        exitCode = message.subtype === 'success' ? 0 : 1;
+      }
+    }
 
-    const child = spawn('claude', args, {
-      cwd: worktreePath,
-      env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-
-    child.stdout?.on('data', (chunk: Buffer) => {
-      process.stdout.write(chunk);
-    });
-
-    child.stderr?.on('data', (chunk: Buffer) => {
-      process.stderr.write(chunk);
-    });
-
-    child.on('error', (err) => {
-      process.stderr.write(`[worker] Headless run error: ${err.message}\n`);
-      resolve({ exitCode: 1 });
-    });
-
-    child.on('close', (code) => {
-      resolve({ exitCode: code });
-    });
-  });
+    return { exitCode };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`[worker] Headless run error: ${errorMessage}\n`);
+    return { exitCode: 1 };
+  }
 }
 
 // ============================================================================

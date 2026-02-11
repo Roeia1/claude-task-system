@@ -1,9 +1,9 @@
 /**
- * Tests for worker/run-headless-loop.ts - Headless run loop with prompt injection
+ * Tests for worker/run-headless-loop.ts - Headless run loop via Agent SDK
  *
  * Tests the runHeadlessLoop function which:
  *   - Builds a prompt from story metadata (omitting empty fields)
- *   - Spawns headless Claude runs with CLAUDE_CODE_ENABLE_TASKS and CLAUDE_CODE_TASK_LIST_ID env vars
+ *   - Runs headless Claude sessions via the Agent SDK with correct options
  *   - Checks task completion after each cycle by reading SAGA task files
  *   - Respects maxCycles and maxTime limits
  *   - Returns allCompleted, cycles, and elapsedMinutes
@@ -14,15 +14,13 @@
  *   - Always includes the Tasks tool instruction footer
  */
 
-import type { ChildProcess } from 'node:child_process';
-import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoryMeta } from '../hydrate/service.ts';
 import { buildPrompt, checkAllTasksCompleted, runHeadlessLoop } from './run-headless-loop.ts';
 
-// Mock child_process.spawn
-vi.mock('node:child_process', () => ({
-  spawn: vi.fn(),
+// Mock Agent SDK
+vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
+  query: vi.fn(),
 }));
 
 // Mock fs for task status checking
@@ -31,16 +29,14 @@ vi.mock('node:fs', () => ({
   readFileSync: vi.fn(),
 }));
 
-import { spawn } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
-import process from 'node:process';
+import { query } from '@anthropic-ai/claude-agent-sdk';
 
-const mockSpawn = vi.mocked(spawn);
+const mockQuery = vi.mocked(query);
 const mockReaddirSync = vi.mocked(readdirSync);
 const mockReadFileSync = vi.mocked(readFileSync);
 
 // Test constants
-const MOCK_PID = 12_345;
 const MAX_CYCLES_THREE = 3;
 const MINUTES_25_MS = 1_500_000;
 const MINUTES_5_MS = 300_000;
@@ -48,22 +44,63 @@ const MAX_CYCLES_HIGH = 100;
 const DEFAULT_MAX_TIME = 60;
 const DEFAULT_MAX_CYCLES = 10;
 
-// Helper to create a mock child process
-function createMockChild(): ChildProcess & EventEmitter {
-  const child = new EventEmitter() as ChildProcess & EventEmitter;
-  child.stdout = new EventEmitter() as ChildProcess['stdout'];
-  child.stderr = new EventEmitter() as ChildProcess['stderr'];
-  child.pid = MOCK_PID;
-  child.killed = false;
-  child.kill = vi.fn();
-  return child;
-}
+/**
+ * Create a mock async generator that yields SDK messages.
+ * Simulates a successful query() result by default.
+ */
+const MOCK_UUID =
+  '00000000-0000-0000-0000-000000000000' as `${string}-${string}-${string}-${string}-${string}`;
 
-// Helper to simulate a successful headless run that closes after a tick
-function simulateChildClose(child: ChildProcess & EventEmitter, code = 0): void {
-  process.nextTick(() => {
-    child.emit('close', code);
-  });
+const MOCK_USAGE = {
+  input_tokens: 0,
+  output_tokens: 0,
+  cache_creation_input_tokens: 0,
+  cache_read_input_tokens: 0,
+  server_tool_use: null,
+};
+
+function createMockQuery(
+  subtype: 'success' | 'error_during_execution' = 'success',
+): ReturnType<typeof query> {
+  function* generate() {
+    if (subtype === 'success') {
+      yield {
+        type: 'result' as const,
+        subtype: 'success' as const,
+        duration_ms: 1000,
+        duration_api_ms: 800,
+        is_error: false,
+        num_turns: 1,
+        result: 'Done',
+        stop_reason: null,
+        total_cost_usd: 0.01,
+        usage: { ...MOCK_USAGE, input_tokens: 100, output_tokens: 50 },
+        modelUsage: {},
+        permission_denials: [],
+        uuid: MOCK_UUID,
+        session_id: 'test-session',
+      };
+    } else {
+      yield {
+        type: 'result' as const,
+        subtype: 'error_during_execution' as const,
+        duration_ms: 500,
+        duration_api_ms: 400,
+        is_error: true,
+        num_turns: 0,
+        stop_reason: null,
+        total_cost_usd: 0,
+        usage: MOCK_USAGE,
+        modelUsage: {},
+        permission_denials: [],
+        errors: ['execution failed'],
+        uuid: MOCK_UUID,
+        session_id: 'test-session',
+      };
+    }
+  }
+  // Cast to match the Query return type (async generator with extra methods)
+  return generate() as unknown as ReturnType<typeof query>;
 }
 
 describe('buildPrompt', () => {
@@ -220,28 +257,29 @@ describe('runHeadlessLoop', () => {
     ).rejects.toThrow('No task files found');
   });
 
-  it('should spawn claude with correct environment variables', async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
+  it('should call query() with correct environment variables', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
 
     // All tasks completed after first cycle
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    const promise = runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
-    simulateChildClose(child);
-    await vi.advanceTimersByTimeAsync(0);
+    const result = await runHeadlessLoop(
+      storyId,
+      taskListId,
+      worktreePath,
+      storyMeta,
+      projectDir,
+      {},
+    );
 
-    const result = await promise;
-
-    // Verify spawn was called with claude
-    expect(mockSpawn).toHaveBeenCalledWith(
-      'claude',
-      expect.arrayContaining(['-p']),
+    expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        env: expect.objectContaining({
-          CLAUDE_CODE_ENABLE_TASKS: 'true',
-          CLAUDE_CODE_TASK_LIST_ID: taskListId,
+        options: expect.objectContaining({
+          env: expect.objectContaining({
+            CLAUDE_CODE_ENABLE_TASKS: 'true',
+            CLAUDE_CODE_TASK_LIST_ID: taskListId,
+          }),
         }),
       }),
     );
@@ -249,93 +287,82 @@ describe('runHeadlessLoop', () => {
     expect(result.cycles).toBe(1);
   });
 
-  it('should pass --model flag to claude when specified', async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
+  it('should pass model to query() when specified', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
 
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    const promise = runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
       model: 'sonnet',
     });
-    simulateChildClose(child);
-    await vi.advanceTimersByTimeAsync(0);
 
-    await promise;
-
-    expect(mockSpawn).toHaveBeenCalledWith(
-      'claude',
-      expect.arrayContaining(['--model', 'sonnet']),
-      expect.anything(),
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          model: 'sonnet',
+        }),
+      }),
     );
   });
 
   it('should use default model opus when not specified', async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
+    mockQuery.mockReturnValue(createMockQuery('success'));
 
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    const promise = runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
-    simulateChildClose(child);
-    await vi.advanceTimersByTimeAsync(0);
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
 
-    await promise;
-
-    expect(mockSpawn).toHaveBeenCalledWith(
-      'claude',
-      expect.arrayContaining(['--model', 'opus']),
-      expect.anything(),
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          model: 'opus',
+        }),
+      }),
     );
   });
 
-  it('should set worktree as cwd for spawned process', async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
+  it('should set worktree as cwd in query() options', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
 
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    const promise = runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
-    simulateChildClose(child);
-    await vi.advanceTimersByTimeAsync(0);
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
 
-    await promise;
-
-    expect(mockSpawn).toHaveBeenCalledWith(
-      'claude',
-      expect.anything(),
-      expect.objectContaining({ cwd: worktreePath }),
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          cwd: worktreePath,
+        }),
+      }),
     );
   });
 
   it('should return allCompleted=true when all tasks are completed after a cycle', async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
+    mockQuery.mockReturnValue(createMockQuery('success'));
 
     mockReaddirSync.mockReturnValue(['t1.json', 't2.json'] as unknown as ReturnType<
       typeof readdirSync
     >);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    const promise = runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
-    simulateChildClose(child);
-    await vi.advanceTimersByTimeAsync(0);
-
-    const result = await promise;
+    const result = await runHeadlessLoop(
+      storyId,
+      taskListId,
+      worktreePath,
+      storyMeta,
+      projectDir,
+      {},
+    );
 
     expect(result.allCompleted).toBe(true);
     expect(result.cycles).toBe(1);
   });
 
   it('should continue looping when tasks are not all completed', async () => {
-    mockSpawn.mockImplementation(() => {
-      const child = createMockChild();
-      process.nextTick(() => child.emit('close', 0));
-      return child;
-    });
+    mockQuery.mockReturnValue(createMockQuery('success'));
 
     // First cycle: not all done; second cycle: all done
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
@@ -362,11 +389,7 @@ describe('runHeadlessLoop', () => {
   });
 
   it('should stop at maxCycles and return allCompleted=false', async () => {
-    mockSpawn.mockImplementation(() => {
-      const child = createMockChild();
-      process.nextTick(() => child.emit('close', 0));
-      return child;
-    });
+    mockQuery.mockReturnValue(createMockQuery('success'));
 
     // Tasks never complete
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
@@ -381,11 +404,7 @@ describe('runHeadlessLoop', () => {
   });
 
   it('should use default maxCycles of 10 when not specified', async () => {
-    mockSpawn.mockImplementation(() => {
-      const child = createMockChild();
-      process.nextTick(() => child.emit('close', 0));
-      return child;
-    });
+    mockQuery.mockReturnValue(createMockQuery('success'));
 
     // Tasks never complete
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
@@ -405,14 +424,10 @@ describe('runHeadlessLoop', () => {
   });
 
   it('should stop when maxTime is exceeded and return allCompleted=false', async () => {
-    mockSpawn.mockImplementation(() => {
-      const child = createMockChild();
+    mockQuery.mockImplementation(() => {
       // Advance time by 25 minutes per cycle so 3 cycles exceed 60 min default
-      process.nextTick(() => {
-        vi.advanceTimersByTime(MINUTES_25_MS);
-        child.emit('close', 0);
-      });
-      return child;
+      vi.advanceTimersByTime(MINUTES_25_MS);
+      return createMockQuery('success');
     });
 
     // Tasks never complete
@@ -431,13 +446,9 @@ describe('runHeadlessLoop', () => {
   });
 
   it('should return elapsedMinutes in the result', async () => {
-    mockSpawn.mockImplementation(() => {
-      const child = createMockChild();
-      process.nextTick(() => {
-        vi.advanceTimersByTime(MINUTES_5_MS);
-        child.emit('close', 0);
-      });
-      return child;
+    mockQuery.mockImplementation(() => {
+      vi.advanceTimersByTime(MINUTES_5_MS);
+      return createMockQuery('success');
     });
 
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
@@ -455,9 +466,8 @@ describe('runHeadlessLoop', () => {
     expect(result.elapsedMinutes).toBeGreaterThan(0);
   });
 
-  it('should build prompt from story metadata and pass to claude', async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
+  it('should build prompt from story metadata and pass to query()', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
 
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
@@ -468,132 +478,102 @@ describe('runHeadlessLoop', () => {
       guidance: 'Do this',
     };
 
-    const promise = runHeadlessLoop(storyId, taskListId, worktreePath, meta, projectDir, {});
-    simulateChildClose(child);
-    await vi.advanceTimersByTimeAsync(0);
+    await runHeadlessLoop(storyId, taskListId, worktreePath, meta, projectDir, {});
 
-    await promise;
-
-    // Verify the prompt passed to claude -p contains story metadata
-    const spawnArgs = mockSpawn.mock.calls[0][1] as string[];
-    const promptIdx = spawnArgs.indexOf('-p');
-    expect(promptIdx).toBeGreaterThan(-1);
-    const prompt = spawnArgs[promptIdx + 1];
-    expect(prompt).toContain('My Story');
-    expect(prompt).toContain('Description here');
-    expect(prompt).toContain('Do this');
+    // Verify the prompt passed to query() contains story metadata
+    const queryArgs = mockQuery.mock.calls[0][0];
+    expect(queryArgs.prompt).toContain('My Story');
+    expect(queryArgs.prompt).toContain('Description here');
+    expect(queryArgs.prompt).toContain('Do this');
   });
 
-  it('should pass --dangerously-skip-permissions flag', async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
+  it('should use bypassPermissions permission mode', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
 
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    const promise = runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
-    simulateChildClose(child);
-    await vi.advanceTimersByTimeAsync(0);
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
 
-    await promise;
-
-    expect(mockSpawn).toHaveBeenCalledWith(
-      'claude',
-      expect.arrayContaining(['--dangerously-skip-permissions']),
-      expect.anything(),
-    );
-  });
-
-  it('should handle spawn error gracefully', async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
-
-    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
-    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'pending' }));
-
-    const promise = runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
-      maxCycles: 1,
-    });
-    process.nextTick(() => {
-      child.emit('error', new Error('spawn ENOENT'));
-    });
-    await vi.advanceTimersByTimeAsync(0);
-
-    const result = await promise;
-
-    expect(result.allCompleted).toBe(false);
-    expect(result.cycles).toBe(1);
-  });
-
-  it('should use SAGA_STORY_ID env var in spawned process', async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
-
-    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
-    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
-
-    const promise = runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
-    simulateChildClose(child);
-    await vi.advanceTimersByTimeAsync(0);
-
-    await promise;
-
-    expect(mockSpawn).toHaveBeenCalledWith(
-      'claude',
-      expect.anything(),
+    expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        env: expect.objectContaining({
-          SAGA_STORY_ID: storyId,
-          SAGA_STORY_TASK_LIST_ID: taskListId,
+        options: expect.objectContaining({
+          permissionMode: 'bypassPermissions',
+          allowDangerouslySkipPermissions: true,
         }),
       }),
     );
   });
 
-  it('should stream stdout from child process', async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
+  it('should handle query() error gracefully', async () => {
+    mockQuery.mockImplementation(() => {
+      throw new Error('query failed');
+    });
 
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
-    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'pending' }));
 
-    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+      maxCycles: 1,
+    });
 
-    const promise = runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
-
-    // Emit some stdout data
-    child.stdout?.emit('data', Buffer.from('some output'));
-    simulateChildClose(child);
-    await vi.advanceTimersByTimeAsync(0);
-
-    await promise;
-
-    // Verify stdout was streamed
-    const stdoutCalls = writeSpy.mock.calls.map((c) => String(c[0]));
-    expect(stdoutCalls.some((c) => c.includes('some output'))).toBe(true);
-
-    writeSpy.mockRestore();
+    expect(result.allCompleted).toBe(false);
+    expect(result.cycles).toBe(1);
   });
 
-  it('should use stdio ignore for stdin and pipe for stdout/stderr', async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
+  it('should use SAGA_STORY_ID env var in query() options', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
 
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    const promise = runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
-    simulateChildClose(child);
-    await vi.advanceTimersByTimeAsync(0);
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
 
-    await promise;
-
-    expect(mockSpawn).toHaveBeenCalledWith(
-      'claude',
-      expect.anything(),
+    expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        stdio: ['ignore', 'pipe', 'pipe'],
+        options: expect.objectContaining({
+          env: expect.objectContaining({
+            SAGA_STORY_ID: storyId,
+            SAGA_STORY_TASK_LIST_ID: taskListId,
+          }),
+        }),
       }),
     );
+  });
+
+  it('should wire scope validator hook into PreToolUse', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
+
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
+
+    const queryArgs = mockQuery.mock.calls[0][0];
+    const hooks = queryArgs.options?.hooks;
+    expect(hooks).toBeDefined();
+    expect(hooks?.PreToolUse).toBeDefined();
+    expect(hooks?.PreToolUse).toHaveLength(1);
+    expect(hooks?.PreToolUse?.[0].matcher).toBe(
+      ['Read', 'Write', 'Edit', 'Glob', 'Grep'].join('|'),
+    );
+    expect(hooks?.PreToolUse?.[0].hooks).toHaveLength(1);
+    expect(typeof hooks?.PreToolUse?.[0].hooks[0]).toBe('function');
+  });
+
+  it('should return exitCode 1 when query() yields error result', async () => {
+    mockQuery.mockReturnValue(createMockQuery('error_during_execution'));
+
+    // Tasks still pending so loop continues only if error doesn't count as completion
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'pending' }));
+
+    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+      maxCycles: 1,
+    });
+
+    // Error result → exitCode 1 → cycle counted but tasks not checked as completed
+    expect(result.allCompleted).toBe(false);
+    expect(result.cycles).toBe(1);
   });
 });
