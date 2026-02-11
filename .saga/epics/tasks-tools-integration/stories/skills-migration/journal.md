@@ -29,7 +29,7 @@
 - Full suite: 553 passing, 11 pre-existing failures (find.test.ts: 7, orchestrator.test.ts: 4) — no regressions
 
 **Next steps:**
-- t3: Migrate /generate-stories skill for new format
+- t2: Migrate /create-epic skill to produce JSON epic files
 
 ## Session: 2026-02-11T19:10Z
 
@@ -59,3 +59,32 @@
 
 **Next steps:**
 - t3: Migrate /generate-stories skill for new format
+
+## Session: 2026-02-11T19:15Z
+
+### Task: t3 - Migrate /generate-stories skill for new format
+
+**What was done:**
+- Rewrote `plugin/skills/generate-stories/SKILL.md` for JSON story format:
+  - Changed `argument-hint` from `"[epic-slug]"` to `"[epic-id]"`
+  - Added `Bash(ls:*)` to allowed-tools for listing existing stories
+  - "Read epic document" now reads `.saga/epics/<epicId>.json` (JSON) instead of `.saga/epics/<slug>/epic.md` (markdown)
+  - Added new "Check existing stories" task to list `.saga/stories/` for global ID uniqueness
+  - "Generate story breakdown" now generates unique `id` fields alongside `title` and `description`
+  - "Present breakdown" displays `**ID**` field for each story
+  - "Spawn story generation agents" passes `epic_id`, `story_id`, `story_title`, `story_description` to agents (was `epic_slug`, `story_title`, `story_description`)
+  - "Collect results" expects `story_id`, `story_title`, `branch`, `worktree_path`, `pr_url` fields
+  - "Report completion" uses `story/<story_id>` branch format, references `.saga/stories/`, `/execute-story <story-id>`
+  - Updated notes section with flat layout and JSON format details
+
+**Decisions:**
+- Kept `data.slug` reference in "Resolve epic" task since the find.js `EpicInfo` interface still uses `{ slug: string }` — this is the actual field name in the finder output, even though we now treat it as an epic ID
+- Added "Check existing stories" as a separate task (not merged into breakdown) to keep the task flow clear and explicit
+- Story template file (`story-template.md`) is no longer referenced — the generate-story agent will produce JSON directly
+
+**Test results:**
+- No code tests needed (SKILL.md is a markdown skill definition)
+- Full suite: 553 passing, 11 pre-existing failures — no regressions
+
+**Next steps:**
+- t4: Migrate generate-story agent for JSON output
