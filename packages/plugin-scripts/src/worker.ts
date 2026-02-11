@@ -20,7 +20,7 @@
  *   --max-cycles <n>    Maximum worker cycles (default: 10)
  *   --max-time <n>      Maximum time in minutes (default: 60)
  *   --model <model>     Model to use (default: opus)
- *   --output-file <path> Write status summary JSON to file (for dashboard monitoring)
+ *   --messages-file <path> Write JSONL message stream to file
  *   --help, -h          Show this help message
  *
  * Environment (required):
@@ -38,7 +38,9 @@ import { getProjectDir } from './shared/env.ts';
 import { createDraftPr } from './worker/create-draft-pr.ts';
 import { hydrateTasks } from './worker/hydrate-tasks.ts';
 import type { StatusSummary } from './worker/mark-pr-ready.ts';
-import { buildStatusSummary, markPrReady, writeOutputFile } from './worker/mark-pr-ready.ts';
+import { buildStatusSummary, markPrReady } from './worker/mark-pr-ready.ts';
+import type { MessageWriter } from './worker/message-writer.ts';
+import { createFileMessageWriter, createNoopMessageWriter } from './worker/message-writer.ts';
 import { runHeadlessLoop } from './worker/run-headless-loop.ts';
 import { setupWorktree } from './worker/setup-worktree.ts';
 
@@ -50,7 +52,7 @@ interface WorkerOptions {
   maxCycles?: number;
   maxTime?: number;
   model?: string;
-  outputFile?: string;
+  messagesFile?: string;
 }
 
 // ============================================================================
@@ -70,7 +72,7 @@ Options:
   --max-cycles <n>       Maximum worker cycles (default: 10)
   --max-time <n>         Maximum time in minutes (default: 60)
   --model <model>        Model to use (default: opus)
-  --output-file <path>   Write status summary JSON to file
+  --messages-file <path> Write JSONL message stream to file
   --help, -h             Show this help message
 
 Environment (required):
@@ -165,12 +167,12 @@ function processOption(
     options.model = raw;
     return true;
   }
-  if (arg === '--output-file') {
-    const raw = parseStringOption('--output-file', iter);
+  if (arg === '--messages-file') {
+    const raw = parseStringOption('--messages-file', iter);
     if (raw === null) {
       return false;
     }
-    options.outputFile = raw;
+    options.messagesFile = raw;
     return true;
   }
   return null; // Not a recognized option
@@ -226,19 +228,62 @@ function parseArgs(args: string[]): { storyId: string; options: WorkerOptions } 
 // Main Entry Point
 // ============================================================================
 
+function createWriter(messagesFile?: string): MessageWriter {
+  return messagesFile ? createFileMessageWriter(messagesFile) : createNoopMessageWriter();
+}
+
+function writeStep(writer: MessageWriter, step: number, message: string): void {
+  writer.write({
+    type: 'saga_worker',
+    subtype: 'pipeline_step',
+    timestamp: new Date().toISOString(),
+    step,
+    message,
+  });
+}
+
+function writePipelineEnd(writer: MessageWriter, storyId: string, summary: StatusSummary): void {
+  writer.write({
+    type: 'saga_worker',
+    subtype: 'pipeline_end',
+    timestamp: new Date().toISOString(),
+    storyId,
+    status: summary.status,
+    exitCode: summary.exitCode,
+    cycles: summary.cycles,
+    elapsedMinutes: summary.elapsedMinutes,
+  });
+}
+
 async function runPipeline(storyId: string, options: WorkerOptions): Promise<StatusSummary> {
   const projectDir = getProjectDir();
+  const writer = createWriter(options.messagesFile);
+
+  writer.write({
+    type: 'saga_worker',
+    subtype: 'pipeline_start',
+    timestamp: new Date().toISOString(),
+    storyId,
+  });
 
   // Step 1: Setup worktree and branch
   const worktreeResult = setupWorktree(storyId, projectDir);
-  process.stdout.write(
-    `[worker] Step 1: ${worktreeResult.alreadyExisted ? 'Worktree exists' : 'Created worktree'} at ${worktreeResult.worktreePath}\n`,
+  writeStep(
+    writer,
+    1,
+    worktreeResult.alreadyExisted
+      ? `Worktree exists at ${worktreeResult.worktreePath}`
+      : `Created worktree at ${worktreeResult.worktreePath}`,
   );
 
   // Step 2: Create draft PR
   const prResult = createDraftPr(storyId, worktreeResult.worktreePath);
-  process.stdout.write(
-    `[worker] Step 2: ${prResult.alreadyExisted ? 'PR exists' : 'Created draft PR'}: ${prResult.prUrl}\n`,
+  writeStep(
+    writer,
+    2,
+    prResult.alreadyExisted
+      ? `PR exists: ${prResult.prUrl}`
+      : `Created draft PR: ${prResult.prUrl}`,
   );
 
   // Step 3 & 4: Read story.json and hydrate tasks
@@ -251,13 +296,18 @@ async function runPipeline(storyId: string, options: WorkerOptions): Promise<Sta
     worktreeResult.worktreePath,
     storyMeta,
     projectDir,
-    options,
+    {
+      ...options,
+      messagesWriter: writer,
+    },
   );
 
   // Step 6: Mark PR ready (if all tasks completed)
   markPrReady(storyId, worktreeResult.worktreePath, result.allCompleted);
+  const summary = buildStatusSummary(result.allCompleted, result.cycles, result.elapsedMinutes);
+  writePipelineEnd(writer, storyId, summary);
 
-  return buildStatusSummary(result.allCompleted, result.cycles, result.elapsedMinutes);
+  return summary;
 }
 
 async function main(): Promise<void> {
@@ -275,7 +325,6 @@ async function main(): Promise<void> {
     `[worker] Pipeline complete. Status: ${summary.status}, cycles: ${summary.cycles}, elapsed: ${summary.elapsedMinutes.toFixed(1)}m\n`,
   );
 
-  writeOutputFile(options.outputFile, summary);
   process.exit(summary.exitCode);
 }
 

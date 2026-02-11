@@ -4363,8 +4363,6 @@ function hydrateTasks(storyId, projectDir, claudeTasksBase) {
 
 // src/worker/mark-pr-ready.ts
 import { execFileSync as execFileSync2 } from "node:child_process";
-import { mkdirSync as mkdirSync2, writeFileSync as writeFileSync2 } from "node:fs";
-import { dirname } from "node:path";
 import process5 from "node:process";
 var EXIT_SUCCESS = 0;
 var EXIT_TIMEOUT = 2;
@@ -4395,12 +4393,28 @@ function buildStatusSummary(allCompleted, cycles, elapsedMinutes) {
     elapsedMinutes
   };
 }
-function writeOutputFile(outputFile, summary) {
-  if (!outputFile) {
-    return;
-  }
-  mkdirSync2(dirname(outputFile), { recursive: true });
-  writeFileSync2(outputFile, JSON.stringify(summary, null, 2), "utf-8");
+
+// src/worker/message-writer.ts
+import { appendFileSync, mkdirSync as mkdirSync2 } from "node:fs";
+import { dirname } from "node:path";
+function createFileMessageWriter(filePath) {
+  let dirCreated = false;
+  return {
+    write(message) {
+      if (!dirCreated) {
+        mkdirSync2(dirname(filePath), { recursive: true });
+        dirCreated = true;
+      }
+      appendFileSync(filePath, `${JSON.stringify(message)}
+`);
+    }
+  };
+}
+function createNoopMessageWriter() {
+  return {
+    write() {
+    }
+  };
 }
 
 // src/worker/run-headless-loop.ts
@@ -13455,7 +13469,7 @@ function checkAllTasksCompleted(storyDir) {
   }
   return true;
 }
-async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath) {
+async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath, messagesWriter) {
   try {
     let exitCode = 0;
     for await (const message of Qx({
@@ -13482,6 +13496,7 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
         }
       }
     })) {
+      messagesWriter.write(message);
       if (message.type === "result") {
         exitCode = message.subtype === "success" ? 0 : 1;
       }
@@ -13501,18 +13516,32 @@ function executeCycle(config, state) {
   if (state.cycles >= config.maxCycles) {
     return Promise.resolve({ shouldContinue: false });
   }
-  process7.stdout.write(
-    `[worker] Starting headless run cycle ${state.cycles + 1}/${config.maxCycles}
-`
-  );
+  const cycleNum = state.cycles + 1;
+  process7.stdout.write(`[worker] Starting headless run cycle ${cycleNum}/${config.maxCycles}
+`);
+  config.messagesWriter.write({
+    type: "saga_worker",
+    subtype: "cycle_start",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    cycle: cycleNum,
+    maxCycles: config.maxCycles
+  });
   return spawnHeadlessRun(
     config.prompt,
     config.model,
     config.taskListId,
     config.storyId,
-    config.worktreePath
+    config.worktreePath,
+    config.messagesWriter
   ).then(({ exitCode }) => {
     state.cycles++;
+    config.messagesWriter.write({
+      type: "saga_worker",
+      subtype: "cycle_end",
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      cycle: cycleNum,
+      exitCode
+    });
     if (exitCode !== 0 && exitCode !== null) {
       return { shouldContinue: true };
     }
@@ -13549,6 +13578,7 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, pro
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
+  const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
   const prompt = buildPrompt(storyMeta);
   const startTime = Date.now();
   const { storyDir } = createStoryPaths(projectDir, storyId);
@@ -13567,7 +13597,8 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, pro
     storyDir,
     maxCycles,
     maxTimeMs,
-    startTime
+    startTime,
+    messagesWriter
   };
   const state = {
     cycles: 0,
@@ -13663,7 +13694,7 @@ Options:
   --max-cycles <n>       Maximum worker cycles (default: 10)
   --max-time <n>         Maximum time in minutes (default: 60)
   --model <model>        Model to use (default: opus)
-  --output-file <path>   Write status summary JSON to file
+  --messages-file <path> Write JSONL message stream to file
   --help, -h             Show this help message
 
 Environment (required):
@@ -13749,12 +13780,12 @@ function processOption(arg, iter, options) {
     options.model = raw;
     return true;
   }
-  if (arg === "--output-file") {
-    const raw = parseStringOption("--output-file", iter);
+  if (arg === "--messages-file") {
+    const raw = parseStringOption("--messages-file", iter);
     if (raw === null) {
       return false;
     }
-    options.outputFile = raw;
+    options.messagesFile = raw;
     return true;
   }
   return null;
@@ -13795,17 +13826,50 @@ function parseArgs(args) {
   }
   return { storyId: state.storyId, options };
 }
+function createWriter(messagesFile) {
+  return messagesFile ? createFileMessageWriter(messagesFile) : createNoopMessageWriter();
+}
+function writeStep(writer, step, message) {
+  writer.write({
+    type: "saga_worker",
+    subtype: "pipeline_step",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    step,
+    message
+  });
+}
+function writePipelineEnd(writer, storyId, summary) {
+  writer.write({
+    type: "saga_worker",
+    subtype: "pipeline_end",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    storyId,
+    status: summary.status,
+    exitCode: summary.exitCode,
+    cycles: summary.cycles,
+    elapsedMinutes: summary.elapsedMinutes
+  });
+}
 async function runPipeline(storyId, options) {
   const projectDir = getProjectDir();
+  const writer = createWriter(options.messagesFile);
+  writer.write({
+    type: "saga_worker",
+    subtype: "pipeline_start",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    storyId
+  });
   const worktreeResult = setupWorktree(storyId, projectDir);
-  process9.stdout.write(
-    `[worker] Step 1: ${worktreeResult.alreadyExisted ? "Worktree exists" : "Created worktree"} at ${worktreeResult.worktreePath}
-`
+  writeStep(
+    writer,
+    1,
+    worktreeResult.alreadyExisted ? `Worktree exists at ${worktreeResult.worktreePath}` : `Created worktree at ${worktreeResult.worktreePath}`
   );
   const prResult = createDraftPr(storyId, worktreeResult.worktreePath);
-  process9.stdout.write(
-    `[worker] Step 2: ${prResult.alreadyExisted ? "PR exists" : "Created draft PR"}: ${prResult.prUrl}
-`
+  writeStep(
+    writer,
+    2,
+    prResult.alreadyExisted ? `PR exists: ${prResult.prUrl}` : `Created draft PR: ${prResult.prUrl}`
   );
   const { taskListId, storyMeta } = hydrateTasks(storyId, projectDir);
   const result = await runHeadlessLoop(
@@ -13814,10 +13878,15 @@ async function runPipeline(storyId, options) {
     worktreeResult.worktreePath,
     storyMeta,
     projectDir,
-    options
+    {
+      ...options,
+      messagesWriter: writer
+    }
   );
   markPrReady(storyId, worktreeResult.worktreePath, result.allCompleted);
-  return buildStatusSummary(result.allCompleted, result.cycles, result.elapsedMinutes);
+  const summary = buildStatusSummary(result.allCompleted, result.cycles, result.elapsedMinutes);
+  writePipelineEnd(writer, storyId, summary);
+  return summary;
 }
 async function main2() {
   const parsed = parseArgs(process9.argv.slice(2));
@@ -13832,7 +13901,6 @@ async function main2() {
     `[worker] Pipeline complete. Status: ${summary.status}, cycles: ${summary.cycles}, elapsed: ${summary.elapsedMinutes.toFixed(1)}m
 `
   );
-  writeOutputFile(options.outputFile, summary);
   process9.exit(summary.exitCode);
 }
 main2().catch((error) => {

@@ -16,6 +16,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoryMeta } from '../hydrate/service.ts';
+import type { MessageWriter } from './message-writer.ts';
 import { buildPrompt, checkAllTasksCompleted, runHeadlessLoop } from './run-headless-loop.ts';
 
 // Mock Agent SDK
@@ -100,6 +101,37 @@ function createMockQuery(
     }
   }
   // Cast to match the Query return type (async generator with extra methods)
+  return generate() as unknown as ReturnType<typeof query>;
+}
+
+/**
+ * Create a mock query that yields an assistant message before the result.
+ * Used to test that SDK messages are forwarded to the message writer.
+ */
+function createMockQueryWithAssistant(): ReturnType<typeof query> {
+  function* generate() {
+    yield {
+      type: 'assistant' as const,
+      message: { role: 'assistant', content: 'Working on it' },
+      session_id: 'test-session',
+    };
+    yield {
+      type: 'result' as const,
+      subtype: 'success' as const,
+      duration_ms: 1000,
+      duration_api_ms: 800,
+      is_error: false,
+      num_turns: 1,
+      result: 'Done',
+      stop_reason: null,
+      total_cost_usd: 0.01,
+      usage: { ...MOCK_USAGE, input_tokens: 100, output_tokens: 50 },
+      modelUsage: {},
+      permission_denials: [],
+      uuid: MOCK_UUID,
+      session_id: 'test-session',
+    };
+  }
   return generate() as unknown as ReturnType<typeof query>;
 }
 
@@ -575,5 +607,142 @@ describe('runHeadlessLoop', () => {
     // Error result → exitCode 1 → cycle counted but tasks not checked as completed
     expect(result.allCompleted).toBe(false);
     expect(result.cycles).toBe(1);
+  });
+
+  describe('messagesWriter', () => {
+    function createMockWriter(): MessageWriter & { messages: unknown[] } {
+      const messages: unknown[] = [];
+      return {
+        messages,
+        write(message: unknown) {
+          messages.push(message);
+        },
+      };
+    }
+
+    it('should forward SDK messages to the writer', async () => {
+      mockQuery.mockReturnValue(createMockQueryWithAssistant());
+
+      mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+      const writer = createMockWriter();
+
+      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+        maxCycles: 1,
+        messagesWriter: writer,
+      });
+
+      // Should contain both the assistant and result SDK messages
+      const sdkMessages = writer.messages.filter(
+        (m: unknown) => (m as { type: string }).type !== 'saga_worker',
+      );
+      expect(sdkMessages.length).toBeGreaterThanOrEqual(2);
+      expect((sdkMessages[0] as { type: string }).type).toBe('assistant');
+      expect((sdkMessages[1] as { type: string }).type).toBe('result');
+    });
+
+    it('should write cycle_start event before each cycle', async () => {
+      mockQuery.mockReturnValue(createMockQuery('success'));
+
+      mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+      const writer = createMockWriter();
+
+      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+        maxCycles: 1,
+        messagesWriter: writer,
+      });
+
+      const cycleStarts = writer.messages.filter(
+        (m: unknown) =>
+          (m as { type: string; subtype?: string }).type === 'saga_worker' &&
+          (m as { type: string; subtype?: string }).subtype === 'cycle_start',
+      );
+      expect(cycleStarts).toHaveLength(1);
+      const start = cycleStarts[0] as { cycle: number; maxCycles: number; timestamp: string };
+      expect(start.cycle).toBe(1);
+      expect(start.maxCycles).toBeDefined();
+      expect(start.timestamp).toBeDefined();
+    });
+
+    it('should write cycle_end event after each cycle', async () => {
+      mockQuery.mockReturnValue(createMockQuery('success'));
+
+      mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+      const writer = createMockWriter();
+
+      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+        maxCycles: 1,
+        messagesWriter: writer,
+      });
+
+      const cycleEnds = writer.messages.filter(
+        (m: unknown) =>
+          (m as { type: string; subtype?: string }).type === 'saga_worker' &&
+          (m as { type: string; subtype?: string }).subtype === 'cycle_end',
+      );
+      expect(cycleEnds).toHaveLength(1);
+      const end = cycleEnds[0] as { cycle: number; exitCode: number | null; timestamp: string };
+      expect(end.cycle).toBe(1);
+      expect(end.exitCode).toBe(0);
+      expect(end.timestamp).toBeDefined();
+    });
+
+    it('should write cycle events for multiple cycles', async () => {
+      mockQuery.mockReturnValue(createMockQuery('success'));
+
+      mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+      let readCount = 0;
+      mockReadFileSync.mockImplementation(() => {
+        readCount++;
+        if (readCount <= 1) {
+          return JSON.stringify({ status: 'in_progress' });
+        }
+        return JSON.stringify({ status: 'completed' });
+      });
+
+      const writer = createMockWriter();
+
+      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+        messagesWriter: writer,
+      });
+
+      const cycleStarts = writer.messages.filter(
+        (m: unknown) =>
+          (m as { type: string; subtype?: string }).type === 'saga_worker' &&
+          (m as { type: string; subtype?: string }).subtype === 'cycle_start',
+      );
+      const cycleEnds = writer.messages.filter(
+        (m: unknown) =>
+          (m as { type: string; subtype?: string }).type === 'saga_worker' &&
+          (m as { type: string; subtype?: string }).subtype === 'cycle_end',
+      );
+      expect(cycleStarts).toHaveLength(2);
+      expect(cycleEnds).toHaveLength(2);
+    });
+
+    it('should not break existing tests when writer is not provided', async () => {
+      mockQuery.mockReturnValue(createMockQuery('success'));
+
+      mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+      // No messagesWriter passed - should use noop internally
+      const result = await runHeadlessLoop(
+        storyId,
+        taskListId,
+        worktreePath,
+        storyMeta,
+        projectDir,
+        {},
+      );
+
+      expect(result.allCompleted).toBe(true);
+      expect(result.cycles).toBe(1);
+    });
   });
 });

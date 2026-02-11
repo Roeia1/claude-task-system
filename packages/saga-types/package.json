@@ -12,7 +12,8 @@
     "./claude-code-task.ts": "./src/claude-code-task.ts",
     "./conversion.ts": "./src/conversion.ts",
     "./session.ts": "./src/session.ts",
-    "./directory.ts": "./src/directory.ts"
+    "./directory.ts": "./src/directory.ts",
+    "./worker-message.ts": "./src/worker-message.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

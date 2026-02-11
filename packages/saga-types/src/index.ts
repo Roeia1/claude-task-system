@@ -49,3 +49,5 @@ export {
   type TaskStatus,
   TaskStatusSchema,
 } from './task.ts';
+// Worker message types
+export type { SagaWorkerMessage } from './worker-message.ts';

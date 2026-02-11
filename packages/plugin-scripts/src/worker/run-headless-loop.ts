@@ -13,6 +13,8 @@ import { query } from '@anthropic-ai/claude-agent-sdk';
 import { createStoryPaths } from '@saga-ai/types';
 import type { StoryMeta } from '../hydrate/service.ts';
 import { createScopeValidatorHook } from '../scope-validator-hook.ts';
+import type { MessageWriter } from './message-writer.ts';
+import { createNoopMessageWriter } from './message-writer.ts';
 
 // ============================================================================
 // Constants
@@ -44,6 +46,7 @@ interface RunLoopOptions {
   maxCycles?: number;
   maxTime?: number;
   model?: string;
+  messagesWriter?: MessageWriter;
 }
 
 interface RunLoopResult {
@@ -136,6 +139,7 @@ async function spawnHeadlessRun(
   taskListId: string,
   storyId: string,
   worktreePath: string,
+  messagesWriter: MessageWriter,
 ): Promise<{ exitCode: number | null }> {
   try {
     let exitCode: number | null = 0;
@@ -164,6 +168,7 @@ async function spawnHeadlessRun(
         },
       },
     })) {
+      messagesWriter.write(message);
       if (message.type === 'result') {
         exitCode = message.subtype === 'success' ? 0 : 1;
       }
@@ -191,6 +196,7 @@ interface LoopConfig {
   maxCycles: number;
   maxTimeMs: number;
   startTime: number;
+  messagesWriter: MessageWriter;
 }
 
 interface LoopState {
@@ -213,9 +219,17 @@ function executeCycle(config: LoopConfig, state: LoopState): Promise<{ shouldCon
     return Promise.resolve({ shouldContinue: false });
   }
 
-  process.stdout.write(
-    `[worker] Starting headless run cycle ${state.cycles + 1}/${config.maxCycles}\n`,
-  );
+  const cycleNum = state.cycles + 1;
+
+  process.stdout.write(`[worker] Starting headless run cycle ${cycleNum}/${config.maxCycles}\n`);
+
+  config.messagesWriter.write({
+    type: 'saga_worker',
+    subtype: 'cycle_start',
+    timestamp: new Date().toISOString(),
+    cycle: cycleNum,
+    maxCycles: config.maxCycles,
+  });
 
   return spawnHeadlessRun(
     config.prompt,
@@ -223,8 +237,17 @@ function executeCycle(config: LoopConfig, state: LoopState): Promise<{ shouldCon
     config.taskListId,
     config.storyId,
     config.worktreePath,
+    config.messagesWriter,
   ).then(({ exitCode }) => {
     state.cycles++;
+
+    config.messagesWriter.write({
+      type: 'saga_worker',
+      subtype: 'cycle_end',
+      timestamp: new Date().toISOString(),
+      cycle: cycleNum,
+      exitCode,
+    });
 
     // On spawn error, count the cycle but don't check tasks
     if (exitCode !== 0 && exitCode !== null) {
@@ -284,6 +307,7 @@ async function runHeadlessLoop(
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
+  const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
 
   const prompt = buildPrompt(storyMeta);
   const startTime = Date.now();
@@ -308,6 +332,7 @@ async function runHeadlessLoop(
     maxCycles,
     maxTimeMs,
     startTime,
+    messagesWriter,
   };
 
   const state: LoopState = {
