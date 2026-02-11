@@ -158,6 +158,11 @@ async function spawnHeadlessRun(
         },
         permissionMode: 'bypassPermissions',
         allowDangerouslySkipPermissions: true,
+        sandbox: {
+          enabled: true,
+          autoAllowBashIfSandboxed: true,
+          allowUnsandboxedCommands: false,
+        },
         hooks: {
           [PRE_TOOL_USE]: [
             {
