@@ -120,3 +120,28 @@
 
 **Next steps:**
 - t5: Update /execute-story skill flags and find invocation
+
+## Session: 2026-02-11T19:25Z
+
+### Task: t5 - Update /execute-story skill flags and find invocation
+
+**What was done:**
+- Updated `plugin/skills/execute-story/SKILL.md`:
+  - Removed `--status ready` from find invocation (line 12): now `--type story` only
+  - Changed `data.slug` to `data.storyId` in "Resolve story" task
+  - Removed `epicSlug` from disambiguation options (was `Epic: <epicSlug>, Status: <status>`, now `Status: <status>`)
+  - Changed disambiguation label from `<slug>` to `<storyId>`
+  - Removed stale worker flags from "Run worker" task: `--max-cycles 10 --max-time 60 --model opus --output-file ...` — worker manages its own defaults
+  - Simplified tmux command to: `node $SAGA_PLUGIN_ROOT/scripts/worker.js <storyId> 2>&1 | tee /tmp/saga-sessions/<sessionName>.out`
+  - Updated notes section to clarify worker manages its own execution loop
+
+**Decisions:**
+- Kept the `--output-file` flag removal even though worker.ts does accept it — the tee pipe captures output to the same path, and the worker's `--output-file` writes a JSON summary (different format). The tee approach is what the skill needs for real-time monitoring.
+- Left the status output format unchanged (exit codes 0/1/2 still accurate)
+
+**Test results:**
+- No code tests needed (SKILL.md is a markdown skill definition)
+- Full suite: 553 passing, 11 pre-existing failures — no regressions
+
+**Next steps:**
+- t6: Migrate /resolve-blocker skill for flat story paths
