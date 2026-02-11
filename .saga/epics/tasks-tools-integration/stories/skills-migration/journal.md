@@ -29,4 +29,33 @@
 - Full suite: 553 passing, 11 pre-existing failures (find.test.ts: 7, orchestrator.test.ts: 4) — no regressions
 
 **Next steps:**
-- t2: Migrate /create-epic skill to produce JSON epic files
+- t3: Migrate /generate-stories skill for new format
+
+## Session: 2026-02-11T19:10Z
+
+### Task: t2 - Migrate /create-epic skill to produce JSON epic files
+
+**What was done:**
+- Rewrote `plugin/skills/create-epic/SKILL.md` for JSON epic format:
+  - Removed "Create directory structure" task (epics are single files, no directories)
+  - Removed "Read epic template" task (template not needed for JSON format)
+  - Added "Generate epic title" task (title is now a separate JSON field)
+  - "Check existing epic" now checks for `.saga/epics/<id>.json` file instead of directory
+  - "Write epic JSON" produces `{ id, title, description, children: [] }` at `.saga/epics/<id>.json`
+  - `description` field captures all vision/architecture dialog content as rich markdown
+  - Changed allowed-tools from `Bash(mkdir:*)` to `Bash(ls:*)` (no directories to create)
+  - Updated all references from "slug" to "ID" terminology
+  - Added example JSON output section
+  - Updated completion message and notes for new file structure
+
+**Decisions:**
+- Left the `epic-template.md` file in place — it's no longer referenced by the skill but removing template files is outside this task's scope
+- Kept the interactive dialog workflow (vision + architecture) intact — the content now feeds into the `description` field as markdown
+- Added a "Generate epic title" task since `title` is a separate field in the Epic schema (previously it was just the H1 in epic.md)
+
+**Test results:**
+- No code tests needed (SKILL.md is a markdown skill definition)
+- Full suite: 553 passing, 11 pre-existing failures — no regressions
+
+**Next steps:**
+- t3: Migrate /generate-stories skill for new format
