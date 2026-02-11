@@ -195,3 +195,26 @@
 
 **Next steps:**
 - t8: Build and verify compiled scripts
+
+## Session: 2026-02-11T19:40Z
+
+### Task: t8 - Build and verify compiled scripts
+
+**What was done:**
+- Ran `pnpm build` in `packages/plugin-scripts/` — succeeded, compiled 9 scripts to `plugin/scripts/`
+- Ran `pnpm test` in `packages/plugin-scripts/` — 553 passing, 11 pre-existing failures (find.test.ts: 7, orchestrator.test.ts: 4) — no regressions introduced by this story
+- Ran `pnpm typecheck` in `packages/plugin-scripts/` — pre-existing type errors in `implement/` files (still use old 3-arg `createWorktreePaths` and `storyMdInWorktree`) and `find.test.ts` (old `epicDir` property). These are out of scope for this story (implement/ migration is handled by another story). Verified errors are identical before and after this story's changes.
+- Ran `pnpm test` in `packages/saga-types/` — 82/82 passing
+- Verified compiled `plugin/scripts/worktree.js` reflects all t1 changes: single `storyId` arg, `story/<storyId>` branches, updated help text and parsing
+
+**Decisions:**
+- Pre-existing typecheck and test failures in `implement/` and `find.test.ts` are documented but not fixed — they stem from the saga-types-json-migration story changing type signatures, and these files are out of scope for this story
+- Committed the updated `plugin/scripts/worktree.js` compiled output
+
+**Test results:**
+- plugin-scripts build: SUCCESS
+- plugin-scripts tests: 553 passing, 11 pre-existing failures (no regressions)
+- plugin-scripts typecheck: pre-existing errors only (out of scope files)
+- saga-types tests: 82/82 passing
+
+**All tasks complete.** Story skills-migration is finished.
