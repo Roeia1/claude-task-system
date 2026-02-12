@@ -286,8 +286,8 @@ async function runPipeline(storyId: string, options: WorkerOptions): Promise<Sta
       : `Created draft PR: ${prResult.prUrl}`,
   );
 
-  // Step 3 & 4: Read story.json and hydrate tasks
-  const { taskListId, storyMeta } = hydrateTasks(storyId, projectDir);
+  // Step 3 & 4: Read story.json and hydrate tasks (from worktree, not master)
+  const { taskListId, storyMeta } = hydrateTasks(storyId, worktreeResult.worktreePath);
 
   // Step 5: Headless run loop
   const result = await runHeadlessLoop(
@@ -295,7 +295,6 @@ async function runPipeline(storyId: string, options: WorkerOptions): Promise<Sta
     taskListId,
     worktreeResult.worktreePath,
     storyMeta,
-    projectDir,
     {
       ...options,
       messagesWriter: writer,

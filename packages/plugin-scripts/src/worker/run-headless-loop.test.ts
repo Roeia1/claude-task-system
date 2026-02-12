@@ -266,7 +266,6 @@ describe('checkAllTasksCompleted', () => {
 describe('runHeadlessLoop', () => {
   const storyId = 'auth-setup-db';
   const taskListId = 'saga__auth-setup-db__1234567890';
-  const projectDir = '/project';
   const worktreePath = '/project/.saga/worktrees/auth-setup-db';
   const storyMeta: StoryMeta = {
     title: 'Auth Setup',
@@ -286,9 +285,9 @@ describe('runHeadlessLoop', () => {
   it('should throw when story has no task files', async () => {
     mockReaddirSync.mockReturnValue(['story.json'] as unknown as ReturnType<typeof readdirSync>);
 
-    await expect(
-      runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {}),
-    ).rejects.toThrow('No task files found');
+    await expect(runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {})).rejects.toThrow(
+      'No task files found',
+    );
   });
 
   it('should call query() with correct environment variables', async () => {
@@ -298,14 +297,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    const result = await runHeadlessLoop(
-      storyId,
-      taskListId,
-      worktreePath,
-      storyMeta,
-      projectDir,
-      {},
-    );
+    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
 
     expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -327,7 +319,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {
       model: 'sonnet',
     });
 
@@ -346,7 +338,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
 
     expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -363,7 +355,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
 
     expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -382,14 +374,7 @@ describe('runHeadlessLoop', () => {
     >);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    const result = await runHeadlessLoop(
-      storyId,
-      taskListId,
-      worktreePath,
-      storyMeta,
-      projectDir,
-      {},
-    );
+    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
 
     expect(result.allCompleted).toBe(true);
     expect(result.cycles).toBe(1);
@@ -409,14 +394,7 @@ describe('runHeadlessLoop', () => {
       return JSON.stringify({ status: 'completed' });
     });
 
-    const result = await runHeadlessLoop(
-      storyId,
-      taskListId,
-      worktreePath,
-      storyMeta,
-      projectDir,
-      {},
-    );
+    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
 
     expect(result.allCompleted).toBe(true);
     expect(result.cycles).toBe(2);
@@ -429,7 +407,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'in_progress' }));
 
-    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {
       maxCycles: MAX_CYCLES_THREE,
     });
 
@@ -444,14 +422,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'in_progress' }));
 
-    const result = await runHeadlessLoop(
-      storyId,
-      taskListId,
-      worktreePath,
-      storyMeta,
-      projectDir,
-      {},
-    );
+    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
 
     expect(result.allCompleted).toBe(false);
     expect(result.cycles).toBe(DEFAULT_MAX_CYCLES);
@@ -468,7 +439,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'in_progress' }));
 
-    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {
       maxTime: DEFAULT_MAX_TIME,
       maxCycles: MAX_CYCLES_HIGH,
     });
@@ -488,14 +459,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    const result = await runHeadlessLoop(
-      storyId,
-      taskListId,
-      worktreePath,
-      storyMeta,
-      projectDir,
-      {},
-    );
+    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
 
     expect(result.elapsedMinutes).toBeGreaterThan(0);
   });
@@ -512,7 +476,7 @@ describe('runHeadlessLoop', () => {
       guidance: 'Do this',
     };
 
-    await runHeadlessLoop(storyId, taskListId, worktreePath, meta, projectDir, {});
+    await runHeadlessLoop(storyId, taskListId, worktreePath, meta, {});
 
     // Verify the prompt passed to query() contains story metadata
     const queryArgs = mockQuery.mock.calls[0][0];
@@ -527,7 +491,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
 
     expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -547,7 +511,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'pending' }));
 
-    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {
       maxCycles: 1,
     });
 
@@ -561,7 +525,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
 
     expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -581,7 +545,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
-    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {});
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
 
     const queryArgs = mockQuery.mock.calls[0][0];
     const hooks = queryArgs.options?.hooks;
@@ -595,6 +559,42 @@ describe('runHeadlessLoop', () => {
     expect(typeof hooks?.PreToolUse?.[0].hooks[0]).toBe('function');
   });
 
+  it('should wire sync hook into PostToolUse for TaskUpdate', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
+
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
+
+    const queryArgs = mockQuery.mock.calls[0][0];
+    const hooks = queryArgs.options?.hooks;
+    expect(hooks?.PostToolUse).toBeDefined();
+    expect(hooks?.PostToolUse).toHaveLength(1);
+    expect(hooks?.PostToolUse?.[0].matcher).toBe('TaskUpdate');
+    expect(hooks?.PostToolUse?.[0].hooks).toHaveLength(1);
+    expect(typeof hooks?.PostToolUse?.[0].hooks[0]).toBe('function');
+  });
+
+  it('should set SAGA_PROJECT_DIR to worktreePath in query() env', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
+
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          env: expect.objectContaining({
+            SAGA_PROJECT_DIR: worktreePath,
+          }),
+        }),
+      }),
+    );
+  });
+
   it('should return exitCode 1 when query() yields error result', async () => {
     mockQuery.mockReturnValue(createMockQuery('error_during_execution'));
 
@@ -602,7 +602,7 @@ describe('runHeadlessLoop', () => {
     mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
     mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'pending' }));
 
-    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+    const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {
       maxCycles: 1,
     });
 
@@ -630,7 +630,7 @@ describe('runHeadlessLoop', () => {
 
       const writer = createMockWriter();
 
-      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {
         maxCycles: 1,
         messagesWriter: writer,
       });
@@ -652,7 +652,7 @@ describe('runHeadlessLoop', () => {
 
       const writer = createMockWriter();
 
-      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {
         maxCycles: 1,
         messagesWriter: writer,
       });
@@ -677,7 +677,7 @@ describe('runHeadlessLoop', () => {
 
       const writer = createMockWriter();
 
-      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {
         maxCycles: 1,
         messagesWriter: writer,
       });
@@ -709,7 +709,7 @@ describe('runHeadlessLoop', () => {
 
       const writer = createMockWriter();
 
-      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, {
+      await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {
         messagesWriter: writer,
       });
 
@@ -734,14 +734,7 @@ describe('runHeadlessLoop', () => {
       mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
 
       // No messagesWriter passed - should use noop internally
-      const result = await runHeadlessLoop(
-        storyId,
-        taskListId,
-        worktreePath,
-        storyMeta,
-        projectDir,
-        {},
-      );
+      const result = await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
 
       expect(result.allCompleted).toBe(true);
       expect(result.cycles).toBe(1);

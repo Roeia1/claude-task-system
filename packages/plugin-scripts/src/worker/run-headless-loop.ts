@@ -13,6 +13,7 @@ import { query } from '@anthropic-ai/claude-agent-sdk';
 import { createStoryPaths } from '@saga-ai/types';
 import type { StoryMeta } from '../hydrate/service.ts';
 import { createScopeValidatorHook } from '../scope-validator-hook.ts';
+import { createSyncHook } from '../sync-hook.ts';
 import type { MessageWriter } from './message-writer.ts';
 import { createNoopMessageWriter } from './message-writer.ts';
 
@@ -26,6 +27,7 @@ const DEFAULT_MODEL = 'opus';
 const MS_PER_MINUTE = 60_000;
 
 // Environment variable name constants (SCREAMING_SNAKE_CASE names require computed properties)
+const ENV_PROJECT_DIR = 'SAGA_PROJECT_DIR';
 const ENV_ENABLE_TASKS = 'CLAUDE_CODE_ENABLE_TASKS';
 const ENV_TASK_LIST_ID = 'CLAUDE_CODE_TASK_LIST_ID';
 const ENV_STORY_ID = 'SAGA_STORY_ID';
@@ -35,8 +37,12 @@ const ENV_STORY_TASK_LIST_ID = 'SAGA_STORY_TASK_LIST_ID';
 const SCOPE_TOOLS = ['Read', 'Write', 'Edit', 'Glob', 'Grep'];
 const SCOPE_TOOL_MATCHER = SCOPE_TOOLS.join('|');
 
-// SDK hook event name (PascalCase per SDK API)
+// SDK hook event names (PascalCase per SDK API)
 const PRE_TOOL_USE = 'PreToolUse' as const;
+const POST_TOOL_USE = 'PostToolUse' as const;
+
+// Tools to sync (task status changes)
+const SYNC_TOOL_MATCHER = 'TaskUpdate';
 
 // ============================================================================
 // Types
@@ -151,6 +157,7 @@ async function spawnHeadlessRun(
         cwd: worktreePath,
         env: {
           ...process.env,
+          [ENV_PROJECT_DIR]: worktreePath,
           [ENV_ENABLE_TASKS]: 'true',
           [ENV_TASK_LIST_ID]: taskListId,
           [ENV_STORY_ID]: storyId,
@@ -168,6 +175,12 @@ async function spawnHeadlessRun(
             {
               matcher: SCOPE_TOOL_MATCHER,
               hooks: [createScopeValidatorHook(worktreePath, storyId)],
+            },
+          ],
+          [POST_TOOL_USE]: [
+            {
+              matcher: SYNC_TOOL_MATCHER,
+              hooks: [createSyncHook(worktreePath, storyId)],
             },
           ],
         },
@@ -306,7 +319,6 @@ async function runHeadlessLoop(
   taskListId: string,
   worktreePath: string,
   storyMeta: StoryMeta,
-  projectDir: string,
   options: RunLoopOptions,
 ): Promise<RunLoopResult> {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
@@ -316,7 +328,7 @@ async function runHeadlessLoop(
 
   const prompt = buildPrompt(storyMeta);
   const startTime = Date.now();
-  const { storyDir } = createStoryPaths(projectDir, storyId);
+  const { storyDir } = createStoryPaths(worktreePath, storyId);
 
   // Validate that the story has tasks before starting the loop
   const taskFiles = getTaskFiles(storyDir);
