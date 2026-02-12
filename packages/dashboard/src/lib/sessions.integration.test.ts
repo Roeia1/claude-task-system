@@ -19,9 +19,8 @@ import {
 } from './sessions.ts';
 
 // Module-level regex constants for biome lint/performance/useTopLevelRegex
-const SESSION_NAME_PATTERN = /^saga__test-epic__test-story__\d+$/;
-const INVALID_EPIC_SLUG_PATTERN = /invalid epic slug/i;
-const INVALID_STORY_SLUG_PATTERN = /invalid story slug/i;
+const SESSION_NAME_PATTERN = /^saga-story-test-story-\d+$/;
+const INVALID_STORY_ID_PATTERN = /invalid story id/i;
 
 // Module-level numeric constants for biome lint/style/noMagicNumbers
 const DEFAULT_WAIT_MS = 2000;
@@ -39,14 +38,16 @@ function isTmuxAvailable(): boolean {
 const hasTmux = isTmuxAvailable();
 
 // Helper to clean up all saga-test sessions
-async function cleanupTestSessions(): Promise<void> {
-  const sessions = await listSessions();
+function cleanupTestSessions(): void {
+  const sessions = listSessions();
   const testSessions = sessions.filter(
     (session) =>
-      session.name.startsWith('saga__test-epic__') ||
-      session.name.startsWith('saga__integration__'),
+      session.name.startsWith('saga-story-test-story-') ||
+      session.name.startsWith('saga-story-integration-'),
   );
-  await Promise.all(testSessions.map((session) => killSession(session.name)));
+  for (const session of testSessions) {
+    killSession(session.name);
+  }
 }
 
 // Helper to wait for session to be fully created
@@ -76,7 +77,6 @@ function waitForFile(filePath: string, maxWaitMs = DEFAULT_WAIT_MS): Promise<boo
 }
 
 describe.skipIf(!hasTmux)('sessions integration', () => {
-  const testEpic = 'test-epic';
   const testStory = 'test-story';
 
   beforeAll(() => {
@@ -86,32 +86,32 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     // Clean up any leftover test sessions
-    await cleanupTestSessions();
+    cleanupTestSessions();
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     // Clean up test sessions after each test
-    await cleanupTestSessions();
+    cleanupTestSessions();
   });
 
   describe('createSession', () => {
-    it('should create a tmux session with correct name pattern', async () => {
-      const result = await createSession(testEpic, testStory, 'echo "test output"');
+    it('should create a tmux session with correct name pattern', () => {
+      const result = createSession(testStory, 'echo "test output"');
 
       expect(result.sessionName).toMatch(SESSION_NAME_PATTERN);
-      expect(result.outputFile).toBe(join(OUTPUT_DIR, `${result.sessionName}.out`));
+      expect(result.outputFile).toBe(join(OUTPUT_DIR, `${result.sessionName}.jsonl`));
 
       // Verify session exists
-      const status = await getSessionStatus(result.sessionName);
+      const status = getSessionStatus(result.sessionName);
       // Note: The session might have already completed since the command is quick
       // We just verify it was created (either running or completed)
       expect(status).toHaveProperty('running');
     });
 
     it('should create output file in /tmp/saga-sessions/', async () => {
-      const result = await createSession(testEpic, testStory, 'echo "hello world" && sleep 1');
+      const result = createSession(testStory, 'echo "hello world" && sleep 1');
 
       // Wait for script to create output file (poll with timeout)
       const fileExists = await waitForFile(result.outputFile, DEFAULT_WAIT_MS);
@@ -121,7 +121,7 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
 
     it('should capture command output to file', async () => {
       const testMessage = `test-output-${Date.now()}`;
-      const result = await createSession(testEpic, testStory, `echo "${testMessage}" && sleep 1`);
+      const result = createSession(testStory, `echo "${testMessage}" && sleep 1`);
 
       // Wait for output file to exist, then wait a bit more for content
       await waitForFile(result.outputFile, DEFAULT_WAIT_MS);
@@ -131,75 +131,57 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
       expect(output).toContain(testMessage);
     });
 
-    it('should reject invalid epic slug', () => {
-      expect(() => createSession('Invalid_Epic', testStory, 'echo test')).toThrow(
-        INVALID_EPIC_SLUG_PATTERN,
-      );
-    });
-
-    it('should reject invalid story slug', () => {
-      expect(() => createSession(testEpic, 'Invalid_Story', 'echo test')).toThrow(
-        INVALID_STORY_SLUG_PATTERN,
-      );
+    it('should reject invalid story ID', () => {
+      expect(() => createSession('Invalid_Story', 'echo test')).toThrow(INVALID_STORY_ID_PATTERN);
     });
 
     it('should reject slug with uppercase letters', () => {
-      expect(() => createSession('MyEpic', testStory, 'echo test')).toThrow(
-        INVALID_EPIC_SLUG_PATTERN,
-      );
+      expect(() => createSession('MyStory', 'echo test')).toThrow(INVALID_STORY_ID_PATTERN);
     });
 
     it('should reject slug with underscores', () => {
-      expect(() => createSession('my_epic', testStory, 'echo test')).toThrow(
-        INVALID_EPIC_SLUG_PATTERN,
-      );
+      expect(() => createSession('my_story', 'echo test')).toThrow(INVALID_STORY_ID_PATTERN);
     });
 
     it('should reject slug with special characters', () => {
-      expect(() => createSession('my@epic', testStory, 'echo test')).toThrow(
-        INVALID_EPIC_SLUG_PATTERN,
-      );
+      expect(() => createSession('my@story', 'echo test')).toThrow(INVALID_STORY_ID_PATTERN);
     });
 
     it('should reject slug with spaces', () => {
-      expect(() => createSession('my epic', testStory, 'echo test')).toThrow(
-        INVALID_EPIC_SLUG_PATTERN,
-      );
+      expect(() => createSession('my story', 'echo test')).toThrow(INVALID_STORY_ID_PATTERN);
     });
 
     it('should reject slug starting with hyphen', () => {
-      expect(() => createSession('-my-epic', testStory, 'echo test')).toThrow(
-        INVALID_EPIC_SLUG_PATTERN,
-      );
+      expect(() => createSession('-my-story', 'echo test')).toThrow(INVALID_STORY_ID_PATTERN);
     });
 
     it('should reject slug ending with hyphen', () => {
-      expect(() => createSession('my-epic-', testStory, 'echo test')).toThrow(
-        INVALID_EPIC_SLUG_PATTERN,
-      );
+      expect(() => createSession('my-story-', 'echo test')).toThrow(INVALID_STORY_ID_PATTERN);
     });
 
     it('should reject empty slug', () => {
-      expect(() => createSession('', testStory, 'echo test')).toThrow(INVALID_EPIC_SLUG_PATTERN);
+      expect(() => createSession('', 'echo test')).toThrow(INVALID_STORY_ID_PATTERN);
     });
   });
 
   describe('listSessions', () => {
-    it('should return empty array when no saga sessions exist', async () => {
+    it('should return empty array when no saga sessions exist', () => {
       // Ensure no test sessions exist
-      await cleanupTestSessions();
+      cleanupTestSessions();
 
-      const sessions = await listSessions();
+      const sessions = listSessions();
       const testSessions = sessions.filter(
-        (s) => s.name.startsWith('saga__test-epic__') || s.name.startsWith('saga__integration__'),
+        (s) =>
+          s.name.startsWith('saga-story-test-story-') ||
+          s.name.startsWith('saga-story-integration-'),
       );
       expect(testSessions).toHaveLength(0);
     });
 
-    it('should list created saga sessions', async () => {
-      const result = await createSession(testEpic, testStory, 'sleep 10');
+    it('should list created saga sessions', () => {
+      const result = createSession(testStory, 'sleep 10');
 
-      const sessions = await listSessions();
+      const sessions = listSessions();
       const found = sessions.find((s) => s.name === result.sessionName);
 
       expect(found).toBeDefined();
@@ -207,27 +189,27 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
       expect(found?.outputFile).toBe(result.outputFile);
     });
 
-    it('should list multiple saga sessions', async () => {
-      const result1 = await createSession('integration', 'story1', 'sleep 10');
-      const result2 = await createSession('integration', 'story2', 'sleep 10');
+    it('should list multiple saga sessions', () => {
+      const result1 = createSession('integration-story1', 'sleep 10');
+      const result2 = createSession('integration-story2', 'sleep 10');
 
-      const sessions = await listSessions();
+      const sessions = listSessions();
       const names = sessions.map((s) => s.name);
 
       expect(names).toContain(result1.sessionName);
       expect(names).toContain(result2.sessionName);
     });
 
-    it('should only return sessions with saga__ prefix', async () => {
+    it('should only return sessions with saga-story- prefix', () => {
       // Create a non-saga session
       spawnSync('tmux', ['new-session', '-d', '-s', 'other-session', 'sleep 5'], {
         encoding: 'utf-8',
       });
 
       try {
-        const sessions = await listSessions();
-        // Sessions should start with saga__ prefix
-        const nonSagaSessions = sessions.filter((s) => !s.name.startsWith('saga__'));
+        const sessions = listSessions();
+        // Sessions should start with saga-story- prefix
+        const nonSagaSessions = sessions.filter((s) => !s.name.startsWith('saga-story-'));
 
         expect(nonSagaSessions).toHaveLength(0);
       } finally {
@@ -238,126 +220,126 @@ describe.skipIf(!hasTmux)('sessions integration', () => {
   });
 
   describe('getSessionStatus', () => {
-    it('should return running: true for existing session', async () => {
-      const result = await createSession(testEpic, testStory, 'sleep 10');
+    it('should return running: true for existing session', () => {
+      const result = createSession(testStory, 'sleep 10');
 
-      const status = await getSessionStatus(result.sessionName);
+      const status = getSessionStatus(result.sessionName);
 
       expect(status.running).toBe(true);
     });
 
-    it('should return running: false for non-existent session', async () => {
-      const status = await getSessionStatus('saga__non-existent__session__99999');
+    it('should return running: false for non-existent session', () => {
+      const status = getSessionStatus('saga-story-nonexistent-99999');
 
       expect(status.running).toBe(false);
     });
 
-    it('should return running: false after session is killed', async () => {
-      const result = await createSession(testEpic, testStory, 'sleep 10');
+    it('should return running: false after session is killed', () => {
+      const result = createSession(testStory, 'sleep 10');
 
       // Verify running
-      let status = await getSessionStatus(result.sessionName);
+      let status = getSessionStatus(result.sessionName);
       expect(status.running).toBe(true);
 
       // Kill session
-      await killSession(result.sessionName);
+      killSession(result.sessionName);
 
       // Verify not running
-      status = await getSessionStatus(result.sessionName);
+      status = getSessionStatus(result.sessionName);
       expect(status.running).toBe(false);
     });
   });
 
   describe('killSession', () => {
-    it('should return killed: true for existing session', async () => {
-      const result = await createSession(testEpic, testStory, 'sleep 10');
+    it('should return killed: true for existing session', () => {
+      const result = createSession(testStory, 'sleep 10');
 
-      const killResult = await killSession(result.sessionName);
+      const killResult = killSession(result.sessionName);
 
       expect(killResult.killed).toBe(true);
     });
 
-    it('should return killed: false for non-existent session', async () => {
-      const killResult = await killSession('saga__non-existent__session__99999');
+    it('should return killed: false for non-existent session', () => {
+      const killResult = killSession('saga-story-nonexistent-99999');
 
       expect(killResult.killed).toBe(false);
     });
 
-    it('should terminate the tmux session', async () => {
-      const result = await createSession(testEpic, testStory, 'sleep 10');
+    it('should terminate the tmux session', () => {
+      const result = createSession(testStory, 'sleep 10');
 
       // Verify session exists
-      let status = await getSessionStatus(result.sessionName);
+      let status = getSessionStatus(result.sessionName);
       expect(status.running).toBe(true);
 
       // Kill it
-      await killSession(result.sessionName);
+      killSession(result.sessionName);
 
       // Verify it's gone
-      status = await getSessionStatus(result.sessionName);
+      status = getSessionStatus(result.sessionName);
       expect(status.running).toBe(false);
     });
   });
 
   describe('session lifecycle', () => {
-    it('should complete full lifecycle: create -> list -> status -> kill', async () => {
+    it('should complete full lifecycle: create -> list -> status -> kill', () => {
       // 1. Create session
-      const createResult = await createSession(testEpic, testStory, 'sleep 30');
+      const createResult = createSession(testStory, 'sleep 30');
       expect(createResult.sessionName).toMatch(SESSION_NAME_PATTERN);
       expect(createResult.outputFile).toContain('/tmp/saga-sessions/');
 
       // 2. Verify it appears in list
-      let sessions = await listSessions();
+      let sessions = listSessions();
       let found = sessions.find((s) => s.name === createResult.sessionName);
       expect(found).toBeDefined();
       expect(found?.status).toBe('running');
 
       // 3. Check status
-      let status = await getSessionStatus(createResult.sessionName);
+      let status = getSessionStatus(createResult.sessionName);
       expect(status.running).toBe(true);
 
       // 4. Kill session
-      const killResult = await killSession(createResult.sessionName);
+      const killResult = killSession(createResult.sessionName);
       expect(killResult.killed).toBe(true);
 
       // 5. Verify removed from list
-      sessions = await listSessions();
+      sessions = listSessions();
       found = sessions.find((s) => s.name === createResult.sessionName);
       expect(found).toBeUndefined();
 
       // 6. Verify status shows not running
-      status = await getSessionStatus(createResult.sessionName);
+      status = getSessionStatus(createResult.sessionName);
       expect(status.running).toBe(false);
     });
 
-    it('should allow creating new session with same epic/story after killing old one', async () => {
+    it('should allow creating new session with same storyId after killing old one', () => {
       // Create first session
-      const result1 = await createSession(testEpic, testStory, 'sleep 10');
+      const result1 = createSession(testStory, 'sleep 10');
 
       // Kill it
-      await killSession(result1.sessionName);
+      killSession(result1.sessionName);
 
-      // Create second session with same epic/story
-      const result2 = await createSession(testEpic, testStory, 'sleep 10');
+      // Create second session with same storyId
+      const result2 = createSession(testStory, 'sleep 10');
 
-      // They should have different names (different PIDs)
+      // They should have different names (different timestamps)
       expect(result2.sessionName).not.toBe(result1.sessionName);
       expect(result2.sessionName).toMatch(SESSION_NAME_PATTERN);
     });
   });
 
   describe('session survival', () => {
-    it('should session survive after test completes (not attached to test process)', async () => {
+    it('should session survive after test completes (not attached to test process)', () => {
       // Create a session
-      const result = await createSession(testEpic, testStory, 'sleep 30');
+      const result = createSession(testStory, 'sleep 30');
 
       // The session should be independent of this test process
       // We verify this by checking it's still running
-      const status = await getSessionStatus(result.sessionName);
+      const status = getSessionStatus(result.sessionName);
       expect(status.running).toBe(true);
 
       // Cleanup (we clean up in afterEach, but this verifies we can kill it)
-      await killSession(result.sessionName);
+      killSession(result.sessionName);
     });
   });
 });

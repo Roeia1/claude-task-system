@@ -21,7 +21,7 @@ tasks:
     status: completed
   - id: t6
     title: Update session module for new naming and JSONL output
-    status: pending
+    status: completed
   - id: t7
     title: Update log streaming for JSONL messages
     status: pending

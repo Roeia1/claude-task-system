@@ -4,8 +4,8 @@
  * Provides functions to create, list, monitor, and kill tmux sessions
  * running SAGA workers. This module is shared between the CLI and dashboard.
  *
- * Session naming convention: saga__<epic-slug>__<story-slug>__<timestamp>
- * Output files stored in: /tmp/saga-sessions/<session-name>.out
+ * Session naming convention: saga-story-<storyId>-<timestamp>
+ * Output files stored in: /tmp/saga-sessions/<session-name>.jsonl
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -15,14 +15,18 @@ import { join } from 'node:path';
 import process from 'node:process';
 
 // Constants for magic numbers
-const SESSION_NAME_PARTS_COUNT = 4;
 const PREVIEW_LINES_COUNT = 5;
 const PREVIEW_MAX_LENGTH = 500;
 
 // Top-level regex patterns
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
-// Matches session name format: saga__<epic>__<story>__<timestamp>
-const SESSION_NAME_PATTERN = /^(saga__[a-z0-9_-]+):/;
+// Matches session name format: saga-story-<storyId>-<timestamp>
+// The storyId can contain hyphens, so the timestamp is the last hyphen-separated segment (all digits)
+const SESSION_NAME_PATTERN = /^(saga-story-[a-z0-9-]+-\d+):/;
+// Pattern to match all-digit timestamps in session names
+const TIMESTAMP_PATTERN = /^\d+$/;
+// Prefix for SAGA story sessions
+const SESSION_PREFIX = 'saga-story-';
 
 /**
  * Directory where session output files are stored
@@ -47,13 +51,12 @@ interface SessionInfo {
 }
 
 /**
- * Detailed session info with parsed epic/story slugs and output data
+ * Detailed session info with parsed story ID and output data
  * Used by the dashboard API for richer session information
  */
 interface DetailedSessionInfo {
   name: string;
-  epicSlug: string;
-  storySlug: string;
+  storyId: string;
   status: 'running' | 'completed';
   outputFile: string;
   outputAvailable: boolean;
@@ -66,8 +69,7 @@ interface DetailedSessionInfo {
  * Result from parsing a session name
  */
 interface ParsedSessionName {
-  epicSlug: string;
-  storySlug: string;
+  storyId: string;
 }
 
 /**
@@ -158,8 +160,8 @@ async function extractFileTimestamps(
 }
 
 /**
- * Generate a preview from file content (last N lines, truncated to max length)
- * @param outputFile - Path to the output file
+ * Generate a preview from JSONL file content (last N valid lines, truncated to max length)
+ * @param outputFile - Path to the JSONL output file
  * @returns Preview string or undefined if not available
  */
 async function generateOutputPreview(outputFile: string): Promise<string | undefined> {
@@ -169,8 +171,31 @@ async function generateOutputPreview(outputFile: string): Promise<string | undef
     if (lines.length === 0) {
       return undefined;
     }
+
+    // Take last N lines and filter to valid JSON only
     const lastLines = lines.slice(-PREVIEW_LINES_COUNT);
-    let preview = lastLines.join('\n');
+    const validLines: string[] = [];
+    for (const line of lastLines) {
+      try {
+        JSON.parse(line);
+        validLines.push(line);
+      } catch {
+        // Skip non-JSON lines
+      }
+    }
+
+    if (validLines.length === 0) {
+      // Fall back to raw lines if no valid JSON found
+      const rawPreview = lastLines.join('\n');
+      if (rawPreview.length > PREVIEW_MAX_LENGTH) {
+        const truncated = rawPreview.slice(0, PREVIEW_MAX_LENGTH);
+        const lastNewline = truncated.lastIndexOf('\n');
+        return lastNewline > 0 ? truncated.slice(0, lastNewline) : truncated;
+      }
+      return rawPreview;
+    }
+
+    let preview = validLines.join('\n');
     if (preview.length > PREVIEW_MAX_LENGTH) {
       // Truncate at the last newline before max chars for cleaner display
       const truncated = preview.slice(0, PREVIEW_MAX_LENGTH);
@@ -185,17 +210,12 @@ async function generateOutputPreview(outputFile: string): Promise<string | undef
 }
 
 /**
- * Validate slugs for session creation and throw if invalid
+ * Validate story ID for session creation and throw if invalid
  */
-function validateSessionSlugs(epicSlug: string, storySlug: string): void {
-  if (!validateSlug(epicSlug)) {
+function validateStoryId(storyId: string): void {
+  if (!validateSlug(storyId)) {
     throw new Error(
-      `Invalid epic slug: '${epicSlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`,
-    );
-  }
-  if (!validateSlug(storySlug)) {
-    throw new Error(
-      `Invalid story slug: '${storySlug}'. Must contain only [a-z0-9-] and not start/end with hyphen.`,
+      `Invalid story ID: '${storyId}'. Must contain only [a-z0-9-] and not start/end with hyphen.`,
     );
   }
 }
@@ -207,7 +227,7 @@ function createSessionFiles(
   sessionName: string,
   command: string,
 ): { wrapperScriptPath: string; outputFile: string } {
-  const outputFile = join(OUTPUT_DIR, `${sessionName}.out`);
+  const outputFile = join(OUTPUT_DIR, `${sessionName}.jsonl`);
   const commandFilePath = join(OUTPUT_DIR, `${sessionName}.cmd`);
   const wrapperScriptPath = join(OUTPUT_DIR, `${sessionName}.sh`);
 
@@ -278,20 +298,15 @@ export function validateSlug(slug: unknown): boolean {
 /**
  * Create a new detached tmux session for running a command
  *
- * Creates a tmux session named: saga__<epic>__<story>__<timestamp>
- * Output is captured to: /tmp/saga-sessions/<session-name>.out
+ * Creates a tmux session named: saga-story-<storyId>-<timestamp>
+ * Output is captured to: /tmp/saga-sessions/<session-name>.jsonl
  *
- * @param epicSlug - The epic slug (validated)
- * @param storySlug - The story slug (validated)
+ * @param storyId - The story ID (validated)
  * @param command - The command to execute in the session
  * @returns Session name and output file path
  */
-export function createSession(
-  epicSlug: string,
-  storySlug: string,
-  command: string,
-): CreateSessionResult {
-  validateSessionSlugs(epicSlug, storySlug);
+export function createSession(storyId: string, command: string): CreateSessionResult {
+  validateStoryId(storyId);
   checkTmuxAvailable();
 
   // Create output directory
@@ -300,9 +315,8 @@ export function createSession(
   }
 
   // Generate session name with timestamp for uniqueness
-  // Uses double-underscore format for dashboard compatibility (parseSessionName requires saga__)
   const timestamp = Date.now();
-  const sessionName = `saga__${epicSlug}__${storySlug}__${timestamp}`;
+  const sessionName = `saga-story-${storyId}-${timestamp}`;
 
   // Create session files
   const { wrapperScriptPath, outputFile } = createSessionFiles(sessionName, command);
@@ -322,7 +336,7 @@ export function createSession(
 }
 
 /**
- * List all SAGA tmux sessions (those with saga__ prefix)
+ * List all SAGA tmux sessions (those with saga-story- prefix)
  *
  * @returns Array of session info
  */
@@ -339,14 +353,14 @@ export function listSessions(): SessionInfo[] {
 
   for (const line of lines) {
     // tmux ls output format: "session-name: N windows ..."
-    // Session name format: saga__<epic>__<story>__<timestamp>
+    // Session name format: saga-story-<storyId>-<timestamp>
     const match = line.match(SESSION_NAME_PATTERN);
     if (match) {
       const name = match[1];
       sessions.push({
         name,
         status: 'running', // If it shows up in tmux ls, it's running
-        outputFile: join(OUTPUT_DIR, `${name}.out`),
+        outputFile: join(OUTPUT_DIR, `${name}.jsonl`),
       });
     }
   }
@@ -382,7 +396,7 @@ export function getSessionStatus(sessionName: string): SessionStatus {
  * @returns Promise that resolves when streaming ends
  */
 export function streamLogs(sessionName: string): Promise<void> {
-  const outputFile = join(OUTPUT_DIR, `${sessionName}.out`);
+  const outputFile = join(OUTPUT_DIR, `${sessionName}.jsonl`);
 
   if (!existsSync(outputFile)) {
     throw new Error(`Output file not found: ${outputFile}`);
@@ -437,36 +451,47 @@ export function killSession(sessionName: string): KillSessionResult {
 }
 
 /**
- * Parse a session name to extract epic and story slugs
+ * Parse a session name to extract story ID
  *
- * Expected format: saga__<epic-slug>__<story-slug>__<timestamp>
- * Uses double-underscore (`__`) as delimiter to allow hyphens within slugs.
+ * Expected format: saga-story-<storyId>-<timestamp>
+ * The storyId can contain hyphens, so the timestamp is identified as the
+ * last hyphen-separated segment that is all digits.
  *
  * @param name - The session name to parse
- * @returns Parsed slugs or null if not a valid SAGA session name
+ * @returns Parsed storyId or null if not a valid SAGA session name
  */
 export function parseSessionName(name: string): ParsedSessionName | null {
-  if (!name?.startsWith('saga__')) {
+  if (!name?.startsWith(SESSION_PREFIX)) {
     return null;
   }
 
-  const parts = name.split('__');
-  // Expected format: ['saga', '<epic-slug>', '<story-slug>', '<pid>']
-  if (parts.length !== SESSION_NAME_PARTS_COUNT) {
+  // Remove the "saga-story-" prefix
+  const rest = name.slice(SESSION_PREFIX.length);
+  if (!rest) {
     return null;
   }
 
-  const [, epicSlug, storySlug, pid] = parts;
+  // Split by hyphens: the last segment should be the timestamp (all digits)
+  const parts = rest.split('-');
 
-  // Validate that we have non-empty slugs and a pid
-  if (!(epicSlug && storySlug && pid)) {
+  // Need at least 2 parts: storyId (1+ segments) and timestamp
+  if (parts.length < 2) {
     return null;
   }
 
-  return {
-    epicSlug,
-    storySlug,
-  };
+  // The last part must be all digits (the timestamp)
+  const lastPart = parts.at(-1);
+  if (!(lastPart && TIMESTAMP_PATTERN.test(lastPart))) {
+    return null;
+  }
+
+  // Everything before the last part is the storyId
+  const storyId = parts.slice(0, -1).join('-');
+  if (!storyId) {
+    return null;
+  }
+
+  return { storyId };
 }
 
 /**
@@ -485,7 +510,7 @@ export async function buildSessionInfo(
     return null;
   }
 
-  const outputFile = join(OUTPUT_DIR, `${name}.out`);
+  const outputFile = join(OUTPUT_DIR, `${name}.jsonl`);
   const outputAvailable = existsSync(outputFile);
 
   let startTime = new Date();
@@ -501,8 +526,7 @@ export async function buildSessionInfo(
 
   return {
     name,
-    epicSlug: parsed.epicSlug,
-    storySlug: parsed.storySlug,
+    storyId: parsed.storyId,
     status,
     outputFile,
     outputAvailable,

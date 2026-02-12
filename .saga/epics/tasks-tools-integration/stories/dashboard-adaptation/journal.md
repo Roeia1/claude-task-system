@@ -125,3 +125,37 @@
 
 **Next steps:**
 - t6: Update session module for new naming and JSONL output
+
+## Session: 2026-02-13T01:30
+
+### Task: t6 - Update session module for new naming and JSONL output
+
+**What was done:**
+- Rewrote `packages/dashboard/src/lib/sessions.ts` for new session naming and JSONL output:
+  - Changed session naming from `saga__<epicSlug>__<storySlug>__<timestamp>` to `saga-story-<storyId>-<timestamp>`
+  - Changed `createSession(epicSlug, storySlug, command)` to `createSession(storyId, command)` (2 args)
+  - Changed `parseSessionName()` to return `{storyId}` instead of `{epicSlug, storySlug}`
+  - Changed `DetailedSessionInfo` to expose `storyId` instead of `epicSlug`/`storySlug`
+  - Changed all output file references from `.out` to `.jsonl` extension
+  - Changed `SESSION_NAME_PATTERN` regex from `/^(saga__[a-z0-9_-]+):/` to `/^(saga-story-[a-z0-9-]+-\d+):/`
+  - Updated `listSessions()` to match `saga-story-` prefix instead of `saga__`
+  - Updated `streamLogs()` to look for `.jsonl` files
+  - Updated `generateOutputPreview()` to parse JSONL lines, filtering invalid JSON and showing only valid JSON lines
+  - Replaced `validateSessionSlugs(epicSlug, storySlug)` with `validateStoryId(storyId)`
+- Updated `packages/dashboard/src/server/session-routes.ts`:
+  - Changed filter from `epicSlug`/`storySlug` query params to `storyId` query param
+  - Removed the nested epicSlug→storySlug filter chain
+- Updated test files:
+  - `sessions.test.ts`: 62 tests — all use new `saga-story-` format, test `storyId` field, `.jsonl` paths, JSONL preview generation
+  - `sessions.integration.test.ts`: 34 tests — all use new 2-arg `createSession(storyId, command)` API, new name pattern, new prefix filtering
+  - `session-routes.test.ts`: 14 tests — all use `storyId` filter, verify no `epicSlug`/`storySlug` in responses
+  - `commands/sessions/index.test.ts`: 5 tests — updated session names and mock return types
+
+**Decisions:**
+- The `parseSessionName()` function identifies the timestamp as the last hyphen-separated segment that is all digits, allowing story IDs with hyphens (e.g., `dashboard-adaptation`) to be parsed correctly
+- JSONL preview generation skips non-JSON lines gracefully (falls back to raw lines if no valid JSON found)
+- Session routes now only support `storyId` filter (not `epicSlug`/`storySlug`), matching the flat story model
+- Integration tests now call `createSession(storyId, command)` directly (synchronous) — no more `await` needed since these functions were always synchronous
+
+**Next steps:**
+- t7: Update log streaming for JSONL messages

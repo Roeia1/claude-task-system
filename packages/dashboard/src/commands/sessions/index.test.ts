@@ -25,17 +25,17 @@ describe('sessions CLI subcommands', () => {
     it('should call listSessions and output JSON array', async () => {
       const mockSessions = [
         {
-          name: 'saga__epic1__story1__1234',
+          name: 'saga-story-story1-1234',
           status: 'running' as const,
-          outputFile: '/tmp/saga-sessions/saga__epic1__story1__1234.out',
+          outputFile: '/tmp/saga-sessions/saga-story-story1-1234.jsonl',
         },
         {
-          name: 'saga__epic2__story2__5678',
+          name: 'saga-story-story2-5678',
           status: 'running' as const,
-          outputFile: '/tmp/saga-sessions/saga__epic2__story2__5678.out',
+          outputFile: '/tmp/saga-sessions/saga-story-story2-5678.jsonl',
         },
       ];
-      vi.mocked(listSessions).mockResolvedValue(mockSessions);
+      vi.mocked(listSessions).mockReturnValue(mockSessions);
 
       // Capture console.log output
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
@@ -51,7 +51,7 @@ describe('sessions CLI subcommands', () => {
     });
 
     it('should output empty array when no sessions exist', async () => {
-      vi.mocked(listSessions).mockResolvedValue([]);
+      vi.mocked(listSessions).mockReturnValue([]);
 
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
         // Suppress console output in tests
@@ -68,30 +68,30 @@ describe('sessions CLI subcommands', () => {
 
   describe('sessionsStatusCommand', () => {
     it('should call getSessionStatus and output JSON', async () => {
-      vi.mocked(getSessionStatus).mockResolvedValue({ running: true });
+      vi.mocked(getSessionStatus).mockReturnValue({ running: true });
 
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
         // Suppress console output in tests
       });
 
-      await sessionsStatusCommand('saga__epic__story__1234');
+      await sessionsStatusCommand('saga-story-my-story-1234');
 
-      expect(getSessionStatus).toHaveBeenCalledWith('saga__epic__story__1234');
+      expect(getSessionStatus).toHaveBeenCalledWith('saga-story-my-story-1234');
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ running: true }, null, 2));
 
       logSpy.mockRestore();
     });
 
     it('should output running: false for non-existent session', async () => {
-      vi.mocked(getSessionStatus).mockResolvedValue({ running: false });
+      vi.mocked(getSessionStatus).mockReturnValue({ running: false });
 
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
         // Suppress console output in tests
       });
 
-      await sessionsStatusCommand('saga__nonexistent__1234');
+      await sessionsStatusCommand('saga-story-nonexistent-1234');
 
-      expect(getSessionStatus).toHaveBeenCalledWith('saga__nonexistent__1234');
+      expect(getSessionStatus).toHaveBeenCalledWith('saga-story-nonexistent-1234');
       expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ running: false }, null, 2));
 
       logSpy.mockRestore();
@@ -102,9 +102,9 @@ describe('sessions CLI subcommands', () => {
     it('should call streamLogs with session name', async () => {
       vi.mocked(streamLogs).mockResolvedValue(undefined);
 
-      await sessionsLogsCommand('saga__epic__story__1234');
+      await sessionsLogsCommand('saga-story-my-story-1234');
 
-      expect(streamLogs).toHaveBeenCalledWith('saga__epic__story__1234');
+      expect(streamLogs).toHaveBeenCalledWith('saga-story-my-story-1234');
     });
 
     it('should handle errors from streamLogs gracefully', async () => {
@@ -117,7 +117,7 @@ describe('sessions CLI subcommands', () => {
         throw new Error('process.exit called');
       });
 
-      await expect(sessionsLogsCommand('saga__nonexistent__1234')).rejects.toThrow(
+      await expect(sessionsLogsCommand('saga-story-nonexistent-1234')).rejects.toThrow(
         'process.exit called',
       );
 
