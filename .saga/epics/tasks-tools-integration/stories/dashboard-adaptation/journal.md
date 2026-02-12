@@ -46,3 +46,26 @@
 
 **Next steps:**
 - t3: Update server parser for JSON data model
+
+## Session: 2026-02-13T01:00
+
+### Task: t3 - Update server parser for JSON data model
+
+**What was done:**
+- Verified that parser.ts was already rewritten in a previous session to use JSON-based storage from `@saga-ai/types`
+- `scanSagaDirectory()` uses `scanStories()` and `scanEpics()` from the updated scanner (t2), groups stories by epic, and builds `ParsedEpic` objects with derived statuses
+- `toStoryDetail()` converts `ScannedStory` to `StoryDetail` with full task objects (subject, description, status, blockedBy, guidance, doneWhen, activeForm)
+- `buildEpic()` uses `deriveEpicStatus` from `@saga-ai/types` to derive epic status from story statuses
+- `StoryCounts` uses new status shape: pending/inProgress/completed (no ready/blocked)
+- `parseStory()` reads directly from JSON storage using `readStory`/`listTasks` from `@saga-ai/types`
+- Standalone stories (no epic field) are returned separately in `ScanResult.standaloneStories`
+- Journal parsing remains unchanged (markdown with `##` section headers)
+- All 24 parser tests pass, covering: story parsing with tasks, status derivation (pending/inProgress/completed), optional fields, journal parsing, standalone stories, epic dependency children, story counts
+- 5 other test files fail (cli, dashboard, routes, integration, websocket) — these are expected failures from tasks t4-t11 that reference old APIs
+
+**Decisions:**
+- Used `toApiStatus()` helper to convert snake_case `TaskStatus` (from `@saga-ai/types`: `in_progress`) to camelCase API status (`inProgress`) at the parser boundary
+- `deriveEpicStatus` receives story statuses converted back to `TaskStatus` format since the function expects snake_case
+
+**Next steps:**
+- t4: Update file watcher paths and event parsing
