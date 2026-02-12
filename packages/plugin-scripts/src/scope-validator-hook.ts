@@ -20,6 +20,7 @@ import { validatePath } from './scope-validator.ts';
 function createScopeValidatorHook(worktreePath: string, storyId: string): HookCallback {
   return (_input, _toolUseID, _options): Promise<HookJSONOutput> => {
     const hookInput = _input as PreToolUseHookInput;
+    const toolName = hookInput.tool_name;
     const toolInput = (hookInput.tool_input ?? {}) as Record<string, unknown>;
     const filePath = (toolInput.file_path || toolInput.path) as string | undefined;
 
@@ -27,7 +28,7 @@ function createScopeValidatorHook(worktreePath: string, storyId: string): HookCa
       return Promise.resolve({ continue: true });
     }
 
-    const violation = validatePath(filePath, worktreePath, { storyId });
+    const violation = validatePath(filePath, worktreePath, { storyId }, toolName);
     if (violation) {
       return Promise.resolve({
         hookSpecificOutput: {

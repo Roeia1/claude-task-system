@@ -4,7 +4,10 @@ import {
   checkStoryAccessById,
   getFilePathFromInput,
   getScopeEnvironment,
+  getToolNameFromInput,
   isArchiveAccess,
+  isJournalPath,
+  isSagaPath,
   isWithinWorktree,
   normalizePath,
   validatePath,
@@ -216,6 +219,69 @@ describe('scope-validator', () => {
     });
   });
 
+  describe('tool name extraction', () => {
+    it('should extract tool_name from valid JSON', () => {
+      const input = JSON.stringify({ tool_name: 'Write', tool_input: {} });
+      expect(getToolNameFromInput(input)).toBe('Write');
+    });
+
+    it('should return null for invalid JSON', () => {
+      expect(getToolNameFromInput('not json')).toBeNull();
+    });
+
+    it('should return null when tool_name is missing', () => {
+      const input = JSON.stringify({ tool_input: {} });
+      expect(getToolNameFromInput(input)).toBeNull();
+    });
+  });
+
+  describe('isSagaPath', () => {
+    it('should detect paths inside .saga/', () => {
+      expect(isSagaPath('/project/worktree/.saga/stories/s1/story.json', '/project/worktree')).toBe(
+        true,
+      );
+      expect(isSagaPath('/project/worktree/.saga/epics/e1.json', '/project/worktree')).toBe(true);
+      expect(isSagaPath('/project/worktree/.saga', '/project/worktree')).toBe(true);
+    });
+
+    it('should not flag paths outside .saga/', () => {
+      expect(isSagaPath('/project/worktree/src/file.ts', '/project/worktree')).toBe(false);
+      expect(isSagaPath('/project/worktree/package.json', '/project/worktree')).toBe(false);
+    });
+  });
+
+  describe('isJournalPath', () => {
+    it('should match the journal of the assigned story', () => {
+      expect(
+        isJournalPath(
+          '/project/worktree/.saga/stories/my-story/journal.md',
+          '/project/worktree',
+          'my-story',
+        ),
+      ).toBe(true);
+    });
+
+    it('should not match journal of another story', () => {
+      expect(
+        isJournalPath(
+          '/project/worktree/.saga/stories/other-story/journal.md',
+          '/project/worktree',
+          'my-story',
+        ),
+      ).toBe(false);
+    });
+
+    it('should not match non-journal files', () => {
+      expect(
+        isJournalPath(
+          '/project/worktree/.saga/stories/my-story/story.json',
+          '/project/worktree',
+          'my-story',
+        ),
+      ).toBe(false);
+    });
+  });
+
   describe('validatePath', () => {
     it('should allow valid paths within worktree', () => {
       expect(
@@ -267,6 +333,120 @@ describe('scope-validator', () => {
         { storyId: 'auth-setup-db' },
       );
       expect(result).toContain('Access to other story blocked');
+    });
+
+    describe('.saga write immutability', () => {
+      it('should block Write to story.json in .saga/', () => {
+        const result = validatePath(
+          '/project/worktree/.saga/stories/auth-setup-db/story.json',
+          '/project/worktree',
+          { storyId: 'auth-setup-db' },
+          'Write',
+        );
+        expect(result).toContain('.saga write blocked');
+      });
+
+      it('should block Edit to task files in .saga/', () => {
+        const result = validatePath(
+          '/project/worktree/.saga/stories/auth-setup-db/t1.json',
+          '/project/worktree',
+          { storyId: 'auth-setup-db' },
+          'Edit',
+        );
+        expect(result).toContain('.saga write blocked');
+      });
+
+      it('should allow Write to journal.md of assigned story', () => {
+        expect(
+          validatePath(
+            '/project/worktree/.saga/stories/auth-setup-db/journal.md',
+            '/project/worktree',
+            { storyId: 'auth-setup-db' },
+            'Write',
+          ),
+        ).toBeNull();
+      });
+
+      it('should allow Edit to journal.md of assigned story', () => {
+        expect(
+          validatePath(
+            '/project/worktree/.saga/stories/auth-setup-db/journal.md',
+            '/project/worktree',
+            { storyId: 'auth-setup-db' },
+            'Edit',
+          ),
+        ).toBeNull();
+      });
+
+      it('should allow Read of any .saga file (not a write tool)', () => {
+        expect(
+          validatePath(
+            '/project/worktree/.saga/stories/auth-setup-db/story.json',
+            '/project/worktree',
+            { storyId: 'auth-setup-db' },
+            'Read',
+          ),
+        ).toBeNull();
+      });
+
+      it('should allow Glob/Grep on .saga paths (not write tools)', () => {
+        expect(
+          validatePath(
+            '/project/worktree/.saga/stories/auth-setup-db',
+            '/project/worktree',
+            { storyId: 'auth-setup-db' },
+            'Glob',
+          ),
+        ).toBeNull();
+        expect(
+          validatePath(
+            '/project/worktree/.saga/stories/auth-setup-db',
+            '/project/worktree',
+            { storyId: 'auth-setup-db' },
+            'Grep',
+          ),
+        ).toBeNull();
+      });
+
+      it('should block Write to another story journal.md', () => {
+        const result = validatePath(
+          '/project/worktree/.saga/stories/other-story/journal.md',
+          '/project/worktree',
+          { storyId: 'auth-setup-db' },
+          'Write',
+        );
+        expect(result).toContain('Access to other story blocked');
+      });
+
+      it('should block Read of another story journal.md', () => {
+        const result = validatePath(
+          '/project/worktree/.saga/stories/other-story/journal.md',
+          '/project/worktree',
+          { storyId: 'auth-setup-db' },
+          'Read',
+        );
+        expect(result).toContain('Access to other story blocked');
+      });
+
+      it('should block Write to epic files in .saga/', () => {
+        const result = validatePath(
+          '/project/worktree/.saga/epics/my-epic.json',
+          '/project/worktree',
+          { storyId: 'auth-setup-db' },
+          'Write',
+        );
+        expect(result).toContain('.saga write blocked');
+      });
+
+      it('should still work without toolName (backward compat)', () => {
+        expect(
+          validatePath(
+            '/project/worktree/.saga/stories/auth-setup-db/story.json',
+            '/project/worktree',
+            { storyId: 'auth-setup-db' },
+          ),
+        ).toBeNull();
+      });
     });
   });
 });

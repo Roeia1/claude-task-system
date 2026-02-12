@@ -13248,6 +13248,7 @@ var EXIT_BLOCKED = 2;
 var FILE_PATH_WIDTH = 50;
 var SCOPE_VALUE_WIDTH = 43;
 var REASON_WIDTH = 56;
+var WRITE_TOOLS = /* @__PURE__ */ new Set(["Write", "Edit"]);
 function getFilePathFromInput(hookInput) {
   try {
     const data = JSON.parse(hookInput);
@@ -13257,11 +13258,31 @@ function getFilePathFromInput(hookInput) {
     return null;
   }
 }
+function getToolNameFromInput(hookInput) {
+  try {
+    const data = JSON.parse(hookInput);
+    return data.tool_name || null;
+  } catch {
+    return null;
+  }
+}
 function normalizePath(path) {
   if (path.startsWith("./")) {
     return path.slice(2);
   }
   return path;
+}
+function isSagaPath(filePath, worktreePath) {
+  const absoluteFilePath = resolve(filePath);
+  const absoluteWorktree = resolve(worktreePath);
+  const rel = relative(absoluteWorktree, absoluteFilePath);
+  return rel === ".saga" || rel.startsWith(".saga/");
+}
+function isJournalPath(filePath, worktreePath, storyId) {
+  const absoluteFilePath = resolve(filePath);
+  const absoluteWorktree = resolve(worktreePath);
+  const rel = relative(absoluteWorktree, absoluteFilePath);
+  return rel === `.saga/stories/${storyId}/journal.md`;
 }
 function isArchiveAccess(path) {
   return path.includes(".saga/archive");
@@ -13359,7 +13380,7 @@ function getScopeEnvironment() {
   }
   return { storyId, worktreePath };
 }
-function validatePath(filePath, worktreePath, scope) {
+function validatePath(filePath, worktreePath, scope, toolName) {
   const normPath = normalizePath(filePath);
   if (!isWithinWorktree(normPath, worktreePath)) {
     return "Access outside worktree blocked\nReason: Workers can only access files within their assigned worktree directory.";
@@ -13369,6 +13390,9 @@ function validatePath(filePath, worktreePath, scope) {
   }
   if (!checkStoryAccessById(normPath, scope.storyId)) {
     return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
+  }
+  if (toolName && WRITE_TOOLS.has(toolName) && isSagaPath(normPath, worktreePath) && !isJournalPath(normPath, worktreePath, scope.storyId)) {
+    return ".saga write blocked\nReason: Only journal.md is writable inside the .saga directory. All other .saga files are immutable during execution.";
   }
   return null;
 }
@@ -13382,8 +13406,9 @@ async function main() {
   if (!filePath) {
     process6.exit(EXIT_ALLOWED);
   }
+  const toolName = getToolNameFromInput(toolInput);
   const { worktreePath, ...scope } = env;
-  const violation = validatePath(filePath, worktreePath, scope);
+  const violation = validatePath(filePath, worktreePath, scope, toolName ?? void 0);
   if (violation) {
     printScopeViolation(filePath, scope, worktreePath, violation);
     process6.exit(EXIT_BLOCKED);
@@ -13399,12 +13424,13 @@ if (isDirectExecution) {
 function createScopeValidatorHook(worktreePath, storyId) {
   return (_input, _toolUseID, _options) => {
     const hookInput = _input;
+    const toolName = hookInput.tool_name;
     const toolInput = hookInput.tool_input ?? {};
     const filePath = toolInput.file_path || toolInput.path;
     if (!filePath) {
       return Promise.resolve({ continue: true });
     }
-    const violation = validatePath(filePath, worktreePath, { storyId });
+    const violation = validatePath(filePath, worktreePath, { storyId }, toolName);
     if (violation) {
       return Promise.resolve({
         hookSpecificOutput: {
