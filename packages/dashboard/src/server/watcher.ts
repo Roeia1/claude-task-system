@@ -1,12 +1,18 @@
 /**
  * File Watcher Module
  *
- * Watches .saga/epics/ and .saga/archive/ directories for file changes
+ * Watches .saga/stories/ and .saga/epics/ directories for file changes
  * using chokidar. Emits events for epic and story changes.
+ *
+ * Path structure:
+ *   .saga/stories/<story-id>/story.json     → story:added/changed/removed
+ *   .saga/stories/<story-id>/<task-id>.json  → story:changed
+ *   .saga/stories/<story-id>/journal.md      → story:changed
+ *   .saga/epics/<epic-id>.json               → epic:added/changed/removed
  */
 
 import { EventEmitter } from 'node:events';
-import { join, relative, sep } from 'node:path';
+import { basename, extname, join, relative, sep } from 'node:path';
 import process from 'node:process';
 import chokidar, { type FSWatcher } from 'chokidar';
 
@@ -14,17 +20,14 @@ import chokidar, { type FSWatcher } from 'chokidar';
 // Constants
 // ============================================================================
 
-/** Minimum number of path parts required for a valid .saga path */
-const MIN_PATH_PARTS = 4;
+/** Number of path parts for an epic file: .saga/epics/<epic-id>.json */
+const EPIC_PATH_PARTS = 3;
 
-/** Number of path parts for an archive story file: .saga/archive/<epic>/<story>/<file> */
-const ARCHIVE_STORY_PARTS = 5;
+/** Number of path parts for a story file: .saga/stories/<story-id>/<file> */
+const STORY_PATH_PARTS = 4;
 
-/** Number of path parts for an epic file: .saga/epics/<epic>/epic.md */
-const EPIC_FILE_PARTS = 4;
-
-/** Number of path parts for a story file: .saga/epics/<epic>/stories/<story>/<file> */
-const STORY_FILE_PARTS = 6;
+/** Minimum number of path parts for a valid .saga path */
+const MIN_PATH_PARTS = 3;
 
 /** Debounce delay in milliseconds for file events */
 const DEBOUNCE_DELAY_MS = 100;
@@ -58,9 +61,8 @@ type WatcherEventType =
  */
 interface WatcherEvent {
   type: WatcherEventType;
-  epicSlug: string;
-  storySlug?: string;
-  archived?: boolean;
+  epicId?: string;
+  storyId?: string;
   path: string;
 }
 
@@ -97,36 +99,27 @@ interface SagaWatcher {
  * Parsed file information from a .saga path
  */
 interface ParsedFileInfo {
-  epicSlug: string;
-  storySlug?: string;
-  archived: boolean;
+  epicId?: string;
+  storyId?: string;
   isEpicFile: boolean;
   isStoryFile: boolean;
-  isMainStoryFile: boolean; // true for story.md, false for journal.md
+  isMainStoryFile: boolean;
 }
 
 /**
- * Check if a filename is a valid story-related markdown file
+ * Parse an epics path: .saga/epics/<epic-id>.json
  */
-function isStoryMarkdownFile(fileName: string): boolean {
-  return fileName === 'story.md' || fileName === 'journal.md';
-}
-
-/**
- * Parse an archive path: .saga/archive/<epic-slug>/<story-slug>/<file>
- */
-function parseArchivePath(parts: string[], epicSlug: string): ParsedFileInfo | null {
-  if (parts.length >= ARCHIVE_STORY_PARTS) {
-    const storySlug = parts[3];
-    const fileName = parts[4];
-    if (isStoryMarkdownFile(fileName)) {
+function parseEpicsPath(parts: string[]): ParsedFileInfo | null {
+  // Epic file: .saga/epics/<epic-id>.json
+  if (parts.length === EPIC_PATH_PARTS) {
+    const fileName = parts[2];
+    if (extname(fileName) === '.json') {
+      const epicId = basename(fileName, '.json');
       return {
-        epicSlug,
-        storySlug,
-        archived: true,
-        isEpicFile: false,
-        isStoryFile: true,
-        isMainStoryFile: fileName === 'story.md',
+        epicId,
+        isEpicFile: true,
+        isStoryFile: false,
+        isMainStoryFile: false,
       };
     }
   }
@@ -134,36 +127,44 @@ function parseArchivePath(parts: string[], epicSlug: string): ParsedFileInfo | n
 }
 
 /**
- * Parse an epics path: .saga/epics/<epic-slug>/...
+ * Parse a stories path: .saga/stories/<story-id>/<file>
  */
-function parseEpicsPath(parts: string[], epicSlug: string): ParsedFileInfo | null {
-  // Epic file: .saga/epics/<epic-slug>/epic.md
-  if (parts.length === EPIC_FILE_PARTS && parts[3] === 'epic.md') {
-    return {
-      epicSlug,
-      archived: false,
-      isEpicFile: true,
-      isStoryFile: false,
-      isMainStoryFile: false,
-    };
-  }
+function parseStoriesPath(parts: string[]): ParsedFileInfo | null {
+  // Story files: .saga/stories/<story-id>/<file>
+  if (parts.length === STORY_PATH_PARTS) {
+    const storyId = parts[2];
+    const fileName = parts[3];
 
-  // Story file: .saga/epics/<epic-slug>/stories/<story-slug>/<file>
-  if (parts.length >= STORY_FILE_PARTS && parts[3] === 'stories') {
-    const storySlug = parts[4];
-    const fileName = parts[5];
-    if (isStoryMarkdownFile(fileName)) {
+    // story.json is the main story file
+    if (fileName === 'story.json') {
       return {
-        epicSlug,
-        storySlug,
-        archived: false,
+        storyId,
         isEpicFile: false,
         isStoryFile: true,
-        isMainStoryFile: fileName === 'story.md',
+        isMainStoryFile: true,
+      };
+    }
+
+    // journal.md is a story-related file
+    if (fileName === 'journal.md') {
+      return {
+        storyId,
+        isEpicFile: false,
+        isStoryFile: true,
+        isMainStoryFile: false,
+      };
+    }
+
+    // <task-id>.json files are task files (trigger story:changed)
+    if (extname(fileName) === '.json') {
+      return {
+        storyId,
+        isEpicFile: false,
+        isStoryFile: true,
+        isMainStoryFile: false,
       };
     }
   }
-
   return null;
 }
 
@@ -178,15 +179,13 @@ function parseFilePath(filePath: string, sagaRoot: string): ParsedFileInfo | nul
     return null;
   }
 
-  const epicSlug = parts[2];
-  const isArchive = parts[1] === 'archive';
-  const isEpics = parts[1] === 'epics';
+  const section = parts[1];
 
-  if (isArchive) {
-    return parseArchivePath(parts, epicSlug);
+  if (section === 'epics') {
+    return parseEpicsPath(parts);
   }
-  if (isEpics) {
-    return parseEpicsPath(parts, epicSlug);
+  if (section === 'stories') {
+    return parseStoriesPath(parts);
   }
   return null;
 }
@@ -247,11 +246,11 @@ function getStoryEventType(
   eventType: 'add' | 'change' | 'unlink',
   isMainStoryFile: boolean,
 ): WatcherEventType {
-  // journal.md changes are always story:changed
+  // Non-main files (journal.md, task files) are always story:changed
   if (!isMainStoryFile) {
     return 'story:changed';
   }
-  // story.md: add/unlink triggers story:added/removed
+  // story.json: add/unlink triggers story:added/removed
   if (eventType === 'add') {
     return 'story:added';
   }
@@ -281,8 +280,10 @@ function determineEventType(
  * Create a debounce key for the parsed file info
  */
 function createDebounceKey(parsed: ParsedFileInfo): string {
-  const { epicSlug, storySlug, archived } = parsed;
-  return storySlug ? `story:${epicSlug}:${storySlug}:${archived}` : `epic:${epicSlug}`;
+  if (parsed.storyId) {
+    return `story:${parsed.storyId}`;
+  }
+  return `epic:${parsed.epicId}`;
 }
 
 // ============================================================================
@@ -293,12 +294,12 @@ function createDebounceKey(parsed: ParsedFileInfo): string {
  * Create a chokidar watcher for .saga directories
  */
 function createChokidarWatcher(sagaRoot: string): FSWatcher {
+  const storiesDir = join(sagaRoot, '.saga', 'stories');
   const epicsDir = join(sagaRoot, '.saga', 'epics');
-  const archiveDir = join(sagaRoot, '.saga', 'archive');
 
   const usePolling = shouldUsePolling();
 
-  return chokidar.watch([epicsDir, archiveDir], {
+  return chokidar.watch([storiesDir, epicsDir], {
     persistent: true,
     ignoreInitial: true,
     // Use polling for tests (reliable) or native watching for production (fast)
@@ -339,9 +340,8 @@ function createFileEventHandler(
 
     const event: WatcherEvent = {
       type: watcherEventType,
-      epicSlug: parsed.epicSlug,
-      storySlug: parsed.storySlug,
-      archived: parsed.archived,
+      epicId: parsed.epicId,
+      storyId: parsed.storyId,
       path: relative(sagaRoot, filePath),
     };
 

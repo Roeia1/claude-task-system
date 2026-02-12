@@ -69,3 +69,34 @@
 
 **Next steps:**
 - t4: Update file watcher paths and event parsing
+
+## Session: 2026-02-13T01:08
+
+### Task: t4 - Update file watcher paths and event parsing
+
+**What was done:**
+- Rewrote `packages/dashboard/src/server/watcher.ts` to watch new path structure:
+  - Changed watched directories from `['.saga/epics/', '.saga/archive/']` to `['.saga/stories/', '.saga/epics/']`
+  - `.saga/stories/<story-id>/story.json` → `story:added/changed/removed` events
+  - `.saga/stories/<story-id>/<task-id>.json` → `story:changed` events (task changes trigger story refresh)
+  - `.saga/stories/<story-id>/journal.md` → `story:changed` events
+  - `.saga/epics/<epic-id>.json` → `epic:added/changed/removed` events
+- Updated `WatcherEvent` interface: replaced `epicSlug/storySlug/archived` with `epicId?/storyId?`
+- Removed archive path handling (`parseArchivePath`, `isStoryMarkdownFile`)
+- Removed old path constants (`MIN_PATH_PARTS`, `ARCHIVE_STORY_PARTS`, `EPIC_FILE_PARTS`, `STORY_FILE_PARTS`)
+- Updated `parseFilePath()` to handle new flat structure (stories are `.saga/stories/<id>/<file>`, epics are `.saga/epics/<id>.json`)
+- Updated `parseEpicsPath()` to detect `<epic-id>.json` files (3-part path) instead of `<epic-slug>/epic.md` (4-part path)
+- Added `parseStoriesPath()` for `.saga/stories/<story-id>/<file>` detection (JSON + journal.md)
+- Updated debounce keys from `story:${epicSlug}:${storySlug}:${archived}` to `story:${storyId}` and `epic:${epicSlug}` to `epic:${epicId}`
+- Wrote 21 new tests covering: story.json changes, task JSON changes, journal.md changes, epic JSON changes, add/remove events, debouncing, file filtering (ignore .txt), field naming assertions (storyId not storySlug), error handling, close behavior
+- All 21 watcher tests pass
+- Full suite: 5 files still fail (same as before: cli, dashboard, routes, integration, websocket — tasks t5-t11)
+
+**Decisions:**
+- Task JSON file changes emit `story:changed` (not separate task events) since status derivation depends on task states — the story must be re-read when any task changes
+- `story:added`/`story:removed` only fire for `story.json` add/unlink; task and journal changes always fire `story:changed`
+- Ignored files that aren't `.json` or `journal.md` in story directories (e.g., `.txt` files)
+- The `websocket.ts` module still references old `epicSlug`/`storySlug`/`archived` fields from `WatcherEvent` — this will be fixed in subsequent tasks (t5/t10)
+
+**Next steps:**
+- t5: Update REST API routes for new data model
