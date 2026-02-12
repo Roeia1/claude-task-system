@@ -3,6 +3,7 @@
  *
  * Tests for the WebSocket-based log streaming infrastructure
  * that manages file watchers and subscriptions for real-time log delivery.
+ * Updated for JSONL-based message parsing.
  */
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -18,6 +19,12 @@ const WATCHER_INIT_DELAY_MS = 100;
 /** Test timeout for long-running tests in ms */
 const LONG_TEST_TIMEOUT_MS = 10_000;
 
+/** Number of JSONL lines in the standard test content */
+const STANDARD_JSONL_LINE_COUNT = 3;
+
+/** Number of valid JSONL messages when content includes invalid lines */
+const VALID_MESSAGES_WITH_INVALID_LINES = 2;
+
 /**
  * Create a mock WebSocket instance for testing
  */
@@ -31,6 +38,44 @@ function createMockWebSocket(): WebSocket {
     terminate: vi.fn(),
   } as unknown as WebSocket;
 }
+
+/** Sample JSONL messages for testing */
+const sampleMessages = {
+  pipelineStart: JSON.stringify({
+    type: 'saga_worker',
+    subtype: 'pipeline_start',
+    timestamp: '2026-02-13T01:00:00Z',
+    storyId: 'test-story',
+  }),
+  pipelineStep: JSON.stringify({
+    type: 'saga_worker',
+    subtype: 'pipeline_step',
+    timestamp: '2026-02-13T01:00:01Z',
+    step: 1,
+    message: 'Running tests',
+  }),
+  pipelineEnd: JSON.stringify({
+    type: 'saga_worker',
+    subtype: 'pipeline_end',
+    timestamp: '2026-02-13T01:00:02Z',
+    storyId: 'test-story',
+    status: 'completed',
+    exitCode: 0,
+    cycles: 3,
+    elapsedMinutes: 5,
+  }),
+  cycleStart: JSON.stringify({
+    type: 'saga_worker',
+    subtype: 'cycle_start',
+    timestamp: '2026-02-13T01:00:01Z',
+    cycle: 1,
+    maxCycles: 5,
+  }),
+  sdkAssistant: JSON.stringify({
+    type: 'assistant',
+    message: { role: 'assistant', content: 'Hello' },
+  }),
+};
 
 describe('LogStreamManager', () => {
   let manager: LogStreamManager;
@@ -58,7 +103,6 @@ describe('LogStreamManager', () => {
     });
 
     it('should initialize with empty internal state', () => {
-      // A fresh manager should have no subscriptions
       const _ws = createMockWebSocket();
       expect(manager.getSubscriptionCount('test-session')).toBe(0);
       expect(manager.hasWatcher('test-session')).toBe(false);
@@ -74,10 +118,10 @@ describe('LogStreamManager', () => {
       expect(typeof manager.hasWatcher).toBe('function');
     });
 
-    it('should expose method to get file position for a session', () => {
-      expect(typeof manager.getFilePosition).toBe('function');
-      // Fresh manager should return 0 or undefined for unknown session
-      expect(manager.getFilePosition('unknown-session')).toBe(0);
+    it('should expose method to get line count for a session', () => {
+      expect(typeof manager.getLineCount).toBe('function');
+      // Fresh manager should return 0 for unknown session
+      expect(manager.getLineCount('unknown-session')).toBe(0);
     });
   });
 
@@ -95,18 +139,16 @@ describe('LogStreamManager', () => {
 
   describe('subscribe', () => {
     const testSessionName = 'test-subscribe-session';
-    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
-    const testContent = 'Line 1\nLine 2\nLine 3\n';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.jsonl`);
+    const testJsonlContent = `${sampleMessages.pipelineStart}\n${sampleMessages.pipelineStep}\n${sampleMessages.cycleStart}\n`;
 
     beforeEach(() => {
-      // Ensure output directory exists
       if (!existsSync(OUTPUT_DIR)) {
         mkdirSync(OUTPUT_DIR, { recursive: true });
       }
     });
 
     afterEach(() => {
-      // Clean up test file
       if (existsSync(testOutputFile)) {
         rmSync(testOutputFile);
       }
@@ -118,17 +160,16 @@ describe('LogStreamManager', () => {
 
     it('should return a promise from subscribe', async () => {
       const ws = createMockWebSocket();
-      // Create test file first
-      writeFileSync(testOutputFile, testContent);
+      writeFileSync(testOutputFile, testJsonlContent);
 
       const result = manager.subscribe(testSessionName, ws);
       expect(result).toBeInstanceOf(Promise);
       await result;
     });
 
-    it('should send initial file content with isInitial=true when subscribing', async () => {
+    it('should send initial parsed JSONL messages with isInitial=true when subscribing', async () => {
       const ws = createMockWebSocket();
-      writeFileSync(testOutputFile, testContent);
+      writeFileSync(testOutputFile, testJsonlContent);
 
       await manager.subscribe(testSessionName, ws);
 
@@ -136,14 +177,19 @@ describe('LogStreamManager', () => {
       const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
       expect(message.type).toBe('logs:data');
       expect(message.sessionName).toBe(testSessionName);
-      expect(message.data).toBe(testContent);
       expect(message.isInitial).toBe(true);
       expect(message.isComplete).toBe(false);
+      // Messages should be an array of parsed JSON objects
+      expect(Array.isArray(message.messages)).toBe(true);
+      expect(message.messages).toHaveLength(STANDARD_JSONL_LINE_COUNT);
+      expect(message.messages[0]).toEqual(JSON.parse(sampleMessages.pipelineStart));
+      expect(message.messages[1]).toEqual(JSON.parse(sampleMessages.pipelineStep));
+      expect(message.messages[2]).toEqual(JSON.parse(sampleMessages.cycleStart));
     });
 
     it('should add client to subscription set after subscribing', async () => {
       const ws = createMockWebSocket();
-      writeFileSync(testOutputFile, testContent);
+      writeFileSync(testOutputFile, testJsonlContent);
 
       expect(manager.getSubscriptionCount(testSessionName)).toBe(0);
       await manager.subscribe(testSessionName, ws);
@@ -153,7 +199,7 @@ describe('LogStreamManager', () => {
     it('should allow multiple clients to subscribe to the same session', async () => {
       const ws1 = createMockWebSocket();
       const ws2 = createMockWebSocket();
-      writeFileSync(testOutputFile, testContent);
+      writeFileSync(testOutputFile, testJsonlContent);
 
       await manager.subscribe(testSessionName, ws1);
       await manager.subscribe(testSessionName, ws2);
@@ -183,41 +229,62 @@ describe('LogStreamManager', () => {
       expect(manager.getSubscriptionCount(nonExistentSession)).toBe(0);
     });
 
-    it('should track file position after initial read', async () => {
+    it('should track line count after initial read', async () => {
       const ws = createMockWebSocket();
-      writeFileSync(testOutputFile, testContent);
+      writeFileSync(testOutputFile, testJsonlContent);
 
       await manager.subscribe(testSessionName, ws);
 
-      // File position should be at end of file (length of content)
-      expect(manager.getFilePosition(testSessionName)).toBe(testContent.length);
+      // Line count should match the number of JSONL lines in test content
+      expect(manager.getLineCount(testSessionName)).toBe(STANDARD_JSONL_LINE_COUNT);
     });
 
     it('should send content to the specific client via sendToClient function', async () => {
       const ws = createMockWebSocket();
-      writeFileSync(testOutputFile, testContent);
+      writeFileSync(testOutputFile, testJsonlContent);
 
       await manager.subscribe(testSessionName, ws);
 
       // First argument to sendToClient should be the WebSocket
       expect(broadcastFn.mock.calls[0][0]).toBe(ws);
     });
+
+    it('should skip empty lines in JSONL file', async () => {
+      const ws = createMockWebSocket();
+      const contentWithEmptyLines = `${sampleMessages.pipelineStart}\n\n${sampleMessages.pipelineStep}\n\n`;
+      writeFileSync(testOutputFile, contentWithEmptyLines);
+
+      await manager.subscribe(testSessionName, ws);
+
+      const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
+      expect(message.messages).toHaveLength(VALID_MESSAGES_WITH_INVALID_LINES);
+    });
+
+    it('should handle invalid JSON lines gracefully', async () => {
+      const ws = createMockWebSocket();
+      const contentWithBadLine = `${sampleMessages.pipelineStart}\nnot valid json\n${sampleMessages.pipelineStep}\n`;
+      writeFileSync(testOutputFile, contentWithBadLine);
+
+      await manager.subscribe(testSessionName, ws);
+
+      const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
+      // Invalid JSON lines should be skipped
+      expect(message.messages).toHaveLength(VALID_MESSAGES_WITH_INVALID_LINES);
+    });
   });
 
   describe('unsubscribe', () => {
     const testSessionName = 'test-unsubscribe-session';
-    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
-    const testContent = 'Unsubscribe test content\n';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.jsonl`);
+    const testContent = `${sampleMessages.pipelineStart}\n`;
 
     beforeEach(() => {
-      // Ensure output directory exists
       if (!existsSync(OUTPUT_DIR)) {
         mkdirSync(OUTPUT_DIR, { recursive: true });
       }
     });
 
     afterEach(() => {
-      // Clean up test file
       if (existsSync(testOutputFile)) {
         rmSync(testOutputFile);
       }
@@ -240,7 +307,6 @@ describe('LogStreamManager', () => {
 
     it('should not error when unsubscribing from a session not subscribed to', () => {
       const ws = createMockWebSocket();
-      // Should not throw
       expect(() => manager.unsubscribe('unknown-session', ws)).not.toThrow();
     });
 
@@ -263,7 +329,6 @@ describe('LogStreamManager', () => {
       writeFileSync(testOutputFile, testContent);
 
       await manager.subscribe(testSessionName, ws1);
-      // ws2 was never subscribed to this session
       expect(() => manager.unsubscribe(testSessionName, ws2)).not.toThrow();
       expect(manager.getSubscriptionCount(testSessionName)).toBe(1);
     });
@@ -272,19 +337,17 @@ describe('LogStreamManager', () => {
   describe('handleClientDisconnect', () => {
     const testSession1 = 'test-disconnect-session-1';
     const testSession2 = 'test-disconnect-session-2';
-    const testOutputFile1 = join(OUTPUT_DIR, `${testSession1}.out`);
-    const testOutputFile2 = join(OUTPUT_DIR, `${testSession2}.out`);
-    const testContent = 'Disconnect test content\n';
+    const testOutputFile1 = join(OUTPUT_DIR, `${testSession1}.jsonl`);
+    const testOutputFile2 = join(OUTPUT_DIR, `${testSession2}.jsonl`);
+    const testContent = `${sampleMessages.pipelineStart}\n`;
 
     beforeEach(() => {
-      // Ensure output directory exists
       if (!existsSync(OUTPUT_DIR)) {
         mkdirSync(OUTPUT_DIR, { recursive: true });
       }
     });
 
     afterEach(() => {
-      // Clean up test files
       if (existsSync(testOutputFile1)) {
         rmSync(testOutputFile1);
       }
@@ -302,7 +365,6 @@ describe('LogStreamManager', () => {
       writeFileSync(testOutputFile1, testContent);
       writeFileSync(testOutputFile2, testContent);
 
-      // Subscribe client to two sessions
       await manager.subscribe(testSession1, ws);
       await manager.subscribe(testSession2, ws);
       expect(manager.getSubscriptionCount(testSession1)).toBe(1);
@@ -334,18 +396,16 @@ describe('LogStreamManager', () => {
 
   describe('file watcher (createWatcher)', () => {
     const testSessionName = 'test-watcher-session';
-    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
-    const testContent = 'Initial watcher test content\n';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.jsonl`);
+    const testContent = `${sampleMessages.pipelineStart}\n`;
 
     beforeEach(() => {
-      // Ensure output directory exists
       if (!existsSync(OUTPUT_DIR)) {
         mkdirSync(OUTPUT_DIR, { recursive: true });
       }
     });
 
     afterEach(() => {
-      // Clean up test file
       if (existsSync(testOutputFile)) {
         rmSync(testOutputFile);
       }
@@ -371,13 +431,12 @@ describe('LogStreamManager', () => {
       await manager.subscribe(testSessionName, ws2);
       const watcherCreatedAfterSecond = manager.hasWatcher(testSessionName);
 
-      // Both should be true (watcher exists), but only one watcher should exist
       expect(watcherCreatedAfterFirst).toBe(true);
       expect(watcherCreatedAfterSecond).toBe(true);
     });
 
     it(
-      'should detect file changes via watcher',
+      'should detect file changes and send new JSONL messages via watcher',
       async () => {
         const ws = createMockWebSocket();
         writeFileSync(testOutputFile, testContent);
@@ -390,12 +449,11 @@ describe('LogStreamManager', () => {
         // Clear the initial content message
         broadcastFn.mockClear();
 
-        // Write new content to file (simulate append)
-        const newContent = 'New appended line\n';
+        // Append new JSONL line
         const { appendFileSync } = await import('node:fs');
-        appendFileSync(testOutputFile, newContent);
+        appendFileSync(testOutputFile, `${sampleMessages.pipelineStep}\n`);
 
-        // Wait for watcher to detect change and trigger callback using vi.waitFor
+        // Wait for watcher to detect change
         await vi.waitFor(
           () => {
             expect(broadcastFn.mock.calls.length).toBeGreaterThan(0);
@@ -403,15 +461,17 @@ describe('LogStreamManager', () => {
           { timeout: LONG_TEST_TIMEOUT_MS, interval: WATCHER_INIT_DELAY_MS },
         );
 
-        // Should have received an incremental update
-        expect(broadcastFn).toHaveBeenCalled();
+        // Should have received an incremental update with parsed messages
         const calls = broadcastFn.mock.calls;
         const lastMessage = calls.at(-1)[1] as LogsDataMessage;
         expect(lastMessage.type).toBe('logs:data');
         expect(lastMessage.isInitial).toBe(false);
+        expect(Array.isArray(lastMessage.messages)).toBe(true);
+        expect(lastMessage.messages.length).toBeGreaterThan(0);
+        expect(lastMessage.messages[0]).toEqual(JSON.parse(sampleMessages.pipelineStep));
       },
       LONG_TEST_TIMEOUT_MS,
-    ); // Increase test timeout to 10 seconds
+    );
 
     it('should close watcher when dispose is called', async () => {
       const ws = createMockWebSocket();
@@ -425,20 +485,18 @@ describe('LogStreamManager', () => {
     });
   });
 
-  describe('watcher cleanup with reference counting (t6)', () => {
+  describe('watcher cleanup with reference counting', () => {
     const testSessionName = 'test-cleanup-session';
-    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
-    const testContent = 'Cleanup test content\n';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.jsonl`);
+    const testContent = `${sampleMessages.pipelineStart}\n`;
 
     beforeEach(() => {
-      // Ensure output directory exists
       if (!existsSync(OUTPUT_DIR)) {
         mkdirSync(OUTPUT_DIR, { recursive: true });
       }
     });
 
     afterEach(() => {
-      // Clean up test file
       if (existsSync(testOutputFile)) {
         rmSync(testOutputFile);
       }
@@ -465,7 +523,6 @@ describe('LogStreamManager', () => {
       expect(manager.hasWatcher(testSessionName)).toBe(true);
 
       manager.unsubscribe(testSessionName, ws1);
-      // Watcher should still exist since ws2 is still subscribed
       expect(manager.hasWatcher(testSessionName)).toBe(true);
     });
 
@@ -484,15 +541,15 @@ describe('LogStreamManager', () => {
       expect(manager.hasWatcher(testSessionName)).toBe(false);
     });
 
-    it('should clean up file position when watcher is closed', async () => {
+    it('should clean up line count when watcher is closed', async () => {
       const ws = createMockWebSocket();
       writeFileSync(testOutputFile, testContent);
 
       await manager.subscribe(testSessionName, ws);
-      expect(manager.getFilePosition(testSessionName)).toBe(testContent.length);
+      expect(manager.getLineCount(testSessionName)).toBe(1);
 
       manager.unsubscribe(testSessionName, ws);
-      expect(manager.getFilePosition(testSessionName)).toBe(0);
+      expect(manager.getLineCount(testSessionName)).toBe(0);
     });
 
     it('should close watcher when client disconnects and was the only subscriber', async () => {
@@ -520,7 +577,7 @@ describe('LogStreamManager', () => {
 
     it('should close watchers for all sessions when last subscriber disconnects from each', async () => {
       const testSession2 = 'test-cleanup-session-2';
-      const testOutputFile2 = join(OUTPUT_DIR, `${testSession2}.out`);
+      const testOutputFile2 = join(OUTPUT_DIR, `${testSession2}.jsonl`);
       writeFileSync(testOutputFile, testContent);
       writeFileSync(testOutputFile2, testContent);
 
@@ -534,7 +591,6 @@ describe('LogStreamManager', () => {
       expect(manager.hasWatcher(testSessionName)).toBe(false);
       expect(manager.hasWatcher(testSession2)).toBe(false);
 
-      // Cleanup
       if (existsSync(testOutputFile2)) {
         rmSync(testOutputFile2);
       }
@@ -547,25 +603,22 @@ describe('LogStreamManager', () => {
       await manager.subscribe(testSessionName, ws);
       manager.unsubscribe(testSessionName, ws);
 
-      // Subscription set should be cleaned up
       expect(manager.getSubscriptionCount(testSessionName)).toBe(0);
     });
   });
 
-  describe('notifySessionCompleted (t7)', () => {
+  describe('notifySessionCompleted', () => {
     const testSessionName = 'test-completion-session';
-    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
-    const testContent = 'Session completion test content\n';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.jsonl`);
+    const testContent = `${sampleMessages.pipelineStart}\n`;
 
     beforeEach(() => {
-      // Ensure output directory exists
       if (!existsSync(OUTPUT_DIR)) {
         mkdirSync(OUTPUT_DIR, { recursive: true });
       }
     });
 
     afterEach(() => {
-      // Clean up test file
       if (existsSync(testOutputFile)) {
         rmSync(testOutputFile);
       }
@@ -585,7 +638,7 @@ describe('LogStreamManager', () => {
       await result;
     });
 
-    it('should send final content with isComplete=true when session completes', async () => {
+    it('should send final messages with isComplete=true when session completes', async () => {
       const ws = createMockWebSocket();
       writeFileSync(testOutputFile, testContent);
       await manager.subscribe(testSessionName, ws);
@@ -599,38 +652,38 @@ describe('LogStreamManager', () => {
       expect(message.sessionName).toBe(testSessionName);
       expect(message.isComplete).toBe(true);
       expect(message.isInitial).toBe(false);
+      expect(Array.isArray(message.messages)).toBe(true);
     });
 
-    it('should send any remaining content that was appended after last read', async () => {
+    it('should send any remaining JSONL messages that were appended after last read', async () => {
       const ws = createMockWebSocket();
       writeFileSync(testOutputFile, testContent);
       await manager.subscribe(testSessionName, ws);
 
-      // Append more content without triggering watcher (simulating race condition)
-      const appendedContent = 'Final line\n';
+      // Append more content without triggering watcher
       const { appendFileSync } = await import('node:fs');
-      appendFileSync(testOutputFile, appendedContent);
+      appendFileSync(testOutputFile, `${sampleMessages.pipelineEnd}\n`);
 
       broadcastFn.mockClear();
       await manager.notifySessionCompleted(testSessionName);
 
       expect(broadcastFn).toHaveBeenCalled();
       const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
-      expect(message.data).toBe(appendedContent);
+      expect(message.messages).toHaveLength(1);
+      expect(message.messages[0]).toEqual(JSON.parse(sampleMessages.pipelineEnd));
     });
 
-    it('should send empty data if no new content since last read', async () => {
+    it('should send empty messages array if no new content since last read', async () => {
       const ws = createMockWebSocket();
       writeFileSync(testOutputFile, testContent);
       await manager.subscribe(testSessionName, ws);
       broadcastFn.mockClear();
 
-      // No new content appended
       await manager.notifySessionCompleted(testSessionName);
 
       expect(broadcastFn).toHaveBeenCalled();
       const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
-      expect(message.data).toBe('');
+      expect(message.messages).toEqual([]);
       expect(message.isComplete).toBe(true);
     });
 
@@ -645,15 +698,15 @@ describe('LogStreamManager', () => {
       expect(manager.hasWatcher(testSessionName)).toBe(false);
     });
 
-    it('should clean up file position after session completes', async () => {
+    it('should clean up line count after session completes', async () => {
       const ws = createMockWebSocket();
       writeFileSync(testOutputFile, testContent);
       await manager.subscribe(testSessionName, ws);
-      expect(manager.getFilePosition(testSessionName)).toBe(testContent.length);
+      expect(manager.getLineCount(testSessionName)).toBe(1);
 
       await manager.notifySessionCompleted(testSessionName);
 
-      expect(manager.getFilePosition(testSessionName)).toBe(0);
+      expect(manager.getLineCount(testSessionName)).toBe(0);
     });
 
     it('should clean up subscriptions after session completes', async () => {
@@ -677,15 +730,12 @@ describe('LogStreamManager', () => {
 
       await manager.notifySessionCompleted(testSessionName);
 
-      // Should send to both clients
       expect(broadcastFn).toHaveBeenCalledTimes(2);
 
-      // Verify each client received the message
       const clients = broadcastFn.mock.calls.map((call) => call[0]);
       expect(clients).toContain(ws1);
       expect(clients).toContain(ws2);
 
-      // Verify message content for both
       for (const call of broadcastFn.mock.calls) {
         const message: LogsDataMessage = call[1];
         expect(message.isComplete).toBe(true);
@@ -695,13 +745,11 @@ describe('LogStreamManager', () => {
     it('should not error when notifying completion for session with no subscribers', async () => {
       writeFileSync(testOutputFile, testContent);
 
-      // No subscribers - should not throw
       await expect(manager.notifySessionCompleted(testSessionName)).resolves.not.toThrow();
       expect(broadcastFn).not.toHaveBeenCalled();
     });
 
     it('should not error when notifying completion for non-existent session', async () => {
-      // Session never existed - should not throw
       await expect(manager.notifySessionCompleted('non-existent-session')).resolves.not.toThrow();
       expect(broadcastFn).not.toHaveBeenCalled();
     });
@@ -711,16 +759,82 @@ describe('LogStreamManager', () => {
       writeFileSync(testOutputFile, testContent);
       await manager.subscribe(testSessionName, ws);
 
-      // Delete the file before completion
       rmSync(testOutputFile);
       broadcastFn.mockClear();
 
-      // Should still send completion message (with empty data or error), and cleanup
       await manager.notifySessionCompleted(testSessionName);
 
-      // Should clean up even if file is gone
       expect(manager.hasWatcher(testSessionName)).toBe(false);
       expect(manager.getSubscriptionCount(testSessionName)).toBe(0);
+    });
+  });
+
+  describe('JSONL parsing', () => {
+    const testSessionName = 'test-jsonl-parsing-session';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.jsonl`);
+
+    beforeEach(() => {
+      if (!existsSync(OUTPUT_DIR)) {
+        mkdirSync(OUTPUT_DIR, { recursive: true });
+      }
+    });
+
+    afterEach(() => {
+      if (existsSync(testOutputFile)) {
+        rmSync(testOutputFile);
+      }
+    });
+
+    it('should parse SagaWorkerMessage types correctly', async () => {
+      const ws = createMockWebSocket();
+      const content = `${sampleMessages.pipelineStart}\n${sampleMessages.cycleStart}\n${sampleMessages.pipelineEnd}\n`;
+      writeFileSync(testOutputFile, content);
+
+      await manager.subscribe(testSessionName, ws);
+
+      const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
+      expect(message.messages[0].type).toBe('saga_worker');
+      expect(message.messages[0].subtype).toBe('pipeline_start');
+      expect(message.messages[1].type).toBe('saga_worker');
+      expect(message.messages[1].subtype).toBe('cycle_start');
+      expect(message.messages[2].type).toBe('saga_worker');
+      expect(message.messages[2].subtype).toBe('pipeline_end');
+    });
+
+    it('should parse SDK messages correctly', async () => {
+      const ws = createMockWebSocket();
+      const content = `${sampleMessages.sdkAssistant}\n`;
+      writeFileSync(testOutputFile, content);
+
+      await manager.subscribe(testSessionName, ws);
+
+      const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
+      expect(message.messages).toHaveLength(1);
+      expect(message.messages[0].type).toBe('assistant');
+    });
+
+    it('should handle mixed message types', async () => {
+      const ws = createMockWebSocket();
+      const content = `${sampleMessages.pipelineStart}\n${sampleMessages.sdkAssistant}\n${sampleMessages.pipelineStep}\n`;
+      writeFileSync(testOutputFile, content);
+
+      await manager.subscribe(testSessionName, ws);
+
+      const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
+      expect(message.messages).toHaveLength(STANDARD_JSONL_LINE_COUNT);
+      expect(message.messages[0].type).toBe('saga_worker');
+      expect(message.messages[1].type).toBe('assistant');
+      expect(message.messages[2].type).toBe('saga_worker');
+    });
+
+    it('should handle empty JSONL file', async () => {
+      const ws = createMockWebSocket();
+      writeFileSync(testOutputFile, '');
+
+      await manager.subscribe(testSessionName, ws);
+
+      const message: LogsDataMessage = broadcastFn.mock.calls[0][1];
+      expect(message.messages).toEqual([]);
     });
   });
 });

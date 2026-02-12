@@ -75,8 +75,11 @@ type DashboardEvent =
 /** WebSocket send function type for external access */
 type WebSocketSendFn = (message: object) => void;
 
+/** A parsed JSONL message (SagaWorkerMessage or SDKMessage) */
+type WorkerMessage = Record<string, unknown>;
+
 /** Callback type for log data handlers */
-type LogDataCallback = (data: string, isInitial: boolean, isComplete: boolean) => void;
+type LogDataCallback = (messages: WorkerMessage[], isInitial: boolean, isComplete: boolean) => void;
 
 /** Callback type for log error handlers */
 type LogErrorCallback = (error: string) => void;
@@ -118,7 +121,7 @@ function handleLogMessage(
   messageType: string,
   data: {
     sessionName: string;
-    data?: string;
+    messages?: WorkerMessage[];
     isInitial?: boolean;
     isComplete?: boolean;
     error?: string;
@@ -126,8 +129,8 @@ function handleLogMessage(
 ): void {
   if (messageType === 'logs:data') {
     const callback = logDataCallbacks.get(data.sessionName);
-    if (callback && data.data !== undefined) {
-      callback(data.data, data.isInitial ?? false, data.isComplete ?? false);
+    if (callback && data.messages !== undefined) {
+      callback(data.messages, data.isInitial ?? false, data.isComplete ?? false);
     }
   } else if (messageType === 'logs:error') {
     const callback = logErrorCallbacks.get(data.sessionName);
@@ -643,4 +646,5 @@ export type {
   DashboardMachine,
   LogDataCallback,
   LogErrorCallback,
+  WorkerMessage,
 };

@@ -159,3 +159,46 @@
 
 **Next steps:**
 - t7: Update log streaming for JSONL messages
+
+## Session: 2026-02-13T01:33
+
+### Task: t7 - Update log streaming for JSONL messages
+
+**What was done:**
+- Rewrote `packages/dashboard/src/lib/log-stream-manager.ts` for JSONL-based message delivery:
+  - Changed file extension from `.out` to `.jsonl` in all file path references
+  - Changed `LogsDataMessage` interface: replaced `data: string` with `messages: WorkerMessage[]` (array of parsed JSON objects)
+  - Changed tracking from byte-offset (`filePositions`) to line-count (`lineCounts`) for incremental reads
+  - Added `parseJsonlLines()` helper to parse JSONL content into typed message arrays, skipping empty and invalid lines
+  - Added `countLines()` helper for tracking non-empty line positions
+  - Changed `getFilePosition()` method to `getLineCount()` method
+  - `subscribe()` now reads the JSONL file, parses all lines, and sends `messages: WorkerMessage[]` instead of `data: string`
+  - `sendIncrementalContent()` now reads the full file, extracts lines beyond the last known count, parses them, and sends new messages only
+  - `notifySessionCompleted()` sends any remaining unparsed lines with `isComplete: true`
+  - Exported `WorkerMessage` type (alias for `Record<string, unknown>`)
+- Updated `packages/dashboard/src/client/src/machines/dashboardMachine.ts`:
+  - Changed `LogDataCallback` from `(data: string, isInitial, isComplete)` to `(messages: WorkerMessage[], isInitial, isComplete)`
+  - Changed `handleLogMessage()` to read `data.messages` instead of `data.data`
+  - Added `WorkerMessage` type and exported it
+- Rewrote `packages/dashboard/src/client/src/components/LogViewer.tsx`:
+  - `useLogSubscription` now accumulates `WorkerMessage[]` instead of concatenating strings
+  - Added `formatMessage()` function to render different message types: `saga_worker` subtypes (pipeline_start/step/end, cycle_start/end), `assistant` SDK messages, `result` messages, and raw `text` messages
+  - Added `getMessageClass()` for color-coding: `text-primary` for worker events, `text-success`/`text-danger` for pipeline completion
+  - `VirtualizedLogContent` renders structured messages instead of raw text lines
+  - `parseInitialContent()` handles both JSONL and plain text `initialContent` prop for backward compatibility with existing tests/storybook
+- Rewrote `packages/dashboard/src/lib/log-stream-manager.test.ts` with 56 tests:
+  - All test fixtures use `.jsonl` files with sample JSONL messages (pipeline_start, pipeline_step, pipeline_end, cycle_start, sdk assistant)
+  - Tests verify parsed `messages` array instead of raw `data` string
+  - Tests verify `getLineCount()` tracking instead of `getFilePosition()` byte tracking
+  - Added JSONL parsing tests: SagaWorkerMessage types, SDK messages, mixed types, empty files, invalid JSON lines, empty lines
+  - All 56 tests pass
+- Updated storybook snapshot for LogViewer (class ordering change)
+
+**Decisions:**
+- Used `Record<string, unknown>` as the `WorkerMessage` type rather than a union of `SagaWorkerMessage | SDKMessage`. This keeps the dashboard loosely coupled to the exact message schema — it parses whatever JSON it receives and renders based on the `type` field.
+- `parseInitialContent()` in LogViewer handles both JSONL and plain text to maintain backward compatibility with existing tests and storybook stories. Lines that aren't valid JSON are wrapped as `{type: 'text', content: line}`.
+- The incremental read strategy re-reads the full file and slices by line count (instead of byte offset). This is simpler and avoids partial-line issues with JSONL, at the cost of slightly more I/O. Acceptable since log files are typically small and writes are infrequent.
+- 6 new test failures in `websocket.test.ts` (log streaming tests) are expected — those tests still create `.out` files instead of `.jsonl`. They will be fixed in t11 (update tests and fixtures).
+
+**Next steps:**
+- t8: Update client-side TypeScript types

@@ -6,6 +6,7 @@ import {
   getWebSocketSend,
   subscribeToLogData,
   unsubscribeFromLogData,
+  type WorkerMessage,
 } from '@/machines/dashboardMachine';
 
 interface LogViewerProps {
@@ -27,6 +28,73 @@ const VIRTUALIZER_OVERSCAN = 5;
 
 /** Threshold in pixels for detecting if user is at bottom of scroll container */
 const SCROLL_BOTTOM_THRESHOLD = 50;
+
+/** Format a saga_worker message for display */
+function formatWorkerMessage(msg: WorkerMessage): string {
+  const subtype = msg.subtype as string;
+  switch (subtype) {
+    case 'pipeline_start':
+      return `[Pipeline] Starting execution for story: ${msg.storyId}`;
+    case 'pipeline_step':
+      return `[Pipeline] Step ${msg.step}: ${msg.message}`;
+    case 'pipeline_end': {
+      const status = msg.status === 'completed' ? 'Completed' : 'Incomplete';
+      return `[Pipeline] ${status} - ${msg.cycles} cycles, ${msg.elapsedMinutes}min (exit: ${msg.exitCode})`;
+    }
+    case 'cycle_start':
+      return `[Cycle ${msg.cycle}/${msg.maxCycles}] Starting`;
+    case 'cycle_end':
+      return `[Cycle ${msg.cycle}] Ended${msg.exitCode != null ? ` (exit: ${msg.exitCode})` : ''}`;
+    default:
+      return JSON.stringify(msg);
+  }
+}
+
+/** Format an assistant SDK message for display */
+function formatAssistantMessage(msg: WorkerMessage): string | null {
+  const content =
+    typeof msg.message === 'object' && msg.message !== null
+      ? (msg.message as Record<string, unknown>).content
+      : msg.content;
+  return typeof content === 'string' ? content : null;
+}
+
+/**
+ * Format a WorkerMessage for display
+ */
+function formatMessage(msg: WorkerMessage): string {
+  if (msg.type === 'text') {
+    return (msg.content as string) || '';
+  }
+
+  if (msg.type === 'saga_worker') {
+    return formatWorkerMessage(msg);
+  }
+
+  if (msg.type === 'assistant') {
+    return formatAssistantMessage(msg) ?? JSON.stringify(msg);
+  }
+
+  if (msg.type === 'result' && typeof msg.result === 'string') {
+    return `[Result] ${msg.result}`;
+  }
+
+  return JSON.stringify(msg);
+}
+
+/**
+ * Get CSS class for a message based on its type
+ */
+function getMessageClass(msg: WorkerMessage): string {
+  if (msg.type === 'saga_worker') {
+    const subtype = msg.subtype as string;
+    if (subtype === 'pipeline_end') {
+      return msg.status === 'completed' ? 'text-success' : 'text-danger';
+    }
+    return 'text-primary';
+  }
+  return 'text-text';
+}
 
 /**
  * Status indicator component showing streaming or complete state
@@ -108,16 +176,16 @@ function LogViewerHeader({
 }
 
 /**
- * Virtualized log content displaying log lines efficiently
+ * Virtualized log content displaying structured JSONL messages efficiently
  */
 function VirtualizedLogContent({
   virtualizer,
   virtualItems,
-  lines,
+  messages,
 }: {
   virtualizer: Virtualizer<HTMLDivElement, Element>;
   virtualItems: VirtualItem[];
-  lines: string[];
+  messages: WorkerMessage[];
 }) {
   return (
     <div
@@ -129,17 +197,20 @@ function VirtualizedLogContent({
         className="absolute top-0 left-0 w-full px-4"
         style={{ transform: `translateY(${virtualItems[0]?.start ?? 0}px)` }}
       >
-        {virtualItems.map((virtualItem) => (
-          <div
-            key={virtualItem.key}
-            data-testid="log-line"
-            data-index={virtualItem.index}
-            className="text-text leading-relaxed"
-            style={{ height: `${ESTIMATED_LINE_HEIGHT}px` }}
-          >
-            {lines[virtualItem.index] || '\u00A0'}
-          </div>
-        ))}
+        {virtualItems.map((virtualItem) => {
+          const msg = messages[virtualItem.index];
+          return (
+            <div
+              key={virtualItem.key}
+              data-testid="log-line"
+              data-index={virtualItem.index}
+              className={`leading-relaxed ${msg ? getMessageClass(msg) : 'text-text'}`}
+              style={{ height: `${ESTIMATED_LINE_HEIGHT}px` }}
+            >
+              {msg ? formatMessage(msg) : '\u00A0'}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -177,10 +248,11 @@ function LogViewerError({ error }: { error: string }) {
 
 /**
  * Custom hook for managing WebSocket log subscription
- * Subscribes to logs on mount, unsubscribes on unmount or sessionName change
+ * Subscribes to logs on mount, unsubscribes on unmount or sessionName change.
+ * Accumulates WorkerMessage[] arrays from the server.
  */
 function useLogSubscription(sessionName: string, outputAvailable: boolean) {
-  const [content, setContent] = useState<string>('');
+  const [messages, setMessages] = useState<WorkerMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [streamComplete, setStreamComplete] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -197,17 +269,15 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
       return;
     }
 
-    // Register callback to receive log data for this session
     subscribeToLogData(
       sessionName,
-      (data: string, isInitial: boolean, isComplete: boolean) => {
+      (newMessages: WorkerMessage[], isInitial: boolean, isComplete: boolean) => {
         if (isInitial) {
-          setContent(data);
+          setMessages(newMessages);
           setIsLoading(false);
         } else {
-          setContent((prev) => prev + data);
+          setMessages((prev) => [...prev, ...newMessages]);
         }
-        // Mark stream as complete when server signals session finished
         if (isComplete) {
           setStreamComplete(true);
         }
@@ -218,14 +288,11 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
       },
     );
 
-    // Send subscription request to server
     send({ event: 'subscribe:logs', data: { sessionName } });
 
     return () => {
-      // Unregister callback
       unsubscribeFromLogData(sessionName);
 
-      // Send unsubscription request to server
       const currentSend = getWebSocketSend();
       if (currentSend) {
         currentSend({ event: 'unsubscribe:logs', data: { sessionName } });
@@ -233,35 +300,32 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
     };
   }, [sessionName, outputAvailable]);
 
-  return { content, isLoading, streamComplete, error };
+  return { messages, isLoading, streamComplete, error };
 }
 
 /**
  * Custom hook for managing auto-scroll behavior
- * Uses requestAnimationFrame to ensure DOM has updated before scrolling
  */
 function useAutoScroll(
   scrollContainerRef: React.RefObject<HTMLDivElement | null>,
   virtualizerRef: React.MutableRefObject<Virtualizer<HTMLDivElement, Element> | null>,
   status: 'running' | 'completed',
-  lineCount: number,
+  messageCount: number,
 ) {
   const [autoScroll, setAutoScroll] = useState(status === 'running');
-  const prevLineCountRef = useRef<number>(0);
+  const prevMessageCountRef = useRef<number>(0);
 
   useEffect(() => {
-    if (autoScroll && lineCount > prevLineCountRef.current) {
-      // Use requestAnimationFrame to ensure virtualizer has updated the DOM
+    if (autoScroll && messageCount > prevMessageCountRef.current) {
       requestAnimationFrame(() => {
         if (virtualizerRef.current && scrollContainerRef.current) {
-          // Get the total size from virtualizer and scroll to it
           const totalSize = virtualizerRef.current.getTotalSize();
           scrollContainerRef.current.scrollTop = totalSize;
         }
       });
     }
-    prevLineCountRef.current = lineCount;
-  }, [lineCount, autoScroll, virtualizerRef, scrollContainerRef]);
+    prevMessageCountRef.current = messageCount;
+  }, [messageCount, autoScroll, virtualizerRef, scrollContainerRef]);
 
   const handleScroll = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -269,7 +333,6 @@ function useAutoScroll(
       return;
     }
 
-    // Check if user has scrolled away from the bottom
     const isAtBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight <
       SCROLL_BOTTOM_THRESHOLD;
@@ -281,7 +344,6 @@ function useAutoScroll(
   const toggleAutoScroll = useCallback(() => {
     setAutoScroll((prev) => {
       if (!prev) {
-        // Scroll to bottom when re-enabling auto-scroll
         requestAnimationFrame(() => {
           if (virtualizerRef.current && scrollContainerRef.current) {
             const totalSize = virtualizerRef.current.getTotalSize();
@@ -296,14 +358,37 @@ function useAutoScroll(
   return { autoScroll, handleScroll, toggleAutoScroll };
 }
 
-/** Parse content into lines for virtualization */
-function useLines(displayContent: string) {
-  return useMemo(() => {
-    if (!displayContent) {
-      return [];
+/**
+ * Parse initial content string into WorkerMessage array.
+ * Supports both JSONL content (each line is valid JSON) and plain text (each line becomes a text message).
+ */
+function parseInitialContent(initialContent: string): WorkerMessage[] {
+  if (!initialContent) {
+    return [];
+  }
+  const lines = initialContent.split('\n');
+  const messages: WorkerMessage[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      // Preserve empty lines as empty text messages for display
+      messages.push({ type: 'text', content: '' });
+      continue;
     }
-    return displayContent.split('\n');
-  }, [displayContent]);
+    try {
+      const parsed = JSON.parse(trimmed);
+      // Only treat as JSON if it parsed to an object with a type field
+      if (typeof parsed === 'object' && parsed !== null && parsed.type) {
+        messages.push(parsed);
+      } else {
+        messages.push({ type: 'text', content: trimmed });
+      }
+    } catch {
+      // Not valid JSON - treat as raw text line
+      messages.push({ type: 'text', content: trimmed });
+    }
+  }
+  return messages;
 }
 
 /**
@@ -318,32 +403,31 @@ function useLogViewerState(
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const virtualizerRef = useRef<Virtualizer<HTMLDivElement, Element> | null>(null);
   const {
-    content: wsContent,
+    messages: wsMessages,
     isLoading,
     streamComplete,
     error,
   } = useLogSubscription(sessionName, outputAvailable);
-  const displayContent = initialContent || wsContent;
-  const lines = useLines(displayContent);
 
-  // Use server's completion signal to override status prop (more authoritative)
+  const initialMessages = useMemo(() => parseInitialContent(initialContent), [initialContent]);
+  const displayMessages = initialMessages.length > 0 ? initialMessages : wsMessages;
+
   const effectiveStatus = streamComplete ? 'completed' : status;
 
   const virtualizer = useVirtualizer({
-    count: lines.length,
+    count: displayMessages.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => ESTIMATED_LINE_HEIGHT,
     overscan: VIRTUALIZER_OVERSCAN,
   });
 
-  // Keep virtualizerRef updated for use in auto-scroll hook
   virtualizerRef.current = virtualizer;
 
   const { autoScroll, handleScroll, toggleAutoScroll } = useAutoScroll(
     scrollContainerRef,
     virtualizerRef,
     effectiveStatus,
-    lines.length,
+    displayMessages.length,
   );
 
   return {
@@ -355,13 +439,14 @@ function useLogViewerState(
     autoScroll,
     handleScroll,
     toggleAutoScroll,
-    lines,
+    messages: displayMessages,
   };
 }
 
 /**
  * LogViewer component displays streaming logs in a terminal-style interface.
  * Uses monospace font and SAGA theme colors for a familiar terminal experience.
+ * Renders structured JSONL messages with different styling for worker events vs SDK messages.
  * Implements virtual scrolling for performance with large log files.
  */
 export function LogViewer({
@@ -379,7 +464,7 @@ export function LogViewer({
     autoScroll,
     handleScroll,
     toggleAutoScroll,
-    lines,
+    messages,
   } = useLogViewerState(sessionName, status, outputAvailable, initialContent);
 
   if (!outputAvailable) {
@@ -412,7 +497,7 @@ export function LogViewer({
           <VirtualizedLogContent
             virtualizer={virtualizer}
             virtualItems={virtualItems}
-            lines={lines}
+            messages={messages}
           />
         )}
       </div>

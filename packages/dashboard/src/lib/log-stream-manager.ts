@@ -2,17 +2,17 @@
  * LogStreamManager - WebSocket-based log streaming infrastructure
  *
  * Manages file watchers and client subscriptions for real-time log delivery.
- * Used by the dashboard to stream session output files to connected clients.
+ * Used by the dashboard to stream session JSONL output files to connected clients.
  *
  * Features:
  * - File watching with chokidar for immediate change detection
  * - Reference counting for efficient watcher sharing
- * - Incremental content delivery (only new bytes sent)
+ * - Line-based JSONL parsing with incremental delivery (only new lines sent)
  * - Session completion notifications
  */
 
-import { createReadStream, existsSync } from 'node:fs';
-import { readFile, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { FSWatcher } from 'chokidar';
 import chokidar from 'chokidar';
@@ -20,17 +20,22 @@ import type { WebSocket } from 'ws';
 import { OUTPUT_DIR } from './sessions.ts';
 
 /**
+ * A parsed JSONL message (either SagaWorkerMessage or SDKMessage)
+ */
+type WorkerMessage = Record<string, unknown>;
+
+/**
  * Callback type for sending log data to a specific client
  */
-export type SendToClientFn = (ws: WebSocket, message: LogsDataMessage | LogsErrorMessage) => void;
+type SendToClientFn = (ws: WebSocket, message: LogsDataMessage | LogsErrorMessage) => void;
 
 /**
  * Message format for log data sent to clients
  */
-export interface LogsDataMessage {
+interface LogsDataMessage {
   type: 'logs:data';
   sessionName: string;
-  data: string;
+  messages: WorkerMessage[];
   isInitial: boolean;
   isComplete: boolean;
 }
@@ -38,29 +43,67 @@ export interface LogsDataMessage {
 /**
  * Message format for log subscription errors
  */
-export interface LogsErrorMessage {
+interface LogsErrorMessage {
   type: 'logs:error';
   sessionName: string;
   error: string;
 }
 
 /**
+ * Parse JSONL content into an array of typed message objects.
+ * Skips empty lines and lines that are not valid JSON.
+ */
+function parseJsonlLines(content: string): WorkerMessage[] {
+  const messages: WorkerMessage[] = [];
+  const lines = content.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+    try {
+      messages.push(JSON.parse(trimmed));
+    } catch {
+      // Skip invalid JSON lines
+    }
+  }
+  return messages;
+}
+
+/**
+ * Count non-empty lines in content (for tracking line position)
+ */
+function countLines(content: string): number {
+  if (!content) {
+    return 0;
+  }
+  const lines = content.split('\n');
+  let count = 0;
+  for (const line of lines) {
+    if (line.trim()) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
  * LogStreamManager class
  *
- * Manages all log streaming state including file watchers, file positions,
+ * Manages all log streaming state including file watchers, line positions,
  * and client subscriptions. Uses dependency injection for the send function
  * to allow testing and decoupling from the WebSocket server.
  */
-export class LogStreamManager {
+class LogStreamManager {
   /**
    * Active file watchers indexed by session name
    */
   private readonly watchers: Map<string, FSWatcher> = new Map();
 
   /**
-   * Current file position (byte offset) per session for incremental reads
+   * Current line count per session for incremental reads
    */
-  private readonly filePositions: Map<string, number> = new Map();
+  private readonly lineCounts: Map<string, number> = new Map();
 
   /**
    * Client subscriptions per session
@@ -83,9 +126,6 @@ export class LogStreamManager {
 
   /**
    * Get the number of subscriptions for a session
-   *
-   * @param sessionName - The session to check
-   * @returns Number of subscribed clients
    */
   getSubscriptionCount(sessionName: string): number {
     const subs = this.subscriptions.get(sessionName);
@@ -94,38 +134,28 @@ export class LogStreamManager {
 
   /**
    * Check if a watcher exists for a session
-   *
-   * @param sessionName - The session to check
-   * @returns True if a watcher exists
    */
   hasWatcher(sessionName: string): boolean {
     return this.watchers.has(sessionName);
   }
 
   /**
-   * Get the current file position for a session
-   *
-   * @param sessionName - The session to check
-   * @returns The current byte offset, or 0 if not tracked
+   * Get the current line count for a session
    */
-  getFilePosition(sessionName: string): number {
-    return this.filePositions.get(sessionName) ?? 0;
+  getLineCount(sessionName: string): number {
+    return this.lineCounts.get(sessionName) ?? 0;
   }
 
   /**
    * Subscribe a client to a session's log stream
    *
-   * Reads the full file content and sends it as the initial message.
+   * Reads the full file, parses all JSONL lines, and sends them as the initial message.
    * Adds the client to the subscription set for incremental updates.
    * Creates a file watcher if this is the first subscriber.
-   *
-   * @param sessionName - The session to subscribe to
-   * @param ws - The WebSocket client to subscribe
    */
   async subscribe(sessionName: string, ws: WebSocket): Promise<void> {
-    const outputFile = join(OUTPUT_DIR, `${sessionName}.out`);
+    const outputFile = join(OUTPUT_DIR, `${sessionName}.jsonl`);
 
-    // Check if file exists
     if (!existsSync(outputFile)) {
       this.sendToClient(ws, {
         type: 'logs:error',
@@ -135,20 +165,19 @@ export class LogStreamManager {
       return;
     }
 
-    // Read full file content
     const content = await readFile(outputFile, 'utf-8');
+    const messages = parseJsonlLines(content);
 
-    // Send initial content to client
     this.sendToClient(ws, {
       type: 'logs:data',
       sessionName,
-      data: content,
+      messages,
       isInitial: true,
       isComplete: false,
     });
 
-    // Track file position for incremental reads
-    this.filePositions.set(sessionName, content.length);
+    // Track line count for incremental reads
+    this.lineCounts.set(sessionName, countLines(content));
 
     // Add client to subscription set
     let subs = this.subscriptions.get(sessionName);
@@ -166,12 +195,6 @@ export class LogStreamManager {
 
   /**
    * Create a chokidar file watcher for a session's output file
-   *
-   * The watcher detects changes and triggers incremental content delivery
-   * to all subscribed clients.
-   *
-   * @param sessionName - The session name
-   * @param outputFile - Path to the session output file
    */
   private createWatcher(sessionName: string, outputFile: string): void {
     const watcher = chokidar.watch(outputFile, {
@@ -188,11 +211,6 @@ export class LogStreamManager {
 
   /**
    * Clean up a watcher and associated state for a session
-   *
-   * Closes the file watcher and removes all tracking state for the session.
-   * Should be called when the last subscriber unsubscribes or disconnects.
-   *
-   * @param sessionName - The session to clean up
    */
   private cleanupWatcher(sessionName: string): void {
     const watcher = this.watchers.get(sessionName);
@@ -200,34 +218,46 @@ export class LogStreamManager {
       watcher.close();
       this.watchers.delete(sessionName);
     }
-    this.filePositions.delete(sessionName);
+    this.lineCounts.delete(sessionName);
     this.subscriptions.delete(sessionName);
   }
 
   /**
-   * Send incremental content to all subscribed clients for a session
-   *
-   * Reads from the last known position to the end of the file and sends
-   * the new content to all subscribed clients.
-   *
-   * @param sessionName - The session name
-   * @param outputFile - Path to the session output file
+   * Send incremental content to all subscribed clients for a session.
+   * Reads the full file, extracts lines beyond the last known count,
+   * parses them as JSONL, and sends to all subscribers.
    */
   private async sendIncrementalContent(sessionName: string, outputFile: string): Promise<void> {
-    const lastPosition = this.filePositions.get(sessionName) ?? 0;
-    const fileStat = await stat(outputFile);
-    const currentSize = fileStat.size;
+    const lastLineCount = this.lineCounts.get(sessionName) ?? 0;
 
-    // No new content
-    if (currentSize <= lastPosition) {
+    let content: string;
+    try {
+      content = await readFile(outputFile, 'utf-8');
+    } catch {
       return;
     }
 
-    // Read new content from last position to end
-    const newContent = await this.readFromPosition(outputFile, lastPosition, currentSize);
+    const allLines = content.split('\n');
+    const nonEmptyLines = allLines.filter((l) => l.trim());
+    const currentLineCount = nonEmptyLines.length;
 
-    // Update file position
-    this.filePositions.set(sessionName, currentSize);
+    if (currentLineCount <= lastLineCount) {
+      return;
+    }
+
+    // Get only the new lines
+    const newLines = nonEmptyLines.slice(lastLineCount);
+    const newMessages: WorkerMessage[] = [];
+    for (const line of newLines) {
+      try {
+        newMessages.push(JSON.parse(line));
+      } catch {
+        // Skip invalid JSON lines
+      }
+    }
+
+    // Update line count
+    this.lineCounts.set(sessionName, currentLineCount);
 
     // Send to all subscribed clients
     const subs = this.subscriptions.get(sessionName);
@@ -235,7 +265,7 @@ export class LogStreamManager {
       const message: LogsDataMessage = {
         type: 'logs:data',
         sessionName,
-        data: newContent,
+        messages: newMessages,
         isInitial: false,
         isComplete: false,
       };
@@ -246,48 +276,12 @@ export class LogStreamManager {
   }
 
   /**
-   * Read file content from a specific position
-   *
-   * @param filePath - Path to the file
-   * @param start - Starting byte position
-   * @param end - Ending byte position
-   * @returns The content read from the file
-   */
-  private readFromPosition(filePath: string, start: number, end: number): Promise<string> {
-    return new Promise((resolve, reject) => {
-      let content = '';
-      const stream = createReadStream(filePath, {
-        start,
-        end: end - 1, // createReadStream end is inclusive
-        encoding: 'utf-8',
-      });
-
-      stream.on('data', (chunk) => {
-        content += chunk;
-      });
-
-      stream.on('end', () => {
-        resolve(content);
-      });
-
-      stream.on('error', reject);
-    });
-  }
-
-  /**
    * Unsubscribe a client from a session's log stream
-   *
-   * Removes the client from the subscription set. If this was the last
-   * subscriber, cleans up the watcher and associated state.
-   *
-   * @param sessionName - The session to unsubscribe from
-   * @param ws - The WebSocket client to unsubscribe
    */
   unsubscribe(sessionName: string, ws: WebSocket): void {
     const subs = this.subscriptions.get(sessionName);
     if (subs) {
       subs.delete(ws);
-      // If no more subscribers, clean up watcher
       if (subs.size === 0) {
         this.cleanupWatcher(sessionName);
       }
@@ -296,18 +290,10 @@ export class LogStreamManager {
 
   /**
    * Handle client disconnect by removing from all subscriptions
-   *
-   * Should be called when a WebSocket connection closes to clean up
-   * any subscriptions the client may have had. Also triggers watcher
-   * cleanup for any sessions that no longer have subscribers.
-   *
-   * @param ws - The WebSocket client that disconnected
    */
   handleClientDisconnect(ws: WebSocket): void {
-    // Remove client from all session subscriptions and clean up empty watchers
     for (const [sessionName, subs] of this.subscriptions) {
       subs.delete(ws);
-      // If no more subscribers, clean up watcher
       if (subs.size === 0) {
         this.cleanupWatcher(sessionName);
       }
@@ -317,44 +303,45 @@ export class LogStreamManager {
   /**
    * Notify that a session has completed
    *
-   * Reads any remaining content from the file and sends it with isComplete=true
-   * to all subscribed clients, then cleans up the watcher regardless of
-   * subscription count. Called by session polling when it detects completion.
-   *
-   * @param sessionName - The session that has completed
+   * Reads any remaining lines from the file and sends them with isComplete=true
+   * to all subscribed clients, then cleans up the watcher.
    */
   async notifySessionCompleted(sessionName: string): Promise<void> {
     const subs = this.subscriptions.get(sessionName);
 
-    // No subscribers - nothing to notify
     if (!subs || subs.size === 0) {
       return;
     }
 
-    const outputFile = join(OUTPUT_DIR, `${sessionName}.out`);
-    let finalContent = '';
+    const outputFile = join(OUTPUT_DIR, `${sessionName}.jsonl`);
+    const finalMessages: WorkerMessage[] = [];
 
-    // Try to read any remaining content
     try {
       if (existsSync(outputFile)) {
-        const lastPosition = this.filePositions.get(sessionName) ?? 0;
-        const fileStat = await stat(outputFile);
-        const currentSize = fileStat.size;
+        const content = await readFile(outputFile, 'utf-8');
+        const lastLineCount = this.lineCounts.get(sessionName) ?? 0;
+        const nonEmptyLines = content.split('\n').filter((l) => l.trim());
+        const currentLineCount = nonEmptyLines.length;
 
-        if (currentSize > lastPosition) {
-          finalContent = await this.readFromPosition(outputFile, lastPosition, currentSize);
+        if (currentLineCount > lastLineCount) {
+          const newLines = nonEmptyLines.slice(lastLineCount);
+          for (const line of newLines) {
+            try {
+              finalMessages.push(JSON.parse(line));
+            } catch {
+              // Skip invalid JSON
+            }
+          }
         }
       }
     } catch {
-      // File might have been deleted or is inaccessible - that's okay
-      // We still need to send the completion message and clean up
+      // File might have been deleted or is inaccessible
     }
 
-    // Send final message to all subscribed clients
     const message: LogsDataMessage = {
       type: 'logs:data',
       sessionName,
-      data: finalContent,
+      messages: finalMessages,
       isInitial: false,
       isComplete: true,
     };
@@ -363,26 +350,24 @@ export class LogStreamManager {
       this.sendToClient(ws, message);
     }
 
-    // Clean up watcher and all associated state
     this.cleanupWatcher(sessionName);
   }
 
   /**
    * Clean up all watchers and subscriptions
-   *
-   * Call this when shutting down the server.
    */
   async dispose(): Promise<void> {
-    // Close all watchers
     const closePromises: Promise<void>[] = [];
     for (const [, watcher] of this.watchers) {
       closePromises.push(watcher.close());
     }
     await Promise.all(closePromises);
 
-    // Clear all state
     this.watchers.clear();
-    this.filePositions.clear();
+    this.lineCounts.clear();
     this.subscriptions.clear();
   }
 }
+
+export { LogStreamManager };
+export type { LogsDataMessage, LogsErrorMessage, SendToClientFn, WorkerMessage };
