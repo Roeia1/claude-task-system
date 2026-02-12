@@ -202,3 +202,29 @@
 
 **Next steps:**
 - t8: Update client-side TypeScript types
+
+## Session: 2026-02-13T01:48
+
+### Task: t8 - Update client-side TypeScript types
+
+**What was done:**
+- Rewrote `packages/dashboard/src/client/src/types/dashboard.ts` to match the new API response shapes:
+  - Changed `StoryStatus` from `'ready' | 'inProgress' | 'blocked' | 'completed'` to `'pending' | 'inProgress' | 'completed'`
+  - Updated `Task` interface: replaced `title: string` with `subject: string`, added `description`, `blockedBy[]`, `guidance?`, `doneWhen?`, `activeForm?`
+  - Updated `StoryCounts`: removed `ready`/`blocked`, added `pending` (now: pending/inProgress/completed/total)
+  - Updated `EpicSummary`: replaced `slug` with `id`, added `description` and `status`, removed `isArchived`
+  - Updated `StoryDetail`: replaced `slug`/`epicSlug` with `id`/`epic?`, added `description`, `guidance?`, `doneWhen?`, `avoid?`, `branch?`, `pr?`, `worktree?`, removed `content`
+  - Updated `Epic`: now extends `EpicSummary`, added `children: EpicChild[]`, `stories: StoryDetail[]`, removed `slug`/`content`/`isArchived`
+  - Added `EpicChild` interface: `{id: string, blockedBy: string[]}`
+  - Added `WorkerMessage` type (`Record<string, unknown>`) for JSONL log message rendering
+  - Replaced `Session` re-export from `@saga-ai/types` with local `SessionInfo` interface using `storyId` instead of `epicSlug`/`storySlug`
+  - Defined `SessionStatus` locally as `'running' | 'completed'`
+- No test regressions — same 19 pre-existing failures in websocket.test.ts and integration.test.ts (to be fixed in t11)
+
+**Decisions:**
+- Defined `SessionInfo` locally instead of re-exporting from `@saga-ai/types`, because the `Session` type in `@saga-ai/types` still uses the old `epicSlug`/`storySlug` format. The dashboard's server-side `DetailedSessionInfo` already uses `storyId`, so the client type matches the actual API response.
+- Made `Epic` extend `EpicSummary` to match the server-side pattern where `ParsedEpic extends EpicSummary`
+- `WorkerMessage` is `Record<string, unknown>` to stay loosely coupled, matching the same decision in `log-stream-manager.ts` and `dashboardMachine.ts`
+
+**Next steps:**
+- t9: Update React components for new data model
