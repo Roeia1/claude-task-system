@@ -13,6 +13,7 @@
     "./conversion.ts": "./src/conversion.ts",
     "./session.ts": "./src/session.ts",
     "./directory.ts": "./src/directory.ts",
+    "./storage.ts": "./src/storage.ts",
     "./worker-message.ts": "./src/worker-message.ts"
   },
   "scripts": {

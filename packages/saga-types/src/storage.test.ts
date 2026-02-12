@@ -9,7 +9,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { Epic, Story, Task } from '@saga-ai/types';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { Epic, Story, Task } from './index.ts';
 import {
   deriveEpicStatus,
   deriveStoryStatus,
@@ -26,8 +27,7 @@ import {
   writeEpic,
   writeStory,
   writeTask,
-} from '@saga-ai/types';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+} from './storage.ts';
 
 describe('story storage', () => {
   let testDir: string;

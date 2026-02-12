@@ -39,6 +39,24 @@ export {
   type SessionStatus,
   SessionStatusSchema,
 } from './session.ts';
+// Storage utilities
+export {
+  deriveEpicStatus,
+  deriveStoryStatus,
+  ensureUniqueStoryId,
+  listEpicStories,
+  listEpics,
+  listStandaloneStories,
+  listStories,
+  listTasks,
+  readEpic,
+  readStory,
+  readTask,
+  validateStoryId,
+  writeEpic,
+  writeStory,
+  writeTask,
+} from './storage.ts';
 // Story types
 export { type Story, StorySchema } from './story.ts';
 // Task types

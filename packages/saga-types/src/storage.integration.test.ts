@@ -1,7 +1,8 @@
 import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { Epic, Task } from '@saga-ai/types';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { Epic, Task } from './index.ts';
 import {
   deriveEpicStatus,
   deriveStoryStatus,
@@ -14,8 +15,7 @@ import {
   writeEpic,
   writeStory,
   writeTask,
-} from '@saga-ai/types';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+} from './storage.ts';
 
 describe('integration: story with tasks and derived status', () => {
   let testDir: string;

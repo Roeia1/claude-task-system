@@ -3,18 +3,10 @@ import { join } from 'node:path';
 
 const STORY_ID_PATTERN = /^[a-z0-9-]+$/;
 
-import {
-  createEpicPaths,
-  createSagaPaths,
-  createStoryPaths,
-  type Epic,
-  EpicSchema,
-  type Story,
-  StorySchema,
-  type Task,
-  TaskSchema,
-  type TaskStatus,
-} from '@saga-ai/types';
+import { createEpicPaths, createSagaPaths, createStoryPaths } from './directory.ts';
+import { type Epic, EpicSchema } from './epic.ts';
+import { type Story, StorySchema } from './story.ts';
+import { type Task, TaskSchema, type TaskStatus } from './task.ts';
 
 /**
  * Write a story.json file to .saga/stories/<story.id>/story.json
