@@ -1,17 +1,21 @@
 /**
  * Headless run loop for the worker pipeline (step 5)
  *
- * Builds a prompt from story metadata, spawns headless Claude runs with
- * CLAUDE_CODE_ENABLE_TASKS and CLAUDE_CODE_TASK_LIST_ID environment variables,
- * and loops until all tasks are completed or limits are reached.
+ * Builds a prompt from story metadata, runs headless Claude sessions via
+ * the Agent SDK with CLAUDE_CODE_ENABLE_TASKS and CLAUDE_CODE_TASK_LIST_ID
+ * environment variables, and loops until all tasks are completed or limits are reached.
  */
 
-import { spawn } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
+import { query } from '@anthropic-ai/claude-agent-sdk';
 import { createStoryPaths } from '@saga-ai/types';
 import type { StoryMeta } from '../hydrate/service.ts';
+import { createScopeValidatorHook } from '../scope-validator-hook.ts';
+import { createSyncHook } from '../sync-hook.ts';
+import type { MessageWriter } from './message-writer.ts';
+import { createNoopMessageWriter } from './message-writer.ts';
 
 // ============================================================================
 // Constants
@@ -23,10 +27,22 @@ const DEFAULT_MODEL = 'opus';
 const MS_PER_MINUTE = 60_000;
 
 // Environment variable name constants (SCREAMING_SNAKE_CASE names require computed properties)
+const ENV_PROJECT_DIR = 'SAGA_PROJECT_DIR';
 const ENV_ENABLE_TASKS = 'CLAUDE_CODE_ENABLE_TASKS';
 const ENV_TASK_LIST_ID = 'CLAUDE_CODE_TASK_LIST_ID';
 const ENV_STORY_ID = 'SAGA_STORY_ID';
 const ENV_STORY_TASK_LIST_ID = 'SAGA_STORY_TASK_LIST_ID';
+
+// Tools to scope-validate (file-accessing tools)
+const SCOPE_TOOLS = ['Read', 'Write', 'Edit', 'Glob', 'Grep'];
+const SCOPE_TOOL_MATCHER = SCOPE_TOOLS.join('|');
+
+// SDK hook event names (PascalCase per SDK API)
+const PRE_TOOL_USE = 'PreToolUse' as const;
+const POST_TOOL_USE = 'PostToolUse' as const;
+
+// Tools to sync (task status changes)
+const SYNC_TOOL_MATCHER = 'TaskUpdate';
 
 // ============================================================================
 // Types
@@ -36,6 +52,7 @@ interface RunLoopOptions {
   maxCycles?: number;
   maxTime?: number;
   model?: string;
+  messagesWriter?: MessageWriter;
 }
 
 interface RunLoopResult {
@@ -120,49 +137,67 @@ function checkAllTasksCompleted(storyDir: string): boolean {
 // ============================================================================
 
 /**
- * Spawn a single headless Claude run and wait for it to complete.
+ * Run a single headless Claude session via the Agent SDK and wait for it to complete.
  */
-function spawnHeadlessRun(
+async function spawnHeadlessRun(
   prompt: string,
   model: string,
   taskListId: string,
   storyId: string,
   worktreePath: string,
+  messagesWriter: MessageWriter,
 ): Promise<{ exitCode: number | null }> {
-  return new Promise((resolve) => {
-    const args = ['-p', prompt, '--model', model, '--verbose', '--dangerously-skip-permissions'];
+  try {
+    let exitCode: number | null = 0;
 
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      [ENV_ENABLE_TASKS]: 'true',
-      [ENV_TASK_LIST_ID]: taskListId,
-      [ENV_STORY_ID]: storyId,
-      [ENV_STORY_TASK_LIST_ID]: taskListId,
-    };
+    for await (const message of query({
+      prompt,
+      options: {
+        model,
+        cwd: worktreePath,
+        env: {
+          ...process.env,
+          [ENV_PROJECT_DIR]: worktreePath,
+          [ENV_ENABLE_TASKS]: 'true',
+          [ENV_TASK_LIST_ID]: taskListId,
+          [ENV_STORY_ID]: storyId,
+          [ENV_STORY_TASK_LIST_ID]: taskListId,
+        },
+        permissionMode: 'bypassPermissions',
+        allowDangerouslySkipPermissions: true,
+        sandbox: {
+          enabled: true,
+          autoAllowBashIfSandboxed: true,
+          allowUnsandboxedCommands: false,
+        },
+        hooks: {
+          [PRE_TOOL_USE]: [
+            {
+              matcher: SCOPE_TOOL_MATCHER,
+              hooks: [createScopeValidatorHook(worktreePath, storyId)],
+            },
+          ],
+          [POST_TOOL_USE]: [
+            {
+              matcher: SYNC_TOOL_MATCHER,
+              hooks: [createSyncHook(worktreePath, storyId)],
+            },
+          ],
+        },
+      },
+    })) {
+      messagesWriter.write(message);
+      if (message.type === 'result') {
+        exitCode = message.subtype === 'success' ? 0 : 1;
+      }
+    }
 
-    const child = spawn('claude', args, {
-      cwd: worktreePath,
-      env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-
-    child.stdout?.on('data', (chunk: Buffer) => {
-      process.stdout.write(chunk);
-    });
-
-    child.stderr?.on('data', (chunk: Buffer) => {
-      process.stderr.write(chunk);
-    });
-
-    child.on('error', (err) => {
-      process.stderr.write(`[worker] Headless run error: ${err.message}\n`);
-      resolve({ exitCode: 1 });
-    });
-
-    child.on('close', (code) => {
-      resolve({ exitCode: code });
-    });
-  });
+    return { exitCode };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`[worker] Headless run error: ${errorMessage}\n`);
+    return { exitCode: 1 };
+  }
 }
 
 // ============================================================================
@@ -179,6 +214,7 @@ interface LoopConfig {
   maxCycles: number;
   maxTimeMs: number;
   startTime: number;
+  messagesWriter: MessageWriter;
 }
 
 interface LoopState {
@@ -201,9 +237,17 @@ function executeCycle(config: LoopConfig, state: LoopState): Promise<{ shouldCon
     return Promise.resolve({ shouldContinue: false });
   }
 
-  process.stdout.write(
-    `[worker] Starting headless run cycle ${state.cycles + 1}/${config.maxCycles}\n`,
-  );
+  const cycleNum = state.cycles + 1;
+
+  process.stdout.write(`[worker] Starting headless run cycle ${cycleNum}/${config.maxCycles}\n`);
+
+  config.messagesWriter.write({
+    type: 'saga_worker',
+    subtype: 'cycle_start',
+    timestamp: new Date().toISOString(),
+    cycle: cycleNum,
+    maxCycles: config.maxCycles,
+  });
 
   return spawnHeadlessRun(
     config.prompt,
@@ -211,8 +255,17 @@ function executeCycle(config: LoopConfig, state: LoopState): Promise<{ shouldCon
     config.taskListId,
     config.storyId,
     config.worktreePath,
+    config.messagesWriter,
   ).then(({ exitCode }) => {
     state.cycles++;
+
+    config.messagesWriter.write({
+      type: 'saga_worker',
+      subtype: 'cycle_end',
+      timestamp: new Date().toISOString(),
+      cycle: cycleNum,
+      exitCode,
+    });
 
     // On spawn error, count the cycle but don't check tasks
     if (exitCode !== 0 && exitCode !== null) {
@@ -266,16 +319,16 @@ async function runHeadlessLoop(
   taskListId: string,
   worktreePath: string,
   storyMeta: StoryMeta,
-  projectDir: string,
   options: RunLoopOptions,
 ): Promise<RunLoopResult> {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
+  const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
 
   const prompt = buildPrompt(storyMeta);
   const startTime = Date.now();
-  const { storyDir } = createStoryPaths(projectDir, storyId);
+  const { storyDir } = createStoryPaths(worktreePath, storyId);
 
   // Validate that the story has tasks before starting the loop
   const taskFiles = getTaskFiles(storyDir);
@@ -296,6 +349,7 @@ async function runHeadlessLoop(
     maxCycles,
     maxTimeMs,
     startTime,
+    messagesWriter,
   };
 
   const state: LoopState = {

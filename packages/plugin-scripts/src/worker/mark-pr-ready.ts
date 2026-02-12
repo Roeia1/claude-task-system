@@ -5,13 +5,10 @@
  *   - Uses `gh pr ready <branch>` to convert draft to ready
  *   - Handles missing PR gracefully (logs warning, does not fail)
  *
- * Provides status summary building and output file writing for
- * dashboard monitoring.
+ * Provides status summary building for pipeline result tracking.
  */
 
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
 import process from 'node:process';
 
 // ============================================================================
@@ -83,22 +80,5 @@ function buildStatusSummary(
   };
 }
 
-// ============================================================================
-// Output File
-// ============================================================================
-
-/**
- * Write the status summary as JSON to an output file for dashboard monitoring.
- * Creates parent directories if needed. Skips when outputFile is undefined.
- */
-function writeOutputFile(outputFile: string | undefined, summary: StatusSummary): void {
-  if (!outputFile) {
-    return;
-  }
-
-  mkdirSync(dirname(outputFile), { recursive: true });
-  writeFileSync(outputFile, JSON.stringify(summary, null, 2), 'utf-8');
-}
-
 export type { StatusSummary };
-export { buildStatusSummary, markPrReady, writeOutputFile };
+export { buildStatusSummary, markPrReady };

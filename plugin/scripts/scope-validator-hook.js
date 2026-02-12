@@ -179,15 +179,31 @@ var isDirectExecution = process.argv[1] && import.meta.url.endsWith(process.argv
 if (isDirectExecution) {
   main();
 }
+
+// src/scope-validator-hook.ts
+function createScopeValidatorHook(worktreePath, storyId) {
+  return (_input, _toolUseID, _options) => {
+    const hookInput = _input;
+    const toolName = hookInput.tool_name;
+    const toolInput = hookInput.tool_input ?? {};
+    const filePath = toolInput.file_path || toolInput.path;
+    if (!filePath) {
+      return Promise.resolve({ continue: true });
+    }
+    const violation = validatePath(filePath, worktreePath, { storyId }, toolName);
+    if (violation) {
+      return Promise.resolve({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          // SDK hook output expects a single-line reason; take only the first line
+          permissionDecisionReason: violation.split("\n")[0]
+        }
+      });
+    }
+    return Promise.resolve({ continue: true });
+  };
+}
 export {
-  checkStoryAccessById,
-  getFilePathFromInput,
-  getScopeEnvironment,
-  getToolNameFromInput,
-  isArchiveAccess,
-  isJournalPath,
-  isSagaPath,
-  isWithinWorktree,
-  normalizePath,
-  validatePath
+  createScopeValidatorHook
 };

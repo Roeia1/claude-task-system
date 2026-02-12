@@ -29,6 +29,9 @@ const FILE_PATH_WIDTH = 50;
 const SCOPE_VALUE_WIDTH = 43;
 const REASON_WIDTH = 56;
 
+// Write tools that modify files (as opposed to read-only tools like Read, Glob, Grep)
+const WRITE_TOOLS = new Set(['Write', 'Edit']);
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -63,6 +66,18 @@ function getFilePathFromInput(hookInput: string): string | null {
 }
 
 /**
+ * Extract tool name from hook input JSON
+ */
+function getToolNameFromInput(hookInput: string): string | null {
+  try {
+    const data = JSON.parse(hookInput);
+    return data.tool_name || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Normalize path by removing leading ./
  */
 function normalizePath(path: string): string {
@@ -75,6 +90,26 @@ function normalizePath(path: string): string {
 // ============================================================================
 // Scope Validation
 // ============================================================================
+
+/**
+ * Check if a path is inside the .saga/ directory (relative to worktree).
+ */
+function isSagaPath(filePath: string, worktreePath: string): boolean {
+  const absoluteFilePath = resolve(filePath);
+  const absoluteWorktree = resolve(worktreePath);
+  const rel = relative(absoluteWorktree, absoluteFilePath);
+  return rel === '.saga' || rel.startsWith('.saga/');
+}
+
+/**
+ * Check if a path is the journal.md of the assigned story.
+ */
+function isJournalPath(filePath: string, worktreePath: string, storyId: string): boolean {
+  const absoluteFilePath = resolve(filePath);
+  const absoluteWorktree = resolve(worktreePath);
+  const rel = relative(absoluteWorktree, absoluteFilePath);
+  return rel === `.saga/stories/${storyId}/journal.md`;
+}
 
 /**
  * Check if path attempts to access the archive folder
@@ -267,8 +302,16 @@ function getScopeEnvironment(): (ScopeInfo & { worktreePath: string }) | null {
 /**
  * Validate a file path against scope rules.
  * Returns the violation reason if blocked, null if allowed.
+ *
+ * When toolName is provided and is a write tool (Write/Edit),
+ * .saga/ files are immutable except for journal.md of the assigned story.
  */
-function validatePath(filePath: string, worktreePath: string, scope: ScopeInfo): string | null {
+function validatePath(
+  filePath: string,
+  worktreePath: string,
+  scope: ScopeInfo,
+  toolName?: string,
+): string | null {
   const normPath = normalizePath(filePath);
 
   if (!isWithinWorktree(normPath, worktreePath)) {
@@ -281,6 +324,16 @@ function validatePath(filePath: string, worktreePath: string, scope: ScopeInfo):
 
   if (!checkStoryAccessById(normPath, scope.storyId)) {
     return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
+  }
+
+  // .saga/ files are immutable for write tools, except journal.md of the assigned story
+  if (
+    toolName &&
+    WRITE_TOOLS.has(toolName) &&
+    isSagaPath(normPath, worktreePath) &&
+    !isJournalPath(normPath, worktreePath, scope.storyId)
+  ) {
+    return '.saga write blocked\nReason: Only journal.md is writable inside the .saga directory. All other .saga files are immutable during execution.';
   }
 
   return null;
@@ -309,8 +362,9 @@ async function main(): Promise<void> {
     process.exit(EXIT_ALLOWED);
   }
 
+  const toolName = getToolNameFromInput(toolInput);
   const { worktreePath, ...scope } = env;
-  const violation = validatePath(filePath, worktreePath, scope);
+  const violation = validatePath(filePath, worktreePath, scope, toolName ?? undefined);
   if (violation) {
     printScopeViolation(filePath, scope, worktreePath, violation);
     process.exit(EXIT_BLOCKED);
@@ -334,7 +388,10 @@ export {
   checkStoryAccessById,
   getFilePathFromInput,
   getScopeEnvironment,
+  getToolNameFromInput,
   isArchiveAccess,
+  isJournalPath,
+  isSagaPath,
   isWithinWorktree,
   normalizePath,
   validatePath,

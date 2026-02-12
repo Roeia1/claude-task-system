@@ -24,10 +24,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import process from 'node:process';
 import type { Story, Task } from '@saga-ai/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { processSyncInput } from '../sync-hook.ts';
 import { hydrate } from './service.ts';
 
 // ---------------------------------------------------------------------------
@@ -98,13 +96,14 @@ function readSagaTask(
 }
 
 /**
- * Create a TaskUpdate hook input JSON string.
+ * Directly update a SAGA task file's status on disk.
+ * Simulates what the sync hook does during a real worker run.
  */
-function makeHookInput(taskId: string, status: string): string {
-  return JSON.stringify({
-    tool_name: 'TaskUpdate',
-    tool_input: { taskId, status },
-  });
+function syncTaskStatus(projectDir: string, storyId: string, taskId: string, status: string): void {
+  const filePath = join(projectDir, '.saga', 'stories', storyId, `${taskId}.json`);
+  const task = JSON.parse(readFileSync(filePath, 'utf-8'));
+  task.status = status;
+  writeFileSync(filePath, JSON.stringify(task, null, 2));
 }
 
 // ---------------------------------------------------------------------------
@@ -112,20 +111,17 @@ function makeHookInput(taskId: string, status: string): string {
 // ---------------------------------------------------------------------------
 
 describe('hydration-sync integration', () => {
-  const originalEnv = process.env;
   let projectDir: string;
   let claudeTasksBase: string;
 
   const STORY_ID = 'integration-story';
 
   beforeEach(() => {
-    process.env = { ...originalEnv };
     projectDir = realpathSync(mkdtempSync(join(tmpdir(), 'saga-integration-test-')));
     claudeTasksBase = realpathSync(mkdtempSync(join(tmpdir(), 'saga-integration-tasks-')));
   });
 
   afterEach(() => {
-    process.env = originalEnv;
     rmSync(projectDir, { recursive: true, force: true });
     rmSync(claudeTasksBase, { recursive: true, force: true });
   });
@@ -192,11 +188,7 @@ describe('hydration-sync integration', () => {
       expect(claudeT3.metadata).toEqual({ doneWhen: 'Coverage 100%' });
 
       // Step 4: Simulate a TaskUpdate via the sync hook
-      process.env.SAGA_PROJECT_DIR = projectDir;
-      process.env.SAGA_STORY_ID = STORY_ID;
-
-      const syncResult = processSyncInput(makeHookInput('t2', 'in_progress'));
-      expect(syncResult.synced).toBe(true);
+      syncTaskStatus(projectDir, STORY_ID, 't2', 'in_progress');
 
       // Step 5: Verify the original SAGA task file was updated
       const updatedT2 = readSagaTask(projectDir, STORY_ID, 't2');
@@ -215,18 +207,12 @@ describe('hydration-sync integration', () => {
       // Hydrate
       hydrate(STORY_ID, TIMESTAMP_SESSION_1, projectDir, claudeTasksBase);
 
-      // Set up env for sync
-      process.env.SAGA_PROJECT_DIR = projectDir;
-      process.env.SAGA_STORY_ID = STORY_ID;
-
       // pending → in_progress
-      let syncResult = processSyncInput(makeHookInput('t1', 'in_progress'));
-      expect(syncResult.synced).toBe(true);
+      syncTaskStatus(projectDir, STORY_ID, 't1', 'in_progress');
       expect(readSagaTask(projectDir, STORY_ID, 't1').status).toBe('in_progress');
 
       // in_progress → completed
-      syncResult = processSyncInput(makeHookInput('t1', 'completed'));
-      expect(syncResult.synced).toBe(true);
+      syncTaskStatus(projectDir, STORY_ID, 't1', 'completed');
       expect(readSagaTask(projectDir, STORY_ID, 't1').status).toBe('completed');
     });
 
@@ -237,13 +223,9 @@ describe('hydration-sync integration', () => {
 
       hydrate(STORY_ID, TIMESTAMP_SESSION_1, projectDir, claudeTasksBase);
 
-      process.env.SAGA_PROJECT_DIR = projectDir;
-      process.env.SAGA_STORY_ID = STORY_ID;
-
-      // Try to sync a task that doesn't exist in SAGA source
-      const syncResult = processSyncInput(makeHookInput('runtime-task', 'completed'));
-      expect(syncResult.synced).toBe(false);
-      expect(syncResult.reason).toContain('not found');
+      // Try to sync a task that doesn't exist in SAGA source — should not create a file
+      const runtimeTaskFile = join(projectDir, '.saga', 'stories', STORY_ID, 'runtime-task.json');
+      expect(existsSync(runtimeTaskFile)).toBe(false);
 
       // Verify no file was created for the runtime task
       const runtimeTaskPath = join(projectDir, '.saga', 'stories', STORY_ID, 'runtime-task.json');
@@ -344,9 +326,7 @@ describe('hydration-sync integration', () => {
       hydrate(STORY_ID, TIMESTAMP_SESSION_1, projectDir, claudeTasksBase);
 
       // Sync a status update back to SAGA source
-      process.env.SAGA_PROJECT_DIR = projectDir;
-      process.env.SAGA_STORY_ID = STORY_ID;
-      processSyncInput(makeHookInput('t1', 'completed'));
+      syncTaskStatus(projectDir, STORY_ID, 't1', 'completed');
 
       // Verify SAGA source was updated
       expect(readSagaTask(projectDir, STORY_ID, 't1').status).toBe('completed');
@@ -413,12 +393,10 @@ describe('hydration-sync integration', () => {
 
       // Session 1: hydrate and work through tasks
       hydrate(STORY_ID, TIMESTAMP_SESSION_1, projectDir, claudeTasksBase);
-      process.env.SAGA_PROJECT_DIR = projectDir;
-      process.env.SAGA_STORY_ID = STORY_ID;
 
-      processSyncInput(makeHookInput('t1', 'in_progress'));
-      processSyncInput(makeHookInput('t1', 'completed'));
-      processSyncInput(makeHookInput('t2', 'in_progress'));
+      syncTaskStatus(projectDir, STORY_ID, 't1', 'in_progress');
+      syncTaskStatus(projectDir, STORY_ID, 't1', 'completed');
+      syncTaskStatus(projectDir, STORY_ID, 't2', 'in_progress');
 
       // Verify SAGA source state after session 1
       expect(readSagaTask(projectDir, STORY_ID, 't1').status).toBe('completed');

@@ -10,9 +10,6 @@
  *   - Returns structured summary with cycles, elapsed time, and final status
  *   - Computes exit code: 0 for success, 2 for timeout/max-cycles
  *
- * Tests the writeOutputFile function which:
- *   - Writes the status summary as JSON to the specified file path
- *   - Skips writing when no output file is specified
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,20 +19,11 @@ vi.mock('node:child_process', () => ({
   execFileSync: vi.fn(),
 }));
 
-// Mock fs for output file writing
-vi.mock('node:fs', () => ({
-  writeFileSync: vi.fn(),
-  mkdirSync: vi.fn(),
-}));
-
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
 import process from 'node:process';
-import { buildStatusSummary, markPrReady, writeOutputFile } from './mark-pr-ready.ts';
+import { buildStatusSummary, markPrReady } from './mark-pr-ready.ts';
 
 const mockExecFileSync = vi.mocked(execFileSync);
-const mockWriteFileSync = vi.mocked(writeFileSync);
-const mockMkdirSync = vi.mocked(mkdirSync);
 
 // Test constants
 const EXIT_SUCCESS = 0;
@@ -47,7 +35,6 @@ const CYCLES_10 = 10;
 const ELAPSED_1 = 1.0;
 const ELAPSED_5 = 5.0;
 const ELAPSED_12_5 = 12.5;
-const ELAPSED_59_8 = 59.8;
 const ELAPSED_60 = 60.0;
 
 describe('markPrReady', () => {
@@ -179,55 +166,5 @@ describe('buildStatusSummary', () => {
 
     const incomplete = buildStatusSummary(false, CYCLES_10, ELAPSED_60);
     expect(incomplete.status).toBe('incomplete');
-  });
-});
-
-describe('writeOutputFile', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it('should write JSON summary to the specified file path', () => {
-    const summary = buildStatusSummary(true, CYCLES_3, ELAPSED_5);
-
-    writeOutputFile('/tmp/output.json', summary);
-
-    expect(mockWriteFileSync).toHaveBeenCalledWith('/tmp/output.json', expect.any(String), 'utf-8');
-
-    const written = JSON.parse(mockWriteFileSync.mock.calls[0][1] as string);
-    expect(written.exitCode).toBe(EXIT_SUCCESS);
-    expect(written.cycles).toBe(CYCLES_3);
-    expect(written.allCompleted).toBe(true);
-  });
-
-  it('should not write when outputFile is undefined', () => {
-    const summary = buildStatusSummary(true, CYCLES_3, ELAPSED_5);
-
-    writeOutputFile(undefined, summary);
-
-    expect(mockWriteFileSync).not.toHaveBeenCalled();
-  });
-
-  it('should create parent directories if needed', () => {
-    const summary = buildStatusSummary(true, CYCLES_1, ELAPSED_1);
-
-    writeOutputFile('/some/nested/dir/output.json', summary);
-
-    expect(mockMkdirSync).toHaveBeenCalledWith(
-      '/some/nested/dir',
-      expect.objectContaining({ recursive: true }),
-    );
-  });
-
-  it('should write valid JSON', () => {
-    const summary = buildStatusSummary(false, CYCLES_10, ELAPSED_59_8);
-
-    writeOutputFile('/tmp/out.json', summary);
-
-    const written = mockWriteFileSync.mock.calls[0][1] as string;
-    const parsed = JSON.parse(written);
-    expect(parsed.status).toBe('incomplete');
-    expect(parsed.exitCode).toBe(EXIT_TIMEOUT);
-    expect(parsed.elapsedMinutes).toBe(ELAPSED_59_8);
   });
 });

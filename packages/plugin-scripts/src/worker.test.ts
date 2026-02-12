@@ -144,16 +144,16 @@ describe('worker CLI', () => {
     });
   });
 
-  describe('--output-file option', () => {
-    it('should require a value for --output-file', () => {
-      const result = runWorker(['my-story', '--output-file']);
+  describe('--messages-file option', () => {
+    it('should require a value for --messages-file', () => {
+      const result = runWorker(['my-story', '--messages-file']);
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('--output-file requires a value');
+      expect(result.stderr).toContain('--messages-file requires a value');
     });
 
-    it('should accept --output-file with a path', () => {
-      const result = runWorker(['my-story', '--output-file', '/tmp/output.json']);
-      expect(result.stderr).not.toContain('--output-file requires a value');
+    it('should accept --messages-file with a path', () => {
+      const result = runWorker(['my-story', '--messages-file', '/tmp/messages.jsonl']);
+      expect(result.stderr).not.toContain('--messages-file requires a value');
       expect(result.stderr).not.toContain('Unknown option');
     });
   });
