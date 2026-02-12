@@ -6,10 +6,10 @@ epic: tasks-tools-integration
 tasks:
   - id: t1
     title: Move storage utilities to saga-types package
-    status: pending
+    status: completed
   - id: t2
     title: Update saga-scanner to use saga-types storage
-    status: pending
+    status: completed
   - id: t3
     title: Update server parser for JSON data model
     status: pending

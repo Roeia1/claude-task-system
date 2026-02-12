@@ -18,3 +18,31 @@
 
 **Next steps:**
 - t2: Update saga-scanner to use saga-types storage
+
+## Session: 2026-02-12T05:23
+
+### Task: t2 - Update saga-scanner to use saga-types storage
+
+**What was done:**
+- Rewrote `packages/dashboard/src/utils/saga-scanner.ts` to use `@saga-ai/types` storage utilities (`listStories`, `listEpics`, `listTasks`, `createStoryPaths`)
+- Replaced old `scanAllStories()` (markdown-based, async, multi-source deduplication) with synchronous `scanStories()` that calls `listStories()` and `listTasks()` from `@saga-ai/types`
+- Replaced old `scanEpics()` (markdown `epic.md` parsing) with synchronous `scanEpics()` that calls `listEpics()` from `@saga-ai/types`
+- Removed old markdown scanning functions: `scanWorktrees`, `scanEpicsStories`, `scanArchive`, `scanAllStories`
+- Removed `gray-matter` import (no longer needed for story scanning; still available in package for journal.md in parser.ts)
+- Removed old helper functions: `isDirectory`, `fileExists`, `extractEpicTitle`, `parseStoryFile`
+- Removed unused exports: `worktreesDirectoryExists`, `epicsDirectoryExists`
+- Updated `ScannedStory` interface: replaced `slug/epicSlug/status/storyPath/worktreePath/archived/frontmatter/body` with `id/epicId/description/tasks/guidance/doneWhen/avoid/branch/pr/worktree`
+- Updated `ScannedEpic` type to be an alias for `Epic` from `@saga-ai/types` (has `id/title/description/children`)
+- Kept `parseFrontmatter` exported for journal.md parsing
+- Kept `sagaDirectoryExists` utility
+- Worktree information now comes from `story.json`'s `worktree` field instead of scanning `.saga/worktrees/` directory
+- Created 18 new tests in `packages/dashboard/src/utils/__tests__/saga-scanner.test.ts` — all pass
+- Scanner functions are now synchronous (storage utilities are sync), matching `@saga-ai/types` API
+
+**Decisions:**
+- Made `ScannedEpic` a type alias for `Epic` from `@saga-ai/types` rather than a separate interface — the Epic type already has all needed fields (id, title, description, children)
+- Functions are now synchronous — `@saga-ai/types` storage uses `readFileSync`/`readdirSync`, so no need for async
+- Did not update parser.ts — that is task t3. The parser currently fails to compile because it imports removed exports (`scanAllStories`, old `ScannedStory`). This is expected and will be fixed in t3.
+
+**Next steps:**
+- t3: Update server parser for JSON data model

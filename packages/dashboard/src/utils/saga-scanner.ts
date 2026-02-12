@@ -1,14 +1,20 @@
 /**
  * Shared SAGA Directory Scanner
  *
- * Core directory traversal logic for scanning .saga/ structure.
- * Used by both the finder utility (CLI) and parser (server).
+ * Scans .saga/stories/ and .saga/epics/ using @saga-ai/types storage utilities.
+ * Returns structured data for the dashboard parser and server.
  */
 
 import { existsSync } from 'node:fs';
-import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import matter from 'gray-matter';
+import {
+  createStoryPaths,
+  type Epic,
+  listEpics,
+  listStories,
+  listTasks,
+  type Task,
+} from '@saga-ai/types';
 
 // ============================================================================
 // Constants
@@ -23,88 +29,52 @@ const FRONTMATTER_OPEN_LENGTH = 4;
 /** Length of closing "\n---" marker */
 const FRONTMATTER_CLOSE_LENGTH = 4;
 
-/** Regex pattern for extracting epic title from first # heading */
-const EPIC_TITLE_PATTERN = /^#\s+(.+)$/m;
-
-/** Regex pattern for removing /story.md suffix from paths */
-const STORY_MD_SUFFIX_PATTERN = /\/story\.md$/;
-
 // ============================================================================
 // Types
 // ============================================================================
 
 /**
- * Basic story information from scanning
+ * Scanned story with tasks from JSON storage
  */
 interface ScannedStory {
-  /** Story slug (from frontmatter id/slug or directory name) */
-  slug: string;
-  /** Story title from frontmatter */
+  /** Story identifier */
+  id: string;
+  /** Story title */
   title: string;
-  /** Story status from frontmatter */
-  status: string;
-  /** Parent epic slug */
-  epicSlug: string;
-  /** Full path to story.md */
-  storyPath: string;
-  /** Full path to worktree directory (if from worktree) */
-  worktreePath?: string;
+  /** Story description */
+  description: string;
+  /** Parent epic identifier (undefined for standalone stories) */
+  epicId?: string;
+  /** Story guidance text */
+  guidance?: string;
+  /** Done-when criteria */
+  doneWhen?: string;
+  /** Avoid guidance */
+  avoid?: string;
+  /** Git branch */
+  branch?: string;
+  /** Pull request URL */
+  pr?: string;
+  /** Worktree path from story.json */
+  worktree?: string;
   /** Full path to journal.md (if exists) */
   journalPath?: string;
-  /** Whether this is an archived story */
-  archived?: boolean;
-  /** Raw frontmatter for additional parsing */
-  frontmatter: Record<string, unknown>;
-  /** Raw body content for additional parsing */
-  body: string;
+  /** Tasks belonging to this story */
+  tasks: Task[];
 }
 
 /**
- * Basic epic information from scanning
+ * Scanned epic from JSON storage (re-exported from @saga-ai/types Epic)
  */
-interface ScannedEpic {
-  /** Epic slug (directory name) */
-  slug: string;
-  /** Epic title (from first # heading) */
-  title: string;
-  /** Full path to epic directory */
-  epicPath: string;
-  /** Full path to epic.md */
-  epicMdPath: string;
-  /** Raw content of epic.md */
-  content: string;
-}
+type ScannedEpic = Epic;
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
 /**
- * Check if a path is a directory
- */
-async function isDirectory(path: string): Promise<boolean> {
-  try {
-    const stats = await stat(path);
-    return stats.isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Check if a file exists
- */
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await stat(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Parse YAML frontmatter from markdown content
+ * Parse YAML frontmatter from markdown content.
+ * Kept for journal.md parsing (journal remains markdown format).
  */
 function parseFrontmatter(content: string): {
   frontmatter: Record<string, unknown>;
@@ -152,236 +122,52 @@ function parseFrontmatter(content: string): {
   return { frontmatter, body };
 }
 
-/**
- * Extract title from epic.md (first # heading)
- */
-function extractEpicTitle(content: string): string | null {
-  const match = content.match(EPIC_TITLE_PATTERN);
-  return match ? match[1].trim() : null;
-}
-
 // ============================================================================
 // Story Scanning
 // ============================================================================
 
 /**
- * Parse a single story.md file using gray-matter for complex YAML
+ * Scan .saga/stories/ using @saga-ai/types storage utilities.
+ *
+ * For each story, loads tasks and checks for journal.md.
+ * Returns structured ScannedStory objects with tasks included.
  */
-async function parseStoryFile(
-  storyPath: string,
-  epicSlug: string,
-  options: { worktreePath?: string; archived?: boolean } = {},
-): Promise<ScannedStory | null> {
-  try {
-    const content = await readFile(storyPath, 'utf-8');
-    const storyDir = storyPath.replace(STORY_MD_SUFFIX_PATTERN, '');
-    const dirName = storyDir.split('/').pop() || 'unknown';
+function scanStories(sagaRoot: string): ScannedStory[] {
+  const storiesDir = join(sagaRoot, '.saga', 'stories');
+  if (!existsSync(storiesDir)) {
+    return [];
+  }
 
-    // Use gray-matter for proper YAML parsing (handles tasks arrays, etc.)
-    const parsed = matter(content);
-    const frontmatter = parsed.data as Record<string, unknown>;
-    const body = parsed.content;
+  const stories = listStories(sagaRoot);
+
+  return stories.map((story) => {
+    // Load tasks for this story
+    let tasks: Task[] = [];
+    try {
+      tasks = listTasks(sagaRoot, story.id);
+    } catch {
+      // No tasks or story dir issue — return empty
+    }
 
     // Check for journal.md
-    const journalPath = join(storyDir, 'journal.md');
-    const hasJournal = await fileExists(journalPath);
+    const { journalMd } = createStoryPaths(sagaRoot, story.id);
+    const hasJournal = existsSync(journalMd);
 
     return {
-      slug: (frontmatter.id as string) || (frontmatter.slug as string) || dirName,
-      title: (frontmatter.title as string) || dirName,
-      status: (frontmatter.status as string) || 'ready',
-      epicSlug,
-      storyPath,
-      worktreePath: options.worktreePath,
-      journalPath: hasJournal ? journalPath : undefined,
-      archived: options.archived,
-      frontmatter,
-      body,
+      id: story.id,
+      title: story.title,
+      description: story.description,
+      epicId: story.epic,
+      guidance: story.guidance,
+      doneWhen: story.doneWhen,
+      avoid: story.avoid,
+      branch: story.branch,
+      pr: story.pr,
+      worktree: story.worktree,
+      journalPath: hasJournal ? journalMd : undefined,
+      tasks,
     };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Scan worktrees directory for stories
- *
- * Structure: .saga/worktrees/<epic>/<story>/.saga/epics/<epic>/stories/<story>/story.md
- */
-async function scanWorktrees(sagaRoot: string): Promise<ScannedStory[]> {
-  const worktreesDir = join(sagaRoot, '.saga', 'worktrees');
-
-  if (!(await isDirectory(worktreesDir))) {
-    return [];
-  }
-
-  const epicEntries = await readdir(worktreesDir);
-
-  const epicPromises = epicEntries.map(async (epicSlug) => {
-    const epicWorktreesDir = join(worktreesDir, epicSlug);
-
-    if (!(await isDirectory(epicWorktreesDir))) {
-      return [];
-    }
-
-    const storyEntries = await readdir(epicWorktreesDir);
-
-    const storyPromises = storyEntries.map(async (storySlug) => {
-      const worktreePath = join(epicWorktreesDir, storySlug);
-
-      if (!(await isDirectory(worktreePath))) {
-        return null;
-      }
-
-      const storyPath = join(
-        worktreePath,
-        '.saga',
-        'epics',
-        epicSlug,
-        'stories',
-        storySlug,
-        'story.md',
-      );
-
-      return await parseStoryFile(storyPath, epicSlug, { worktreePath });
-    });
-
-    const stories = await Promise.all(storyPromises);
-    return stories.filter((story) => story !== null);
   });
-
-  const epicStories = await Promise.all(epicPromises);
-  return epicStories.flat();
-}
-
-/**
- * Scan main epics directory for stories
- *
- * Structure: .saga/epics/<epic>/stories/<story>/story.md
- */
-async function scanEpicsStories(sagaRoot: string): Promise<ScannedStory[]> {
-  const epicsDir = join(sagaRoot, '.saga', 'epics');
-
-  if (!(await isDirectory(epicsDir))) {
-    return [];
-  }
-
-  const epicEntries = await readdir(epicsDir);
-
-  const epicPromises = epicEntries.map(async (epicSlug) => {
-    const storiesDir = join(epicsDir, epicSlug, 'stories');
-
-    if (!(await isDirectory(storiesDir))) {
-      return [];
-    }
-
-    const storyEntries = await readdir(storiesDir);
-
-    const storyPromises = storyEntries.map(async (storySlug) => {
-      const storyDir = join(storiesDir, storySlug);
-
-      if (!(await isDirectory(storyDir))) {
-        return null;
-      }
-
-      const storyPath = join(storyDir, 'story.md');
-      return await parseStoryFile(storyPath, epicSlug);
-    });
-
-    const stories = await Promise.all(storyPromises);
-    return stories.filter((story) => story !== null);
-  });
-
-  const epicStories = await Promise.all(epicPromises);
-  return epicStories.flat();
-}
-
-/**
- * Scan archive directory for stories
- *
- * Structure: .saga/archive/<epic>/<story>/story.md
- */
-async function scanArchive(sagaRoot: string): Promise<ScannedStory[]> {
-  const archiveDir = join(sagaRoot, '.saga', 'archive');
-
-  if (!(await isDirectory(archiveDir))) {
-    return [];
-  }
-
-  const epicEntries = await readdir(archiveDir);
-
-  const epicPromises = epicEntries.map(async (epicSlug) => {
-    const epicArchiveDir = join(archiveDir, epicSlug);
-
-    if (!(await isDirectory(epicArchiveDir))) {
-      return [];
-    }
-
-    const storyEntries = await readdir(epicArchiveDir);
-
-    const storyPromises = storyEntries.map(async (storySlug) => {
-      const storyDir = join(epicArchiveDir, storySlug);
-
-      if (!(await isDirectory(storyDir))) {
-        return null;
-      }
-
-      const storyPath = join(storyDir, 'story.md');
-      return await parseStoryFile(storyPath, epicSlug, { archived: true });
-    });
-
-    const stories = await Promise.all(storyPromises);
-    return stories.filter((story) => story !== null);
-  });
-
-  const epicStories = await Promise.all(epicPromises);
-  return epicStories.flat();
-}
-
-/**
- * Scan all story locations and return deduplicated list
- *
- * Priority: worktrees > epics > archive (worktree version preferred if exists in multiple)
- */
-async function scanAllStories(sagaRoot: string): Promise<ScannedStory[]> {
-  const [worktreeStories, epicsStories, archivedStories] = await Promise.all([
-    scanWorktrees(sagaRoot),
-    scanEpicsStories(sagaRoot),
-    scanArchive(sagaRoot),
-  ]);
-
-  // Deduplicate: worktree takes precedence
-  const seen = new Set<string>();
-  const result: ScannedStory[] = [];
-
-  // Add worktree stories first (highest priority)
-  for (const story of worktreeStories) {
-    const key = `${story.epicSlug}/${story.slug}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(story);
-    }
-  }
-
-  // Add epics stories (if not already from worktree)
-  for (const story of epicsStories) {
-    const key = `${story.epicSlug}/${story.slug}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(story);
-    }
-  }
-
-  // Add archived stories
-  for (const story of archivedStories) {
-    const key = `${story.epicSlug}/${story.slug}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(story);
-    }
-  }
-
-  return result;
 }
 
 // ============================================================================
@@ -389,47 +175,22 @@ async function scanAllStories(sagaRoot: string): Promise<ScannedStory[]> {
 // ============================================================================
 
 /**
- * Scan epics directory for epic metadata
+ * Scan .saga/epics/ using @saga-ai/types storage utilities.
+ *
+ * Returns Epic objects directly from the shared storage layer.
  */
-async function scanEpics(sagaRoot: string): Promise<ScannedEpic[]> {
+function scanEpics(sagaRoot: string): ScannedEpic[] {
   const epicsDir = join(sagaRoot, '.saga', 'epics');
-
-  if (!(await isDirectory(epicsDir))) {
+  if (!existsSync(epicsDir)) {
     return [];
   }
 
-  const epicEntries = await readdir(epicsDir);
-
-  const epicPromises = epicEntries.map(async (epicSlug) => {
-    const epicPath = join(epicsDir, epicSlug);
-
-    if (!(await isDirectory(epicPath))) {
-      return null;
-    }
-
-    const epicMdPath = join(epicPath, 'epic.md');
-    let content = '';
-    let title = epicSlug;
-
-    try {
-      content = await readFile(epicMdPath, 'utf-8');
-      title = extractEpicTitle(content) || epicSlug;
-    } catch {
-      // No epic.md, use slug as title
-    }
-
-    return {
-      slug: epicSlug,
-      title,
-      epicPath,
-      epicMdPath,
-      content,
-    };
-  });
-
-  const epics = await Promise.all(epicPromises);
-  return epics.filter((epic) => epic !== null);
+  return listEpics(sagaRoot);
 }
+
+// ============================================================================
+// Utility Checks
+// ============================================================================
 
 /**
  * Check if .saga directory exists
@@ -438,29 +199,5 @@ function sagaDirectoryExists(projectPath: string): boolean {
   return existsSync(join(projectPath, '.saga'));
 }
 
-/**
- * Check if worktrees directory exists
- */
-function worktreesDirectoryExists(projectPath: string): boolean {
-  return existsSync(join(projectPath, '.saga', 'worktrees'));
-}
-
-/**
- * Check if epics directory exists
- */
-function epicsDirectoryExists(projectPath: string): boolean {
-  return existsSync(join(projectPath, '.saga', 'epics'));
-}
-
-export {
-  parseFrontmatter,
-  scanWorktrees,
-  scanEpicsStories,
-  scanArchive,
-  scanAllStories,
-  scanEpics,
-  sagaDirectoryExists,
-  worktreesDirectoryExists,
-  epicsDirectoryExists,
-};
+export { parseFrontmatter, scanStories, scanEpics, sagaDirectoryExists };
 export type { ScannedStory, ScannedEpic };
