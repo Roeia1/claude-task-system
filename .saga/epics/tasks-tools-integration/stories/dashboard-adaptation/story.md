@@ -18,7 +18,7 @@ tasks:
     status: pending
   - id: t5
     title: Update REST API routes for new data model
-    status: pending
+    status: completed
   - id: t6
     title: Update session module for new naming and JSONL output
     status: pending

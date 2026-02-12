@@ -100,3 +100,28 @@
 
 **Next steps:**
 - t5: Update REST API routes for new data model
+
+## Session: 2026-02-13T01:17
+
+### Task: t5 - Update REST API routes for new data model
+
+**What was done:**
+- Rewrote `packages/dashboard/src/server/routes.ts` for the new JSON data model:
+  - Changed `scanSagaDirectory()` return type from `Epic[]` to `ScanResult` (with `epics` and `standaloneStories`)
+  - Changed `GET /api/epics/:slug` to `GET /api/epics/:epicId` — finds epic by `id` instead of `slug`
+  - Changed `GET /api/stories/:epicSlug/:storySlug` to `GET /api/stories/:storyId` — looks up story directly via `parseStory()` instead of searching through parent epic
+  - Added `GET /api/stories` endpoint returning standalone stories (those without an `epic` field)
+  - Updated `toEpicSummary()` to use new fields: `id` (not `slug`), `description`, `status`, `storyCounts` (no `path`)
+  - Routes are now synchronous except the story detail endpoint (which awaits `parseJournal`)
+- Rewrote `packages/dashboard/src/server/__tests__/routes.test.ts` with 22 new tests:
+  - Test fixtures use JSON format (`.saga/epics/<id>.json`, `.saga/stories/<id>/story.json` + `<task-id>.json`)
+  - Tests cover: epic summaries with derived status, new `StoryCounts` shape (pending/inProgress/completed, no ready/blocked), epic detail with children dependency array, story detail by ID with full task objects (subject, description, blockedBy, guidance, doneWhen, activeForm), journal parsing, standalone stories, 404 handling
+  - All 22 tests pass
+
+**Decisions:**
+- Story lookup uses `parseStory(sagaRoot, storyId)` directly instead of scanning all epics — stories are now top-level entities identified by ID
+- Standalone stories are returned as a separate list at `GET /api/stories` to avoid polluting the epic-based navigation
+- `EpicSummary` no longer includes `children` or `stories` — those are only in the detail endpoint
+
+**Next steps:**
+- t6: Update session module for new naming and JSONL output
