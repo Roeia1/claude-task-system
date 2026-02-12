@@ -1,31 +1,36 @@
 /**
  * Finder utility for resolving epic and story identifiers
  *
- * This module provides functions to find epics and stories by slug or title
+ * This module provides functions to find epics and stories by ID or title
  * with fuzzy matching support powered by Fuse.js.
  *
  * Uses the shared saga-scanner for directory traversal.
  */
 
 import { readdirSync } from 'node:fs';
-import { createSagaPaths, type StoryStatus } from '@saga-ai/types';
+import type { TaskStatus } from '@saga-ai/types';
+import { createSagaPaths } from '@saga-ai/types';
 import Fuse, { type FuseResult } from 'fuse.js';
-import { epicsDirectoryExists, scanAllStories, worktreesDirectoryExists } from './saga-scanner.ts';
+import type { ScannedStory } from './saga-scanner.ts';
+import { epicsDirectoryExists, scanStories, storiesDirectoryExists } from './saga-scanner.ts';
+
+/** Regex pattern for stripping .json extension from file names */
+const JSON_EXT_PATTERN = /\.json$/;
 
 // ============================================================================
 // Types
 // ============================================================================
 
 interface EpicInfo {
-  slug: string;
+  id: string;
 }
 
 interface StoryInfo {
-  slug: string;
+  storyId: string;
   title: string;
-  status: StoryStatus;
-  context: string;
-  epicSlug: string;
+  status: TaskStatus;
+  description: string;
+  epicId: string;
   storyPath: string;
   worktreePath: string;
 }
@@ -36,7 +41,7 @@ type FindResult<T> =
   | { found: false; error: string };
 
 interface FindStoryOptions {
-  status?: StoryStatus;
+  status?: TaskStatus;
 }
 
 // ============================================================================
@@ -53,43 +58,6 @@ const MATCH_THRESHOLD = 0.6;
 // Score difference threshold for considering matches "similar"
 // If multiple matches have scores within this range of the best, return all as ambiguous
 const SCORE_SIMILARITY_THRESHOLD = 0.1;
-
-// Default maximum length for extracted context
-const DEFAULT_CONTEXT_MAX_LENGTH = 300;
-
-// Length of the ellipsis suffix "..."
-const ELLIPSIS_LENGTH = 3;
-
-// Regex pattern for extracting ## Context section (case-insensitive)
-const CONTEXT_SECTION_REGEX = /##\s*Context\s*\n+([\s\S]*?)(?=\n##|$)/i;
-
-// ============================================================================
-// Context Extraction
-// ============================================================================
-
-/**
- * Extract the ## Context section from story body
- *
- * @param body - The markdown body content
- * @param maxLength - Maximum length of extracted context (default 300)
- * @returns The context text, truncated if necessary
- */
-function extractContext(body: string, maxLength = DEFAULT_CONTEXT_MAX_LENGTH): string {
-  // Look for ## Context section (case-insensitive)
-  const contextMatch = body.match(CONTEXT_SECTION_REGEX);
-
-  if (!contextMatch) {
-    return '';
-  }
-
-  const context = contextMatch[1].trim();
-
-  if (context.length > maxLength) {
-    return `${context.slice(0, maxLength - ELLIPSIS_LENGTH)}...`;
-  }
-
-  return context;
-}
 
 // ============================================================================
 // Normalization
@@ -110,11 +78,11 @@ function normalize(str: string): string {
 
 function toStoryInfo(story: ScannedStory): StoryInfo {
   return {
-    slug: story.slug,
+    storyId: story.id,
     title: story.title,
     status: story.status,
-    context: extractContext(story.body),
-    epicSlug: story.epicSlug,
+    description: story.description,
+    epicId: story.epicId,
     storyPath: story.storyPath,
     worktreePath: story.worktreePath || '',
   };
@@ -158,22 +126,24 @@ function processFuzzyResults<T>(results: FuseResult<T>[]): FindResult<T> {
 // ============================================================================
 
 /**
- * Get all epic slugs from the epics directory
+ * Get all epic IDs from the epics directory.
+ *
+ * Reads *.json files from .saga/epics/.
  */
-function getEpicSlugs(projectPath: string): string[] {
+function getEpicIds(projectPath: string): string[] {
   const sagaPaths = createSagaPaths(projectPath);
   return readdirSync(sagaPaths.epics, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name);
+    .filter((d) => d.isFile() && d.name.endsWith('.json'))
+    .map((d) => d.name.replace(JSON_EXT_PATTERN, ''));
 }
 
 /**
- * Find exact match for epic slug
+ * Find exact match for epic ID
  */
-function findExactEpicMatch(epicSlugs: string[], queryNormalized: string): EpicInfo | null {
-  for (const slug of epicSlugs) {
-    if (slug.toLowerCase() === queryNormalized) {
-      return { slug };
+function findExactEpicMatch(epicIds: string[], queryNormalized: string): EpicInfo | null {
+  for (const id of epicIds) {
+    if (id.toLowerCase() === queryNormalized) {
+      return { id };
     }
   }
   return null;
@@ -182,10 +152,10 @@ function findExactEpicMatch(epicSlugs: string[], queryNormalized: string): EpicI
 /**
  * Perform fuzzy search on epics
  */
-function fuzzySearchEpics(epicSlugs: string[], query: string): FindResult<EpicInfo> {
-  const epics = epicSlugs.map((slug) => ({ slug }));
+function fuzzySearchEpics(epicIds: string[], query: string): FindResult<EpicInfo> {
+  const epics = epicIds.map((id) => ({ id }));
   const fuse = new Fuse(epics, {
-    keys: ['slug'],
+    keys: ['id'],
     threshold: MATCH_THRESHOLD,
     includeScore: true,
   });
@@ -204,10 +174,9 @@ function fuzzySearchEpics(epicSlugs: string[], query: string): FindResult<EpicIn
 // ============================================================================
 
 /**
- * Find an epic by slug using fuzzy matching
+ * Find an epic by ID using fuzzy matching
  *
- * Epic resolution only uses folder names in .saga/epics/,
- * never reads epic.md files.
+ * Epic resolution uses .json file names in .saga/epics/.
  *
  * @param projectPath - Path to the project root
  * @param query - The identifier to resolve
@@ -218,9 +187,9 @@ function findEpic(projectPath: string, query: string): FindResult<EpicInfo> {
     return { found: false, error: 'No .saga/epics/ directory found' };
   }
 
-  const epicSlugs = getEpicSlugs(projectPath);
+  const epicIds = getEpicIds(projectPath);
 
-  if (epicSlugs.length === 0) {
+  if (epicIds.length === 0) {
     return { found: false, error: `No epic found matching '${query}'` };
   }
 
@@ -228,13 +197,13 @@ function findEpic(projectPath: string, query: string): FindResult<EpicInfo> {
   const queryNormalized = query.toLowerCase().replace(/_/g, '-');
 
   // Check for exact match first (fast path)
-  const exactMatch = findExactEpicMatch(epicSlugs, queryNormalized);
+  const exactMatch = findExactEpicMatch(epicIds, queryNormalized);
   if (exactMatch) {
     return { found: true, data: exactMatch };
   }
 
   // Use fuzzy search
-  return fuzzySearchEpics(epicSlugs, query);
+  return fuzzySearchEpics(epicIds, query);
 }
 
 // ============================================================================
@@ -242,11 +211,11 @@ function findEpic(projectPath: string, query: string): FindResult<EpicInfo> {
 // ============================================================================
 
 /**
- * Find exact match for story slug
+ * Find exact match for story ID
  */
 function findExactStoryMatch(allStories: StoryInfo[], queryNormalized: string): StoryInfo | null {
   for (const story of allStories) {
-    if (normalize(story.slug) === queryNormalized) {
+    if (normalize(story.storyId) === queryNormalized) {
       return story;
     }
   }
@@ -259,7 +228,7 @@ function findExactStoryMatch(allStories: StoryInfo[], queryNormalized: string): 
 function fuzzySearchStories(allStories: StoryInfo[], query: string): FindResult<StoryInfo> {
   const fuse = new Fuse(allStories, {
     keys: [
-      { name: 'slug', weight: 2 }, // Prioritize slug matches
+      { name: 'storyId', weight: 2 }, // Prioritize ID matches
       { name: 'title', weight: 1 },
     ],
     threshold: MATCH_THRESHOLD,
@@ -283,7 +252,7 @@ async function loadAndFilterStories(
   query: string,
   options: FindStoryOptions,
 ): Promise<FindResult<StoryInfo> | StoryInfo[]> {
-  const scannedStories = await scanAllStories(projectPath);
+  const scannedStories = await scanStories(projectPath);
 
   if (scannedStories.length === 0) {
     return { found: false, error: `No story found matching '${query}'` };
@@ -310,12 +279,12 @@ async function loadAndFilterStories(
 // ============================================================================
 
 /**
- * Find a story by slug or title using fuzzy matching
+ * Find a story by ID or title using fuzzy matching
  *
- * Story resolution searches for stories in all locations:
- * - .saga/worktrees/<epic>/<story>/ (worktrees)
- * - .saga/epics/<epic>/stories/<story>/ (main epics)
- * - .saga/archive/<epic>/<story>/ (archived)
+ * Story resolution searches for stories in:
+ * - .saga/stories/{story-id}/story.json
+ *
+ * Worktree and journal paths are detected automatically.
  *
  * Uses the shared saga-scanner for directory traversal.
  *
@@ -329,10 +298,10 @@ async function findStory(
   query: string,
   options: FindStoryOptions = {},
 ): Promise<FindResult<StoryInfo>> {
-  if (!(worktreesDirectoryExists(projectPath) || epicsDirectoryExists(projectPath))) {
+  if (!storiesDirectoryExists(projectPath)) {
     return {
       found: false,
-      error: 'No .saga/worktrees/ or .saga/epics/ directory found. Run /generate-stories first.',
+      error: 'No .saga/stories/ directory found. Run /generate-stories first.',
     };
   }
 
@@ -362,6 +331,6 @@ async function findStory(
 // Exports
 // ============================================================================
 
-export { extractContext, findEpic, findStory };
+export { findEpic, findStory };
 export type { EpicInfo, FindResult, FindStoryOptions, StoryInfo };
 export type { ScannedEpic, ScannedStory } from './saga-scanner.ts';

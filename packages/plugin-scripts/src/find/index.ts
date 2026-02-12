@@ -1,13 +1,13 @@
 /**
- * saga find command - Find epics or stories by slug/title
+ * saga find command - Find epics or stories by ID/title
  *
- * This command resolves flexible identifiers to epic slugs or story metadata.
+ * This command resolves flexible identifiers to epic IDs or story metadata.
  *
  * Usage:
- *   node find.js <query>                   # Find a story (default)
- *   node find.js <query> --type epic       # Find an epic
- *   node find.js <query> --type story      # Find a story (explicit)
- *   node find.js <query> --status ready    # Filter by status
+ *   node find.js <query>                        # Find a story (default)
+ *   node find.js <query> --type epic            # Find an epic
+ *   node find.js <query> --type story           # Find a story (explicit)
+ *   node find.js <query> --status in_progress   # Filter by status
  *
  * Output:
  *   JSON object with:
@@ -19,7 +19,8 @@
 
 import { existsSync } from 'node:fs';
 import process from 'node:process';
-import { createSagaPaths, type StoryStatus, StoryStatusSchema } from '@saga-ai/types';
+import type { TaskStatus } from '@saga-ai/types';
+import { createSagaPaths, TaskStatusSchema } from '@saga-ai/types';
 import { getProjectDir as getProjectDirEnv } from '../shared/env.ts';
 import { findEpic, findStory } from './finder.ts';
 
@@ -50,16 +51,17 @@ function getProjectDir(): string {
 // ============================================================================
 
 function printHelp(): void {
+  const validStatuses = TaskStatusSchema.options.join(', ');
   console.log(`Usage: find <query> [options]
 
-Find epics or stories by slug/title using fuzzy matching.
+Find epics or stories by ID/title using fuzzy matching.
 
 Arguments:
   query    The identifier to search for (partial match supported)
 
 Options:
   --type <type>      Type to search: "epic" or "story" (default: "story")
-  --status <status>  Filter stories by status (e.g., "ready", "in_progress")
+  --status <status>  Filter stories by task status (${validStatuses})
   --help             Show this help message
 
 Environment (required):
@@ -71,9 +73,9 @@ Output (JSON):
   { "found": false, "error": "..." }         # No match or error
 
 Examples:
-  find implement-login                        # Find story by slug
+  find implement-login                        # Find story by ID
   find auth --type epic                       # Find epic by partial name
-  find login --status ready                   # Find ready stories matching "login"
+  find login --status in_progress             # Find in-progress stories matching "login"
 `);
 }
 
@@ -140,13 +142,13 @@ function resolveProjectPath(): string {
 /**
  * Validate and parse the status flag if provided
  */
-function resolveStatus(statusArg: string | undefined): StoryStatus | undefined {
+function resolveStatus(statusArg: string | undefined): TaskStatus | undefined {
   if (!statusArg) {
     return undefined;
   }
-  const parsed = StoryStatusSchema.safeParse(statusArg);
+  const parsed = TaskStatusSchema.safeParse(statusArg);
   if (!parsed.success) {
-    const validValues = StoryStatusSchema.options.join(', ');
+    const validValues = TaskStatusSchema.options.join(', ');
     console.log(
       JSON.stringify(
         {

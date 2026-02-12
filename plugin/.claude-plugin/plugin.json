@@ -1,7 +1,7 @@
 {
   "name": "core",
   "description": "SAGA - Structured Autonomous Goal Achievement: epic/story workflow with autonomous execution",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "author": {
     "name": "Roei Avrahami",
     "email": "roei.avrahami2@gmail.com"
