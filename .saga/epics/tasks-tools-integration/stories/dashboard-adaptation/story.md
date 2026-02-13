@@ -33,7 +33,7 @@ tasks:
     status: pending
   - id: t10
     title: Update XState machine and context
-    status: pending
+    status: completed
   - id: t11
     title: Update tests and fixtures
     status: pending

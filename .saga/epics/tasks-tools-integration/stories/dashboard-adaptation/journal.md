@@ -257,3 +257,48 @@
 
 **Next steps:**
 - t10: Update XState machine and context
+
+## Session: 2026-02-13T04:00
+
+### Task: t10 - Update XState machine and context
+
+**What was done:**
+- Verified that the XState machine (`dashboardMachine.ts`) and context (`dashboard-context.tsx`) were already updated in previous sessions (t7, t8, t9):
+  - `StorySubscription` uses `storyId` (not `epicSlug`/`storySlug`)
+  - `SUBSCRIBE_STORY`/`UNSUBSCRIBE_STORY` events use `storyId`
+  - `subscribedStories` is keyed by `storyId`
+  - `LOAD_EPIC` event uses `epicId` (not `slug`)
+  - `LogDataCallback` accepts `WorkerMessage[]` instead of raw `string`
+  - `handleLogMessage()` reads `data.messages` (typed JSONL) instead of `data.data` (raw text)
+  - All context types reference new `EpicSummary`/`StoryDetail`/`SessionInfo` shapes
+- Rewrote `packages/dashboard/src/server/websocket.ts` to use the new data model:
+  - Changed `StoryKey` from `epicSlug:storySlug` to plain `storyId` string
+  - Changed `ClientMessage.data` from `{epicSlug, storySlug}` to `{storyId}`
+  - Changed `handleStorySubscription()` to use `storyId`
+  - Changed `toEpicSummary()` to use new shape (id, title, description, status, storyCounts)
+  - Changed `handleStoryChangeEvent()` to use `parseStory(sagaRoot, storyId)` directly instead of building paths from `epicSlug/storySlug/archived`
+  - Changed `parseAndEnrichStory()` to take `storyId` instead of `storyPath/epicSlug/archived`
+  - Changed `broadcastStoryUpdated()` to use `story.id` for subscriber lookup
+  - Changed `setupWatcherHandlers()` to use `scanSagaDirectory()` returning `ScanResult` and extract `result.epics`
+  - Removed old functions: `makeStoryKey()`, `getStoryPath()` (no longer needed)
+  - Removed `join`/`relative` imports (no longer building file paths manually)
+  - Removed all `archived` references
+- Rewrote `packages/dashboard/src/server/__tests__/websocket.test.ts` with 27 tests using JSON fixtures:
+  - Test fixtures create `.saga/stories/<id>/story.json` + `<task-id>.json` and `.saga/epics/<id>.json`
+  - Subscribe messages use `{storyId: 'test-story'}` instead of `{epicSlug, storySlug}`
+  - Log streaming tests use `.jsonl` files with JSONL content instead of `.out` files with raw text
+  - Assertions check for `messages` array instead of `data` string in log responses
+  - All 27 tests pass
+
+**Decisions:**
+- The XState machine and context code didn't need changes — they were already fully updated in t7 (JSONL log message routing), t8 (types), and t9 (component updates). The websocket.ts server module was the remaining piece that still used old patterns.
+- Included websocket.ts in this task because it's the server-side counterpart that bridges watcher events and client subscriptions — closely related to the machine's event flow.
+
+**Test results:**
+- All 51 dashboardMachine tests pass
+- All 27 websocket tests pass (fixed 7 previously failing tests + 0 newly added)
+- All 60 server unit tests pass (parser, routes, session-routes)
+- Overall: 62 test failures remain (down from 69), all in test/fixture files for t11
+
+**Next steps:**
+- t11: Update tests and fixtures

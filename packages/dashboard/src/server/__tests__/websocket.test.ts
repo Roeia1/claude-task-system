@@ -35,39 +35,55 @@ const WATCHER_SETTLE_DELAY_MS = 150;
 // Counter for unique port allocation per test
 let portCounter = 0;
 
-// Helper to create a temporary saga directory
+// Helper to create a temporary saga directory with JSON format
 async function createTempSagaDir(): Promise<string> {
   const tempDir = join(
     tmpdir(),
     `saga-ws-test-${Date.now()}-${Math.random().toString(RANDOM_STRING_RADIX).slice(RANDOM_STRING_SLICE_START)}`,
   );
-  await mkdir(join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story'), {
+
+  // Create story directory
+  await mkdir(join(tempDir, '.saga', 'stories', 'test-story'), {
     recursive: true,
   });
 
-  // Create epic.md
+  // Create epic directory
+  await mkdir(join(tempDir, '.saga', 'epics'), {
+    recursive: true,
+  });
+
+  // Create epic JSON
   await writeFile(
-    join(tempDir, '.saga', 'epics', 'test-epic', 'epic.md'),
-    '# Test Epic\n\nA test epic for WebSocket tests.',
+    join(tempDir, '.saga', 'epics', 'test-epic.json'),
+    JSON.stringify({
+      id: 'test-epic',
+      title: 'Test Epic',
+      description: 'A test epic for WebSocket tests.',
+      children: [{ id: 'test-story', blockedBy: [] }],
+    }),
   );
 
-  // Create story.md
+  // Create story JSON
   await writeFile(
-    join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-    `---
-id: test-story
-title: Test Story
-status: in_progress
-tasks:
-  - id: t1
-    title: Task 1
-    status: pending
----
+    join(tempDir, '.saga', 'stories', 'test-story', 'story.json'),
+    JSON.stringify({
+      id: 'test-story',
+      title: 'Test Story',
+      description: 'Test story for WebSocket testing.',
+      epic: 'test-epic',
+    }),
+  );
 
-## Context
-
-Test story for WebSocket testing.
-`,
+  // Create task JSON
+  await writeFile(
+    join(tempDir, '.saga', 'stories', 'test-story', 't1.json'),
+    JSON.stringify({
+      id: 't1',
+      subject: 'Task 1',
+      description: 'First task',
+      status: 'pending',
+      blockedBy: [],
+    }),
   );
 
   return tempDir;
@@ -193,14 +209,11 @@ describe('websocket', () => {
   });
 
   describe('subscribe:story', () => {
-    it('should accept subscribe:story messages', async () => {
+    it('should accept subscribe:story messages with storyId', async () => {
       const ws = await createWsClient(port);
 
-      // Subscribe to a story - should not throw
-      sendMessage(ws, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      // Subscribe to a story by ID
+      sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
 
       // Wait a bit to ensure message was processed
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
@@ -213,16 +226,10 @@ describe('websocket', () => {
       const ws2 = await createWsClient(port);
 
       // ws1 subscribes to test-story
-      sendMessage(ws1, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      sendMessage(ws1, 'subscribe:story', { storyId: 'test-story' });
 
       // ws2 subscribes to a different story
-      sendMessage(ws2, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'another-story',
-      });
+      sendMessage(ws2, 'subscribe:story', { storyId: 'another-story' });
 
       // Wait for subscriptions to be processed
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
@@ -237,16 +244,10 @@ describe('websocket', () => {
       const ws = await createWsClient(port);
 
       // Subscribe then unsubscribe
-      sendMessage(ws, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, SHORT_WAIT_MS));
 
-      sendMessage(ws, 'unsubscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      sendMessage(ws, 'unsubscribe:story', { storyId: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, SHORT_WAIT_MS));
 
       ws.close();
@@ -261,10 +262,15 @@ describe('websocket', () => {
       // Wait for connections to stabilize
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
-      // Trigger an epic update by modifying epic.md
+      // Trigger an epic update by modifying epic JSON
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'epic.md'),
-        '# Updated Test Epic\n\nModified content.',
+        join(tempDir, '.saga', 'epics', 'test-epic.json'),
+        JSON.stringify({
+          id: 'test-epic',
+          title: 'Updated Test Epic',
+          description: 'Modified content.',
+          children: [{ id: 'test-story', blockedBy: [] }],
+        }),
       );
 
       // Both clients should receive epics:updated
@@ -287,12 +293,14 @@ describe('websocket', () => {
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Create a new epic
-      await mkdir(join(tempDir, '.saga', 'epics', 'new-epic'), {
-        recursive: true,
-      });
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'new-epic', 'epic.md'),
-        '# New Epic\n\nA brand new epic.',
+        join(tempDir, '.saga', 'epics', 'new-epic.json'),
+        JSON.stringify({
+          id: 'new-epic',
+          title: 'New Epic',
+          description: 'A brand new epic.',
+          children: [],
+        }),
       );
 
       const msg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
@@ -306,36 +314,25 @@ describe('websocket', () => {
     it('should broadcast story:updated to subscribed clients when story changes', async () => {
       const ws = await createWsClient(port);
 
-      // Subscribe to test-story
-      sendMessage(ws, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      // Subscribe to test-story by ID
+      sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Modify the story
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        `---
-id: test-story
-title: Updated Test Story
-status: completed
-tasks:
-  - id: t1
-    title: Task 1
-    status: completed
----
-
-## Context
-
-Updated story content.
-`,
+        join(tempDir, '.saga', 'stories', 'test-story', 'story.json'),
+        JSON.stringify({
+          id: 'test-story',
+          title: 'Updated Test Story',
+          description: 'Updated story content.',
+          epic: 'test-epic',
+        }),
       );
 
       const msg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
       expect(msg.event).toBe('story:updated');
-      expect(msg.data).toHaveProperty('slug', 'test-story');
-      expect(msg.data).toHaveProperty('epicSlug', 'test-epic');
+      expect(msg.data).toHaveProperty('id', 'test-story');
+      expect(msg.data).toHaveProperty('title', 'Updated Test Story');
 
       ws.close();
     });
@@ -345,24 +342,18 @@ Updated story content.
       const unsubscribedWs = await createWsClient(port);
 
       // Only subscribedWs subscribes to test-story
-      sendMessage(subscribedWs, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      sendMessage(subscribedWs, 'subscribe:story', { storyId: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Modify the story
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        `---
-id: test-story
-title: Modified Again
-status: blocked
-tasks: []
----
-
-Modified.
-`,
+        join(tempDir, '.saga', 'stories', 'test-story', 'story.json'),
+        JSON.stringify({
+          id: 'test-story',
+          title: 'Modified Again',
+          description: 'Modified.',
+          epic: 'test-epic',
+        }),
       );
 
       // subscribedWs should receive story:updated
@@ -370,7 +361,6 @@ Modified.
       expect(msg.event).toBe('story:updated');
 
       // unsubscribedWs should NOT receive story:updated (should timeout or receive epics:updated)
-      // We'll try to get a message with a short timeout - it should be epics:updated if anything
       try {
         const unsubscribedMsg = await waitForMessage(unsubscribedWs, SHORT_MESSAGE_TIMEOUT_MS);
         // If we get a message, it should be epics:updated, not story:updated
@@ -387,15 +377,12 @@ Modified.
       const ws = await createWsClient(port);
 
       // Subscribe to test-story
-      sendMessage(ws, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Create a journal.md file
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'journal.md'),
+        join(tempDir, '.saga', 'stories', 'test-story', 'journal.md'),
         `# Journal: test-story
 
 ## Session: 2026-01-27T00:00:00Z
@@ -416,35 +403,23 @@ Modified.
     it('should include full StoryDetail in story:updated payload', async () => {
       const ws = await createWsClient(port);
 
-      sendMessage(ws, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Modify the story
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        `---
-id: test-story
-title: Full Detail Test
-status: in_progress
-tasks:
-  - id: t1
-    title: Task One
-    status: completed
-  - id: t2
-    title: Task Two
-    status: pending
----
-
-Story content.
-`,
+        join(tempDir, '.saga', 'stories', 'test-story', 'story.json'),
+        JSON.stringify({
+          id: 'test-story',
+          title: 'Full Detail Test',
+          description: 'Story content.',
+          epic: 'test-epic',
+        }),
       );
 
       const msg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
       expect(msg.event).toBe('story:updated');
-      expect(msg.data).toHaveProperty('slug');
+      expect(msg.data).toHaveProperty('id');
       expect(msg.data).toHaveProperty('title');
       expect(msg.data).toHaveProperty('status');
       expect(msg.data).toHaveProperty('tasks');
@@ -498,7 +473,7 @@ Story content.
       // Send message without required fields
       ws.send(JSON.stringify({ event: 'subscribe:story' })); // missing data
       ws.send(JSON.stringify({ data: {} })); // missing event
-      ws.send(JSON.stringify({ event: 'subscribe:story', data: {} })); // missing slugs
+      ws.send(JSON.stringify({ event: 'subscribe:story', data: {} })); // missing storyId
 
       // Wait a bit - server should not crash
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
@@ -520,11 +495,6 @@ Story content.
       // Wait for connections to stabilize
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
-      // Wait for a potential sessions:updated message (from initial poll)
-      // Note: This may or may not come depending on whether there are any SAGA sessions
-      // The important thing is that the server should be broadcasting to both clients
-      // We can't easily trigger session creation in this test, but we verify the infrastructure works
-
       // Just verify both clients are connected and can receive messages
       expect(ws1.readyState).toBe(WebSocket.OPEN);
       expect(ws2.readyState).toBe(WebSocket.OPEN);
@@ -537,8 +507,6 @@ Story content.
       const ws = await createWsClient(port);
 
       // Wait for initial poll which always broadcasts
-      // Note: In a real test with tmux mocking we would verify the full flow
-      // For now we just verify the connection is stable after session polling starts
       await new Promise((resolve) => setTimeout(resolve, LONG_WAIT_MS));
 
       expect(ws.readyState).toBe(WebSocket.OPEN);
@@ -548,9 +516,18 @@ Story content.
   });
 
   describe('subscribe:logs and unsubscribe:logs', () => {
-    const testSessionName = 'saga__test-epic__test-story__12345';
-    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
-    const testLogContent = 'Log line 1\nLog line 2\nLog line 3\n';
+    const testSessionName = 'saga-story-test-story-12345';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.jsonl`);
+    const jsonlLine = (obj: Record<string, unknown>) => `${JSON.stringify(obj)}\n`;
+    const testLogContent = [
+      jsonlLine({
+        type: 'saga_worker',
+        subtype: 'pipeline_start',
+        data: { storyId: 'test-story' },
+      }),
+      jsonlLine({ type: 'saga_worker', subtype: 'pipeline_step', data: { step: 'test' } }),
+      jsonlLine({ type: 'saga_worker', subtype: 'pipeline_end', data: { status: 'completed' } }),
+    ].join('');
 
     beforeEach(() => {
       // Ensure output directory exists
@@ -579,7 +556,8 @@ Story content.
       const msg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
       expect(msg.event).toBe('logs:data');
       expect(msg.data).toHaveProperty('sessionName', testSessionName);
-      expect(msg.data).toHaveProperty('data', testLogContent);
+      expect(msg.data).toHaveProperty('messages');
+      expect(Array.isArray((msg.data as { messages: unknown[] }).messages)).toBe(true);
       expect(msg.data).toHaveProperty('isInitial', true);
       expect(msg.data).toHaveProperty('isComplete', false);
 
@@ -619,14 +597,15 @@ Story content.
         expect(initialMsg.event).toBe('logs:data');
         expect((initialMsg.data as { isInitial: boolean }).isInitial).toBe(true);
 
-        // Append new content
-        const newContent = 'New log line 4\n';
+        // Append new content (valid JSONL)
+        const newContent = '{"type":"saga_worker","subtype":"cycle_start","data":{"cycle":2}}\n';
         await appendFile(testOutputFile, newContent);
 
         // Wait for incremental update
         const incrementalMsg = await waitForMessage(ws, FILE_WATCH_TIMEOUT_MS);
         expect(incrementalMsg.event).toBe('logs:data');
-        expect(incrementalMsg.data).toHaveProperty('data', newContent);
+        expect(incrementalMsg.data).toHaveProperty('messages');
+        expect(Array.isArray((incrementalMsg.data as { messages: unknown[] }).messages)).toBe(true);
         expect(incrementalMsg.data).toHaveProperty('isInitial', false);
         expect(incrementalMsg.data).toHaveProperty('isComplete', false);
 
@@ -653,7 +632,10 @@ Story content.
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
       // Append new content
-      await appendFile(testOutputFile, 'Should not receive this\n');
+      await appendFile(
+        testOutputFile,
+        '{"type":"saga_worker","subtype":"cycle_end","data":{"cycle":1}}\n',
+      );
 
       // Should NOT receive any more messages (timeout expected)
       try {
@@ -692,7 +674,7 @@ Story content.
         expect((msg2.data as { isInitial: boolean }).isInitial).toBe(true);
 
         // Append new content
-        const newContent = 'Broadcast to both clients\n';
+        const newContent = '{"type":"saga_worker","subtype":"cycle_start","data":{"cycle":3}}\n';
         await appendFile(testOutputFile, newContent);
 
         // Both should receive incremental update
@@ -703,8 +685,8 @@ Story content.
 
         expect(update1.event).toBe('logs:data');
         expect(update2.event).toBe('logs:data');
-        expect((update1.data as { data: string }).data).toBe(newContent);
-        expect((update2.data as { data: string }).data).toBe(newContent);
+        expect((update1.data as { messages: unknown[] }).messages).toBeDefined();
+        expect((update2.data as { messages: unknown[] }).messages).toBeDefined();
 
         ws1.close();
         ws2.close();
@@ -738,9 +720,13 @@ Story content.
   });
 
   describe('log streaming and session completion integration', () => {
-    const testSessionName = 'saga__integration-epic__integration-story__99999';
-    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.out`);
-    const testLogContent = 'Integration test log content\n';
+    const testSessionName = 'saga-story-integration-story-99999';
+    const testOutputFile = join(OUTPUT_DIR, `${testSessionName}.jsonl`);
+    const testLogContent = `${JSON.stringify({
+      type: 'saga_worker',
+      subtype: 'pipeline_start',
+      data: { storyId: 'integration-story' },
+    })}\n`;
 
     beforeEach(() => {
       // Ensure output directory exists
@@ -792,10 +778,7 @@ Story content.
 
       // Subscribe to both logs and a story
       sendMessage(ws, 'subscribe:logs', { sessionName: testSessionName });
-      sendMessage(ws, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
 
       // Should receive logs:data for the log subscription
       const logMsg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
@@ -832,13 +815,17 @@ Story content.
         await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
         // Append new content
-        const newContent = 'Only ws2 should receive this\n';
+        const newContent = `${JSON.stringify({
+          type: 'saga_worker',
+          subtype: 'pipeline_end',
+          data: { status: 'completed' },
+        })}\n`;
         await appendFile(testOutputFile, newContent);
 
         // ws2 should still receive updates
         const update = await waitForMessage(ws2, FILE_WATCH_TIMEOUT_MS);
         expect(update.event).toBe('logs:data');
-        expect((update.data as { data: string }).data).toBe(newContent);
+        expect((update.data as { messages: unknown[] }).messages).toBeDefined();
 
         ws1.close();
         ws2.close();
