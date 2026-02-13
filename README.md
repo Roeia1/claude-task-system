@@ -1,7 +1,7 @@
 # SAGA
 
 [![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-Plugin-blueviolet)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-3.0.3-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-4.0.0-blue)](CHANGELOG.md)
 [![npm](https://img.shields.io/npm/v/@saga-ai/dashboard)](https://www.npmjs.com/package/@saga-ai/dashboard)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skills](https://img.shields.io/badge/skills-6-green)](https://github.com/Roeia1/saga)
@@ -17,8 +17,8 @@ flowchart LR
     B -->|BREAKDOWN| C[⚡ Implement]
     C -->|TDD| D((✅))
 
-    A -.- A1[epic.md]
-    B -.- B1[story.md]
+    A -.- A1[epic.json]
+    B -.- B1[story.json]
     C -.- C1[journal.md]
 ```
 
@@ -86,7 +86,8 @@ This creates the `.saga/` directory structure:
 
 ```
 .saga/
-├── epics/        # Epic definitions and stories
+├── epics/        # Epic definitions (JSON)
+├── stories/      # Story definitions, tasks, and journals
 ├── archive/      # Completed story archives
 └── worktrees/    # Git worktrees for story isolation (gitignored)
 ```
@@ -116,8 +117,8 @@ This creates the `.saga/` directory structure:
 
 | Phase | Focus | Output |
 |-------|-------|--------|
-| **Epic Creation** | WHAT + HOW | `epic.md` - Vision, goals, architecture, success criteria |
-| **Story Generation** | BREAKDOWN | `story.md` - Self-contained stories with tasks and guidance |
+| **Epic Creation** | WHAT + HOW | `epic.json` - Vision, goals, architecture, success criteria |
+| **Story Generation** | BREAKDOWN | `story.json` - Self-contained stories with tasks and guidance |
 | **Story Execution** | DO the work | Tested, documented, reviewed code |
 
 ### Epic Creation
@@ -134,7 +135,7 @@ Claude will:
 - Design high-level architecture
 - Iterate with you until the epic is clear
 
-**Output**: `.saga/epics/order-notifications/epic.md`
+**Output**: `.saga/epics/order-notifications.json`
 
 ### Story Generation
 
@@ -150,7 +151,7 @@ Claude breaks down the epic into implementable stories:
 - Creates git branch + worktree for each story
 - Opens draft PRs automatically
 
-**Output**: Multiple stories in `.saga/epics/order-notifications/stories/`
+**Output**: Multiple stories in `.saga/stories/`
 
 ### Story Execution
 
@@ -189,10 +190,9 @@ Work on multiple stories simultaneously:
 
 ```
 .saga/worktrees/
-└── order-notifications/
-    ├── websocket-setup/    # Full project checkout
-    ├── event-handlers/     # Full project checkout
-    └── ui-components/      # Full project checkout
+├── websocket-setup/    # Full project checkout
+├── event-handlers/     # Full project checkout
+└── ui-components/      # Full project checkout
 ```
 
 Each worktree is isolated. Commit, push, and test independently.
@@ -276,23 +276,23 @@ Agents are Claude Code subagents that run autonomously. They are spawned by skil
 your-project/
 └── .saga/
     ├── epics/
-    │   └── shopping-cart/
-    │       ├── epic.md              # Vision, goals, architecture
-    │       └── stories/
-    │           ├── cart-api/
-    │           │   ├── story.md     # Story definition and tasks
-    │           │   └── journal.md   # Execution log
-    │           └── checkout-flow/
-    │               ├── story.md
-    │               └── journal.md
-    ├── archive/                      # Completed stories (tracked)
+    │   └── shopping-cart.json        # Epic definition (JSON)
+    ├── stories/
+    │   ├── cart-api/
+    │   │   ├── story.json            # Story metadata (JSON)
+    │   │   ├── task-1.json           # Individual task (JSON)
+    │   │   ├── task-2.json
+    │   │   └── journal.md            # Execution log
+    │   └── checkout-flow/
+    │       ├── story.json
+    │       ├── task-1.json
+    │       └── journal.md
+    ├── archive/                       # Completed stories (tracked)
     │   └── shopping-cart/
     │       └── cart-api/
-    │           ├── story.md
-    │           └── journal.md
-    └── worktrees/                    # Git worktrees (gitignored)
-        └── shopping-cart/
-            └── cart-api/             # Full project checkout
+    │           └── story.json
+    └── worktrees/                     # Git worktrees (gitignored)
+        └── cart-api/                  # Full project checkout
 ```
 
 ---

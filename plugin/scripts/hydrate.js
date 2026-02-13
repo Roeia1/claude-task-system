@@ -4200,7 +4200,7 @@ function getTaskListDir(taskListId, baseDir) {
 }
 
 // src/hydrate/service.ts
-function readStory(storyJsonPath) {
+function readStory2(storyJsonPath) {
   if (!existsSync(storyJsonPath)) {
     throw new Error(`story.json not found: ${storyJsonPath}`);
   }
@@ -4256,7 +4256,7 @@ function hydrate(storyId, sessionTimestamp, projectDir, claudeTasksBase) {
   if (!existsSync(storyDir)) {
     throw new Error(`Story directory not found: ${storyDir}`);
   }
-  const story = readStory(storyJson);
+  const story = readStory2(storyJson);
   const tasks = readTasks(storyDir);
   const claudeTasks = convertTasks(tasks);
   const taskListId = generateTaskListId(storyId, sessionTimestamp);

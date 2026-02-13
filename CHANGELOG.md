@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-02-13
+
+### Breaking Changes
+
+- **plugin**: Rename plugin from `core` to `saga-core` — install command is now `/plugin install saga@saga-core`
+- **storage**: Replace Markdown frontmatter storage with JSON-based format for epics, stories, and tasks
+- **worker**: Replace CLI subprocess worker with Agent SDK `query()` pipeline
+- **env**: New environment variables `SAGA_SESSION_DIR` and `SAGA_STORY_ID`; deprecated old slug-based vars
+
+### Added
+
+- **worker**: New headless worker execution pipeline with worktree/branch setup, hydration, PR creation, and JSONL message output
+- **worker**: OS-level bash sandbox for command isolation
+- **types**: New `@saga-ai/types` JSON schemas (Task, Story, Epic, ClaudeCodeTask) with Zod validation
+- **types**: `toClaudeTask`/`fromClaudeTask` conversion functions for hydration layer
+- **hydration**: Hydration service that converts SAGA stories into Claude Code tasks
+- **hydration**: Sync hook script for intercepting TaskUpdate calls
+- **skills**: Migrate all skills (`/create-epic`, `/generate-stories`, `/execute-story`, `/resolve-blocker`, `/list-sessions`) and `generate-story` agent to JSON data model
+- **dashboard**: Full dashboard rewrite for JSON data model — scanner, server parser, file watcher, REST API, log streaming, React components, XState machine, and websocket server
+- **storage**: Epic JSON storage format with flat story directory structure
+
+### Fixed
+
+- **dashboard**: Improve type safety, deduplicate code, and fix breadcrumb UX
+
 ## [3.0.3] - 2026-02-06
 
 ### Fixed

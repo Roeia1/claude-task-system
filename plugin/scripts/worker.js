@@ -84,7 +84,7 @@ import process4 from "node:process";
 
 // src/hydrate/service.ts
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join as join2 } from "node:path";
+import { join as join3 } from "node:path";
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4176,6 +4176,7 @@ function toClaudeTask(sagaTask) {
 }
 
 // ../saga-types/src/directory.ts
+import { join } from "node:path";
 function normalizeRoot(projectRoot) {
   return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
 }
@@ -4207,6 +4208,10 @@ function createWorktreePaths(projectRoot, storyId) {
     storyId,
     worktreeDir: `${worktrees}/${storyId}`
   };
+}
+function createTaskPath(projectRoot, storyId, taskId) {
+  const { storyDir } = createStoryPaths(projectRoot, storyId);
+  return join(storyDir, `${taskId}.json`);
 }
 
 // ../saga-types/src/epic.ts
@@ -4271,17 +4276,17 @@ function convertTasks(tasks) {
 
 // src/hydrate/namespace.ts
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join as join2 } from "node:path";
 function generateTaskListId(storyId, sessionTimestamp) {
   return `saga__${storyId}__${sessionTimestamp}`;
 }
 function getTaskListDir(taskListId, baseDir) {
-  const base = baseDir ?? join(homedir(), ".claude", "tasks");
-  return join(base, taskListId);
+  const base = baseDir ?? join2(homedir(), ".claude", "tasks");
+  return join2(base, taskListId);
 }
 
 // src/hydrate/service.ts
-function readStory(storyJsonPath) {
+function readStory2(storyJsonPath) {
   if (!existsSync(storyJsonPath)) {
     throw new Error(`story.json not found: ${storyJsonPath}`);
   }
@@ -4298,7 +4303,7 @@ function readTasks(storyDir) {
   const files = readdirSync(storyDir).filter((f) => f.endsWith(".json") && f !== "story.json");
   const tasks = [];
   for (const file of files) {
-    const filePath = join2(storyDir, file);
+    const filePath = join3(storyDir, file);
     try {
       const raw = readFileSync(filePath, "utf-8");
       tasks.push(TaskSchema.parse(JSON.parse(raw)));
@@ -4319,7 +4324,7 @@ function writeTasks(claudeTasks, taskListDir) {
     );
   }
   for (const claudeTask of claudeTasks) {
-    const taskPath = join2(taskListDir, `${claudeTask.id}.json`);
+    const taskPath = join3(taskListDir, `${claudeTask.id}.json`);
     writeFileSync(taskPath, JSON.stringify(claudeTask, null, 2));
   }
 }
@@ -4337,7 +4342,7 @@ function hydrate(storyId, sessionTimestamp, projectDir, claudeTasksBase) {
   if (!existsSync(storyDir)) {
     throw new Error(`Story directory not found: ${storyDir}`);
   }
-  const story = readStory(storyJson);
+  const story = readStory2(storyJson);
   const tasks = readTasks(storyDir);
   const claudeTasks = convertTasks(tasks);
   const taskListId = generateTaskListId(storyId, sessionTimestamp);
@@ -4418,8 +4423,8 @@ function createNoopMessageWriter() {
 }
 
 // src/worker/run-headless-loop.ts
-import { readdirSync as readdirSync3, readFileSync as readFileSync3 } from "node:fs";
-import { join as join3 } from "node:path";
+import { readdirSync as readdirSync3, readFileSync as readFileSync4 } from "node:fs";
+import { join as join4 } from "node:path";
 import process7 from "node:process";
 
 // ../../node_modules/.pnpm/@anthropic-ai+claude-agent-sdk@0.2.39_zod@3.25.76/node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs
@@ -13445,11 +13450,35 @@ function createScopeValidatorHook(worktreePath, storyId) {
   };
 }
 
+// src/sync-hook.ts
+import { existsSync as existsSync3, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "node:fs";
+function createSyncHook(worktreePath, storyId) {
+  return (_input, _toolUseID, _options) => {
+    const hookInput = _input;
+    const toolInput = hookInput.tool_input ?? {};
+    const taskId = toolInput.taskId;
+    const status = toolInput.status;
+    if (taskId && status) {
+      try {
+        const taskPath = createTaskPath(worktreePath, storyId, taskId);
+        if (existsSync3(taskPath)) {
+          const taskData = JSON.parse(readFileSync3(taskPath, "utf-8"));
+          taskData.status = status;
+          writeFileSync2(taskPath, JSON.stringify(taskData, null, 2));
+        }
+      } catch {
+      }
+    }
+    return Promise.resolve({ continue: true });
+  };
+}
+
 // src/worker/run-headless-loop.ts
 var DEFAULT_MAX_CYCLES = 10;
 var DEFAULT_MAX_TIME_MINUTES = 60;
 var DEFAULT_MODEL = "opus";
 var MS_PER_MINUTE = 6e4;
+var ENV_PROJECT_DIR = "SAGA_PROJECT_DIR";
 var ENV_ENABLE_TASKS = "CLAUDE_CODE_ENABLE_TASKS";
 var ENV_TASK_LIST_ID = "CLAUDE_CODE_TASK_LIST_ID";
 var ENV_STORY_ID = "SAGA_STORY_ID";
@@ -13457,6 +13486,8 @@ var ENV_STORY_TASK_LIST_ID = "SAGA_STORY_TASK_LIST_ID";
 var SCOPE_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep"];
 var SCOPE_TOOL_MATCHER = SCOPE_TOOLS.join("|");
 var PRE_TOOL_USE = "PreToolUse";
+var POST_TOOL_USE = "PostToolUse";
+var SYNC_TOOL_MATCHER = "TaskUpdate";
 function buildPrompt(meta) {
   const lines = [];
   lines.push(`You are working on: ${meta.title}`);
@@ -13487,8 +13518,8 @@ function checkAllTasksCompleted(storyDir) {
     return false;
   }
   for (const file of files) {
-    const filePath = join3(storyDir, file);
-    const raw = readFileSync3(filePath, "utf-8");
+    const filePath = join4(storyDir, file);
+    const raw = readFileSync4(filePath, "utf-8");
     const task = JSON.parse(raw);
     if (task.status !== "completed") {
       return false;
@@ -13506,6 +13537,7 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
         cwd: worktreePath,
         env: {
           ...process7.env,
+          [ENV_PROJECT_DIR]: worktreePath,
           [ENV_ENABLE_TASKS]: "true",
           [ENV_TASK_LIST_ID]: taskListId,
           [ENV_STORY_ID]: storyId,
@@ -13523,6 +13555,12 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
             {
               matcher: SCOPE_TOOL_MATCHER,
               hooks: [createScopeValidatorHook(worktreePath, storyId)]
+            }
+          ],
+          [POST_TOOL_USE]: [
+            {
+              matcher: SYNC_TOOL_MATCHER,
+              hooks: [createSyncHook(worktreePath, storyId)]
             }
           ]
         }
@@ -13606,14 +13644,14 @@ async function runSequentialCycles(config, state) {
   for await (const _result of cycleIterable) {
   }
 }
-async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, projectDir, options) {
+async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, options) {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
   const prompt = buildPrompt(storyMeta);
   const startTime = Date.now();
-  const { storyDir } = createStoryPaths(projectDir, storyId);
+  const { storyDir } = createStoryPaths(worktreePath, storyId);
   const taskFiles = getTaskFiles(storyDir);
   if (taskFiles.length === 0) {
     throw new Error(
@@ -13646,7 +13684,7 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, pro
 
 // src/worker/setup-worktree.ts
 import { execFileSync as execFileSync3 } from "node:child_process";
-import { existsSync as existsSync3, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
+import { existsSync as existsSync4, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
 import { dirname as dirname2 } from "node:path";
 import process8 from "node:process";
 function runGit(args, cwd) {
@@ -13676,7 +13714,7 @@ function getMainBranch(cwd) {
 function setupWorktree(storyId, projectDir) {
   const branch = `story/${storyId}`;
   const { worktreeDir } = createWorktreePaths(projectDir, storyId);
-  if (existsSync3(worktreeDir)) {
+  if (existsSync4(worktreeDir)) {
     const valid = runGit(["rev-parse", "--git-dir"], worktreeDir);
     if (valid.success) {
       process8.stdout.write(`[worker] Worktree already exists: ${worktreeDir}
@@ -13903,13 +13941,12 @@ async function runPipeline(storyId, options) {
     2,
     prResult.alreadyExisted ? `PR exists: ${prResult.prUrl}` : `Created draft PR: ${prResult.prUrl}`
   );
-  const { taskListId, storyMeta } = hydrateTasks(storyId, projectDir);
+  const { taskListId, storyMeta } = hydrateTasks(storyId, worktreeResult.worktreePath);
   const result = await runHeadlessLoop(
     storyId,
     taskListId,
     worktreeResult.worktreePath,
     storyMeta,
-    projectDir,
     {
       ...options,
       messagesWriter: writer

@@ -7,7 +7,6 @@ var __export = (target, all) => {
 
 // src/sync-hook.ts
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import process from "node:process";
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4159,90 +4158,26 @@ var StorySchema = external_exports.object({
 }).strict();
 
 // src/sync-hook.ts
-function parseHookInput(raw) {
-  if (!raw) {
-    return null;
-  }
-  try {
-    const data = JSON.parse(raw);
-    const toolInput = data.tool_input;
-    if (!toolInput || typeof toolInput !== "object") {
-      return null;
+function createSyncHook(worktreePath, storyId) {
+  return (_input, _toolUseID, _options) => {
+    const hookInput = _input;
+    const toolInput = hookInput.tool_input ?? {};
+    const taskId = toolInput.taskId;
+    const status = toolInput.status;
+    if (taskId && status) {
+      try {
+        const taskPath = createTaskPath(worktreePath, storyId, taskId);
+        if (existsSync(taskPath)) {
+          const taskData = JSON.parse(readFileSync(taskPath, "utf-8"));
+          taskData.status = status;
+          writeFileSync(taskPath, JSON.stringify(taskData, null, 2));
+        }
+      } catch {
+      }
     }
-    const { taskId, status } = toolInput;
-    if (!(taskId && status)) {
-      return null;
-    }
-    return { taskId, status };
-  } catch {
-    return null;
-  }
-}
-function processSyncInput(raw) {
-  const parsed = parseHookInput(raw);
-  if (!parsed) {
-    return { synced: false, reason: "Invalid or missing hook input" };
-  }
-  const { taskId, status } = parsed;
-  const projectDir = process.env.SAGA_PROJECT_DIR;
-  if (!projectDir) {
-    return { synced: false, reason: "SAGA_PROJECT_DIR not set" };
-  }
-  const storyId = process.env.SAGA_STORY_ID;
-  if (!storyId) {
-    return { synced: false, reason: "SAGA_STORY_ID not set" };
-  }
-  const taskPath = createTaskPath(projectDir, storyId, taskId);
-  if (!existsSync(taskPath)) {
-    return { synced: false, reason: `Task file not found: ${taskPath}` };
-  }
-  let taskData;
-  try {
-    taskData = JSON.parse(readFileSync(taskPath, "utf-8"));
-  } catch (error) {
-    return {
-      synced: false,
-      reason: `Failed to parse task file: ${error instanceof Error ? error.message : String(error)}`
-    };
-  }
-  taskData.status = status;
-  try {
-    writeFileSync(taskPath, JSON.stringify(taskData, null, 2));
-  } catch (error) {
-    return {
-      synced: false,
-      reason: `Failed to write task file: ${error instanceof Error ? error.message : String(error)}`
-    };
-  }
-  return { synced: true };
-}
-async function readStdin() {
-  const chunks = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks).toString("utf-8");
-}
-async function main() {
-  try {
-    const raw = await readStdin();
-    const result = processSyncInput(raw);
-    if (!result.synced && result.reason) {
-      process.stderr.write(`sync-hook: ${result.reason}
-`);
-    }
-  } catch (error) {
-    process.stderr.write(
-      `sync-hook: Unexpected error: ${error instanceof Error ? error.message : String(error)}
-`
-    );
-  }
-  process.exit(0);
-}
-var isDirectExecution = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/"));
-if (isDirectExecution) {
-  main();
+    return Promise.resolve({ continue: true });
+  };
 }
 export {
-  processSyncInput
+  createSyncHook
 };

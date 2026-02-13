@@ -5513,7 +5513,7 @@ async function fileExists(path) {
     return false;
   }
 }
-function deriveStoryStatus(tasks) {
+function deriveStoryStatus2(tasks) {
   if (tasks.length === 0) {
     return "pending";
   }
@@ -5560,7 +5560,7 @@ async function scanStories(sagaRoot) {
       const content = await readFile(storyPaths.storyJson, "utf-8");
       const storyData = JSON.parse(content);
       const tasks = await readTaskFiles(storyPaths.storyDir);
-      const status = deriveStoryStatus(tasks);
+      const status = deriveStoryStatus2(tasks);
       const worktreePaths = createWorktreePaths(sagaRoot, storyId);
       const hasWorktree = await isDirectory(worktreePaths.worktreeDir);
       const hasJournal = await fileExists(storyPaths.journalMd);
