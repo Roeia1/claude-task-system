@@ -4,22 +4,19 @@ import ReactMarkdown from 'react-markdown';
 import { Link, useParams, useSearchParams } from 'react-router';
 import remarkGfm from 'remark-gfm';
 import { SessionsPanel } from '@/components/SessionsPanel';
+import { StatusBadge } from '@/components/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDashboard } from '@/context/dashboard-context';
-import { showApiErrorToast } from '@/lib/toast-utils';
+import { assertStoryDetail, handleFetchError, processFetchResponse } from '@/lib/fetch-utils';
 import type {
   JournalEntry,
   JournalEntryType,
   StoryDetail as StoryDetailType,
-  StoryStatus,
   TaskStatus,
 } from '@/types/dashboard';
-
-/** HTTP 404 Not Found status code */
-const HTTP_NOT_FOUND = 404;
 
 /** Valid tab values for URL query parameter */
 const VALID_TABS = ['tasks', 'content', 'journal', 'sessions'] as const;
@@ -59,23 +56,6 @@ function ContentSkeleton() {
       </div>
     </div>
   );
-}
-
-/** Status badge with appropriate color based on story status */
-function StatusBadge({ status }: { status: StoryStatus }) {
-  const variants: Record<StoryStatus, string> = {
-    pending: 'bg-text-muted/20 text-text-muted',
-    inProgress: 'bg-primary/20 text-primary',
-    completed: 'bg-success/20 text-success',
-  };
-
-  const labels: Record<StoryStatus, string> = {
-    pending: 'Pending',
-    inProgress: 'In Progress',
-    completed: 'Completed',
-  };
-
-  return <Badge className={variants[status]}>{labels[status]}</Badge>;
 }
 
 /** Task status icon (visual only, not interactive) */
@@ -420,42 +400,6 @@ function JournalTabContent({ journal }: { journal: JournalEntry[] }) {
   );
 }
 
-/** Result type for fetch response processing */
-type FetchResult = { type: 'notFound' } | { type: 'error' } | { type: 'success'; data: unknown };
-
-/** Process fetch response into a result type */
-async function processFetchResponse(response: Response): Promise<FetchResult> {
-  if (response.status === HTTP_NOT_FOUND) {
-    return { type: 'notFound' };
-  }
-  if (!response.ok) {
-    return { type: 'error' };
-  }
-  return { type: 'success', data: await response.json() };
-}
-
-/** Handle fetch error with toast notification */
-function handleFetchError(url: string, err: unknown, setError: (e: string) => void): void {
-  setError('Failed to load story');
-  showApiErrorToast(url, err instanceof Error ? err.message : 'Unknown error');
-}
-
-/** Handle the fetch result and update state accordingly */
-function applyFetchResult(
-  result: FetchResult,
-  setNotFound: (v: boolean) => void,
-  setError: (v: string | null) => void,
-  setCurrentStory: (data: unknown) => void,
-): void {
-  if (result.type === 'notFound') {
-    setNotFound(true);
-  } else if (result.type === 'error') {
-    setError('Failed to load story');
-  } else {
-    setCurrentStory(result.data);
-  }
-}
-
 /** Effect hook to subscribe to story updates via WebSocket */
 function useStorySubscription(
   storyId: string | undefined,
@@ -506,9 +450,16 @@ function useStoryFetch(storyId: string | undefined) {
       try {
         const response = await fetch(`/api/stories/${storyId}`);
         const result = await processFetchResponse(response);
-        applyFetchResult(result, setNotFound, setError, setCurrentStory);
+        if (result.type === 'notFound') {
+          setNotFound(true);
+        } else if (result.type === 'error') {
+          setError('Failed to load story');
+        } else {
+          assertStoryDetail(result.data);
+          setCurrentStory(result.data);
+        }
       } catch (err) {
-        handleFetchError(`/api/stories/${storyId}`, err, setError);
+        handleFetchError(`/api/stories/${storyId}`, 'story', err, setError);
       } finally {
         setIsFetching(false);
       }
@@ -577,12 +528,4 @@ function StoryDetail() {
   );
 }
 
-export {
-  HeaderSkeleton,
-  ContentSkeleton,
-  StatusBadge,
-  TaskStatusIcon,
-  TaskItem,
-  JournalEntryItem,
-  StoryDetail,
-};
+export { HeaderSkeleton, ContentSkeleton, TaskStatusIcon, TaskItem, JournalEntryItem, StoryDetail };

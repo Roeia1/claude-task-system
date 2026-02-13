@@ -1,21 +1,17 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge, StatusBadgeWithCount } from '@/components/StatusBadge';
 import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import type { StoryStatus } from '@/types/dashboard';
 
-// ============================================================================
-// StatusBadge Component Definitions (Story-only versions)
-// ============================================================================
-
-/** Color variants for each status type */
+/** Color variants for each status type (mirrored for test assertions) */
 const statusVariants: Record<StoryStatus, string> = {
   pending: 'bg-text-muted/20 text-text-muted',
   inProgress: 'bg-primary/20 text-primary',
   completed: 'bg-success/20 text-success',
 };
 
-/** Human-readable labels for each status type */
+/** Human-readable labels for each status type (mirrored for test assertions) */
 const statusLabels: Record<StoryStatus, string> = {
   pending: 'Pending',
   inProgress: 'In Progress',
@@ -25,25 +21,6 @@ const statusLabels: Record<StoryStatus, string> = {
 /** Available status presets for Playground */
 const statusPresets = ['pending', 'inProgress', 'completed'] as const;
 type StatusPreset = (typeof statusPresets)[number];
-
-/**
- * Status badge with count - used in EpicList to show story counts per status.
- */
-function StatusBadgeWithCount({ status, count }: { status: StoryStatus; count: number }) {
-  return (
-    <Badge className={statusVariants[status]}>
-      {statusLabels[status]}: {count}
-    </Badge>
-  );
-}
-
-/**
- * Status badge without count - used in EpicDetail and StoryDetail to show
- * individual story/task status.
- */
-function StatusBadge({ status }: { status: StoryStatus }) {
-  return <Badge className={statusVariants[status]}>{statusLabels[status]}</Badge>;
-}
 
 // ============================================================================
 // Story Meta

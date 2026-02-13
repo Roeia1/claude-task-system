@@ -6,8 +6,8 @@ import {
   getWebSocketSend,
   subscribeToLogData,
   unsubscribeFromLogData,
-  type WorkerMessage,
 } from '@/machines/dashboardMachine';
+import type { AssistantMessage, SagaWorkerMessage, WorkerMessage } from '@/types/dashboard';
 
 interface LogViewerProps {
   /** The name of the session to display logs for */
@@ -30,9 +30,8 @@ const VIRTUALIZER_OVERSCAN = 5;
 const SCROLL_BOTTOM_THRESHOLD = 50;
 
 /** Format a saga_worker message for display */
-function formatWorkerMessage(msg: WorkerMessage): string {
-  const subtype = msg.subtype as string;
-  switch (subtype) {
+function formatWorkerMessage(msg: SagaWorkerMessage): string {
+  switch (msg.subtype) {
     case 'pipeline_start':
       return `[Pipeline] Starting execution for story: ${msg.storyId}`;
     case 'pipeline_step':
@@ -51,11 +50,9 @@ function formatWorkerMessage(msg: WorkerMessage): string {
 }
 
 /** Format an assistant SDK message for display */
-function formatAssistantMessage(msg: WorkerMessage): string | null {
+function formatAssistantMessage(msg: AssistantMessage): string | null {
   const content =
-    typeof msg.message === 'object' && msg.message !== null
-      ? (msg.message as Record<string, unknown>).content
-      : msg.content;
+    typeof msg.message === 'object' && msg.message !== null ? msg.message.content : msg.content;
   return typeof content === 'string' ? content : null;
 }
 
@@ -87,8 +84,7 @@ function formatMessage(msg: WorkerMessage): string {
  */
 function getMessageClass(msg: WorkerMessage): string {
   if (msg.type === 'saga_worker') {
-    const subtype = msg.subtype as string;
-    if (subtype === 'pipeline_end') {
+    if (msg.subtype === 'pipeline_end') {
       return msg.status === 'completed' ? 'text-success' : 'text-danger';
     }
     return 'text-primary';

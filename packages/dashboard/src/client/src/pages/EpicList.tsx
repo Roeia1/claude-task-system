@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { ActiveSessions } from '@/components/active-sessions';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadgeWithCount } from '@/components/StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useDashboard } from '@/context/dashboard-context';
 import { showApiErrorToast } from '@/lib/toast-utils';
-import type { EpicSummary, StoryStatus } from '@/types/dashboard';
+import type { EpicSummary } from '@/types/dashboard';
 
 /** Percentage conversion multiplier */
 const PERCENTAGE_MULTIPLIER = 100;
@@ -27,27 +27,6 @@ export function EpicCardSkeleton() {
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-/** Status badge with appropriate color based on story status */
-export function StatusBadge({ status, count }: { status: StoryStatus; count: number }) {
-  const variants: Record<StoryStatus, string> = {
-    pending: 'bg-text-muted/20 text-text-muted',
-    inProgress: 'bg-primary/20 text-primary',
-    completed: 'bg-success/20 text-success',
-  };
-
-  const labels: Record<StoryStatus, string> = {
-    pending: 'Pending',
-    inProgress: 'In Progress',
-    completed: 'Completed',
-  };
-
-  return (
-    <Badge className={variants[status]}>
-      {labels[status]}: {count}
-    </Badge>
   );
 }
 
@@ -77,13 +56,13 @@ export function EpicCard({ epic }: { epic: EpicSummary }) {
           </div>
           <div className="flex flex-wrap gap-2">
             {storyCounts.pending > 0 && (
-              <StatusBadge status="pending" count={storyCounts.pending} />
+              <StatusBadgeWithCount status="pending" count={storyCounts.pending} />
             )}
             {storyCounts.inProgress > 0 && (
-              <StatusBadge status="inProgress" count={storyCounts.inProgress} />
+              <StatusBadgeWithCount status="inProgress" count={storyCounts.inProgress} />
             )}
             {storyCounts.completed > 0 && (
-              <StatusBadge status="completed" count={storyCounts.completed} />
+              <StatusBadgeWithCount status="completed" count={storyCounts.completed} />
             )}
           </div>
         </CardContent>

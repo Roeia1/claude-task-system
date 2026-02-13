@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { expect, within } from 'storybook/test';
+import { DashboardProvider } from '@/context/dashboard-context';
+import { dashboardMachine } from '@/machines/dashboardMachine';
 import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import { Breadcrumb } from './Breadcrumb.tsx';
 
@@ -48,13 +50,15 @@ const routeConfigs: Record<RoutePreset, { route: string; description: string }> 
  */
 function BreadcrumbWithRouter({ route }: { route: string }) {
   return (
-    <MemoryRouter initialEntries={[route]}>
-      <Routes>
-        <Route path="/" element={<Breadcrumb />} />
-        <Route path="/epic/:epicId" element={<Breadcrumb />} />
-        <Route path="/story/:storyId" element={<Breadcrumb />} />
-      </Routes>
-    </MemoryRouter>
+    <DashboardProvider logic={dashboardMachine}>
+      <MemoryRouter initialEntries={[route]}>
+        <Routes>
+          <Route path="/" element={<Breadcrumb />} />
+          <Route path="/epic/:epicId" element={<Breadcrumb />} />
+          <Route path="/story/:storyId" element={<Breadcrumb />} />
+        </Routes>
+      </MemoryRouter>
+    </DashboardProvider>
   );
 }
 

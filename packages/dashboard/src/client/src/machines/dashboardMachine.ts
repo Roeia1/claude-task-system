@@ -1,5 +1,5 @@
 import { assign, fromCallback, sendTo, setup } from 'xstate';
-import type { Epic, EpicSummary, SessionInfo, StoryDetail } from '@/types/dashboard';
+import type { Epic, EpicSummary, SessionInfo, StoryDetail, WorkerMessage } from '@/types/dashboard';
 
 /** Maximum number of reconnection attempts */
 const MAX_RETRIES = 5;
@@ -73,9 +73,6 @@ type DashboardEvent =
 
 /** WebSocket send function type for external access */
 type WebSocketSendFn = (message: object) => void;
-
-/** A parsed JSONL message (SagaWorkerMessage or SDKMessage) */
-type WorkerMessage = Record<string, unknown>;
 
 /** Callback type for log data handlers */
 type LogDataCallback = (messages: WorkerMessage[], isInitial: boolean, isComplete: boolean) => void;
@@ -627,6 +624,7 @@ const dashboardMachine = setup({
 type DashboardMachine = typeof dashboardMachine;
 
 export { dashboardMachine, getWebSocketSend, subscribeToLogData, unsubscribeFromLogData };
+export type { WorkerMessage } from '@/types/dashboard';
 export type {
   StorySubscription,
   DashboardContext,
@@ -634,5 +632,4 @@ export type {
   DashboardMachine,
   LogDataCallback,
   LogErrorCallback,
-  WorkerMessage,
 };

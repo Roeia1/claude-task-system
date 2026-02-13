@@ -1,5 +1,7 @@
 import { ChevronRight, Home } from 'lucide-react';
 import { Link, useParams } from 'react-router';
+import { useDashboard } from '@/context/dashboard-context';
+import type { StoryDetail } from '@/types/dashboard';
 
 interface BreadcrumbItem {
   label: string;
@@ -19,13 +21,19 @@ function BreadcrumbLabel({ label, index }: { label: string; index: number }) {
   return <>{label}</>;
 }
 
-/** Build breadcrumb items from route params */
-function buildBreadcrumbItems(params: { epicId?: string; storyId?: string }): BreadcrumbItem[] {
+/** Build breadcrumb items from route params and current story data */
+function buildBreadcrumbItems(
+  params: { epicId?: string; storyId?: string },
+  currentStory: StoryDetail | null,
+): BreadcrumbItem[] {
   const items: BreadcrumbItem[] = [{ label: 'Epics', href: '/' }];
 
   if (params.epicId) {
     items.push({ label: params.epicId });
   } else if (params.storyId) {
+    if (currentStory?.epic) {
+      items.push({ label: currentStory.epic, href: `/epic/${currentStory.epic}` });
+    }
     items.push({ label: params.storyId });
   }
 
@@ -37,8 +45,9 @@ export function Breadcrumb() {
     epicId?: string;
     storyId?: string;
   }>();
+  const { currentStory } = useDashboard();
 
-  const items = buildBreadcrumbItems(params);
+  const items = buildBreadcrumbItems(params, currentStory);
 
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm">

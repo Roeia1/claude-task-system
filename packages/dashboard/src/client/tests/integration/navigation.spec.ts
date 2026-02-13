@@ -288,10 +288,11 @@ test.describe('Navigation', () => {
         timeout: 10_000,
       });
 
-      // Verify breadcrumb shows path (stories are top-level: Epics > storyId)
+      // Verify breadcrumb shows path with epic context: Epics > parent-epic > child-story
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
       await expect(breadcrumb).toBeVisible();
       await expect(breadcrumb.getByText('Epics')).toBeVisible();
+      await expect(breadcrumb.getByText('parent-epic')).toBeVisible();
       await expect(breadcrumb.getByText('child-story')).toBeVisible();
     });
 
@@ -323,8 +324,8 @@ test.describe('Navigation', () => {
         timeout: 10_000,
       });
 
-      // Click on the epic link in the story header (stories are top-level, breadcrumb shows Epics > storyId)
-      await page.getByRole('link', { name: 'nav-epic' }).click();
+      // Click on the epic link in the story header (epic link also appears in breadcrumb)
+      await page.getByRole('link', { name: 'nav-epic' }).first().click();
 
       // Verify navigation to epic detail
       await expect(page).toHaveURL('/epic/nav-epic');
@@ -395,8 +396,8 @@ test.describe('Navigation', () => {
       await expect(page.getByRole('heading', { name: 'Flow Story' })).toBeVisible();
       await expect(page.getByText('Flow Task')).toBeVisible();
 
-      // Navigate back to epic via the epic link in story header
-      await page.getByRole('link', { name: 'flow-epic' }).click();
+      // Navigate back to epic via the epic link (breadcrumb or story header)
+      await page.getByRole('link', { name: 'flow-epic' }).first().click();
       await expect(page).toHaveURL('/epic/flow-epic');
 
       // Navigate back to list via breadcrumb

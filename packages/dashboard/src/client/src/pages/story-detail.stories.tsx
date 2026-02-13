@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import remarkGfm from 'remark-gfm';
 import { expect, within } from 'storybook/test';
 import { SessionDetailCard, SessionsPanelEmpty } from '@/components/SessionsPanel';
+import { StatusBadge } from '@/components/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,7 +21,6 @@ import {
   ContentSkeleton,
   HeaderSkeleton,
   JournalEntryItem,
-  StatusBadge,
   StoryDetail,
   TaskItem,
 } from './StoryDetail.tsx';

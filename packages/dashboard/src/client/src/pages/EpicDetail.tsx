@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { EpicContent } from '@/components/EpicContent';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useDashboard } from '@/context/dashboard-context';
-import { showApiErrorToast } from '@/lib/toast-utils';
-import type { Epic, StoryDetail, StoryStatus } from '@/types/dashboard';
-
-/** HTTP 404 Not Found status code */
-const HTTP_NOT_FOUND = 404;
+import { assertEpic, handleFetchError, processFetchResponse } from '@/lib/fetch-utils';
+import type { StoryDetail, StoryStatus } from '@/types/dashboard';
 
 /** Percentage conversion multiplier */
 const PERCENTAGE_MULTIPLIER = 100;
@@ -50,23 +47,6 @@ function StoryCardSkeleton() {
       </CardContent>
     </Card>
   );
-}
-
-/** Status badge with appropriate color based on story status */
-function StatusBadge({ status }: { status: StoryStatus }) {
-  const variants: Record<StoryStatus, string> = {
-    pending: 'bg-text-muted/20 text-text-muted',
-    inProgress: 'bg-primary/20 text-primary',
-    completed: 'bg-success/20 text-success',
-  };
-
-  const labels: Record<StoryStatus, string> = {
-    pending: 'Pending',
-    inProgress: 'In Progress',
-    completed: 'Completed',
-  };
-
-  return <Badge className={variants[status]}>{labels[status]}</Badge>;
 }
 
 /** Calculate task progress for a story */
@@ -199,26 +179,6 @@ function StoriesList({ stories }: { stories: StoryDetail[] }) {
   );
 }
 
-/** Result type for fetch response processing */
-type FetchResult = { type: 'notFound' } | { type: 'error' } | { type: 'success'; data: unknown };
-
-/** Process fetch response into a result type */
-async function processFetchResponse(response: Response): Promise<FetchResult> {
-  if (response.status === HTTP_NOT_FOUND) {
-    return { type: 'notFound' };
-  }
-  if (!response.ok) {
-    return { type: 'error' };
-  }
-  return { type: 'success', data: await response.json() };
-}
-
-/** Handle fetch error with toast notification */
-function handleFetchError(url: string, err: unknown, setError: (e: string) => void): void {
-  setError('Failed to load epic');
-  showApiErrorToast(url, err instanceof Error ? err.message : 'Unknown error');
-}
-
 /** Custom hook for fetching epic data */
 function useEpicFetch(epicId: string | undefined) {
   const { currentEpic, setCurrentEpic, clearCurrentEpic } = useDashboard();
@@ -245,10 +205,11 @@ function useEpicFetch(epicId: string | undefined) {
         } else if (result.type === 'error') {
           setError('Failed to load epic');
         } else {
-          setCurrentEpic(result.data as Epic);
+          assertEpic(result.data);
+          setCurrentEpic(result.data);
         }
       } catch (err) {
-        handleFetchError(`/api/epics/${epicId}`, err, setError);
+        handleFetchError(`/api/epics/${epicId}`, 'epic', err, setError);
       } finally {
         setIsFetching(false);
       }
@@ -288,4 +249,4 @@ function EpicDetail() {
   );
 }
 
-export { HeaderSkeleton, StoryCardSkeleton, StatusBadge, StoryCard, EpicDetail };
+export { HeaderSkeleton, StoryCardSkeleton, StoryCard, EpicDetail };
