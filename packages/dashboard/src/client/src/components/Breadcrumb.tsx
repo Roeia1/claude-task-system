@@ -20,18 +20,13 @@ function BreadcrumbLabel({ label, index }: { label: string; index: number }) {
 }
 
 /** Build breadcrumb items from route params */
-function buildBreadcrumbItems(params: {
-  slug?: string;
-  epicSlug?: string;
-  storySlug?: string;
-}): BreadcrumbItem[] {
+function buildBreadcrumbItems(params: { epicId?: string; storyId?: string }): BreadcrumbItem[] {
   const items: BreadcrumbItem[] = [{ label: 'Epics', href: '/' }];
 
-  if (params.slug) {
-    items.push({ label: params.slug });
-  } else if (params.epicSlug && params.storySlug) {
-    items.push({ label: params.epicSlug, href: `/epic/${params.epicSlug}` });
-    items.push({ label: params.storySlug });
+  if (params.epicId) {
+    items.push({ label: params.epicId });
+  } else if (params.storyId) {
+    items.push({ label: params.storyId });
   }
 
   return items;
@@ -39,9 +34,8 @@ function buildBreadcrumbItems(params: {
 
 export function Breadcrumb() {
   const params = useParams<{
-    slug?: string;
-    epicSlug?: string;
-    storySlug?: string;
+    epicId?: string;
+    storyId?: string;
   }>();
 
   const items = buildBreadcrumbItems(params);

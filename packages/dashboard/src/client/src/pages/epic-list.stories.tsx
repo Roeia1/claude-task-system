@@ -11,10 +11,8 @@ import { EpicCard, EpicCardSkeleton, EpicList } from './EpicList.tsx';
 
 /** Number of skeleton cards to show in loading state */
 const SKELETON_GRID_COUNT = 3;
-/** Number of active epics (non-archived) */
+/** Number of active epics */
 const ACTIVE_EPIC_COUNT = 3;
-/** Total epics including archived */
-const TOTAL_EPICS_WITH_ARCHIVED = 5;
 
 // Regex patterns
 const TO_GET_STARTED_REGEX = /to get started/;
@@ -25,65 +23,40 @@ const TO_GET_STARTED_REGEX = /to get started/;
 
 const sampleEpics: EpicSummary[] = [
   {
-    slug: 'dashboard-restructure',
+    id: 'dashboard-restructure',
     title: 'Dashboard Restructure and Testing',
+    description: 'Restructure the dashboard for better testing.',
+    status: 'inProgress',
     storyCounts: {
-      ready: 3,
+      pending: 3,
       inProgress: 2,
-      blocked: 1,
       completed: 4,
       total: 10,
     },
   },
   {
-    slug: 'auth-migration',
+    id: 'auth-migration',
     title: 'Authentication Migration',
+    description: 'Migrate authentication to new system.',
+    status: 'completed',
     storyCounts: {
-      ready: 0,
+      pending: 0,
       inProgress: 0,
-      blocked: 0,
       completed: 5,
       total: 5,
     },
   },
   {
-    slug: 'api-integration',
+    id: 'api-integration',
     title: 'API Integration',
+    description: 'Integrate with external APIs.',
+    status: 'inProgress',
     storyCounts: {
-      ready: 2,
+      pending: 2,
       inProgress: 1,
-      blocked: 3,
       completed: 1,
       total: 7,
     },
-  },
-];
-
-const epicsWithArchived: EpicSummary[] = [
-  ...sampleEpics,
-  {
-    slug: 'legacy-cleanup',
-    title: 'Legacy Code Cleanup',
-    storyCounts: {
-      ready: 0,
-      inProgress: 0,
-      blocked: 0,
-      completed: 8,
-      total: 8,
-    },
-    isArchived: true,
-  },
-  {
-    slug: 'old-feature',
-    title: 'Old Feature (Archived)',
-    storyCounts: {
-      ready: 0,
-      inProgress: 0,
-      blocked: 0,
-      completed: 3,
-      total: 3,
-    },
-    isArchived: true,
   },
 ];
 
@@ -98,7 +71,6 @@ const epicsWithArchived: EpicSummary[] = [
  * - Loading skeleton state during fetch
  * - Empty state with guidance
  * - Grid of epic cards
- * - Archive toggle to show/hide archived epics
  */
 const meta: Meta<typeof EpicList> = {
   title: 'Pages/EpicList',
@@ -132,7 +104,6 @@ type Story = StoryObj<typeof meta>;
  * - Loading: Skeleton cards during fetch
  * - Empty: No epics with guidance message
  * - Populated: Grid of epic cards
- * - With archived: Toggle to show/hide archived epics
  */
 const Showcase: Story = {
   render: () => (
@@ -177,31 +148,7 @@ const Showcase: Story = {
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {sampleEpics.map((epic) => (
-              <EpicCard key={epic.slug} epic={epic} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* With Archive Toggle */}
-      <section>
-        <h3 className="text-sm font-medium text-text-muted mb-4">With Archive Toggle</h3>
-        <div className="space-y-6 border border-border rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-text">Epics</h1>
-            <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
-              <input
-                type="checkbox"
-                checked={true}
-                readOnly={true}
-                className="rounded border-border"
-              />
-              Show archived
-            </label>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {epicsWithArchived.map((epic) => (
-              <EpicCard key={epic.slug} epic={epic} />
+              <EpicCard key={epic.id} epic={epic} />
             ))}
           </div>
         </div>
@@ -219,7 +166,6 @@ const Showcase: Story = {
     await expect(canvas.getByText('Loading State')).toBeInTheDocument();
     await expect(canvas.getByText('Empty State')).toBeInTheDocument();
     await expect(canvas.getByText('Populated State')).toBeInTheDocument();
-    await expect(canvas.getByText('With Archive Toggle')).toBeInTheDocument();
 
     // Verify loading skeletons
     const skeletonCards = canvasElement.querySelectorAll('.animate-pulse');
@@ -230,22 +176,13 @@ const Showcase: Story = {
     await expect(canvas.getByText('/create-epic')).toBeInTheDocument();
     await expect(canvas.getByText(TO_GET_STARTED_REGEX)).toBeInTheDocument();
 
-    // Verify populated state epic titles (these appear in both Populated and With Archive sections)
+    // Verify populated state epic titles
     const dashboardTitles = canvas.getAllByText('Dashboard Restructure and Testing');
     await expect(dashboardTitles.length).toBeGreaterThanOrEqual(1);
     const authTitles = canvas.getAllByText('Authentication Migration');
     await expect(authTitles.length).toBeGreaterThanOrEqual(1);
     const apiTitles = canvas.getAllByText('API Integration');
     await expect(apiTitles.length).toBeGreaterThanOrEqual(1);
-
-    // Verify archived epics (only in With Archive section)
-    await expect(canvas.getByText('Legacy Code Cleanup')).toBeInTheDocument();
-    await expect(canvas.getByText('Old Feature (Archived)')).toBeInTheDocument();
-
-    // Verify archive checkbox
-    const checkbox = canvas.getByRole('checkbox');
-    await expect(checkbox).toBeInTheDocument();
-    await expect(checkbox).toBeChecked();
 
     // Visual snapshot tests
     await matchDomSnapshot(canvasElement, 'epic-list-showcase');
@@ -265,24 +202,17 @@ const Playground: Story = {
   argTypes: {
     state: {
       control: 'select',
-      options: ['loading', 'empty', 'populated', 'with-archived'],
+      options: ['loading', 'empty', 'populated'],
       description: 'Page state to display',
-    },
-    showArchived: {
-      control: 'boolean',
-      description: 'Whether to show archived epics (when state is with-archived)',
     },
   },
   args: {
     // @ts-expect-error - Custom args for playground
     state: 'populated',
-    showArchived: false,
   },
   render: (args) => {
     // @ts-expect-error - Custom args for playground
     const state = args.state as string;
-    // @ts-expect-error - Custom args for playground
-    const showArchived = args.showArchived as boolean;
 
     if (state === 'loading') {
       return (
@@ -315,28 +245,14 @@ const Playground: Story = {
       );
     }
 
-    const epics = state === 'with-archived' && showArchived ? epicsWithArchived : sampleEpics;
-    const hasArchivedToggle = state === 'with-archived';
-
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-text">Epics</h1>
-          {hasArchivedToggle && (
-            <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showArchived}
-                readOnly={true}
-                className="rounded border-border"
-              />
-              Show archived
-            </label>
-          )}
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {epics.map((epic) => (
-            <EpicCard key={epic.slug} epic={epic} />
+          {sampleEpics.map((epic) => (
+            <EpicCard key={epic.id} epic={epic} />
           ))}
         </div>
       </div>
@@ -433,7 +349,7 @@ const Populated: Story = {
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {sampleEpics.map((epic) => (
-          <EpicCard key={epic.slug} epic={epic} />
+          <EpicCard key={epic.id} epic={epic} />
         ))}
       </div>
     </div>
@@ -457,55 +373,9 @@ const Populated: Story = {
   },
 };
 
-/**
- * State with archived epics visible.
- */
-const WithArchivedVisible: Story = {
-  render: () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text">Epics</h1>
-        <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
-          <input type="checkbox" checked={true} readOnly={true} className="rounded border-border" />
-          Show archived
-        </label>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {epicsWithArchived.map((epic) => (
-          <EpicCard key={epic.slug} epic={epic} />
-        ))}
-      </div>
-    </div>
-  ),
-  parameters: {
-    a11y: {
-      test: 'error',
-    },
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Verify header with SAGA Dashboard (from Layout)
-    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
-    // Verify page title and breadcrumb contain Epics
-    const epicTexts = canvas.getAllByText('Epics');
-    await expect(epicTexts.length).toBeGreaterThanOrEqual(1);
-    // Verify archive toggle
-    const checkbox = canvas.getByRole('checkbox');
-    await expect(checkbox).toBeChecked();
-    await expect(checkbox).toHaveAccessibleName('Show archived');
-    // Verify archived epic appears
-    await expect(canvas.getByText('Legacy Code Cleanup')).toBeInTheDocument();
-    // Note: Links now include breadcrumb navigation, so check epic cards specifically
-    const epicLinks = canvas
-      .getAllByRole('link')
-      .filter((link) => link.getAttribute('href')?.startsWith('/epic/'));
-    await expect(epicLinks.length).toBe(TOTAL_EPICS_WITH_ARCHIVED);
-  },
-};
-
 // ============================================================================
 // Exports
 // ============================================================================
 
 export default meta;
-export { Showcase, Playground, Loading, Empty, Populated, WithArchivedVisible };
+export { Showcase, Playground, Loading, Empty, Populated };

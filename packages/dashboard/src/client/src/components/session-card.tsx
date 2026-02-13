@@ -73,7 +73,7 @@ function OutputPreview({
 
 /**
  * Component to display a single session card with live duration updates.
- * Shows story title, epic title, duration timer, and output preview.
+ * Shows story ID, duration timer, and output preview.
  * Output preview auto-scrolls to bottom when content changes.
  */
 export function SessionCard({ session }: { session: SessionInfo }) {
@@ -97,14 +97,10 @@ export function SessionCard({ session }: { session: SessionInfo }) {
   }, [session.startTime]);
 
   return (
-    <Link
-      to={`/epic/${session.epicSlug}/story/${session.storySlug}?tab=sessions`}
-      className="block"
-    >
+    <Link to={`/story/${session.storyId}?tab=sessions`} className="block">
       <Card className="hover:border-primary/50 transition-colors cursor-pointer">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">{session.storySlug}</CardTitle>
-          <div className="text-sm text-text-muted">{session.epicSlug}</div>
+          <CardTitle className="text-base">{session.storyId}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="text-sm text-text-muted">{formatDuration(duration)}</div>

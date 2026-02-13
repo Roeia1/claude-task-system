@@ -32,8 +32,7 @@ function getBackoffDelay(retryCount: number): number {
 
 /** Story subscription identifier */
 interface StorySubscription {
-  epicSlug: string;
-  storySlug: string;
+  storyId: string;
 }
 
 /** Dashboard machine context */
@@ -64,13 +63,13 @@ type DashboardEvent =
   | { type: 'STORY_UPDATED'; story: StoryDetail }
   | { type: 'SESSIONS_UPDATED'; sessions: SessionInfo[] }
   | { type: 'LOAD_EPICS' }
-  | { type: 'LOAD_EPIC'; slug: string }
-  | { type: 'LOAD_STORY'; epicSlug: string; storySlug: string }
+  | { type: 'LOAD_EPIC'; epicId: string }
+  | { type: 'LOAD_STORY'; storyId: string }
   | { type: 'CLEAR_EPIC' }
   | { type: 'CLEAR_STORY' }
   | { type: 'ERROR'; error: string }
-  | { type: 'SUBSCRIBE_STORY'; epicSlug: string; storySlug: string }
-  | { type: 'UNSUBSCRIBE_STORY'; epicSlug: string; storySlug: string };
+  | { type: 'SUBSCRIBE_STORY'; storyId: string }
+  | { type: 'UNSUBSCRIBE_STORY'; storyId: string };
 
 /** WebSocket send function type for external access */
 type WebSocketSendFn = (message: object) => void;
@@ -187,15 +186,14 @@ function handleWebSocketMessage(
 /** Helper to handle incoming events from the machine */
 function handleReceivedEvent(event: DashboardEvent, sendMessage: (msg: object) => void): void {
   if (event.type === 'SUBSCRIBE_STORY') {
-    // Server expects: { event: 'subscribe:story', data: { epicSlug, storySlug } }
     sendMessage({
       event: 'subscribe:story',
-      data: { epicSlug: event.epicSlug, storySlug: event.storySlug },
+      data: { storyId: event.storyId },
     });
   } else if (event.type === 'UNSUBSCRIBE_STORY') {
     sendMessage({
       event: 'unsubscribe:story',
-      data: { epicSlug: event.epicSlug, storySlug: event.storySlug },
+      data: { storyId: event.storyId },
     });
   }
 }
@@ -283,7 +281,7 @@ const websocketActor = fromCallback<
         for (const sub of input.subscribedStories) {
           messageQueue.send({
             event: 'subscribe:story',
-            data: { epicSlug: sub.epicSlug, storySlug: sub.storySlug },
+            data: { storyId: sub.storyId },
           });
         }
       };
@@ -403,21 +401,15 @@ const dashboardMachine = setup({
     }),
     updateStory: assign({
       currentStory: ({ context }, params: { story: StoryDetail }) => {
-        if (
-          context.currentStory &&
-          context.currentStory.slug === params.story.slug &&
-          context.currentStory.epicSlug === params.story.epicSlug
-        ) {
+        if (context.currentStory && context.currentStory.id === params.story.id) {
           return params.story;
         }
         return context.currentStory;
       },
     }),
     addSubscription: assign({
-      subscribedStories: ({ context }, params: { epicSlug: string; storySlug: string }) => {
-        const exists = context.subscribedStories.some(
-          (s) => s.epicSlug === params.epicSlug && s.storySlug === params.storySlug,
-        );
+      subscribedStories: ({ context }, params: { storyId: string }) => {
+        const exists = context.subscribedStories.some((s) => s.storyId === params.storyId);
         if (exists) {
           return context.subscribedStories;
         }
@@ -425,10 +417,8 @@ const dashboardMachine = setup({
       },
     }),
     removeSubscription: assign({
-      subscribedStories: ({ context }, params: { epicSlug: string; storySlug: string }) => {
-        return context.subscribedStories.filter(
-          (s) => !(s.epicSlug === params.epicSlug && s.storySlug === params.storySlug),
-        );
+      subscribedStories: ({ context }, params: { storyId: string }) => {
+        return context.subscribedStories.filter((s) => s.storyId !== params.storyId);
       },
     }),
   },
@@ -514,8 +504,7 @@ const dashboardMachine = setup({
             {
               type: 'addSubscription',
               params: ({ event }) => ({
-                epicSlug: event.epicSlug,
-                storySlug: event.storySlug,
+                storyId: event.storyId,
               }),
             },
             sendTo('websocket', ({ event }) => event),
@@ -526,8 +515,7 @@ const dashboardMachine = setup({
             {
               type: 'removeSubscription',
               params: ({ event }) => ({
-                epicSlug: event.epicSlug,
-                storySlug: event.storySlug,
+                storyId: event.storyId,
               }),
             },
             sendTo('websocket', ({ event }) => event),

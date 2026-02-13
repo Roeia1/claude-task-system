@@ -10,25 +10,18 @@ import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapsh
 // ============================================================================
 
 /** Available story presets for the Playground */
-const STORY_PRESETS: StoryPreset[] = [
-  'ready',
-  'in-progress',
-  'blocked',
-  'almost-done',
-  'completed',
-];
+const STORY_PRESETS: StoryPreset[] = ['pending', 'in-progress', 'almost-done', 'completed'];
 
 /** Number of cards in the Showcase grid */
-const SHOWCASE_CARD_COUNT = 5;
+const SHOWCASE_CARD_COUNT = 4;
 
 /** Regex pattern for matching preset label in Playground */
 const PRESET_LABEL_PATTERN = /Preset:/;
 
 /** Labels for story presets */
 const presetLabels: Record<StoryPreset, string> = {
-  ready: 'Ready',
+  pending: 'Pending',
   'in-progress': 'In Progress',
-  blocked: 'Blocked',
   'almost-done': 'Almost Done',
   completed: 'Completed',
 };
@@ -38,21 +31,13 @@ const presetLabels: Record<StoryPreset, string> = {
 // ============================================================================
 
 /** StoryCard with MemoryRouter wrapper for proper Link rendering */
-function StoryCardWithRouter({
-  preset,
-  title,
-  epicSlug = 'test-epic',
-}: {
-  preset: StoryPreset;
-  title?: string;
-  epicSlug?: string;
-}) {
+function StoryCardWithRouter({ preset, title }: { preset: StoryPreset; title?: string }) {
   resetMockCounters();
   const story = createMockStory(preset, title ? { title } : {});
 
   return (
     <MemoryRouter>
-      <StoryCard story={story} epicSlug={epicSlug} />
+      <StoryCard story={story} />
     </MemoryRouter>
   );
 }
@@ -82,7 +67,7 @@ const meta: Meta<{ preset: StoryPreset; title: string }> = {
       description: 'Story state preset',
       table: {
         type: { summary: 'StoryPreset' },
-        defaultValue: { summary: 'ready' },
+        defaultValue: { summary: 'pending' },
       },
     },
     title: {
@@ -130,7 +115,6 @@ export const Showcase: Story = {
                     story={createMockStory(preset, {
                       title: `${presetLabels[preset]} Story`,
                     })}
-                    epicSlug="test-epic"
                   />
                 </MemoryRouter>
               </div>
@@ -151,7 +135,6 @@ export const Showcase: Story = {
                     title:
                       'This Is a Very Long Story Title That Demonstrates How Text Wrapping Works in the Card Component',
                   })}
-                  epicSlug="test-epic"
                 />
               </MemoryRouter>
             </div>
@@ -161,11 +144,10 @@ export const Showcase: Story = {
               <span className="text-xs text-text-muted">No Tasks</span>
               <MemoryRouter>
                 <StoryCard
-                  story={createMockStory('ready', {
+                  story={createMockStory('pending', {
                     title: 'Story With No Tasks',
                     tasks: [],
                   })}
-                  epicSlug="test-epic"
                 />
               </MemoryRouter>
             </div>
@@ -178,19 +160,16 @@ export const Showcase: Story = {
     const canvas = within(canvasElement);
 
     // Verify all story states are displayed
-    await expect(canvas.getByText('Ready Story')).toBeInTheDocument();
+    await expect(canvas.getByText('Pending Story')).toBeInTheDocument();
     await expect(canvas.getByText('In Progress Story')).toBeInTheDocument();
-    await expect(canvas.getByText('Blocked Story')).toBeInTheDocument();
     await expect(canvas.getByText('Almost Done Story')).toBeInTheDocument();
     await expect(canvas.getByText('Completed Story')).toBeInTheDocument();
 
     // Verify status badges are present (using getAllByText since labels may appear multiple times)
-    const readyElements = canvas.getAllByText('Ready');
-    await expect(readyElements.length).toBeGreaterThanOrEqual(1);
+    const pendingElements = canvas.getAllByText('Pending');
+    await expect(pendingElements.length).toBeGreaterThanOrEqual(1);
     const inProgressBadges = canvas.getAllByText('In Progress');
     await expect(inProgressBadges.length).toBeGreaterThanOrEqual(2); // Almost Done also shows In Progress status
-    const blockedElements = canvas.getAllByText('Blocked');
-    await expect(blockedElements.length).toBeGreaterThanOrEqual(1);
     const completedElements = canvas.getAllByText('Completed');
     await expect(completedElements.length).toBeGreaterThanOrEqual(1);
 
@@ -203,7 +182,7 @@ export const Showcase: Story = {
     await expect(canvas.getByText('Story With No Tasks')).toBeInTheDocument();
 
     // Verify task progress is shown
-    await expect(canvas.getByText('0/3 tasks completed')).toBeInTheDocument(); // Ready story
+    await expect(canvas.getByText('0/3 tasks completed')).toBeInTheDocument(); // Pending story
 
     // Verify links have accessible names
     const links = canvas.getAllByRole('link');
@@ -229,7 +208,7 @@ export const Showcase: Story = {
  */
 export const Playground: Story = {
   args: {
-    preset: 'ready',
+    preset: 'pending',
     title: '',
   },
   render: (args) => {
@@ -261,20 +240,15 @@ export const Playground: Story = {
 
     // Verify status badge is present based on preset (using getAllByText since label may appear twice)
     switch (args.preset) {
-      case 'ready': {
-        const readyElements = canvas.getAllByText('Ready');
-        await expect(readyElements.length).toBeGreaterThanOrEqual(1);
+      case 'pending': {
+        const pendingElements = canvas.getAllByText('Pending');
+        await expect(pendingElements.length).toBeGreaterThanOrEqual(1);
         break;
       }
       case 'in-progress':
       case 'almost-done': {
         const inProgressElements = canvas.getAllByText('In Progress');
         await expect(inProgressElements.length).toBeGreaterThanOrEqual(1);
-        break;
-      }
-      case 'blocked': {
-        const blockedElements = canvas.getAllByText('Blocked');
-        await expect(blockedElements.length).toBeGreaterThanOrEqual(1);
         break;
       }
       case 'completed': {

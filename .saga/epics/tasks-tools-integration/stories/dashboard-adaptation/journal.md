@@ -228,3 +228,32 @@
 
 **Next steps:**
 - t9: Update React components for new data model
+
+## Session: 2026-02-13T03:44
+
+### Task: t9 - Update React components for new data model
+
+**What was done:**
+- Updated `router.tsx`: changed route from `epic/:slug` to `epic/:epicId`
+- Updated `Breadcrumb.tsx`: replaced `slug` param with `epicId` in `useParams` and `buildBreadcrumbItems`
+- Updated `EpicDetail.tsx`: replaced all `slug` references with `epicId` — `useParams`, `useEpicFetch`, `NotFoundState`, and API URL. Added missing `Epic` type import
+- Updated `dashboardMachine.ts`: changed `LOAD_EPIC` event from `slug: string` to `epicId: string`
+- Rewrote `dashboardMachine.test.tsx`: updated all test fixtures to use new types (`id` instead of `slug`, `subject` instead of `title` on tasks, `description` instead of `content`, `pending/inProgress/completed` statuses, `storyId` instead of `epicSlug/storySlug` in subscriptions, `SessionInfo` with `storyId` and `.jsonl` output)
+- Updated `task-item.stories.tsx`: changed Playground from `title` to `subject` override field, fixed argTypes
+- Updated `breadcrumb.stories.tsx`: changed route from `/epic/:slug` to `/epic/:epicId`
+- Updated `storybook-page-wrapper.tsx`: changed routes from `/epic/:slug` and `/epic/:epicSlug/story/:storySlug` to `/epic/:epicId` and `/story/:storyId`
+- Updated `storybook-page-wrapper.test.tsx`: changed story detail route from `/epic/my-epic/story/my-story` to `/story/my-story`
+- Rewrote `story-detail.test.tsx`: updated mock data to new types, changed `renderStoryDetail()` to use `/story/:storyId` route pattern (was `/epic/:epicSlug/story/:storySlug`)
+
+**Decisions:**
+- The `LOAD_EPIC` event type in the machine already existed but was unused in the current implementation. Updated it to `epicId` for consistency, matching the rest of the data model.
+- Kept the same subscription test structure in dashboardMachine.test.tsx but updated all fields from `epicSlug/storySlug` to `storyId` to match the new flat story model.
+- The story-detail.stories.tsx and epic-content.stories.tsx still reference `slug` in their mock data — these are storybook-only files that will be fixed in t11 (update tests and fixtures).
+
+**Test results:**
+- All 8 client test files pass (168 tests)
+- 14 server unit test files pass (340 tests)
+- 2 server test files still fail (integration.test.ts, websocket.test.ts) — pre-existing failures from t7, to be fixed in t11
+
+**Next steps:**
+- t10: Update XState machine and context

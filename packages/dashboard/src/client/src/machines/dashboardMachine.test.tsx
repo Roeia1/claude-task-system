@@ -38,8 +38,7 @@ function serializeStateValue(value: unknown): string {
 // Message type for subscription capture
 interface SubscriptionMessage {
   type: string;
-  epicSlug: string;
-  storySlug: string;
+  storyId: string;
 }
 
 // Default context for machine initialization
@@ -68,48 +67,63 @@ const defaultMachineContext: DashboardContext = {
 // =============================================================================
 
 const sampleStoryCounts = {
-  ready: 1,
+  pending: 1,
   inProgress: 2,
-  blocked: 0,
   completed: 3,
   total: 6,
 };
 
 const sampleEpics: EpicSummary[] = [
-  { slug: 'epic-1', title: 'Epic One', storyCounts: sampleStoryCounts },
   {
-    slug: 'epic-2',
+    id: 'epic-1',
+    title: 'Epic One',
+    description: 'First epic',
+    status: 'inProgress',
+    storyCounts: sampleStoryCounts,
+  },
+  {
+    id: 'epic-2',
     title: 'Epic Two',
+    description: 'Second epic',
+    status: 'inProgress',
     storyCounts: { ...sampleStoryCounts, total: 4 },
-    isArchived: true,
   },
 ];
 
 const sampleEpic: Epic = {
-  slug: 'epic-1',
+  id: 'epic-1',
   title: 'Epic One',
-  content: 'Epic description content',
+  description: 'Epic description content',
+  status: 'inProgress',
   stories: [],
   storyCounts: sampleStoryCounts,
+  children: [],
 };
 
 const sampleStory: StoryDetail = {
-  slug: 'story-1',
-  epicSlug: 'epic-1',
+  id: 'story-1',
+  epic: 'epic-1',
   title: 'Story One',
-  status: 'in_progress',
-  tasks: [{ id: 'task-1', title: 'Task One', status: 'pending' }],
+  description: 'Story description',
+  status: 'inProgress',
+  tasks: [
+    {
+      id: 'task-1',
+      subject: 'Task One',
+      description: 'Task description',
+      status: 'pending',
+      blockedBy: [],
+    },
+  ],
   journal: [{ type: 'session', title: 'Started work', content: 'Initial session' }],
-  content: 'Story content',
 };
 
 const sampleSessions: SessionInfo[] = [
   {
-    name: 'saga__epic-1__story-1__1234',
-    epicSlug: 'epic-1',
-    storySlug: 'story-1',
+    name: 'saga-story-story-1-1234',
+    storyId: 'story-1',
     status: 'running',
-    outputFile: '/tmp/saga/session-1.log',
+    outputFile: '/tmp/saga/session-1.jsonl',
     outputAvailable: true,
     startTime: new Date().toISOString(),
   },
@@ -134,8 +148,7 @@ const createMockWebsocketActor = (options: {
         for (const sub of input.subscribedStories) {
           subscriptionCapture.messages.push({
             type: 'subscribe:story',
-            epicSlug: sub.epicSlug,
-            storySlug: sub.storySlug,
+            storyId: sub.storyId,
           });
         }
       }
@@ -146,14 +159,12 @@ const createMockWebsocketActor = (options: {
           if (event.type === 'SUBSCRIBE_STORY') {
             subscriptionCapture.messages.push({
               type: 'subscribe:story',
-              epicSlug: event.epicSlug,
-              storySlug: event.storySlug,
+              storyId: event.storyId,
             });
           } else if (event.type === 'UNSUBSCRIBE_STORY') {
             subscriptionCapture.messages.push({
               type: 'unsubscribe:story',
-              epicSlug: event.epicSlug,
-              storySlug: event.storySlug,
+              storyId: event.storyId,
             });
           }
         }
@@ -391,7 +402,7 @@ describe('dashboardMachine', () => {
     });
 
     it('loading -> reconnecting on WebSocket error (triggers retry)', async () => {
-      // WS_ERROR from loading goes to reconnecting state, not directly to error
+      // WS_Error from loading goes to reconnecting state, not directly to error
       const machine = createTestableMachine({ connectBehavior: 'error' });
       const actor = createActor(machine);
       actor.start();
@@ -584,7 +595,7 @@ describe('dashboardMachine', () => {
         actor.stop();
       });
 
-      it('STORY_UPDATED updates currentStory when slug matches', async () => {
+      it('STORY_UPDATED updates currentStory when id matches', async () => {
         const machine = createTestableMachine({ connectBehavior: 'success' });
         const actor = createActor(machine);
         actor.start();
@@ -604,7 +615,7 @@ describe('dashboardMachine', () => {
         actor.stop();
       });
 
-      it('STORY_UPDATED ignores update when slug does not match', async () => {
+      it('STORY_UPDATED ignores update when id does not match', async () => {
         const machine = createTestableMachine({ connectBehavior: 'success' });
         const actor = createActor(machine);
         actor.start();
@@ -618,7 +629,7 @@ describe('dashboardMachine', () => {
 
         const differentStory = {
           ...sampleStory,
-          slug: 'different-story',
+          id: 'different-story',
           title: 'Different',
         };
         actor.send({ type: 'STORY_UPDATED', story: differentStory });
@@ -692,13 +703,11 @@ describe('dashboardMachine', () => {
 
       actor.send({
         type: 'SUBSCRIBE_STORY',
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
 
       expect(actor.getSnapshot().context.subscribedStories).toContainEqual({
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
 
       actor.stop();
@@ -719,13 +728,11 @@ describe('dashboardMachine', () => {
 
       actor.send({
         type: 'SUBSCRIBE_STORY',
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
       actor.send({
         type: 'SUBSCRIBE_STORY',
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
 
       expect(actor.getSnapshot().context.subscribedStories).toHaveLength(1);
@@ -748,13 +755,11 @@ describe('dashboardMachine', () => {
 
       actor.send({
         type: 'SUBSCRIBE_STORY',
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
       actor.send({
         type: 'UNSUBSCRIBE_STORY',
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
 
       expect(actor.getSnapshot().context.subscribedStories).toHaveLength(0);
@@ -777,16 +782,14 @@ describe('dashboardMachine', () => {
 
       actor.send({
         type: 'SUBSCRIBE_STORY',
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(subscriptionCapture.messages).toContainEqual({
         type: 'subscribe:story',
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
 
       actor.stop();
@@ -807,13 +810,11 @@ describe('dashboardMachine', () => {
 
       actor.send({
         type: 'SUBSCRIBE_STORY',
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
       actor.send({
         type: 'SUBSCRIBE_STORY',
-        epicSlug: 'epic-2',
-        storySlug: 'story-2',
+        storyId: 'story-2',
       });
 
       subscriptionCapture.messages = [];
@@ -828,13 +829,11 @@ describe('dashboardMachine', () => {
 
       expect(subscriptionCapture.messages).toContainEqual({
         type: 'subscribe:story',
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
       expect(subscriptionCapture.messages).toContainEqual({
         type: 'subscribe:story',
-        epicSlug: 'epic-2',
-        storySlug: 'story-2',
+        storyId: 'story-2',
       });
 
       actor.stop();
@@ -855,18 +854,15 @@ describe('dashboardMachine', () => {
 
       actor.send({
         type: 'SUBSCRIBE_STORY',
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
       actor.send({
         type: 'SUBSCRIBE_STORY',
-        epicSlug: 'epic-1',
-        storySlug: 'story-2',
+        storyId: 'story-2',
       });
       actor.send({
         type: 'UNSUBSCRIBE_STORY',
-        epicSlug: 'epic-1',
-        storySlug: 'story-1',
+        storyId: 'story-1',
       });
 
       subscriptionCapture.messages = [];
@@ -880,10 +876,10 @@ describe('dashboardMachine', () => {
       });
 
       const story1Messages = (subscriptionCapture.messages as SubscriptionMessage[]).filter(
-        (m) => m.type === 'subscribe:story' && m.storySlug === 'story-1',
+        (m) => m.type === 'subscribe:story' && m.storyId === 'story-1',
       );
       const story2Messages = (subscriptionCapture.messages as SubscriptionMessage[]).filter(
-        (m) => m.type === 'subscribe:story' && m.storySlug === 'story-2',
+        (m) => m.type === 'subscribe:story' && m.storyId === 'story-2',
       );
 
       expect(story1Messages).toHaveLength(0);

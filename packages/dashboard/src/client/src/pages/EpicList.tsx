@@ -33,16 +33,14 @@ export function EpicCardSkeleton() {
 /** Status badge with appropriate color based on story status */
 export function StatusBadge({ status, count }: { status: StoryStatus; count: number }) {
   const variants: Record<StoryStatus, string> = {
-    ready: 'bg-text-muted/20 text-text-muted',
+    pending: 'bg-text-muted/20 text-text-muted',
     inProgress: 'bg-primary/20 text-primary',
-    blocked: 'bg-danger/20 text-danger',
     completed: 'bg-success/20 text-success',
   };
 
   const labels: Record<StoryStatus, string> = {
-    ready: 'Ready',
+    pending: 'Pending',
     inProgress: 'In Progress',
-    blocked: 'Blocked',
     completed: 'Completed',
   };
 
@@ -62,7 +60,7 @@ export function EpicCard({ epic }: { epic: EpicSummary }) {
       : 0;
 
   return (
-    <Link to={`/epic/${epic.slug}`} className="block">
+    <Link to={`/epic/${epic.id}`} className="block">
       <Card className="hover:border-primary/50 transition-colors cursor-pointer">
         <CardHeader>
           <CardTitle className="text-lg">{epic.title}</CardTitle>
@@ -78,12 +76,11 @@ export function EpicCard({ epic }: { epic: EpicSummary }) {
             <Progress value={completionPercentage} />
           </div>
           <div className="flex flex-wrap gap-2">
-            {storyCounts.ready > 0 && <StatusBadge status="ready" count={storyCounts.ready} />}
+            {storyCounts.pending > 0 && (
+              <StatusBadge status="pending" count={storyCounts.pending} />
+            )}
             {storyCounts.inProgress > 0 && (
               <StatusBadge status="inProgress" count={storyCounts.inProgress} />
-            )}
-            {storyCounts.blocked > 0 && (
-              <StatusBadge status="blocked" count={storyCounts.blocked} />
             )}
             {storyCounts.completed > 0 && (
               <StatusBadge status="completed" count={storyCounts.completed} />
@@ -97,7 +94,6 @@ export function EpicCard({ epic }: { epic: EpicSummary }) {
 
 export function EpicList() {
   const { epics, setEpics } = useDashboard();
-  const [showArchived, setShowArchived] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
   useEffect(() => {
@@ -121,33 +117,11 @@ export function EpicList() {
 
   const loading = isFetching;
 
-  // Filter epics based on archived toggle
-  const filteredEpics = epics.filter((epic) => {
-    if (showArchived) {
-      return true;
-    }
-    return !epic.isArchived;
-  });
-
-  // Check if there are any archived epics to show the toggle
-  const hasArchivedEpics = epics.some((epic) => epic.isArchived);
-
   return (
     <div className="space-y-6">
       <ActiveSessions />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-text">Epics</h1>
-        {hasArchivedEpics && (
-          <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(e) => setShowArchived(e.target.checked)}
-              className="rounded border-border"
-            />
-            Show archived
-          </label>
-        )}
       </div>
 
       {loading && (
@@ -157,7 +131,7 @@ export function EpicList() {
           <EpicCardSkeleton />
         </div>
       )}
-      {!loading && filteredEpics.length === 0 && (
+      {!loading && epics.length === 0 && (
         <div className="text-center py-12">
           <p className="text-text-muted text-lg">No epics found.</p>
           <p className="text-text-muted">
@@ -165,10 +139,10 @@ export function EpicList() {
           </p>
         </div>
       )}
-      {!loading && filteredEpics.length > 0 && (
+      {!loading && epics.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredEpics.map((epic) => (
-            <EpicCard key={epic.slug} epic={epic} />
+          {epics.map((epic) => (
+            <EpicCard key={epic.id} epic={epic} />
           ))}
         </div>
       )}

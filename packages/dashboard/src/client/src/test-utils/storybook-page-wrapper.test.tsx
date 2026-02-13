@@ -48,14 +48,13 @@ describe('PageWrapper', () => {
 
   it('shows correct breadcrumb for story detail route', () => {
     render(
-      <PageWrapper route="/epic/my-epic/story/my-story">
+      <PageWrapper route="/story/my-story">
         <div>Story Detail Content</div>
       </PageWrapper>,
     );
 
-    // Verify full breadcrumb trail
+    // Verify breadcrumb trail
     expect(screen.getByText('Epics')).toBeInTheDocument();
-    expect(screen.getByText('my-epic')).toBeInTheDocument();
     expect(screen.getByText('my-story')).toBeInTheDocument();
   });
 

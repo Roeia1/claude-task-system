@@ -26,8 +26,7 @@ const MS_PER_SECOND = 1000;
 const DURATION_UPDATE_INTERVAL = 1000;
 
 interface SessionsPanelProps {
-  epicSlug: string;
-  storySlug: string;
+  storyId: string;
 }
 
 interface SessionDetailCardProps {
@@ -251,7 +250,7 @@ function getAutoExpandSessionName(sessions: SessionInfo[]): string | null {
 /**
  * Hook to fetch sessions from the API with loading and error states
  */
-function useSessionFetch(epicSlug: string, storySlug: string) {
+function useSessionFetch(storyId: string) {
   const [localSessions, setLocalSessions] = useState<SessionInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<boolean>(false);
@@ -260,7 +259,7 @@ function useSessionFetch(epicSlug: string, storySlug: string) {
     setIsLoading(true);
     setError(false);
     try {
-      const response = await fetch(`/api/sessions?epicSlug=${epicSlug}&storySlug=${storySlug}`);
+      const response = await fetch(`/api/sessions?storyId=${storyId}`);
       if (response.ok) {
         const data: SessionInfo[] = await response.json();
         setLocalSessions(data);
@@ -274,7 +273,7 @@ function useSessionFetch(epicSlug: string, storySlug: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [epicSlug, storySlug]);
+  }, [storyId]);
 
   useEffect(() => {
     fetchSessions();
@@ -286,14 +285,14 @@ function useSessionFetch(epicSlug: string, storySlug: string) {
 /**
  * Custom hook that manages session data, context integration, sorting, and auto-expand
  */
-function useSessionsData(epicSlug: string, storySlug: string) {
+function useSessionsData(storyId: string) {
   const { sessions: contextSessions } = useDashboard();
-  const { localSessions, isLoading, error, fetchSessions } = useSessionFetch(epicSlug, storySlug);
+  const { localSessions, isLoading, error, fetchSessions } = useSessionFetch(storyId);
   const autoExpandSessionNameRef = useRef<string | null | undefined>(undefined);
 
   const storyContextSessions = useMemo(() => {
-    return contextSessions.filter((s) => s.epicSlug === epicSlug && s.storySlug === storySlug);
-  }, [contextSessions, epicSlug, storySlug]);
+    return contextSessions.filter((s) => s.storyId === storyId);
+  }, [contextSessions, storyId]);
 
   const sessions = storyContextSessions.length > 0 ? storyContextSessions : localSessions;
 
@@ -320,9 +319,9 @@ function useSessionsData(epicSlug: string, storySlug: string) {
 /**
  * SessionsPanel displays all sessions for a specific story
  */
-function SessionsPanel({ epicSlug, storySlug }: SessionsPanelProps) {
+function SessionsPanel({ storyId }: SessionsPanelProps) {
   const { sortedSessions, isLoading, error, fetchSessions, autoExpandSessionName } =
-    useSessionsData(epicSlug, storySlug);
+    useSessionsData(storyId);
 
   if (isLoading) {
     return <SessionsPanelSkeleton />;

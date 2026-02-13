@@ -26,8 +26,7 @@ const EXPECTED_SESSION_CARDS = 3;
 /** Running session with output available */
 const runningSession: SessionInfo = {
   name: 'saga__dashboard-epic__auth-story__12345',
-  epicSlug: 'dashboard-epic',
-  storySlug: 'auth-story',
+  storyId: 'auth-story',
   status: 'running',
   outputFile: '/tmp/saga/sessions/12345.log',
   outputAvailable: true,
@@ -38,8 +37,7 @@ const runningSession: SessionInfo = {
 /** Completed session with output available */
 const completedSession: SessionInfo = {
   name: 'saga__dashboard-epic__auth-story__67890',
-  epicSlug: 'dashboard-epic',
-  storySlug: 'auth-story',
+  storyId: 'auth-story',
   status: 'completed',
   outputFile: '/tmp/saga/sessions/67890.log',
   outputAvailable: true,
@@ -51,8 +49,7 @@ const completedSession: SessionInfo = {
 /** Session with output unavailable */
 const unavailableOutputSession: SessionInfo = {
   name: 'saga__dashboard-epic__auth-story__11111',
-  epicSlug: 'dashboard-epic',
-  storySlug: 'auth-story',
+  storyId: 'auth-story',
   status: 'completed',
   outputFile: '/tmp/saga/sessions/11111.log',
   outputAvailable: false,
@@ -66,8 +63,7 @@ const multipleSessions: SessionInfo[] = [
   completedSession,
   {
     name: 'saga__dashboard-epic__auth-story__33333',
-    epicSlug: 'dashboard-epic',
-    storySlug: 'auth-story',
+    storyId: 'auth-story',
     status: 'completed',
     outputFile: '/tmp/saga/sessions/33333.log',
     outputAvailable: true,
@@ -191,7 +187,7 @@ const meta: Meta<typeof SessionDetailCard> = {
     docs: {
       description: {
         component:
-          'Panel displaying tmux sessions for a story. Shows session metadata, status badges, and embedded log viewers.',
+          'Panel displaying sessions for a story. Shows session metadata, status badges, and embedded log viewers.',
       },
     },
   },

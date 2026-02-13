@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useDashboard } from '@/context/dashboard-context';
 import { showApiErrorToast } from '@/lib/toast-utils';
-import type { StoryDetail, StoryStatus } from '@/types/dashboard';
+import type { Epic, StoryDetail, StoryStatus } from '@/types/dashboard';
 
 /** HTTP 404 Not Found status code */
 const HTTP_NOT_FOUND = 404;
@@ -16,10 +16,9 @@ const PERCENTAGE_MULTIPLIER = 100;
 
 /** Status priority for sorting (lower = higher priority) */
 const statusPriority: Record<StoryStatus, number> = {
-  blocked: 0,
-  inProgress: 1,
-  ready: 2,
-  completed: 3,
+  inProgress: 0,
+  pending: 1,
+  completed: 2,
 };
 
 /** Skeleton loading component for the epic header */
@@ -56,16 +55,14 @@ function StoryCardSkeleton() {
 /** Status badge with appropriate color based on story status */
 function StatusBadge({ status }: { status: StoryStatus }) {
   const variants: Record<StoryStatus, string> = {
-    ready: 'bg-text-muted/20 text-text-muted',
+    pending: 'bg-text-muted/20 text-text-muted',
     inProgress: 'bg-primary/20 text-primary',
-    blocked: 'bg-danger/20 text-danger',
     completed: 'bg-success/20 text-success',
   };
 
   const labels: Record<StoryStatus, string> = {
-    ready: 'Ready',
+    pending: 'Pending',
     inProgress: 'In Progress',
-    blocked: 'Blocked',
     completed: 'Completed',
   };
 
@@ -79,11 +76,11 @@ function getTaskProgress(tasks: StoryDetail['tasks']) {
 }
 
 /** Card component for displaying a single story */
-function StoryCard({ story, epicSlug }: { story: StoryDetail; epicSlug: string }) {
+function StoryCard({ story }: { story: StoryDetail }) {
   const taskProgress = getTaskProgress(story.tasks);
 
   return (
-    <Link to={`/epic/${epicSlug}/story/${story.slug}`} className="block">
+    <Link to={`/story/${story.id}`} className="block">
       <Card className="hover:border-primary/50 transition-colors cursor-pointer">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">{story.title}</CardTitle>
@@ -100,11 +97,11 @@ function StoryCard({ story, epicSlug }: { story: StoryDetail; epicSlug: string }
 }
 
 /** Render 404 not found state */
-function NotFoundState({ slug }: { slug: string | undefined }) {
+function NotFoundState({ epicId }: { epicId: string | undefined }) {
   return (
     <div className="text-center py-12">
       <h1 className="text-2xl font-bold text-text mb-2">Epic not found</h1>
-      <p className="text-text-muted mb-4">The epic &quot;{slug}&quot; does not exist.</p>
+      <p className="text-text-muted mb-4">The epic &quot;{epicId}&quot; does not exist.</p>
       <Link to="/" className="text-primary hover:underline">
         ← Back to epic list
       </Link>
@@ -181,7 +178,7 @@ function EmptyStoriesState() {
 }
 
 /** Stories list grid */
-function StoriesList({ stories, epicSlug }: { stories: StoryDetail[]; epicSlug: string }) {
+function StoriesList({ stories }: { stories: StoryDetail[] }) {
   const sortedStories = [...stories].sort(
     (a, b) => statusPriority[a.status] - statusPriority[b.status],
   );
@@ -195,7 +192,7 @@ function StoriesList({ stories, epicSlug }: { stories: StoryDetail[]; epicSlug: 
       <h2 className="text-lg font-semibold text-text">Stories</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {sortedStories.map((story) => (
-          <StoryCard key={story.slug} story={story} epicSlug={epicSlug} />
+          <StoryCard key={story.id} story={story} />
         ))}
       </div>
     </div>
@@ -223,14 +220,14 @@ function handleFetchError(url: string, err: unknown, setError: (e: string) => vo
 }
 
 /** Custom hook for fetching epic data */
-function useEpicFetch(slug: string | undefined) {
+function useEpicFetch(epicId: string | undefined) {
   const { currentEpic, setCurrentEpic, clearCurrentEpic } = useDashboard();
   const [isFetching, setIsFetching] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!slug) {
+    if (!epicId) {
       return clearCurrentEpic;
     }
 
@@ -240,7 +237,7 @@ function useEpicFetch(slug: string | undefined) {
       setError(null);
 
       try {
-        const response = await fetch(`/api/epics/${slug}`);
+        const response = await fetch(`/api/epics/${epicId}`);
         const result = await processFetchResponse(response);
 
         if (result.type === 'notFound') {
@@ -248,10 +245,10 @@ function useEpicFetch(slug: string | undefined) {
         } else if (result.type === 'error') {
           setError('Failed to load epic');
         } else {
-          setCurrentEpic(result.data);
+          setCurrentEpic(result.data as Epic);
         }
       } catch (err) {
-        handleFetchError(`/api/epics/${slug}`, err, setError);
+        handleFetchError(`/api/epics/${epicId}`, err, setError);
       } finally {
         setIsFetching(false);
       }
@@ -259,17 +256,17 @@ function useEpicFetch(slug: string | undefined) {
 
     fetchEpic();
     return clearCurrentEpic;
-  }, [slug, setCurrentEpic, clearCurrentEpic]);
+  }, [epicId, setCurrentEpic, clearCurrentEpic]);
 
   return { currentEpic, loading: isFetching, notFound, error };
 }
 
 function EpicDetail() {
-  const { slug } = useParams<{ slug: string }>();
-  const { currentEpic, loading, notFound, error } = useEpicFetch(slug);
+  const { epicId } = useParams<{ epicId: string }>();
+  const { currentEpic, loading, notFound, error } = useEpicFetch(epicId);
 
   if (notFound) {
-    return <NotFoundState slug={slug} />;
+    return <NotFoundState epicId={epicId} />;
   }
   if (error && !loading) {
     return <ErrorState error={error} />;
@@ -285,8 +282,8 @@ function EpicDetail() {
         completed={currentEpic.storyCounts.completed}
         total={currentEpic.storyCounts.total}
       />
-      <EpicContent content={currentEpic.content} />
-      <StoriesList stories={currentEpic.stories} epicSlug={slug ?? ''} />
+      <EpicContent content={currentEpic.description} />
+      <StoriesList stories={currentEpic.stories} />
     </div>
   );
 }

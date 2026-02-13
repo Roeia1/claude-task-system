@@ -10,25 +10,37 @@ const JOURNAL_TAB_PATTERN = /Journal/;
 
 // Mock story data
 const mockStory: StoryDetailType = {
-  slug: 'test-story',
+  id: 'test-story',
   title: 'Test Story Title',
+  description: '## Story Content\n\nThis is the story content.',
   status: 'inProgress',
-  epicSlug: 'test-epic',
+  epic: 'test-epic',
   tasks: [
-    { id: 't1', title: 'Task 1', status: 'completed' },
-    { id: 't2', title: 'Task 2', status: 'inProgress' },
+    {
+      id: 't1',
+      subject: 'Task 1',
+      description: 'Task 1 description',
+      status: 'completed',
+      blockedBy: [],
+    },
+    {
+      id: 't2',
+      subject: 'Task 2',
+      description: 'Task 2 description',
+      status: 'inProgress',
+      blockedBy: [],
+    },
   ],
   journal: [],
-  content: '## Story Content\n\nThis is the story content.',
 };
 
 // Helper to render with routing context
-function renderStoryDetail(epicSlug = 'test-epic', storySlug = 'test-story', queryString = '') {
+function renderStoryDetail(storyId = 'test-story', queryString = '') {
   return render(
     <DashboardProvider>
-      <MemoryRouter initialEntries={[`/epic/${epicSlug}/story/${storySlug}${queryString}`]}>
+      <MemoryRouter initialEntries={[`/story/${storyId}${queryString}`]}>
         <Routes>
-          <Route path="/epic/:epicSlug/story/:storySlug" element={<StoryDetail />} />
+          <Route path="/story/:storyId" element={<StoryDetail />} />
         </Routes>
       </MemoryRouter>
     </DashboardProvider>,
@@ -130,7 +142,7 @@ describe('StoryDetail Sessions Tab', () => {
 
   describe('URL query parameter tab selection', () => {
     it('navigates to Sessions tab when ?tab=sessions is in URL', async () => {
-      renderStoryDetail('test-epic', 'test-story', '?tab=sessions');
+      renderStoryDetail('test-story', '?tab=sessions');
 
       await waitFor(() => {
         expect(screen.getByRole('tab', { name: 'Sessions' })).toBeInTheDocument();
@@ -143,7 +155,7 @@ describe('StoryDetail Sessions Tab', () => {
     });
 
     it('navigates to Journal tab when ?tab=journal is in URL', async () => {
-      renderStoryDetail('test-epic', 'test-story', '?tab=journal');
+      renderStoryDetail('test-story', '?tab=journal');
 
       await waitFor(() => {
         expect(screen.getByRole('tab', { name: JOURNAL_TAB_PATTERN })).toBeInTheDocument();
@@ -157,7 +169,7 @@ describe('StoryDetail Sessions Tab', () => {
     });
 
     it('navigates to Story Content tab when ?tab=content is in URL', async () => {
-      renderStoryDetail('test-epic', 'test-story', '?tab=content');
+      renderStoryDetail('test-story', '?tab=content');
 
       await waitFor(() => {
         expect(screen.getByRole('tab', { name: 'Story Content' })).toBeInTheDocument();
@@ -171,7 +183,7 @@ describe('StoryDetail Sessions Tab', () => {
     });
 
     it('defaults to Tasks tab when no query parameter is present', async () => {
-      renderStoryDetail('test-epic', 'test-story');
+      renderStoryDetail('test-story');
 
       await waitFor(() => {
         expect(screen.getByRole('tab', { name: 'Tasks' })).toBeInTheDocument();
@@ -182,7 +194,7 @@ describe('StoryDetail Sessions Tab', () => {
     });
 
     it('defaults to Tasks tab when ?tab has invalid value', async () => {
-      renderStoryDetail('test-epic', 'test-story', '?tab=invalid');
+      renderStoryDetail('test-story', '?tab=invalid');
 
       await waitFor(() => {
         expect(screen.getByRole('tab', { name: 'Tasks' })).toBeInTheDocument();
