@@ -2,7 +2,7 @@
 name: create-epic
 description: Create a new epic definition with vision and architecture
 argument-hint: "<description>"
-user-invocable: true
+user-invocable: false
 disable-model-invocation: true
 allowed-tools: Read, Write, Bash(ls:*), AskUserQuestion, TaskCreate, TaskUpdate, TaskList, TaskGet
 ---

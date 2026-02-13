@@ -4,12 +4,12 @@
 [![Version](https://img.shields.io/badge/version-4.0.0-blue)](CHANGELOG.md)
 [![npm](https://img.shields.io/npm/v/@saga-ai/dashboard)](https://www.npmjs.com/package/@saga-ai/dashboard)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Skills](https://img.shields.io/badge/skills-6-green)](https://github.com/Roeia1/saga)
+[![Skills](https://img.shields.io/badge/skills-5-green)](https://github.com/Roeia1/saga)
 [![Agents](https://img.shields.io/badge/agents-1-blue)](https://github.com/Roeia1/saga)
 
 > **S**tructured **A**utonomous **G**oal **A**chievement - Transform epic ideas into shipped code through structured planning, autonomous execution, and continuous journaling.
 
-A complete development lifecycle from epic ideation through story breakdown and rigorous implementation. Epics define the vision. Stories deliver the value. Workers execute autonomously. Everything is documented.
+A complete development lifecycle from collaborative planning through story breakdown and rigorous implementation. Plans become stories. Workers execute autonomously. Everything is documented.
 
 ```mermaid
 flowchart LR
@@ -92,19 +92,16 @@ This creates the `.saga/` directory structure:
 └── worktrees/    # Git worktrees for story isolation (gitignored)
 ```
 
-### Your First Epic
+### Your First Plan
 
 ```bash
-# 1. Create an epic (vision + architecture)
-> /create-epic user authentication with OAuth
+# 1. Plan your work (collaborative discussion → stories)
+> /plan user authentication with OAuth
 
-# 2. Generate stories from the epic
-> /generate-stories user-auth
-
-# 3. Implement a story autonomously
+# 2. Implement a story autonomously
 > /execute-story login-flow
 
-# 4. If blocked, resolve and continue
+# 3. If blocked, resolve and continue
 > /resolve-blocker login-flow
 > /execute-story login-flow
 ```
@@ -113,45 +110,28 @@ This creates the `.saga/` directory structure:
 
 ## How It Works
 
-### Epic/Story Development Lifecycle
+### Development Lifecycle
 
 | Phase | Focus | Output |
 |-------|-------|--------|
-| **Epic Creation** | WHAT + HOW | `epic.json` - Vision, goals, architecture, success criteria |
-| **Story Generation** | BREAKDOWN | `story.json` - Self-contained stories with tasks and guidance |
+| **Planning** | WHAT + HOW | Collaborative discussion → stories (standalone or epic-based) |
 | **Story Execution** | DO the work | Tested, documented, reviewed code |
 
-### Epic Creation
+### Planning
 
 Tell Claude what you want to build in natural language:
 
 ```
-> /create-epic real-time notifications for order updates
+> /plan real-time notifications for order updates
 ```
 
 Claude will:
-- Define the vision and goals
-- Identify key requirements and success criteria
-- Design high-level architecture
-- Iterate with you until the epic is clear
+- Explore the codebase for relevant context
+- Collaborate with you through a deep discussion about goals, scope, approach, and tradeoffs
+- Propose the right structure: a single story for cohesive goals, or an epic with multiple stories for larger goals
+- Create stories with git branches, worktrees, and draft PRs
 
-**Output**: `.saga/epics/order-notifications.json`
-
-### Story Generation
-
-Once the epic is defined:
-
-```
-> /generate-stories order-notifications
-```
-
-Claude breaks down the epic into implementable stories:
-- Each story is self-contained with clear tasks
-- Stories include implementation guidance and patterns
-- Creates git branch + worktree for each story
-- Opens draft PRs automatically
-
-**Output**: Multiple stories in `.saga/stories/`
+**Output**: Stories in `.saga/stories/` (and optionally `.saga/epics/` for multi-story plans)
 
 ### Story Execution
 
@@ -218,8 +198,7 @@ All functionality is accessed through skills (slash commands):
 | Skill | Command | Description |
 |-------|---------|-------------|
 | Initialize | `/init` | Create `.saga/` directory structure |
-| Create Epic | `/create-epic [description]` | Define epic with vision and architecture |
-| Generate Stories | `/generate-stories [epic-slug]` | Break epic into implementable stories |
+| Plan | `/plan <goal>` | Collaboratively plan a goal, then create stories |
 | Execute Story | `/execute-story [story-slug]` | Execute story autonomously |
 | Resolve Blocker | `/resolve-blocker [story-slug]` | Analyze and resolve blockers |
 | List Sessions | `/list-sessions` | List all running SAGA sessions |
@@ -230,20 +209,19 @@ Agents are Claude Code subagents that run autonomously. They are spawned by skil
 
 | Agent | Description |
 |-------|-------------|
-| `generate-story` | Creates a single story with full content and git infrastructure. Spawned in parallel by `/generate-stories`. |
+| `generate-story` | Creates a single story with full content and git infrastructure. Spawned by `/plan`. |
 
 ---
 
 ## Workflow Examples
 
-### Complete Epic Development
+### Complete Development Workflow
 
 ```bash
-# Session 1: Create epic and generate stories
-> /create-epic shopping cart with guest checkout
-# Review and refine the epic vision and architecture
-> /generate-stories shopping-cart
-# Review proposed stories, approve
+# Session 1: Plan and create stories
+> /plan shopping cart with guest checkout
+# Collaborate on goals, scope, architecture
+# Approve proposed stories
 
 # Session 2: Execute stories autonomously
 > /execute-story cart-api
@@ -327,8 +305,7 @@ plugin/
 │   └── generate-story.md     # Story generation agent
 ├── skills/                    # Core skills
 │   ├── init/                 # /init - Initialize structure
-│   ├── create-epic/          # /create-epic - Define epics
-│   ├── generate-stories/     # /generate-stories - Break down epics
+│   ├── plan/                 # /plan - Collaborative planning
 │   ├── execute-story/        # /execute-story - Autonomous execution
 │   ├── resolve-blocker/      # /resolve-blocker - Handle blockers
 │   └── list-sessions/        # /list-sessions - List running sessions

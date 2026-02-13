@@ -29,11 +29,12 @@ saga/
 | Skill | Entry Point |
 |-------|-------------|
 | `/init` | [`plugin/skills/init/SKILL.md`](plugin/skills/init/SKILL.md) |
-| `/create-epic` | [`plugin/skills/create-epic/SKILL.md`](plugin/skills/create-epic/SKILL.md) |
-| `/generate-stories` | [`plugin/skills/generate-stories/SKILL.md`](plugin/skills/generate-stories/SKILL.md) |
+| `/plan` | [`plugin/skills/plan/SKILL.md`](plugin/skills/plan/SKILL.md) |
 | `/execute-story` | [`plugin/skills/execute-story/SKILL.md`](plugin/skills/execute-story/SKILL.md) |
 | `/resolve-blocker` | [`plugin/skills/resolve-blocker/SKILL.md`](plugin/skills/resolve-blocker/SKILL.md) |
 | `/list-sessions` | [`plugin/skills/list-sessions/SKILL.md`](plugin/skills/list-sessions/SKILL.md) |
+| `/create-epic` (deprecated) | [`plugin/skills/create-epic/SKILL.md`](plugin/skills/create-epic/SKILL.md) |
+| `/generate-stories` (deprecated) | [`plugin/skills/generate-stories/SKILL.md`](plugin/skills/generate-stories/SKILL.md) |
 
 ## Agents
 
