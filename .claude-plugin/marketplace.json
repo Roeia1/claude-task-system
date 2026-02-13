@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "name": "core",
+      "name": "saga-core",
       "description": "SAGA - Structured Autonomous Goal Achievement: epic/story workflow with autonomous execution",
       "version": "3.0.3",
       "source": "./plugin",

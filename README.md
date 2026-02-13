@@ -49,14 +49,14 @@ flowchart LR
 /plugin marketplace add Roeia1/saga
 
 # Install latest version
-/plugin install saga@core
+/plugin install saga@saga-core
 ```
 
 **Option 2: Specific Version**
 
 ```bash
 # Install a specific version
-/plugin install saga@core@1.0.0
+/plugin install saga@saga-core@1.0.0
 ```
 
 **Option 3: Interactive**
