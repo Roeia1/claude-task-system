@@ -9,6 +9,8 @@ allowed-tools: Bash(node:*), Bash(git:*), Bash(gh:*), Bash(ls:*), Read, Write, A
 
 # Generate Stories Skill
 
+> **Deprecated**: Use `/plan` instead. This skill is retained for backward compatibility but is no longer user-invocable.
+
 !`node $SAGA_PLUGIN_ROOT/scripts/find.js "$0" --type epic`
 
 ## Tasks

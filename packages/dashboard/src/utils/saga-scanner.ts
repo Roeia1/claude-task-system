@@ -14,7 +14,7 @@ import {
   listStories,
   listTasks,
   type Task,
-} from '@saga-ai/types';
+} from '@saga-ai/utils';
 
 // ============================================================================
 // Constants

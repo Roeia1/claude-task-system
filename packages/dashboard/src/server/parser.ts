@@ -17,7 +17,7 @@ import {
   readStory,
   type Task as SagaTask,
   type TaskStatus,
-} from '@saga-ai/types';
+} from '@saga-ai/utils';
 import {
   type ScannedEpic,
   type ScannedStory,

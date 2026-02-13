@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-02-13
+
+### Changed
+
+- **packages**: Merge `@saga-ai/types` and `@saga-ai/plugin-scripts` into `@saga-ai/utils` — single package for schemas, storage, and plugin scripts
+- **plan**: Generate story/task content in the orchestrator (with full discussion context) instead of delegating to agents
+- **plan**: Single-story path runs infrastructure inline without spawning a subagent
+- **agent**: Simplify `generate-story` agent to infrastructure-only — receives pre-built JSON, writes files, creates git resources
+
+### Added
+
+- **scripts**: New `schemas.js` script — outputs LLM-readable schema documentation (`node schemas.js story|task|epic`)
+
 ## [4.0.0] - 2026-02-13
 
 ### Breaking Changes

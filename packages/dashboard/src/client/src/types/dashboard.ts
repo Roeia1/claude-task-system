@@ -3,7 +3,7 @@
  * These match the API responses from the backend server
  */
 
-import type { SagaWorkerMessage } from '@saga-ai/types';
+import type { SagaWorkerMessage } from '@saga-ai/utils';
 
 /** Session status values */
 export type SessionStatus = 'running' | 'completed';
@@ -95,8 +95,8 @@ export interface Epic extends EpicSummary {
   stories: StoryDetail[];
 }
 
-/** Re-export SagaWorkerMessage from @saga-ai/types */
-export type { SagaWorkerMessage } from '@saga-ai/types';
+/** Re-export SagaWorkerMessage from @saga-ai/utils */
+export type { SagaWorkerMessage } from '@saga-ai/utils';
 
 /** Text message (from raw non-JSON log lines) */
 export interface TextMessage {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// src/scope-validator.ts
+// src/scripts/scope-validator.ts
 import { relative, resolve } from "node:path";
 import process from "node:process";
 var EXIT_ALLOWED = 0;
@@ -180,7 +180,7 @@ if (isDirectExecution) {
   main();
 }
 
-// src/scope-validator-hook.ts
+// src/scripts/scope-validator-hook.ts
 function createScopeValidatorHook(worktreePath, storyId) {
   return (_input, _toolUseID, _options) => {
     const hookInput = _input;

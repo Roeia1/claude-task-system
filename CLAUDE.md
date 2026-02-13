@@ -11,6 +11,7 @@ Guidance for Claude Code when working with this repository.
 ```
 saga/
 ├── plugin/                  # Plugin source (skills, agents, hooks)
+├── packages/saga-utils/     # @saga-ai/utils - schemas, storage, plugin scripts
 ├── packages/dashboard/      # @saga-ai/dashboard npm package
 ├── .claude/skills/          # Dev skills for this repo (publish, pr-review, task-pattern)
 └── CHANGELOG.md             # Version history (plugin + CLI combined)
@@ -23,6 +24,7 @@ saga/
 | [`README.md`](README.md) | User-facing: installation, workflow, skills reference |
 | [`plugin/docs/ENVIRONMENT.md`](plugin/docs/ENVIRONMENT.md) | Environment variables reference |
 | [`packages/dashboard/CLAUDE.md`](packages/dashboard/CLAUDE.md) | Dashboard package development guide |
+| [`packages/saga-utils/`](packages/saga-utils/) | Schemas, storage, and plugin scripts |
 
 ## Plugin Skills
 
@@ -49,7 +51,7 @@ saga/
 Always use `${SAGA_PLUGIN_ROOT}` for plugin-relative paths:
 
 ```markdown
-${SAGA_PLUGIN_ROOT}/skills/create-epic/templates/epic-template.md
+${SAGA_PLUGIN_ROOT}/scripts/schemas.js story
 ```
 
 ### Environment Variables

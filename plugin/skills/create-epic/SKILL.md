@@ -9,6 +9,8 @@ allowed-tools: Read, Write, Bash(ls:*), AskUserQuestion, TaskCreate, TaskUpdate,
 
 # Create Epic Skill
 
+> **Deprecated**: Use `/plan` instead. This skill is retained for backward compatibility but is no longer user-invocable.
+
 **Epic description**: $0
 
 ## Tasks

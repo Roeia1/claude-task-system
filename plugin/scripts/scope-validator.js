@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// src/scope-validator.ts
+// src/scripts/scope-validator.ts
 import { relative, resolve } from "node:path";
 import process from "node:process";
 var EXIT_ALLOWED = 0;

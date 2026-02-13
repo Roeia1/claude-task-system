@@ -69,8 +69,7 @@
         "packages/dashboard/src/**",
         "!packages/dashboard/src/client/src/**",
         "packages/dashboard/*.config.ts",
-        "packages/saga-types/**",
-        "packages/plugin-scripts/**"
+        "packages/saga-utils/**"
       ],
       "linter": {
         "rules": {
@@ -93,8 +92,7 @@
         "**/jest.config.mjs",
         "packages/dashboard/src/client/vite.config.ts",
         "packages/dashboard/vitest.config.ts",
-        "packages/saga-types/vitest.config.ts",
-        "packages/plugin-scripts/vitest.config.ts"
+        "packages/saga-utils/vitest.config.ts"
       ],
       "linter": {
         "rules": {
@@ -197,7 +195,7 @@
       }
     },
     {
-      "includes": ["packages/saga-types/src/index.ts"],
+      "includes": ["packages/saga-utils/src/index.ts", "packages/saga-utils/src/schemas/index.ts"],
       "linter": {
         "rules": {
           "performance": {
