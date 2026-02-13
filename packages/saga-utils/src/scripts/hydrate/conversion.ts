@@ -1,7 +1,7 @@
 /**
  * SAGA-to-Claude Code task conversion with computed blocks.
  *
- * Wraps the base conversion from @saga-ai/types and adds the `blocks`
+ * Wraps the base conversion from @saga-ai/utils and adds the `blocks`
  * computation that requires knowledge of the full task list.
  */
 
@@ -34,7 +34,7 @@ export function convertTasks(tasks: Task[]): ClaudeCodeTask[] {
 
 /**
  * Extract only the status field from a Claude Code task for syncing back
- * to SAGA. Alias for `fromClaudeTask` from @saga-ai/types.
+ * to SAGA. Alias for `fromClaudeTask` from @saga-ai/utils.
  */
 export function extractStatus(claudeTask: ClaudeCodeTask): Pick<Task, 'status'> {
   return fromClaudeTask(claudeTask);

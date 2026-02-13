@@ -1,7 +1,7 @@
 /**
  * Shared SAGA Directory Scanner
  *
- * Scans .saga/stories/ and .saga/epics/ using @saga-ai/types storage utilities.
+ * Scans .saga/stories/ and .saga/epics/ using @saga-ai/utils storage utilities.
  * Returns structured data for the dashboard parser and server.
  */
 
