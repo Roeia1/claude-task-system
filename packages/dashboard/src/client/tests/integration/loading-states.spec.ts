@@ -40,8 +40,8 @@ test.describe('Loading States', () => {
     test('should show skeleton loaders while loading epics', async ({ page }) => {
       // Mock the API with a delay to observe loading state
       const epics = [
-        createMockEpicSummary({ slug: 'epic-1', title: 'Epic One' }),
-        createMockEpicSummary({ slug: 'epic-2', title: 'Epic Two' }),
+        createMockEpicSummary({ id: 'epic-1', title: 'Epic One' }),
+        createMockEpicSummary({ id: 'epic-2', title: 'Epic Two' }),
       ];
 
       // Add 1 second delay to the response
@@ -85,7 +85,7 @@ test.describe('Loading States', () => {
     });
 
     test('should hide skeleton loaders after data arrives', async ({ page }) => {
-      const epics = [createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' })];
+      const epics = [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })];
 
       // Mock with a short delay
       await mockApiDelay(page, '**/api/epics', DELAY_SHORT_MS, {
@@ -110,13 +110,13 @@ test.describe('Loading States', () => {
   test.describe('Epic Detail Page', () => {
     test('should show header and story card skeletons while loading', async ({ page }) => {
       const epic = createMockEpic({
-        slug: 'test-epic',
+        id: 'test-epic',
         title: 'Test Epic Detail',
         stories: [
           createMockStoryDetail({
-            slug: 'story-1',
+            id: 'story-1',
             title: 'Story One',
-            epicSlug: 'test-epic',
+            epic: 'test-epic',
           }),
         ],
       });
@@ -145,7 +145,7 @@ test.describe('Loading States', () => {
 
     test('should show progress skeleton in header while loading', async ({ page }) => {
       const epic = createMockEpic({
-        slug: 'loading-epic',
+        id: 'loading-epic',
         title: 'Loading Epic',
       });
 
@@ -170,20 +170,20 @@ test.describe('Loading States', () => {
   test.describe('Story Detail Page', () => {
     test('should show header and content skeletons while loading', async ({ page }) => {
       const story = createMockStoryDetail({
-        slug: 'test-story',
+        id: 'test-story',
         title: 'Test Story Detail',
-        epicSlug: 'test-epic',
-        status: 'in_progress',
+        epic: 'test-epic',
+        status: 'inProgress',
       });
 
       // Mock with delay
-      await mockApiDelay(page, '**/api/stories/test-epic/test-story', DELAY_MEDIUM_MS, {
+      await mockApiDelay(page, '**/api/stories/test-story', DELAY_MEDIUM_MS, {
         status: HTTP_OK,
         contentType: 'application/json',
         body: JSON.stringify(story),
       });
 
-      await page.goto('/epic/test-epic/story/test-story');
+      await page.goto('/story/test-story');
 
       // Should show skeleton loaders during loading using data-testid
       const headerSkeleton = page.locator('[data-testid="story-header-skeleton"]');
@@ -197,18 +197,18 @@ test.describe('Loading States', () => {
 
     test('should show skeleton placeholders for header elements', async ({ page }) => {
       const story = createMockStoryDetail({
-        slug: 'story-with-tasks',
+        id: 'story-with-tasks',
         title: 'Story With Tasks',
-        epicSlug: 'my-epic',
+        epic: 'my-epic',
       });
 
-      await mockApiDelay(page, '**/api/stories/my-epic/story-with-tasks', DELAY_LONG_MS, {
+      await mockApiDelay(page, '**/api/stories/story-with-tasks', DELAY_LONG_MS, {
         status: HTTP_OK,
         contentType: 'application/json',
         body: JSON.stringify(story),
       });
 
-      await page.goto('/epic/my-epic/story/story-with-tasks');
+      await page.goto('/story/story-with-tasks');
 
       // HeaderSkeleton and ContentSkeleton should be visible using data-testid
       await expect(page.locator('[data-testid="story-header-skeleton"]')).toBeVisible();
@@ -222,24 +222,19 @@ test.describe('Loading States', () => {
 
     test('should transition from loading to loaded state correctly', async ({ page }) => {
       const story = createMockStoryDetail({
-        slug: 'transition-story',
+        id: 'transition-story',
         title: 'Transition Story',
-        epicSlug: 'transition-epic',
-        status: 'ready',
+        epic: 'transition-epic',
+        status: 'pending',
       });
 
-      await mockApiDelay(
-        page,
-        '**/api/stories/transition-epic/transition-story',
-        DELAY_TRANSITION_MS,
-        {
-          status: HTTP_OK,
-          contentType: 'application/json',
-          body: JSON.stringify(story),
-        },
-      );
+      await mockApiDelay(page, '**/api/stories/transition-story', DELAY_TRANSITION_MS, {
+        status: HTTP_OK,
+        contentType: 'application/json',
+        body: JSON.stringify(story),
+      });
 
-      await page.goto('/epic/transition-epic/story/transition-story');
+      await page.goto('/story/transition-story');
 
       // Initially should show loading state using data-testid
       await expect(page.locator('[data-testid="story-header-skeleton"]')).toBeVisible();
@@ -250,13 +245,13 @@ test.describe('Loading States', () => {
       });
 
       // Status badge should be visible
-      await expect(page.getByText('Ready')).toBeVisible();
+      await expect(page.getByText('Pending')).toBeVisible();
     });
   });
 
   test.describe('Fast Responses', () => {
     test('should handle immediate response without visible loading state', async ({ page }) => {
-      const epics = [createMockEpicSummary({ slug: 'fast-epic', title: 'Fast Epic' })];
+      const epics = [createMockEpicSummary({ id: 'fast-epic', title: 'Fast Epic' })];
 
       // Mock immediate response (no delay)
       await mockEpicList(page, epics);
@@ -275,12 +270,12 @@ test.describe('Loading States', () => {
 
     test('should handle quick sequence of navigations', async ({ page }) => {
       const epics = [
-        createMockEpicSummary({ slug: 'nav-epic-1', title: 'Nav Epic 1' }),
-        createMockEpicSummary({ slug: 'nav-epic-2', title: 'Nav Epic 2' }),
+        createMockEpicSummary({ id: 'nav-epic-1', title: 'Nav Epic 1' }),
+        createMockEpicSummary({ id: 'nav-epic-2', title: 'Nav Epic 2' }),
       ];
 
       const epic1 = createMockEpic({
-        slug: 'nav-epic-1',
+        id: 'nav-epic-1',
         title: 'Nav Epic 1 Detail',
         stories: [],
       });

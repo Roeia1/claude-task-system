@@ -1,0 +1,6 @@
+{
+  "id": "integration-tests",
+  "title": "Integration Testing Setup",
+  "description": "Establish the integration testing infrastructure including test database setup and API testing utilities.",
+  "epic": "testing-suite"
+}

@@ -21,25 +21,24 @@ test.describe('Navigation', () => {
     }) => {
       // Setup mock data
       const epic = createMockEpicSummary({
-        slug: 'test-epic',
+        id: 'test-epic',
         title: 'Test Epic',
         storyCounts: {
-          ready: 1,
+          pending: 1,
           inProgress: 1,
-          blocked: 0,
           completed: 2,
           total: 4,
         },
       });
       const epicDetail = createMockEpic({
-        slug: 'test-epic',
+        id: 'test-epic',
         title: 'Test Epic',
         stories: [
           createMockStoryDetail({
-            slug: 'story-1',
+            id: 'story-1',
             title: 'Story One',
-            status: 'ready',
-            epicSlug: 'test-epic',
+            status: 'pending',
+            epic: 'test-epic',
           }),
         ],
       });
@@ -65,23 +64,21 @@ test.describe('Navigation', () => {
 
     test('should display epic progress after navigation', async ({ page }) => {
       const epic = createMockEpicSummary({
-        slug: 'progress-epic',
+        id: 'progress-epic',
         title: 'Progress Epic',
         storyCounts: {
-          ready: 1,
+          pending: 1,
           inProgress: 2,
-          blocked: 0,
           completed: 3,
           total: 6,
         },
       });
       const epicDetail = createMockEpic({
-        slug: 'progress-epic',
+        id: 'progress-epic',
         title: 'Progress Epic',
         storyCounts: {
-          ready: 1,
+          pending: 1,
           inProgress: 2,
-          blocked: 0,
           completed: 3,
           total: 6,
         },
@@ -106,15 +103,15 @@ test.describe('Navigation', () => {
 
     test('should navigate to correct epic when multiple epics exist', async ({ page }) => {
       const epics = [
-        createMockEpicSummary({ slug: 'epic-alpha', title: 'Epic Alpha' }),
-        createMockEpicSummary({ slug: 'epic-beta', title: 'Epic Beta' }),
-        createMockEpicSummary({ slug: 'epic-gamma', title: 'Epic Gamma' }),
+        createMockEpicSummary({ id: 'epic-alpha', title: 'Epic Alpha' }),
+        createMockEpicSummary({ id: 'epic-beta', title: 'Epic Beta' }),
+        createMockEpicSummary({ id: 'epic-gamma', title: 'Epic Gamma' }),
       ];
 
       await mockEpicList(page, epics);
       await mockEpicDetail(
         page,
-        createMockEpic({ slug: 'epic-beta', title: 'Epic Beta', stories: [] }),
+        createMockEpic({ id: 'epic-beta', title: 'Epic Beta', stories: [] }),
       );
 
       await page.goto('/');
@@ -135,18 +132,18 @@ test.describe('Navigation', () => {
       page,
     }) => {
       const epicDetail = createMockEpic({
-        slug: 'test-epic',
+        id: 'test-epic',
         title: 'Test Epic',
         stories: [
           createMockStoryDetail({
-            slug: 'my-story',
+            id: 'my-story',
             title: 'My Story',
             status: 'in_progress',
-            epicSlug: 'test-epic',
+            epic: 'test-epic',
             tasks: [
               createMockTask({
                 id: 't1',
-                title: 'Task 1',
+                subject: 'Task 1',
                 status: 'completed',
               }),
             ],
@@ -154,11 +151,11 @@ test.describe('Navigation', () => {
         ],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'my-story',
+        id: 'my-story',
         title: 'My Story',
         status: 'in_progress',
-        epicSlug: 'test-epic',
-        tasks: [createMockTask({ id: 't1', title: 'Task 1', status: 'completed' })],
+        epic: 'test-epic',
+        tasks: [createMockTask({ id: 't1', subject: 'Task 1', status: 'completed' })],
       });
 
       await mockEpicDetail(page, epicDetail);
@@ -175,28 +172,28 @@ test.describe('Navigation', () => {
       await page.getByText('My Story').click();
 
       // Verify navigation to story detail
-      await expect(page).toHaveURL('/epic/test-epic/story/my-story');
+      await expect(page).toHaveURL('/story/my-story');
       await expect(page.getByRole('heading', { name: 'My Story' })).toBeVisible();
     });
 
     test('should show story status badge after navigation', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'epic-1',
+        id: 'epic-1',
         title: 'Epic One',
         stories: [
           createMockStoryDetail({
-            slug: 'blocked-story',
-            title: 'Blocked Story',
-            status: 'blocked',
-            epicSlug: 'epic-1',
+            id: 'pending-story',
+            title: 'Pending Story',
+            status: 'pending',
+            epic: 'epic-1',
           }),
         ],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'blocked-story',
-        title: 'Blocked Story',
-        status: 'blocked',
-        epicSlug: 'epic-1',
+        id: 'pending-story',
+        title: 'Pending Story',
+        status: 'pending',
+        epic: 'epic-1',
       });
 
       await mockEpicDetail(page, epicDetail);
@@ -206,20 +203,20 @@ test.describe('Navigation', () => {
       await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
-      await page.getByText('Blocked Story').click();
+      await page.getByText('Pending Story').click();
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
 
-      // Verify the status badge shows "Blocked"
-      await expect(page.getByText('Blocked', { exact: true })).toBeVisible();
+      // Verify the status badge shows "Pending"
+      await expect(page.getByText('Pending', { exact: true })).toBeVisible();
     });
   });
 
   test.describe('Breadcrumb Navigation', () => {
     test('should show breadcrumb on epic detail page', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'my-epic',
+        id: 'my-epic',
         title: 'My Epic',
         stories: [],
       });
@@ -239,9 +236,9 @@ test.describe('Navigation', () => {
     });
 
     test('should navigate back to epic list via breadcrumb', async ({ page }) => {
-      const epics = [createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' })];
+      const epics = [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })];
       const epicDetail = createMockEpic({
-        slug: 'test-epic',
+        id: 'test-epic',
         title: 'Test Epic',
         stories: [],
       });
@@ -265,71 +262,69 @@ test.describe('Navigation', () => {
 
     test('should show full breadcrumb path on story detail page', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'parent-epic',
+        id: 'parent-epic',
         title: 'Parent Epic',
         stories: [
           createMockStoryDetail({
-            slug: 'child-story',
+            id: 'child-story',
             title: 'Child Story',
-            status: 'ready',
-            epicSlug: 'parent-epic',
+            status: 'pending',
+            epic: 'parent-epic',
           }),
         ],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'child-story',
+        id: 'child-story',
         title: 'Child Story',
-        status: 'ready',
-        epicSlug: 'parent-epic',
+        status: 'pending',
+        epic: 'parent-epic',
       });
 
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/parent-epic/story/child-story');
+      await page.goto('/story/child-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
 
-      // Verify breadcrumb shows full path
+      // Verify breadcrumb shows path (stories are top-level: Epics > storyId)
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
       await expect(breadcrumb).toBeVisible();
       await expect(breadcrumb.getByText('Epics')).toBeVisible();
-      await expect(breadcrumb.getByText('parent-epic')).toBeVisible();
       await expect(breadcrumb.getByText('child-story')).toBeVisible();
     });
 
-    test('should navigate to epic detail via breadcrumb from story detail', async ({ page }) => {
+    test('should navigate to epic detail via epic link in story header', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'nav-epic',
+        id: 'nav-epic',
         title: 'Navigation Epic',
         stories: [
           createMockStoryDetail({
-            slug: 'nav-story',
+            id: 'nav-story',
             title: 'Navigation Story',
-            status: 'ready',
-            epicSlug: 'nav-epic',
+            status: 'pending',
+            epic: 'nav-epic',
           }),
         ],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'nav-story',
+        id: 'nav-story',
         title: 'Navigation Story',
-        status: 'ready',
-        epicSlug: 'nav-epic',
+        status: 'pending',
+        epic: 'nav-epic',
       });
 
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/nav-epic/story/nav-story');
+      await page.goto('/story/nav-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
 
-      // Click on the epic name in breadcrumb
-      const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
-      await breadcrumb.getByText('nav-epic').click();
+      // Click on the epic link in the story header (stories are top-level, breadcrumb shows Epics > storyId)
+      await page.getByRole('link', { name: 'nav-epic' }).click();
 
       // Verify navigation to epic detail
       await expect(page).toHaveURL('/epic/nav-epic');
@@ -342,35 +337,34 @@ test.describe('Navigation', () => {
     }) => {
       const epics = [
         createMockEpicSummary({
-          slug: 'flow-epic',
+          id: 'flow-epic',
           title: 'Flow Epic',
           storyCounts: {
-            ready: 1,
+            pending: 1,
             inProgress: 0,
-            blocked: 0,
             completed: 0,
             total: 1,
           },
         }),
       ];
       const epicDetail = createMockEpic({
-        slug: 'flow-epic',
+        id: 'flow-epic',
         title: 'Flow Epic',
         stories: [
           createMockStoryDetail({
-            slug: 'flow-story',
+            id: 'flow-story',
             title: 'Flow Story',
-            status: 'ready',
-            epicSlug: 'flow-epic',
+            status: 'pending',
+            epic: 'flow-epic',
           }),
         ],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'flow-story',
+        id: 'flow-story',
         title: 'Flow Story',
-        status: 'ready',
-        epicSlug: 'flow-epic',
-        tasks: [createMockTask({ id: 't1', title: 'Flow Task', status: 'pending' })],
+        status: 'pending',
+        epic: 'flow-epic',
+        tasks: [createMockTask({ id: 't1', subject: 'Flow Task', status: 'pending' })],
       });
 
       await mockEpicList(page, epics);
@@ -397,40 +391,40 @@ test.describe('Navigation', () => {
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
-      await expect(page).toHaveURL('/epic/flow-epic/story/flow-story');
+      await expect(page).toHaveURL('/story/flow-story');
       await expect(page.getByRole('heading', { name: 'Flow Story' })).toBeVisible();
       await expect(page.getByText('Flow Task')).toBeVisible();
 
-      // Navigate back to epic via breadcrumb
-      const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
-      await breadcrumb.getByText('flow-epic').click();
+      // Navigate back to epic via the epic link in story header
+      await page.getByRole('link', { name: 'flow-epic' }).click();
       await expect(page).toHaveURL('/epic/flow-epic');
 
       // Navigate back to list via breadcrumb
+      const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
       await breadcrumb.getByText('Epics').click();
       await expect(page).toHaveURL('/');
       await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
     });
 
     test('should handle browser back/forward navigation', async ({ page }) => {
-      const epics = [createMockEpicSummary({ slug: 'nav-epic', title: 'Nav Epic' })];
+      const epics = [createMockEpicSummary({ id: 'nav-epic', title: 'Nav Epic' })];
       const epicDetail = createMockEpic({
-        slug: 'nav-epic',
+        id: 'nav-epic',
         title: 'Nav Epic',
         stories: [
           createMockStoryDetail({
-            slug: 'nav-story',
+            id: 'nav-story',
             title: 'Nav Story',
-            status: 'ready',
-            epicSlug: 'nav-epic',
+            status: 'pending',
+            epic: 'nav-epic',
           }),
         ],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'nav-story',
+        id: 'nav-story',
         title: 'Nav Story',
-        status: 'ready',
-        epicSlug: 'nav-epic',
+        status: 'pending',
+        epic: 'nav-epic',
       });
 
       await mockEpicList(page, epics);
@@ -450,7 +444,7 @@ test.describe('Navigation', () => {
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
-      await expect(page).toHaveURL('/epic/nav-epic/story/nav-story');
+      await expect(page).toHaveURL('/story/nav-story');
 
       // Go back to epic
       await page.goBack();
@@ -466,33 +460,33 @@ test.describe('Navigation', () => {
 
       // Go forward to story
       await page.goForward();
-      await expect(page).toHaveURL('/epic/nav-epic/story/nav-story');
+      await expect(page).toHaveURL('/story/nav-story');
     });
 
     test('should navigate correctly via links in story header', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'link-epic',
+        id: 'link-epic',
         title: 'Link Epic',
         stories: [
           createMockStoryDetail({
-            slug: 'link-story',
+            id: 'link-story',
             title: 'Link Story',
             status: 'in_progress',
-            epicSlug: 'link-epic',
+            epic: 'link-epic',
           }),
         ],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'link-story',
+        id: 'link-story',
         title: 'Link Story',
         status: 'in_progress',
-        epicSlug: 'link-epic',
+        epic: 'link-epic',
       });
 
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/link-epic/story/link-story');
+      await page.goto('/story/link-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });

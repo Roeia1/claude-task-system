@@ -1,0 +1,9 @@
+{
+  "id": "t2",
+  "subject": "Implement login endpoint",
+  "description": "Validate credentials against database",
+  "status": "in_progress",
+  "blockedBy": ["t1"],
+  "guidance": "Validate credentials against database\nReturn tokens on success",
+  "doneWhen": "POST /api/auth/login works correctly"
+}

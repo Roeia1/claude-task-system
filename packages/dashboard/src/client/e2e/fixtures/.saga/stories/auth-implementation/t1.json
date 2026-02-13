@@ -1,0 +1,9 @@
+{
+  "id": "t1",
+  "subject": "Set up JWT token generation",
+  "description": "Use jsonwebtoken library with secure defaults",
+  "status": "completed",
+  "blockedBy": [],
+  "guidance": "Use jsonwebtoken library\nConfigure secure defaults",
+  "doneWhen": "Tokens can be generated and verified"
+}

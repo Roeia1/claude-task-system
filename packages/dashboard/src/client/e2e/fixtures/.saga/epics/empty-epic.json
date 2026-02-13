@@ -1,0 +1,6 @@
+{
+  "id": "empty-epic",
+  "title": "Empty Epic",
+  "description": "This epic has no stories yet. It's used for testing the empty story list state.",
+  "children": []
+}

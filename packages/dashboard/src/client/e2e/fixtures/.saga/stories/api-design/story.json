@@ -1,0 +1,6 @@
+{
+  "id": "api-design",
+  "title": "RESTful API Design",
+  "description": "This story covers the design and documentation of the RESTful API structure for the application.",
+  "epic": "feature-development"
+}

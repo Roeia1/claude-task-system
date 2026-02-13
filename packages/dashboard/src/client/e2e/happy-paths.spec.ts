@@ -61,10 +61,10 @@ test.describe('Epic List', () => {
     await expect(featureDevCard).toContainText('In Progress: 1');
     await expect(featureDevCard).toContainText('Completed: 1');
 
-    // Testing Suite should show Blocked and Ready badges
+    // Testing Suite: integration-tests has 1 completed + 1 pending task = pending (no in_progress task),
+    // unit-tests has all pending tasks = pending. Both stories are pending.
     const testingSuiteCard = page.locator('a[href="/epic/testing-suite"]');
-    await expect(testingSuiteCard).toContainText('Blocked: 1');
-    await expect(testingSuiteCard).toContainText('Ready: 1');
+    await expect(testingSuiteCard).toContainText('Pending: 2');
   });
 });
 
@@ -86,15 +86,13 @@ test.describe('Epic Detail', () => {
   test('displays story status badges correctly', async ({ page }) => {
     await page.goto('/epic/feature-development');
 
-    // Auth story should show In Progress badge
-    const authStoryCard = page.locator(
-      'a[href="/epic/feature-development/story/auth-implementation"]',
-    );
+    // Auth story should show In Progress badge (story links now go to /story/:storyId)
+    const authStoryCard = page.locator('a[href="/story/auth-implementation"]');
     await expect(authStoryCard).toContainText('In Progress');
     await expect(authStoryCard).toContainText('tasks completed');
 
     // API Design story should show Completed badge
-    const apiStoryCard = page.locator('a[href="/epic/feature-development/story/api-design"]');
+    const apiStoryCard = page.locator('a[href="/story/api-design"]');
     await expect(apiStoryCard).toContainText('Completed');
   });
 
@@ -110,20 +108,22 @@ test.describe('Epic Detail', () => {
   });
 
   test('stories are sorted by status priority', async ({ page }) => {
-    await page.goto('/epic/testing-suite');
+    // Feature Development has one in_progress (auth-implementation) and one completed (api-design)
+    await page.goto('/epic/feature-development');
 
     // Get all story cards
     const storyCards = page.locator('a[href*="/story/"]');
 
-    // Blocked story (integration-tests) should appear before Ready story (unit-tests)
+    // In Progress story (auth-implementation) should appear before Completed story (api-design)
     const firstCard = storyCards.first();
-    await expect(firstCard).toContainText('Blocked');
+    await expect(firstCard).toContainText('In Progress');
   });
 });
 
 test.describe('Story Detail', () => {
   test('displays story via direct navigation', async ({ page }) => {
-    await page.goto('/epic/feature-development/story/auth-implementation');
+    // Stories now use /story/:storyId URL pattern
+    await page.goto('/story/auth-implementation');
 
     // Verify story title
     await expect(page.locator('h1:has-text("User Authentication Implementation")')).toBeVisible();
@@ -141,7 +141,7 @@ test.describe('Story Detail', () => {
   });
 
   test('displays tasks with correct status', async ({ page }) => {
-    await page.goto('/epic/feature-development/story/auth-implementation');
+    await page.goto('/story/auth-implementation');
 
     // Tasks tab should be visible by default
     await expect(page.getByText('Set up JWT token generation')).toBeVisible();
@@ -155,19 +155,18 @@ test.describe('Story Detail', () => {
   });
 
   test('displays story content tab', async ({ page }) => {
-    await page.goto('/epic/feature-development/story/auth-implementation');
+    await page.goto('/story/auth-implementation');
 
     // Click on Story Content tab
     await page.getByRole('tab', { name: 'Story Content' }).click();
 
     // Verify Story Content tab is active and displays content section
-    // Note: Content parsing is not yet implemented in the backend, so we verify the empty state
     await expect(page.getByText('Story Content').first()).toBeVisible();
     await expect(page.getByRole('tabpanel')).toBeVisible();
   });
 
   test('displays journal entries with all types', async ({ page }) => {
-    await page.goto('/epic/feature-development/story/auth-implementation');
+    await page.goto('/story/auth-implementation');
 
     // Click on Journal tab
     await page.getByRole('tab', { name: JOURNAL_TAB_PATTERN }).click();
@@ -184,12 +183,12 @@ test.describe('Story Detail', () => {
   });
 
   test('navigates back to epic from breadcrumb', async ({ page }) => {
-    await page.goto('/epic/feature-development/story/auth-implementation');
+    await page.goto('/story/auth-implementation');
 
     // Wait for breadcrumb to be clickable
     await expect(page.locator('a[href="/epic/feature-development"]').first()).toBeVisible();
 
-    // Click on epic slug in breadcrumb (link that goes to /epic/feature-development)
+    // Click on epic in breadcrumb (link that goes to /epic/feature-development)
     await page.locator('a[href="/epic/feature-development"]').first().click();
 
     // Verify navigation back to epic
@@ -216,19 +215,40 @@ test.describe('WebSocket Real-time Updates', () => {
     const featureDevCard = page.locator('a[href="/epic/feature-development"]');
     await expect(featureDevCard).toContainText('Completed: 1');
 
-    // Modify the auth-implementation story to be completed
-    const originalContent = await fixtureUtils.readStoryFile(
-      'feature-development',
-      'auth-implementation',
-    );
-
+    // Change all tasks in auth-implementation to completed (status is derived from tasks)
     try {
-      // Update story status to completed
-      const updatedContent = originalContent.replace('status: in_progress', 'status: completed');
-      await fixtureUtils.writeStoryFile(
-        'feature-development',
+      await fixtureUtils.writeTaskFile(
         'auth-implementation',
-        updatedContent,
+        't2',
+        JSON.stringify({
+          id: 't2',
+          subject: 'Implement login endpoint',
+          description: 'Validate credentials against database',
+          status: 'completed',
+          blockedBy: ['t1'],
+        }),
+      );
+      await fixtureUtils.writeTaskFile(
+        'auth-implementation',
+        't3',
+        JSON.stringify({
+          id: 't3',
+          subject: 'Add password hashing',
+          description: 'Use bcrypt with salt rounds >= 10',
+          status: 'completed',
+          blockedBy: [],
+        }),
+      );
+      await fixtureUtils.writeTaskFile(
+        'auth-implementation',
+        't4',
+        JSON.stringify({
+          id: 't4',
+          subject: 'Create session management',
+          description: 'Track active sessions and support logout',
+          status: 'completed',
+          blockedBy: [],
+        }),
       );
 
       // Wait for WebSocket update to be reflected in UI
@@ -237,17 +257,13 @@ test.describe('WebSocket Real-time Updates', () => {
         timeout: WEBSOCKET_ASSERTION_TIMEOUT_MS,
       });
     } finally {
-      // Restore original file
-      await fixtureUtils.writeStoryFile(
-        'feature-development',
-        'auth-implementation',
-        originalContent,
-      );
+      // Restore original files
+      await fixtureUtils.resetAllFixtures();
     }
   });
 
-  test('story detail updates when story file changes', async ({ page, fixtureUtils }) => {
-    await page.goto('/epic/feature-development/story/auth-implementation');
+  test('story detail updates when task file changes', async ({ page, fixtureUtils }) => {
+    await page.goto('/story/auth-implementation');
 
     // Wait for WebSocket connection to be established before modifying files
     await expect(page.locator('[data-ws-connected="true"]')).toBeVisible({
@@ -257,22 +273,18 @@ test.describe('WebSocket Real-time Updates', () => {
     // Verify initial state
     await expect(page.getByText('1/4 tasks completed')).toBeVisible();
 
-    // Modify the story to have 2 tasks completed
-    const originalContent = await fixtureUtils.readStoryFile(
-      'feature-development',
-      'auth-implementation',
-    );
-
     try {
       // Change t2 (login endpoint) from in_progress to completed
-      const updatedContent = originalContent.replace(
-        '- id: t2\n    title: Implement login endpoint\n    status: in_progress',
-        '- id: t2\n    title: Implement login endpoint\n    status: completed',
-      );
-      await fixtureUtils.writeStoryFile(
-        'feature-development',
+      await fixtureUtils.writeTaskFile(
         'auth-implementation',
-        updatedContent,
+        't2',
+        JSON.stringify({
+          id: 't2',
+          subject: 'Implement login endpoint',
+          description: 'Validate credentials against database',
+          status: 'completed',
+          blockedBy: ['t1'],
+        }),
       );
 
       // Wait for WebSocket update with longer timeout for file watcher propagation
@@ -280,19 +292,15 @@ test.describe('WebSocket Real-time Updates', () => {
         timeout: WEBSOCKET_ASSERTION_TIMEOUT_MS,
       });
     } finally {
-      // Restore original file
-      await fixtureUtils.writeStoryFile(
-        'feature-development',
-        'auth-implementation',
-        originalContent,
-      );
+      // Restore original files
+      await fixtureUtils.resetAllFixtures();
     }
   });
 });
 
 test.describe('Sessions Tab', () => {
   test('displays Sessions tab in story detail page', async ({ page }) => {
-    await page.goto('/epic/feature-development/story/auth-implementation');
+    await page.goto('/story/auth-implementation');
 
     // Verify Sessions tab is present
     await expect(page.getByRole('tab', { name: SESSIONS_TAB_PATTERN })).toBeVisible();
@@ -301,21 +309,16 @@ test.describe('Sessions Tab', () => {
   test('switches to Sessions tab and shows content', async ({ page }) => {
     // Mock sessions API with test data
     await page.route('**/api/sessions*', async (route) => {
-      const url = new URL(route.request().url());
-      const epicSlug = url.searchParams.get('epicSlug') || 'feature-development';
-      const storySlug = url.searchParams.get('storySlug') || 'auth-implementation';
-
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
           {
-            name: `saga__${epicSlug}__${storySlug}__12345`,
-            epicSlug,
-            storySlug,
+            name: 'saga-story-auth-implementation-12345',
+            storyId: 'auth-implementation',
             status: 'running',
             startTime: new Date().toISOString(),
-            outputFile: '/tmp/output.txt',
+            outputFile: '/tmp/output.jsonl',
             outputAvailable: true,
             outputPreview: 'Running tests...',
           },
@@ -323,7 +326,7 @@ test.describe('Sessions Tab', () => {
       });
     });
 
-    await page.goto('/epic/feature-development/story/auth-implementation');
+    await page.goto('/story/auth-implementation');
 
     // Click Sessions tab
     await page.getByRole('tab', { name: SESSIONS_TAB_PATTERN }).click();
@@ -347,7 +350,7 @@ test.describe('Sessions Tab', () => {
       });
     });
 
-    await page.goto('/epic/feature-development/story/auth-implementation?tab=sessions');
+    await page.goto('/story/auth-implementation?tab=sessions');
 
     // Verify Sessions tab is active
     await expect(page.getByRole('tab', { name: SESSIONS_TAB_PATTERN })).toHaveAttribute(
@@ -357,7 +360,7 @@ test.describe('Sessions Tab', () => {
   });
 
   test('expands session card to show log viewer', async ({ page }) => {
-    const sessionName = 'saga__feature-development__auth-implementation__12345';
+    const sessionName = 'saga-story-auth-implementation-12345';
     // Mock sessions with outputAvailable: true
     await page.route('**/api/sessions*', async (route) => {
       await route.fulfill({
@@ -366,11 +369,10 @@ test.describe('Sessions Tab', () => {
         body: JSON.stringify([
           {
             name: sessionName,
-            epicSlug: 'feature-development',
-            storySlug: 'auth-implementation',
+            storyId: 'auth-implementation',
             status: 'running',
             startTime: new Date().toISOString(),
-            outputFile: '/tmp/output.txt',
+            outputFile: '/tmp/output.jsonl',
             outputAvailable: true,
             outputPreview: 'Test output...',
           },
@@ -378,7 +380,7 @@ test.describe('Sessions Tab', () => {
       });
     });
 
-    await page.goto('/epic/feature-development/story/auth-implementation?tab=sessions');
+    await page.goto('/story/auth-implementation?tab=sessions');
 
     // The running session should be auto-expanded, verify log viewer is visible
     await expect(page.getByTestId('log-viewer')).toBeVisible();
@@ -406,7 +408,7 @@ test.describe('Sessions Tab', () => {
       });
     });
 
-    await page.goto('/epic/feature-development/story/auth-implementation?tab=sessions');
+    await page.goto('/story/auth-implementation?tab=sessions');
 
     // Verify empty state is shown
     await expect(page.getByTestId('sessions-panel-empty')).toBeVisible();
@@ -423,12 +425,11 @@ test.describe('ActiveSessions on Home Page', () => {
         contentType: 'application/json',
         body: JSON.stringify([
           {
-            name: 'saga__feature-development__auth-implementation__12345',
-            epicSlug: 'feature-development',
-            storySlug: 'auth-implementation',
+            name: 'saga-story-auth-implementation-12345',
+            storyId: 'auth-implementation',
             status: 'running',
             startTime: new Date().toISOString(),
-            outputFile: '/tmp/output.txt',
+            outputFile: '/tmp/output.jsonl',
             outputAvailable: true,
             outputPreview: 'Working...',
           },
@@ -452,12 +453,11 @@ test.describe('ActiveSessions on Home Page', () => {
         contentType: 'application/json',
         body: JSON.stringify([
           {
-            name: 'saga__feature-development__auth-implementation__12345',
-            epicSlug: 'feature-development',
-            storySlug: 'auth-implementation',
+            name: 'saga-story-auth-implementation-12345',
+            storyId: 'auth-implementation',
             status: 'running',
             startTime: new Date().toISOString(),
-            outputFile: '/tmp/output.txt',
+            outputFile: '/tmp/output.jsonl',
             outputAvailable: true,
           },
         ]),
@@ -469,12 +469,10 @@ test.describe('ActiveSessions on Home Page', () => {
     // Wait for sessions to load
     await expect(page.getByTestId('active-sessions')).toBeVisible();
 
-    // Click on the session card (story slug link)
+    // Click on the session card (story link)
     await page.getByText('auth-implementation').click();
 
     // Verify navigation to story detail with sessions tab
-    await expect(page).toHaveURL(
-      '/epic/feature-development/story/auth-implementation?tab=sessions',
-    );
+    await expect(page).toHaveURL('/story/auth-implementation?tab=sessions');
   });
 });

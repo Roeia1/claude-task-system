@@ -35,15 +35,15 @@ test.describe('404 Error Handling', () => {
   });
 
   test('displays error message for non-existent story', async ({ page }) => {
-    await page.goto('/epic/feature-development/story/nonexistent-story');
+    // Stories now use /story/:storyId URL pattern
+    await page.goto('/story/nonexistent-story');
 
     // Wait for the story not found error
     await expect(page.getByText('Story not found')).toBeVisible();
     await expect(page.getByText('"nonexistent-story"')).toBeVisible();
-    await expect(page.getByText('"feature-development"')).toBeVisible();
 
-    // Verify back link to epic is present
-    await expect(page.getByText('Back to epic')).toBeVisible();
+    // Verify back link is present
+    await expect(page.getByText('Back to epics')).toBeVisible();
   });
 
   test('back link from epic 404 navigates to epic list', async ({ page }) => {
@@ -60,18 +60,18 @@ test.describe('404 Error Handling', () => {
     await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
   });
 
-  test('back link from story 404 navigates to epic', async ({ page }) => {
-    await page.goto('/epic/feature-development/story/nonexistent-story');
+  test('back link from story 404 navigates to epic list', async ({ page }) => {
+    await page.goto('/story/nonexistent-story');
 
     // Wait for 404 page to render
     await expect(page.getByText('Story not found')).toBeVisible();
 
     // Click back link
-    await page.getByText('Back to epic').click();
+    await page.getByText('Back to epics').click();
 
-    // Verify navigation to the epic page
-    await expect(page).toHaveURL('/epic/feature-development');
-    await expect(page.locator('h1.text-2xl:has-text("Feature Development")')).toBeVisible();
+    // Verify navigation to the epic list
+    await expect(page).toHaveURL('/');
+    await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
   });
 });
 
@@ -97,7 +97,7 @@ test.describe('Empty State Handling', () => {
   });
 
   test('epic with deleted stories shows empty state', async ({ page, fixtureUtils }) => {
-    // Delete all stories from feature-development by recreating it as empty
+    // Delete the epic and recreate it with no stories
     await fixtureUtils.deleteEpic('feature-development');
     await fixtureUtils.createEpic('feature-development', 'Feature Development');
 
@@ -151,7 +151,7 @@ test.describe('API Error Handling', () => {
     // Navigate to the epic
     await page.locator('a[href="/epic/feature-development"]').click();
 
-    // Should show error state (based on EpicDetail.tsx line 166-177)
+    // Should show error state
     await expect(page.getByText('Error')).toBeVisible();
     await expect(page.getByText('Failed to load epic')).toBeVisible();
 
@@ -162,12 +162,10 @@ test.describe('API Error Handling', () => {
   test('handles server error (500) on story detail', async ({ page }) => {
     // Navigate to epic first
     await page.goto('/epic/feature-development');
-    await expect(
-      page.locator('a[href="/epic/feature-development/story/auth-implementation"]'),
-    ).toBeVisible();
+    await expect(page.locator('a[href="/story/auth-implementation"]')).toBeVisible();
 
     // Intercept the story API request and return 500
-    await page.route('/api/stories/feature-development/auth-implementation', (route) => {
+    await page.route('/api/stories/auth-implementation', (route) => {
       route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -176,14 +174,14 @@ test.describe('API Error Handling', () => {
     });
 
     // Navigate to the story
-    await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
+    await page.locator('a[href="/story/auth-implementation"]').click();
 
-    // Should show error state (based on StoryDetail.tsx line 251-262)
+    // Should show error state
     await expect(page.getByText('Error')).toBeVisible();
     await expect(page.getByText('Failed to load story')).toBeVisible();
 
     // Verify back link is present
-    await expect(page.getByText('Back to epic')).toBeVisible();
+    await expect(page.getByText('Back to epics')).toBeVisible();
   });
 });
 
@@ -208,8 +206,8 @@ test.describe('WebSocket Disconnection', () => {
     await page.locator('a[href="/epic/feature-development"]').click();
     await expect(page.locator('h1.text-2xl:has-text("Feature Development")')).toBeVisible();
 
-    // Navigate to story detail
-    await page.locator('a[href="/epic/feature-development/story/auth-implementation"]').click();
+    // Navigate to story detail (story links now go to /story/:storyId)
+    await page.locator('a[href="/story/auth-implementation"]').click();
 
     // Story should display without WebSocket - verify the story title (h1 element)
     await expect(page.locator('h1:has-text("User Authentication")')).toBeVisible();
@@ -224,13 +222,13 @@ test.describe('WebSocket Disconnection', () => {
     // Load dashboard
     await page.goto('/');
 
-    // Verify can navigate to testing-suite epic (different from first test)
-    await page.locator('a[href="/epic/testing-suite"]').click();
-    await expect(page.locator('h1.text-2xl:has-text("Testing Suite")')).toBeVisible();
+    // Verify can navigate to feature-development epic
+    await page.locator('a[href="/epic/feature-development"]').click();
+    await expect(page.locator('h1.text-2xl:has-text("Feature Development")')).toBeVisible();
 
-    // Verify stories are displayed
-    await expect(page.getByText('Ready')).toBeVisible();
-    await expect(page.getByText('Blocked')).toBeVisible();
+    // Verify stories are displayed with status names (auth-implementation=In Progress, api-design=Completed)
+    await expect(page.getByText('In Progress').first()).toBeVisible();
+    await expect(page.getByText('Completed').first()).toBeVisible();
   });
 });
 
@@ -259,12 +257,7 @@ test.describe('Dynamic Content Changes', () => {
 
   test('newly created story appears after refresh', async ({ page, fixtureUtils }) => {
     // Create a new story in an existing epic
-    await fixtureUtils.createStory(
-      'feature-development',
-      'new-story',
-      'New Dynamic Story',
-      'ready',
-    );
+    await fixtureUtils.createStory('feature-development', 'new-story', 'New Dynamic Story');
 
     await page.goto('/epic/feature-development');
 

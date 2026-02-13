@@ -90,9 +90,8 @@ type Story = StoryObj<typeof meta>;
  * Showcase displaying all story card states.
  *
  * Demonstrates the different visual states a story card can be in:
- * - Ready: Story not started, all tasks pending
+ * - Pending: Story not started, all tasks pending
  * - In Progress: Story actively being worked on
- * - Blocked: Story has a blocker preventing progress
  * - Almost Done: Most tasks completed, nearly finished
  * - Completed: All tasks done
  *
@@ -203,7 +202,7 @@ export const Showcase: Story = {
  * Interactive playground for exploring story card configurations.
  *
  * Use the controls to:
- * - Select different story presets (ready, in-progress, blocked, almost-done, completed)
+ * - Select different story presets (pending, in-progress, almost-done, completed)
  * - Override the story title
  */
 export const Playground: Story = {

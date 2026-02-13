@@ -14,9 +14,8 @@ import {
 
 // Session test data constants
 const RUNNING_SESSION_1: MockSession = {
-  name: 'saga__epic-one__story-alpha__12345',
-  epicSlug: 'epic-one',
-  storySlug: 'story-alpha',
+  name: 'saga-story-story-alpha-12345',
+  storyId: 'story-alpha',
   status: 'running',
   startTime: '2026-01-30T10:00:00Z',
   outputAvailable: true,
@@ -24,9 +23,8 @@ const RUNNING_SESSION_1: MockSession = {
 };
 
 const RUNNING_SESSION_2: MockSession = {
-  name: 'saga__epic-two__story-beta__67890',
-  epicSlug: 'epic-two',
-  storySlug: 'story-beta',
+  name: 'saga-story-story-beta-67890',
+  storyId: 'story-beta',
   status: 'running',
   startTime: '2026-01-30T11:00:00Z',
   outputAvailable: true,
@@ -34,9 +32,8 @@ const RUNNING_SESSION_2: MockSession = {
 };
 
 const COMPLETED_SESSION: MockSession = {
-  name: 'saga__epic-one__story-gamma__11111',
-  epicSlug: 'epic-one',
-  storySlug: 'story-gamma',
+  name: 'saga-story-story-gamma-11111',
+  storyId: 'story-gamma',
   status: 'completed',
   startTime: '2026-01-30T08:00:00Z',
   outputAvailable: true,
@@ -46,8 +43,8 @@ const COMPLETED_SESSION: MockSession = {
 test.describe('ActiveSessions on Home Page', () => {
   test('should not show ActiveSessions section when no running sessions', async ({ page }) => {
     const epics = [
-      createMockEpicSummary({ slug: 'epic-one', title: 'Epic One' }),
-      createMockEpicSummary({ slug: 'epic-two', title: 'Epic Two' }),
+      createMockEpicSummary({ id: 'epic-one', title: 'Epic One' }),
+      createMockEpicSummary({ id: 'epic-two', title: 'Epic Two' }),
     ];
 
     await mockEpicList(page, epics);
@@ -67,7 +64,7 @@ test.describe('ActiveSessions on Home Page', () => {
   test('should show ActiveSessions section heading when running sessions exist', async ({
     page,
   }) => {
-    const epics = [createMockEpicSummary({ slug: 'epic-one', title: 'Epic One' })];
+    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
 
     await mockEpicList(page, epics);
     await mockSessions(page, [RUNNING_SESSION_1]);
@@ -82,10 +79,10 @@ test.describe('ActiveSessions on Home Page', () => {
     await expect(page.getByText('Active Sessions')).toBeVisible();
   });
 
-  test('should display session cards with story and epic slugs', async ({ page }) => {
+  test('should display session cards with story ids', async ({ page }) => {
     const epics = [
-      createMockEpicSummary({ slug: 'epic-one', title: 'Epic One' }),
-      createMockEpicSummary({ slug: 'epic-two', title: 'Epic Two' }),
+      createMockEpicSummary({ id: 'epic-one', title: 'Epic One' }),
+      createMockEpicSummary({ id: 'epic-two', title: 'Epic Two' }),
     ];
 
     await mockEpicList(page, epics);
@@ -96,18 +93,16 @@ test.describe('ActiveSessions on Home Page', () => {
       timeout: 10_000,
     });
 
-    // Verify session cards show story and epic slugs
+    // Verify session cards show story ids
     await expect(page.getByTestId('active-sessions')).toBeVisible();
     await expect(page.getByText('story-alpha')).toBeVisible();
-    await expect(page.getByText('epic-one')).toBeVisible();
     await expect(page.getByText('story-beta')).toBeVisible();
-    await expect(page.getByText('epic-two')).toBeVisible();
   });
 
   test('should navigate to story detail with ?tab=sessions when clicking session card', async ({
     page,
   }) => {
-    const epics = [createMockEpicSummary({ slug: 'epic-one', title: 'Epic One' })];
+    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
 
     await mockEpicList(page, epics);
     await mockSessions(page, [RUNNING_SESSION_1]);
@@ -121,11 +116,11 @@ test.describe('ActiveSessions on Home Page', () => {
     await page.getByText('story-alpha').click();
 
     // Verify navigation to story detail with sessions tab
-    await expect(page).toHaveURL('/epic/epic-one/story/story-alpha?tab=sessions');
+    await expect(page).toHaveURL('/story/story-alpha?tab=sessions');
   });
 
   test('should only show running sessions, not completed ones', async ({ page }) => {
-    const epics = [createMockEpicSummary({ slug: 'epic-one', title: 'Epic One' })];
+    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
 
     await mockEpicList(page, epics);
     // Note: The ActiveSessions component filters to only running sessions client-side
@@ -147,7 +142,7 @@ test.describe('ActiveSessions on Home Page', () => {
   });
 
   test('should show output preview on session cards', async ({ page }) => {
-    const epics = [createMockEpicSummary({ slug: 'epic-one', title: 'Epic One' })];
+    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
 
     await mockEpicList(page, epics);
     await mockSessions(page, [RUNNING_SESSION_1]);

@@ -25,10 +25,10 @@ const EXPECTED_SESSION_CARDS = 3;
 
 /** Running session with output available */
 const runningSession: SessionInfo = {
-  name: 'saga__dashboard-epic__auth-story__12345',
+  name: 'saga-story-auth-story-12345',
   storyId: 'auth-story',
   status: 'running',
-  outputFile: '/tmp/saga/sessions/12345.log',
+  outputFile: '/tmp/saga/sessions/12345.jsonl',
   outputAvailable: true,
   startTime: '2026-01-30T10:00:00Z',
   outputPreview: 'Running tests...\nTest 1 passed\nTest 2 passed',
@@ -36,10 +36,10 @@ const runningSession: SessionInfo = {
 
 /** Completed session with output available */
 const completedSession: SessionInfo = {
-  name: 'saga__dashboard-epic__auth-story__67890',
+  name: 'saga-story-auth-story-67890',
   storyId: 'auth-story',
   status: 'completed',
-  outputFile: '/tmp/saga/sessions/67890.log',
+  outputFile: '/tmp/saga/sessions/67890.jsonl',
   outputAvailable: true,
   startTime: '2026-01-30T08:00:00Z',
   endTime: '2026-01-30T09:30:00Z',
@@ -48,10 +48,10 @@ const completedSession: SessionInfo = {
 
 /** Session with output unavailable */
 const unavailableOutputSession: SessionInfo = {
-  name: 'saga__dashboard-epic__auth-story__11111',
+  name: 'saga-story-auth-story-11111',
   storyId: 'auth-story',
   status: 'completed',
-  outputFile: '/tmp/saga/sessions/11111.log',
+  outputFile: '/tmp/saga/sessions/11111.jsonl',
   outputAvailable: false,
   startTime: '2026-01-30T06:00:00Z',
   endTime: '2026-01-30T07:00:00Z',
@@ -62,10 +62,10 @@ const multipleSessions: SessionInfo[] = [
   runningSession,
   completedSession,
   {
-    name: 'saga__dashboard-epic__auth-story__33333',
+    name: 'saga-story-auth-story-33333',
     storyId: 'auth-story',
     status: 'completed',
-    outputFile: '/tmp/saga/sessions/33333.log',
+    outputFile: '/tmp/saga/sessions/33333.jsonl',
     outputAvailable: true,
     startTime: '2026-01-30T04:00:00Z',
     endTime: '2026-01-30T05:00:00Z',

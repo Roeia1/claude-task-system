@@ -34,45 +34,60 @@ const RAPID_CONNECTION_COUNT = 5;
 const CONCURRENT_CLIENT_COUNT = 3;
 const PERFORMANCE_CLIENT_COUNT = 10;
 
-// Helper to create a temporary saga directory
+// Helper to create a temporary saga directory with JSON format
 async function createTempSagaDir(): Promise<string> {
   const tempDir = join(
     tmpdir(),
     `saga-integration-test-${Date.now()}-${Math.random().toString(BASE_36).slice(RANDOM_STRING_SLICE_START)}`,
   );
 
-  // Create epic structure
-  await mkdir(join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story'), {
-    recursive: true,
-  });
-  await mkdir(join(tempDir, '.saga', 'archive'), { recursive: true });
+  // Create new directory structure
+  await mkdir(join(tempDir, '.saga', 'stories', 'test-story'), { recursive: true });
+  await mkdir(join(tempDir, '.saga', 'epics'), { recursive: true });
 
-  // Create epic.md
+  // Create epic JSON file
   await writeFile(
-    join(tempDir, '.saga', 'epics', 'test-epic', 'epic.md'),
-    '# Test Epic\n\nA test epic for integration testing.',
+    join(tempDir, '.saga', 'epics', 'test-epic.json'),
+    JSON.stringify({
+      id: 'test-epic',
+      title: 'Test Epic',
+      description: 'A test epic for integration testing.',
+      children: [{ id: 'test-story', blockedBy: [] }],
+    }),
   );
 
-  // Create story.md with valid frontmatter
+  // Create story JSON file
   await writeFile(
-    join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-    `---
-id: test-story
-title: Test Story
-status: ready
-tasks:
-  - id: t1
-    title: Task 1
-    status: pending
-  - id: t2
-    title: Task 2
-    status: pending
----
+    join(tempDir, '.saga', 'stories', 'test-story', 'story.json'),
+    JSON.stringify({
+      id: 'test-story',
+      title: 'Test Story',
+      description: 'Integration test story.',
+      epic: 'test-epic',
+    }),
+  );
 
-## Context
+  // Create task JSON files
+  await writeFile(
+    join(tempDir, '.saga', 'stories', 'test-story', 't1.json'),
+    JSON.stringify({
+      id: 't1',
+      subject: 'Task 1',
+      description: 'First task',
+      status: 'pending',
+      blockedBy: [],
+    }),
+  );
 
-Integration test story.
-`,
+  await writeFile(
+    join(tempDir, '.saga', 'stories', 'test-story', 't2.json'),
+    JSON.stringify({
+      id: 't2',
+      subject: 'Task 2',
+      description: 'Second task',
+      status: 'pending',
+      blockedBy: [],
+    }),
   );
 
   return tempDir;
@@ -164,36 +179,23 @@ describe('integration', () => {
     it('should deliver story update to subscribed client within 1 second', async () => {
       const ws = await createWsClient(port);
 
-      // Subscribe to story updates
-      sendMessage(ws, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      // Subscribe to story updates using storyId
+      sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
 
       // Record start time
       const startTime = Date.now();
 
-      // Modify the story file (YAML uses snake_case, API returns camelCase)
+      // Modify a task file to change story status (status is derived from tasks)
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        `---
-id: test-story
-title: Updated Story Title
-status: in_progress
-tasks:
-  - id: t1
-    title: Task 1
-    status: in_progress
-  - id: t2
-    title: Task 2
-    status: pending
----
-
-## Context
-
-Updated content.
-`,
+        join(tempDir, '.saga', 'stories', 'test-story', 't1.json'),
+        JSON.stringify({
+          id: 't1',
+          subject: 'Task 1',
+          description: 'First task',
+          status: 'in_progress',
+          blockedBy: [],
+        }),
       );
 
       // Wait for story:updated event
@@ -205,7 +207,7 @@ Updated content.
       // Verify update was received within 1 second
       expect(elapsed).toBeLessThan(EVENT_TIMEOUT_MS);
       expect(msg.event).toBe('story:updated');
-      expect(msg.data).toHaveProperty('title', 'Updated Story Title');
+      expect(msg.data).toHaveProperty('title', 'Test Story');
       expect(msg.data).toHaveProperty('status', 'inProgress');
 
       ws.close();
@@ -220,18 +222,15 @@ Updated content.
       const startTime = Date.now();
 
       // Create a new story (changes epic structure)
-      await mkdir(join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'new-story'), {
-        recursive: true,
-      });
+      await mkdir(join(tempDir, '.saga', 'stories', 'new-story'), { recursive: true });
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'new-story', 'story.md'),
-        `---
-id: new-story
-title: New Story
-status: ready
-tasks: []
----
-`,
+        join(tempDir, '.saga', 'stories', 'new-story', 'story.json'),
+        JSON.stringify({
+          id: 'new-story',
+          title: 'New Story',
+          description: 'A new story.',
+          epic: 'test-epic',
+        }),
       );
 
       // Both clients should receive epics:updated
@@ -251,36 +250,41 @@ tasks: []
     });
 
     it('should update story via API after file change is detected', async () => {
-      // Get initial story data
-      const initialRes = await request(server.app).get('/api/stories/test-epic/test-story');
+      // Get initial story data via new API endpoint
+      const initialRes = await request(server.app).get('/api/stories/test-story');
       expect(initialRes.status).toBe(HTTP_OK);
-      expect(initialRes.body.status).toBe('ready');
+      expect(initialRes.body.status).toBe('pending');
 
-      // Modify story file
+      // Modify task file to change derived status to completed
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        `---
-id: test-story
-title: API Test Story
-status: completed
-tasks:
-  - id: t1
-    title: Task 1
-    status: completed
----
-
-Done.
-`,
+        join(tempDir, '.saga', 'stories', 'test-story', 't1.json'),
+        JSON.stringify({
+          id: 't1',
+          subject: 'Task 1',
+          description: 'First task',
+          status: 'completed',
+          blockedBy: [],
+        }),
+      );
+      await writeFile(
+        join(tempDir, '.saga', 'stories', 'test-story', 't2.json'),
+        JSON.stringify({
+          id: 't2',
+          subject: 'Task 2',
+          description: 'Second task',
+          status: 'completed',
+          blockedBy: [],
+        }),
       );
 
       // Wait for watcher to detect and cache to refresh
       await new Promise((resolve) => setTimeout(resolve, WATCHER_DELAY_MS));
 
       // Get updated story data
-      const updatedRes = await request(server.app).get('/api/stories/test-epic/test-story');
+      const updatedRes = await request(server.app).get('/api/stories/test-story');
       expect(updatedRes.status).toBe(HTTP_OK);
       expect(updatedRes.body.status).toBe('completed');
-      expect(updatedRes.body.title).toBe('API Test Story');
+      expect(updatedRes.body.title).toBe('Test Story');
     });
   });
 
@@ -337,7 +341,7 @@ Done.
       const invalid1 = await request(server.app).get('/api/epics/nonexistent');
       expect(invalid1.status).toBe(HTTP_NOT_FOUND);
 
-      const invalid2 = await request(server.app).get('/api/stories/bad/path');
+      const invalid2 = await request(server.app).get('/api/stories/nonexistent');
       expect(invalid2.status).toBe(HTTP_NOT_FOUND);
 
       // Server should still work
@@ -376,24 +380,21 @@ Done.
       const clients = await Promise.all(clientPromises);
 
       for (const ws of clients) {
-        sendMessage(ws, 'subscribe:story', {
-          epicSlug: 'test-epic',
-          storySlug: 'test-story',
-        });
+        sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
       }
 
       await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
 
-      // Make file changes while clients are connected
+      // Make file changes while clients are connected (update task status)
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        `---
-id: test-story
-title: Concurrent Test
-status: blocked
-tasks: []
----
-`,
+        join(tempDir, '.saga', 'stories', 'test-story', 't1.json'),
+        JSON.stringify({
+          id: 't1',
+          subject: 'Task 1',
+          description: 'First task',
+          status: 'completed',
+          blockedBy: [],
+        }),
       );
 
       // All clients should receive update
@@ -415,25 +416,19 @@ tasks: []
   describe('data consistency', () => {
     it('should return consistent data between API and WebSocket', async () => {
       const ws = await createWsClient(port);
-      sendMessage(ws, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
 
-      // Modify story (YAML uses snake_case)
+      // Modify task to change derived status
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        `---
-id: test-story
-title: Consistency Test
-status: in_progress
-tasks:
-  - id: t1
-    title: Consistent Task
-    status: in_progress
----
-`,
+        join(tempDir, '.saga', 'stories', 'test-story', 't1.json'),
+        JSON.stringify({
+          id: 't1',
+          subject: 'Task 1',
+          description: 'First task',
+          status: 'in_progress',
+          blockedBy: [],
+        }),
       );
 
       // Get WebSocket update
@@ -441,7 +436,7 @@ tasks:
 
       // Get API response
       await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
-      const apiRes = await request(server.app).get('/api/stories/test-epic/test-story');
+      const apiRes = await request(server.app).get('/api/stories/test-story');
 
       // Both should have the same data
       const wsData = wsMsg.data as {
@@ -458,15 +453,12 @@ tasks:
 
     it('should include journal in story updates when present', async () => {
       const ws = await createWsClient(port);
-      sendMessage(ws, 'subscribe:story', {
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
-      });
+      sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
       await new Promise((resolve) => setTimeout(resolve, SHORT_DELAY_MS));
 
-      // Create a journal file
+      // Create a journal file in the new location
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'journal.md'),
+        join(tempDir, '.saga', 'stories', 'test-story', 'journal.md'),
         `# Journal: test-story
 
 ## Session: 2026-01-27T00:00:00Z
@@ -505,26 +497,23 @@ Waiting for code review.
       const clients = await Promise.all(clientPromises);
 
       for (const ws of clients) {
-        sendMessage(ws, 'subscribe:story', {
-          epicSlug: 'test-epic',
-          storySlug: 'test-story',
-        });
+        sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
       }
 
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_DELAY_MS));
 
       const startTime = Date.now();
 
-      // Trigger an update
+      // Trigger an update by changing all tasks to completed
       await writeFile(
-        join(tempDir, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        `---
-id: test-story
-title: Performance Test
-status: completed
-tasks: []
----
-`,
+        join(tempDir, '.saga', 'stories', 'test-story', 't1.json'),
+        JSON.stringify({
+          id: 't1',
+          subject: 'Task 1',
+          description: 'First task',
+          status: 'completed',
+          blockedBy: [],
+        }),
       );
 
       // All clients should receive update within 1 second

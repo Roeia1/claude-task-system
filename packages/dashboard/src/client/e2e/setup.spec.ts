@@ -33,10 +33,10 @@ test.describe('E2E Setup Verification', () => {
     // Verify we have the expected fixture epics
     expect(epics).toHaveLength(EXPECTED_EPIC_COUNT);
 
-    const epicSlugs = epics.map((e: { slug: string }) => e.slug);
-    expect(epicSlugs).toContain('feature-development');
-    expect(epicSlugs).toContain('empty-epic');
-    expect(epicSlugs).toContain('testing-suite');
+    const epicIds = epics.map((e: { id: string }) => e.id);
+    expect(epicIds).toContain('feature-development');
+    expect(epicIds).toContain('empty-epic');
+    expect(epicIds).toContain('testing-suite');
   });
 
   test('dashboard loads in browser', async ({ page }) => {

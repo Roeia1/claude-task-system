@@ -1,0 +1,9 @@
+{
+  "id": "testing-suite",
+  "title": "Testing Suite",
+  "description": "Comprehensive testing infrastructure for the application.",
+  "children": [
+    { "id": "unit-tests", "blockedBy": [] },
+    { "id": "integration-tests", "blockedBy": ["unit-tests"] }
+  ]
+}

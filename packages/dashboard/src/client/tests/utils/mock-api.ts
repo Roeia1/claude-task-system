@@ -32,9 +32,8 @@ const HTTP_OK = 200;
  */
 function createMockStoryCounts(overrides: Partial<StoryCounts> = {}): StoryCounts {
   return {
-    ready: 0,
+    pending: 0,
     inProgress: 0,
-    blocked: 0,
     completed: 0,
     total: 0,
     ...overrides,
@@ -47,8 +46,10 @@ function createMockStoryCounts(overrides: Partial<StoryCounts> = {}): StoryCount
 function createMockTask(overrides: Partial<Task> = {}): Task {
   return {
     id: `task-${Date.now()}`,
-    title: 'Mock Task',
+    subject: 'Mock Task',
+    description: 'Mock task description',
     status: 'pending' as TaskStatus,
+    blockedBy: [],
     ...overrides,
   };
 }
@@ -71,56 +72,59 @@ function createMockJournalEntry(overrides: Partial<JournalEntry> = {}): JournalE
  * Used for the epic list view (/api/epics endpoint).
  */
 function createMockEpicSummary(overrides: Partial<EpicSummary> = {}): EpicSummary {
-  const slug = overrides.slug || `mock-epic-${Date.now()}`;
+  const { storyCounts: storyCountsOverride, ...rest } = overrides;
   return {
-    slug,
-    title: overrides.title || 'Mock Epic',
-    storyCounts: createMockStoryCounts(overrides.storyCounts),
-    isArchived: overrides.isArchived ?? false,
+    id: `mock-epic-${Date.now()}`,
+    title: 'Mock Epic',
+    description: 'Mock epic description',
+    status: 'pending' as StoryStatus,
+    storyCounts: createMockStoryCounts(storyCountsOverride),
+    ...rest,
   };
 }
 
 /**
  * Creates a mock StoryDetail with sensible defaults.
- * Used for story detail view (/api/stories/:epicSlug/:storySlug endpoint).
+ * Used for story detail view (/api/stories/:storyId endpoint).
  */
 function createMockStoryDetail(overrides: Partial<StoryDetail> = {}): StoryDetail {
-  const slug = overrides.slug || `mock-story-${Date.now()}`;
   return {
-    slug,
-    title: overrides.title || 'Mock Story',
-    status: overrides.status || ('ready' as StoryStatus),
-    epicSlug: overrides.epicSlug || 'mock-epic',
-    tasks: overrides.tasks || [],
-    journal: overrides.journal || [],
-    content: overrides.content,
+    id: `mock-story-${Date.now()}`,
+    title: 'Mock Story',
+    description: 'Mock story description',
+    status: 'pending' as StoryStatus,
+    epic: 'mock-epic',
+    tasks: [],
+    journal: [],
+    ...overrides,
   };
 }
 
 /**
  * Creates a mock Epic with sensible defaults.
- * Used for epic detail view (/api/epics/:slug endpoint).
+ * Used for epic detail view (/api/epics/:epicId endpoint).
  */
 function createMockEpic(overrides: Partial<Epic> = {}): Epic {
-  const slug = overrides.slug || `mock-epic-${Date.now()}`;
+  const id = overrides.id || `mock-epic-${Date.now()}`;
   const stories = overrides.stories || [];
 
   // Calculate story counts from stories if not provided
   const storyCounts = overrides.storyCounts || {
-    ready: stories.filter((s) => s.status === 'ready').length,
+    pending: stories.filter((s) => s.status === 'pending').length,
     inProgress: stories.filter((s) => s.status === 'inProgress').length,
-    blocked: stories.filter((s) => s.status === 'blocked').length,
     completed: stories.filter((s) => s.status === 'completed').length,
     total: stories.length,
   };
 
   return {
-    slug,
-    title: overrides.title || 'Mock Epic',
-    content: overrides.content,
+    id,
+    title: 'Mock Epic',
+    description: 'Mock epic description',
+    status: 'pending' as StoryStatus,
+    children: stories.map((s) => ({ id: s.id, blockedBy: [] })),
     stories,
     storyCounts,
-    isArchived: overrides.isArchived ?? false,
+    ...overrides,
   };
 }
 
@@ -140,7 +144,7 @@ type RoutePattern = string | RegExp | ((url: URL) => boolean);
 /**
  * Mocks the GET /api/epics endpoint to return a list of epic summaries.
  * Uses a function matcher to match exactly /api/epics (with optional trailing slash)
- * but NOT /api/epics/some-slug.
+ * but NOT /api/epics/some-id.
  */
 async function mockEpicList(page: Page, epics: EpicSummary[]): Promise<void> {
   await page.route(
@@ -156,12 +160,12 @@ async function mockEpicList(page: Page, epics: EpicSummary[]): Promise<void> {
 }
 
 /**
- * Mocks the GET /api/epics/:slug endpoint to return epic details.
+ * Mocks the GET /api/epics/:epicId endpoint to return epic details.
  * Uses a function matcher to handle the URL properly.
  */
 async function mockEpicDetail(page: Page, epic: Epic): Promise<void> {
   await page.route(
-    (url) => url.pathname === `/api/epics/${epic.slug}`,
+    (url) => url.pathname === `/api/epics/${epic.id}`,
     async (route: Route) => {
       await route.fulfill({
         status: 200,
@@ -173,12 +177,12 @@ async function mockEpicDetail(page: Page, epic: Epic): Promise<void> {
 }
 
 /**
- * Mocks the GET /api/stories/:epicSlug/:storySlug endpoint to return story details.
+ * Mocks the GET /api/stories/:storyId endpoint to return story details.
  * Uses a function matcher to handle the URL properly.
  */
 async function mockStoryDetail(page: Page, story: StoryDetail): Promise<void> {
   await page.route(
-    (url) => url.pathname === `/api/stories/${story.epicSlug}/${story.slug}`,
+    (url) => url.pathname === `/api/stories/${story.id}`,
     async (route: Route) => {
       await route.fulfill({
         status: 200,
@@ -194,8 +198,7 @@ async function mockStoryDetail(page: Page, story: StoryDetail): Promise<void> {
  */
 interface MockSession {
   name: string;
-  epicSlug: string;
-  storySlug: string;
+  storyId: string;
   status: 'running' | 'completed';
   startTime: string;
   outputPreview?: string;
@@ -307,23 +310,23 @@ async function mockNetworkFailure(page: Page, routePattern: RoutePattern): Promi
 function createMockEpicSummaries(): EpicSummary[] {
   return [
     createMockEpicSummary({
-      slug: 'epic-one',
+      id: 'epic-one',
       title: 'Epic One',
+      status: 'inProgress',
       storyCounts: {
-        ready: 1,
+        pending: 1,
         inProgress: 1,
-        blocked: 0,
         completed: 2,
         total: 4,
       },
     }),
     createMockEpicSummary({
-      slug: 'epic-two',
+      id: 'epic-two',
       title: 'Epic Two',
+      status: 'inProgress',
       storyCounts: {
-        ready: 0,
-        inProgress: 0,
-        blocked: 1,
+        pending: 0,
+        inProgress: 1,
         completed: 0,
         total: 1,
       },
@@ -336,37 +339,38 @@ function createMockEpicSummaries(): EpicSummary[] {
  */
 function createMockEpicOne(): Epic {
   return createMockEpic({
-    slug: 'epic-one',
+    id: 'epic-one',
     title: 'Epic One',
-    content: 'This is the first epic.',
+    description: 'This is the first epic.',
+    status: 'inProgress',
     stories: [
       createMockStoryDetail({
-        slug: 'story-1',
+        id: 'story-1',
         title: 'Story One',
-        status: 'ready',
-        epicSlug: 'epic-one',
+        status: 'pending',
+        epic: 'epic-one',
       }),
       createMockStoryDetail({
-        slug: 'story-2',
+        id: 'story-2',
         title: 'Story Two',
         status: 'inProgress',
-        epicSlug: 'epic-one',
+        epic: 'epic-one',
         tasks: [
-          createMockTask({ id: 't1', title: 'Task 1', status: 'completed' }),
-          createMockTask({ id: 't2', title: 'Task 2', status: 'inProgress' }),
+          createMockTask({ id: 't1', subject: 'Task 1', status: 'completed' }),
+          createMockTask({ id: 't2', subject: 'Task 2', status: 'inProgress' }),
         ],
       }),
       createMockStoryDetail({
-        slug: 'story-3',
+        id: 'story-3',
         title: 'Story Three',
         status: 'completed',
-        epicSlug: 'epic-one',
+        epic: 'epic-one',
       }),
       createMockStoryDetail({
-        slug: 'story-4',
+        id: 'story-4',
         title: 'Story Four',
         status: 'completed',
-        epicSlug: 'epic-one',
+        epic: 'epic-one',
       }),
     ],
   });
@@ -377,15 +381,16 @@ function createMockEpicOne(): Epic {
  */
 function createMockEpicTwo(): Epic {
   return createMockEpic({
-    slug: 'epic-two',
+    id: 'epic-two',
     title: 'Epic Two',
-    content: 'This is the second epic.',
+    description: 'This is the second epic.',
+    status: 'inProgress',
     stories: [
       createMockStoryDetail({
-        slug: 'blocked-story',
-        title: 'Blocked Story',
-        status: 'blocked',
-        epicSlug: 'epic-two',
+        id: 'in-progress-story',
+        title: 'In Progress Story',
+        status: 'inProgress',
+        epic: 'epic-two',
         journal: [
           createMockJournalEntry({
             type: 'blocker',
