@@ -356,3 +356,24 @@
 **Final test results:**
 - All 39 test files pass (587 tests)
 - No failures or flaky tests
+
+## Session: 2026-02-13T08:30
+
+### PR Review fixes — Type safety, code deduplication, and breadcrumb UX
+
+**What was done:**
+- Reviewed PR #63 and identified 5 issues; implemented all fixes
+- **WorkerMessage type safety**: Replaced loose `Record<string, unknown>` with a proper discriminated union (`TextMessage | SagaWorkerMessage | AssistantMessage | ResultMessage`), reusing `SagaWorkerMessage` from `@saga-ai/types`. Removed all `as string` casts in `LogViewer.tsx` formatters.
+- **Unsafe API casts**: Added `assertStoryDetail()`/`assertEpic()` type assertion functions in new `fetch-utils.ts`, replacing `as Epic` cast in `EpicDetail.tsx` and untyped `unknown` pass-through in `StoryDetail.tsx`
+- **StatusBadge deduplication**: Extracted shared `StatusBadge.tsx` component, removing identical implementations from `StoryDetail.tsx`, `EpicDetail.tsx`, and `EpicList.tsx`
+- **Fetch utilities deduplication**: Extracted `processFetchResponse`, `handleFetchError`, and `FetchResult` type into shared `fetch-utils.ts`, removing duplicates from `StoryDetail.tsx` and `EpicDetail.tsx`
+- **Breadcrumb epic context**: Updated `Breadcrumb.tsx` to show `Epics > epicId > storyId` (with clickable epic link) when viewing a story that belongs to an epic. Updated integration tests and storybook stories accordingly.
+
+**Decisions:**
+- Reused `SagaWorkerMessage` from `@saga-ai/types` rather than redefining it in client code, keeping a single source of truth
+- Kept `statusVariants`/`statusLabels` unexported from `StatusBadge.tsx` to satisfy biome's no-mixed-exports rule; storybook mirrors them locally for test assertions
+- Used `export type { WorkerMessage } from '@/types/dashboard'` at end of `dashboardMachine.ts` to satisfy both `noExportedImports` and `useExportsLast` biome rules
+
+**Test results:**
+- All 39 test files pass (587 tests)
+- Net code reduction: +177/-200 lines
