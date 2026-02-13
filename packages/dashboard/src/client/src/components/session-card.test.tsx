@@ -44,8 +44,7 @@ describe('SessionCard', () => {
 
   const createSession = (overrides: Partial<SessionInfo> = {}): SessionInfo => ({
     name: 'saga__my-epic__my-story__12345',
-    epicSlug: 'my-epic',
-    storySlug: 'my-story',
+    storyId: 'my-story',
     status: 'running',
     outputFile: '/tmp/saga/output.txt',
     outputAvailable: true,
@@ -55,8 +54,8 @@ describe('SessionCard', () => {
   });
 
   describe('data display', () => {
-    it('displays story title', () => {
-      const session = createSession({ storySlug: 'api-implementation' });
+    it('displays story ID', () => {
+      const session = createSession({ storyId: 'api-implementation' });
 
       render(
         <MemoryRouter>
@@ -65,18 +64,6 @@ describe('SessionCard', () => {
       );
 
       expect(screen.getByText('api-implementation')).toBeInTheDocument();
-    });
-
-    it('displays epic title', () => {
-      const session = createSession({ epicSlug: 'dashboard-epic' });
-
-      render(
-        <MemoryRouter>
-          <SessionCard session={session} />
-        </MemoryRouter>,
-      );
-
-      expect(screen.getByText('dashboard-epic')).toBeInTheDocument();
     });
 
     it('displays output preview', () => {
@@ -248,8 +235,7 @@ describe('SessionCard', () => {
   describe('navigation', () => {
     it('renders as a link to story detail with sessions tab', () => {
       const session = createSession({
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
+        storyId: 'test-story',
       });
 
       render(
@@ -259,7 +245,7 @@ describe('SessionCard', () => {
       );
 
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/epic/test-epic/story/test-story?tab=sessions');
+      expect(link).toHaveAttribute('href', '/story/test-story?tab=sessions');
     });
 
     it('has hover styling for interactivity', () => {

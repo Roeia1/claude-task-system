@@ -1,0 +1,9 @@
+{
+  "id": "t4",
+  "subject": "Create session management",
+  "description": "Track active sessions and support logout",
+  "status": "pending",
+  "blockedBy": [],
+  "guidance": "Track active sessions\nSupport logout functionality",
+  "doneWhen": "Sessions can be created and invalidated"
+}

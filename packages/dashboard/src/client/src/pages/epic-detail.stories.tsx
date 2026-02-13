@@ -33,52 +33,104 @@ const BACK_TO_EPIC_LIST_PATTERN = /back to epic list/i;
 
 const sampleStories: StoryDetailType[] = [
   {
-    slug: 'storybook-setup',
+    id: 'storybook-setup',
     title: 'Storybook Setup and Component Stories',
+    description: 'Set up Storybook for component development.',
     status: 'inProgress',
-    epicSlug: 'dashboard-restructure',
+    epic: 'dashboard-restructure',
     tasks: [
-      { id: 't1', title: 'Install Storybook', status: 'completed' },
-      { id: 't2', title: 'Configure Tailwind', status: 'completed' },
-      { id: 't3', title: 'Create Layout stories', status: 'completed' },
-      { id: 't4', title: 'Create page stories', status: 'inProgress' },
-      { id: 't5', title: 'Verify build', status: 'pending' },
+      {
+        id: 't1',
+        subject: 'Install Storybook',
+        description: '',
+        status: 'completed',
+        blockedBy: [],
+      },
+      {
+        id: 't2',
+        subject: 'Configure Tailwind',
+        description: '',
+        status: 'completed',
+        blockedBy: [],
+      },
+      {
+        id: 't3',
+        subject: 'Create Layout stories',
+        description: '',
+        status: 'completed',
+        blockedBy: [],
+      },
+      {
+        id: 't4',
+        subject: 'Create page stories',
+        description: '',
+        status: 'inProgress',
+        blockedBy: [],
+      },
+      { id: 't5', subject: 'Verify build', description: '', status: 'pending', blockedBy: [] },
     ],
     journal: [],
   },
   {
-    slug: 'visual-regression',
+    id: 'visual-regression',
     title: 'Visual Regression Testing',
-    status: 'blocked',
-    epicSlug: 'dashboard-restructure',
+    description: 'Add visual regression testing.',
+    status: 'inProgress',
+    epic: 'dashboard-restructure',
     tasks: [
-      { id: 't1', title: 'Research tools', status: 'completed' },
-      { id: 't2', title: 'Configure chromatic', status: 'inProgress' },
-      { id: 't3', title: 'Add snapshots', status: 'pending' },
+      { id: 't1', subject: 'Research tools', description: '', status: 'completed', blockedBy: [] },
+      {
+        id: 't2',
+        subject: 'Configure chromatic',
+        description: '',
+        status: 'inProgress',
+        blockedBy: [],
+      },
+      { id: 't3', subject: 'Add snapshots', description: '', status: 'pending', blockedBy: [] },
     ],
     journal: [],
   },
   {
-    slug: 'playwright-integration',
+    id: 'playwright-integration',
     title: 'Playwright Integration Tests',
-    status: 'ready',
-    epicSlug: 'dashboard-restructure',
+    description: 'Integration tests with Playwright.',
+    status: 'pending',
+    epic: 'dashboard-restructure',
     tasks: [
-      { id: 't1', title: 'Install Playwright', status: 'pending' },
-      { id: 't2', title: 'Write component tests', status: 'pending' },
-      { id: 't3', title: 'Add CI integration', status: 'pending' },
+      {
+        id: 't1',
+        subject: 'Install Playwright',
+        description: '',
+        status: 'pending',
+        blockedBy: [],
+      },
+      {
+        id: 't2',
+        subject: 'Write component tests',
+        description: '',
+        status: 'pending',
+        blockedBy: [],
+      },
+      {
+        id: 't3',
+        subject: 'Add CI integration',
+        description: '',
+        status: 'pending',
+        blockedBy: [],
+      },
     ],
     journal: [],
   },
   {
-    slug: 'flatten-package',
+    id: 'flatten-package',
     title: 'Flatten Dashboard Package Structure',
+    description: 'Flatten the package structure.',
     status: 'completed',
-    epicSlug: 'dashboard-restructure',
+    epic: 'dashboard-restructure',
     tasks: [
-      { id: 't1', title: 'Move files', status: 'completed' },
-      { id: 't2', title: 'Update imports', status: 'completed' },
-      { id: 't3', title: 'Verify build', status: 'completed' },
+      { id: 't1', subject: 'Move files', description: '', status: 'completed', blockedBy: [] },
+      { id: 't2', subject: 'Update imports', description: '', status: 'completed', blockedBy: [] },
+      { id: 't3', subject: 'Verify build', description: '', status: 'completed', blockedBy: [] },
     ],
     journal: [],
   },
@@ -141,15 +193,6 @@ type EpicDetailStory = StoryObj<typeof EpicDetail>;
 
 /**
  * Showcase displaying all EpicDetail page states.
- *
- * Demonstrates the different states the page can be in:
- * - Loading: Shows skeleton placeholders while data is fetched
- * - Not Found: 404 state when epic doesn't exist
- * - Error: When fetching fails
- * - Empty: Epic exists but has no stories
- * - Populated: Epic with stories in various statuses
- * - All Completed: 100% progress state
- * - With Blockers: Highlighting blocked stories
  */
 export const Showcase: EpicDetailStory = {
   render: () => (
@@ -231,7 +274,7 @@ export const Showcase: EpicDetailStory = {
             <h2 className="text-lg font-semibold text-text">Stories</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {sampleStories.map((story) => (
-                <StoryCard key={story.slug} story={story} epicSlug="dashboard-restructure" />
+                <StoryCard key={story.id} story={story} />
               ))}
             </div>
           </div>
@@ -278,12 +321,6 @@ export const Showcase: EpicDetailStory = {
 // Playground Story
 // ============================================================================
 
-/**
- * Interactive playground for exploring EpicDetail page states.
- *
- * Currently shows the populated state with stories. In a real application,
- * this page fetches data from an API based on the route parameter.
- */
 export const Playground: EpicDetailStory = {
   render: () => (
     <div className="space-y-6">
@@ -302,7 +339,7 @@ export const Playground: EpicDetailStory = {
         <h2 className="text-lg font-semibold text-text">Stories</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {sampleStories.map((story) => (
-            <StoryCard key={story.slug} story={story} epicSlug="dashboard-restructure" />
+            <StoryCard key={story.id} story={story} />
           ))}
         </div>
       </div>
@@ -311,15 +348,10 @@ export const Playground: EpicDetailStory = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // Verify Layout header with SAGA Dashboard
     await expect(canvas.getByText('SAGA')).toBeInTheDocument();
     await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
-
-    // Verify epic title
     await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument();
-    // Verify progress text
     await expect(canvas.getByText('1/4 stories completed')).toBeInTheDocument();
-    // Verify story cards - filter by href to exclude breadcrumb links
     const storyLinks = canvas
       .getAllByRole('link')
       .filter((link) => link.getAttribute('href')?.includes('/story/'));
@@ -328,12 +360,9 @@ export const Playground: EpicDetailStory = {
 };
 
 // ============================================================================
-// Individual Page State Stories (for visual regression testing)
+// Individual Page State Stories
 // ============================================================================
 
-/**
- * Loading state showing header and story card skeletons.
- */
 export const Loading: EpicDetailStory = {
   render: () => (
     <div className="space-y-6">
@@ -347,10 +376,8 @@ export const Loading: EpicDetailStory = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // Verify Layout header with SAGA Dashboard
     await expect(canvas.getByText('SAGA')).toBeInTheDocument();
     await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
-    // Verify loading skeletons
     const headerSkeleton = canvas.getByTestId('epic-header-skeleton');
     await expect(headerSkeleton).toBeInTheDocument();
     await expect(headerSkeleton).toHaveClass('animate-pulse');
@@ -361,9 +388,6 @@ export const Loading: EpicDetailStory = {
   },
 };
 
-/**
- * 404 state when epic is not found.
- */
 export const NotFound: EpicDetailStory = {
   render: () => (
     <div className="text-center py-12">
@@ -374,18 +398,13 @@ export const NotFound: EpicDetailStory = {
       </Link>
     </div>
   ),
-  parameters: {
-    a11y: { test: 'error' },
-  },
+  parameters: { a11y: { test: 'error' } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // Verify Layout header with SAGA Dashboard
     await expect(canvas.getByText('SAGA')).toBeInTheDocument();
     await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
-    // Verify not found state
     await expect(canvas.getByText('Epic not found')).toBeInTheDocument();
     await expect(canvas.getByText(NON_EXISTENT_EPIC_PATTERN)).toBeInTheDocument();
-    // Filter by explicit back link (not breadcrumb)
     const backLinks = canvas
       .getAllByRole('link')
       .filter((link) => BACK_TO_EPIC_LIST_PATTERN.test(link.textContent || ''));
@@ -396,9 +415,6 @@ export const NotFound: EpicDetailStory = {
   },
 };
 
-/**
- * Error state when fetching fails.
- */
 export const ErrorState: EpicDetailStory = {
   render: () => (
     <div className="text-center py-12">
@@ -409,20 +425,15 @@ export const ErrorState: EpicDetailStory = {
       </Link>
     </div>
   ),
-  parameters: {
-    a11y: { test: 'error' },
-  },
+  parameters: { a11y: { test: 'error' } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // Verify Layout header with SAGA Dashboard
     await expect(canvas.getByText('SAGA')).toBeInTheDocument();
     await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
-    // Verify error state
     const errorHeading = canvas.getByText('Error');
     await expect(errorHeading).toBeInTheDocument();
     await expect(errorHeading).toHaveClass('text-danger');
     await expect(canvas.getByText('Failed to load epic')).toBeInTheDocument();
-    // Filter by explicit back link (not breadcrumb)
     const backLinks = canvas
       .getAllByRole('link')
       .filter((link) => BACK_TO_EPIC_LIST_PATTERN.test(link.textContent || ''));
@@ -430,9 +441,6 @@ export const ErrorState: EpicDetailStory = {
   },
 };
 
-/**
- * Empty state when epic has no stories.
- */
 export const Empty: EpicDetailStory = {
   render: () => (
     <div className="space-y-6">
@@ -456,10 +464,8 @@ export const Empty: EpicDetailStory = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // Verify Layout header with SAGA Dashboard
     await expect(canvas.getByText('SAGA')).toBeInTheDocument();
     await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
-    // Verify empty state content
     await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument();
     await expect(canvas.getByText('0/0 stories completed')).toBeInTheDocument();
     await expect(canvas.getByText('No stories in this epic.')).toBeInTheDocument();
@@ -469,9 +475,6 @@ export const Empty: EpicDetailStory = {
   },
 };
 
-/**
- * Populated state with multiple stories showing various statuses.
- */
 export const Populated: EpicDetailStory = {
   render: () => (
     <div className="space-y-6">
@@ -490,7 +493,7 @@ export const Populated: EpicDetailStory = {
         <h2 className="text-lg font-semibold text-text">Stories</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {sampleStories.map((story) => (
-            <StoryCard key={story.slug} story={story} epicSlug="dashboard-restructure" />
+            <StoryCard key={story.id} story={story} />
           ))}
         </div>
       </div>
@@ -498,10 +501,8 @@ export const Populated: EpicDetailStory = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // Verify Layout header with SAGA Dashboard
     await expect(canvas.getByText('SAGA')).toBeInTheDocument();
     await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
-    // Verify populated state content
     await expect(canvas.getByText('Dashboard Restructure and Testing')).toBeInTheDocument();
     await expect(canvas.getByText('1/4 stories completed')).toBeInTheDocument();
     await expect(canvas.getByTestId('epic-content')).toBeInTheDocument();
@@ -509,7 +510,6 @@ export const Populated: EpicDetailStory = {
     await expect(canvas.getByText('Visual Regression Testing')).toBeInTheDocument();
     await expect(canvas.getByText('Playwright Integration Tests')).toBeInTheDocument();
     await expect(canvas.getByText('Flatten Dashboard Package Structure')).toBeInTheDocument();
-    // Filter by story links (not breadcrumb links)
     const storyLinks = canvas
       .getAllByRole('link')
       .filter((link) => link.getAttribute('href')?.includes('/story/'));
@@ -519,42 +519,42 @@ export const Populated: EpicDetailStory = {
   },
 };
 
-/**
- * Epic with all completed stories (100% progress).
- */
 export const AllCompleted: EpicDetailStory = {
   render: () => {
     const completedStories: StoryDetailType[] = [
       {
-        slug: 'setup',
+        id: 'setup',
         title: 'Project Setup',
+        description: 'Set up the project.',
         status: 'completed',
-        epicSlug: 'auth-migration',
+        epic: 'auth-migration',
         tasks: [
-          { id: 't1', title: 'Init', status: 'completed' },
-          { id: 't2', title: 'Config', status: 'completed' },
+          { id: 't1', subject: 'Init', description: '', status: 'completed', blockedBy: [] },
+          { id: 't2', subject: 'Config', description: '', status: 'completed', blockedBy: [] },
         ],
         journal: [],
       },
       {
-        slug: 'migration',
+        id: 'migration',
         title: 'Database Migration',
+        description: 'Migrate the database.',
         status: 'completed',
-        epicSlug: 'auth-migration',
+        epic: 'auth-migration',
         tasks: [
-          { id: 't1', title: 'Schema', status: 'completed' },
-          { id: 't2', title: 'Data', status: 'completed' },
+          { id: 't1', subject: 'Schema', description: '', status: 'completed', blockedBy: [] },
+          { id: 't2', subject: 'Data', description: '', status: 'completed', blockedBy: [] },
         ],
         journal: [],
       },
       {
-        slug: 'testing',
+        id: 'testing',
         title: 'Integration Testing',
+        description: 'Integration tests.',
         status: 'completed',
-        epicSlug: 'auth-migration',
+        epic: 'auth-migration',
         tasks: [
-          { id: 't1', title: 'Unit tests', status: 'completed' },
-          { id: 't2', title: 'E2E tests', status: 'completed' },
+          { id: 't1', subject: 'Unit tests', description: '', status: 'completed', blockedBy: [] },
+          { id: 't2', subject: 'E2E tests', description: '', status: 'completed', blockedBy: [] },
         ],
         journal: [],
       },
@@ -576,7 +576,7 @@ export const AllCompleted: EpicDetailStory = {
           <h2 className="text-lg font-semibold text-text">Stories</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {completedStories.map((story) => (
-              <StoryCard key={story.slug} story={story} epicSlug="auth-migration" />
+              <StoryCard key={story.id} story={story} />
             ))}
           </div>
         </div>
@@ -585,10 +585,8 @@ export const AllCompleted: EpicDetailStory = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // Verify Layout header with SAGA Dashboard
     await expect(canvas.getByText('SAGA')).toBeInTheDocument();
     await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
-    // Verify all completed state
     await expect(canvas.getByText('Authentication Migration')).toBeInTheDocument();
     await expect(canvas.getByText('3/3 stories completed')).toBeInTheDocument();
     await expect(canvas.getByText('Project Setup')).toBeInTheDocument();
@@ -596,100 +594,6 @@ export const AllCompleted: EpicDetailStory = {
     await expect(canvas.getByText('Integration Testing')).toBeInTheDocument();
     const completedBadges = canvas.getAllByText('Completed');
     await expect(completedBadges.length).toBe(COMPLETED_STORY_COUNT);
-  },
-};
-
-/**
- * Epic with multiple blocked stories requiring attention.
- */
-export const WithBlockers: EpicDetailStory = {
-  render: () => {
-    const blockedStories: StoryDetailType[] = [
-      {
-        slug: 'api-design',
-        title: 'API Design',
-        status: 'blocked',
-        epicSlug: 'api-integration',
-        tasks: [
-          { id: 't1', title: 'Define schema', status: 'completed' },
-          { id: 't2', title: 'Review with team', status: 'inProgress' },
-        ],
-        journal: [],
-      },
-      {
-        slug: 'auth-endpoint',
-        title: 'Authentication Endpoint',
-        status: 'blocked',
-        epicSlug: 'api-integration',
-        tasks: [
-          { id: 't1', title: 'Implement', status: 'inProgress' },
-          { id: 't2', title: 'Add tests', status: 'pending' },
-        ],
-        journal: [],
-      },
-      {
-        slug: 'data-endpoint',
-        title: 'Data Endpoint',
-        status: 'inProgress',
-        epicSlug: 'api-integration',
-        tasks: [
-          { id: 't1', title: 'Implement CRUD', status: 'completed' },
-          { id: 't2', title: 'Add validation', status: 'inProgress' },
-        ],
-        journal: [],
-      },
-      {
-        slug: 'docs',
-        title: 'API Documentation',
-        status: 'ready',
-        epicSlug: 'api-integration',
-        tasks: [
-          { id: 't1', title: 'Write docs', status: 'pending' },
-          { id: 't2', title: 'Add examples', status: 'pending' },
-        ],
-        journal: [],
-      },
-    ];
-
-    return (
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <h1 className="text-2xl font-bold text-text">API Integration</h1>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-text-muted">Progress</span>
-              <span className="text-text-muted">0/4 stories completed</span>
-            </div>
-            <Progress value={0} />
-          </div>
-        </div>
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-text">Stories</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {blockedStories.map((story) => (
-              <StoryCard key={story.slug} story={story} epicSlug="api-integration" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Verify Layout header with SAGA Dashboard
-    await expect(canvas.getByText('SAGA')).toBeInTheDocument();
-    await expect(canvas.getByText('Dashboard')).toBeInTheDocument();
-    // Verify blocked stories state
-    await expect(canvas.getByText('API Integration')).toBeInTheDocument();
-    await expect(canvas.getByText('0/4 stories completed')).toBeInTheDocument();
-    await expect(canvas.getByText('API Design')).toBeInTheDocument();
-    await expect(canvas.getByText('Authentication Endpoint')).toBeInTheDocument();
-    await expect(canvas.getByText('Data Endpoint')).toBeInTheDocument();
-    await expect(canvas.getByText('API Documentation')).toBeInTheDocument();
-    const blockedBadges = canvas.getAllByText('Blocked');
-    await expect(blockedBadges.length).toBe(2);
-    await expect(canvas.getByText('In Progress')).toBeInTheDocument();
-    await expect(canvas.getByText('Ready')).toBeInTheDocument();
   },
 };
 

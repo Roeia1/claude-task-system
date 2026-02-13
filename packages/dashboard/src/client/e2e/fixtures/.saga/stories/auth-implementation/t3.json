@@ -1,0 +1,9 @@
+{
+  "id": "t3",
+  "subject": "Add password hashing",
+  "description": "Use bcrypt with salt rounds >= 10",
+  "status": "pending",
+  "blockedBy": [],
+  "guidance": "Use bcrypt with salt rounds >= 10",
+  "doneWhen": "Passwords are never stored in plain text"
+}

@@ -64,12 +64,12 @@ function PageWrapper({ children, route = '/' }: PageWrapperProps) {
           </Route>
 
           {/* Epic detail route */}
-          <Route path="/epic/:slug" element={<Layout />}>
+          <Route path="/epic/:epicId" element={<Layout />}>
             <Route index={true} element={content} />
           </Route>
 
           {/* Story detail route */}
-          <Route path="/epic/:epicSlug/story/:storySlug" element={<Layout />}>
+          <Route path="/story/:storyId" element={<Layout />}>
             <Route index={true} element={content} />
           </Route>
         </Routes>

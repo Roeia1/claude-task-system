@@ -26,18 +26,15 @@ const SHOWCASE_MIN_STATES = 4;
  */
 function SessionCardWithRouter({
   preset,
-  epicSlug,
-  storySlug,
+  storyId,
   outputPreview,
 }: {
   preset: SessionPreset;
-  epicSlug?: string;
-  storySlug?: string;
+  storyId?: string;
   outputPreview?: string;
 }) {
   const session = createMockSession(preset, {
-    epicSlug,
-    storySlug,
+    storyId,
     outputPreview,
   });
 
@@ -154,8 +151,7 @@ function MultipleSessionsSection() {
           <div className="min-w-[300px] flex-shrink-0">
             <SessionCard
               session={createMockSession('running', {
-                epicSlug: 'websocket-infra',
-                storySlug: 'ws-server',
+                storyId: 'ws-server',
                 outputPreview: '> WebSocket server starting...\n> Listening on port 3847',
               })}
             />
@@ -163,8 +159,7 @@ function MultipleSessionsSection() {
           <div className="min-w-[300px] flex-shrink-0">
             <SessionCard
               session={createMockSession('running', {
-                epicSlug: 'auth-system',
-                storySlug: 'oauth-integration',
+                storyId: 'oauth-integration',
                 outputPreview: '> Configuring OAuth...\n> Validating tokens...',
               })}
             />
@@ -172,8 +167,7 @@ function MultipleSessionsSection() {
           <div className="min-w-[300px] flex-shrink-0">
             <SessionCard
               session={createMockSession('long-running', {
-                epicSlug: 'performance',
-                storySlug: 'query-caching',
+                storyId: 'query-caching',
                 outputPreview: '> Cache warming...\n> Running benchmarks...',
               })}
             />
@@ -181,8 +175,7 @@ function MultipleSessionsSection() {
           <div className="min-w-[300px] flex-shrink-0">
             <SessionCard
               session={createMockSession('just-started', {
-                epicSlug: 'testing',
-                storySlug: 'integration-tests',
+                storyId: 'integration-tests',
                 outputPreview: '> Starting test suite...',
               })}
             />
@@ -205,8 +198,7 @@ function MixedStatesSection() {
           <div className="min-w-[300px] flex-shrink-0">
             <SessionCard
               session={createMockSession('running', {
-                epicSlug: 'epic-one',
-                storySlug: 'story-with-output',
+                storyId: 'story-with-output',
                 outputPreview: '> Tests running...\n> 15/20 tests passed',
               })}
             />
@@ -214,16 +206,14 @@ function MixedStatesSection() {
           <div className="min-w-[300px] flex-shrink-0">
             <SessionCard
               session={createMockSession('no-output', {
-                epicSlug: 'epic-two',
-                storySlug: 'story-no-output',
+                storyId: 'story-no-output',
               })}
             />
           </div>
           <div className="min-w-[300px] flex-shrink-0">
             <SessionCard
               session={createMockSession('output-unavailable', {
-                epicSlug: 'epic-three',
-                storySlug: 'story-unavailable',
+                storyId: 'story-unavailable',
               })}
             />
           </div>
@@ -239,8 +229,7 @@ function MixedStatesSection() {
 
 const meta: Meta<{
   preset: SessionPreset;
-  epicSlug: string;
-  storySlug: string;
+  storyId: string;
 }> = {
   title: 'Components/ActiveSessions',
   parameters: {
@@ -257,19 +246,14 @@ const meta: Meta<{
       options: ['just-started', 'running', 'long-running', 'no-output', 'output-unavailable'],
       description: 'Session preset determining duration and output state',
     },
-    epicSlug: {
+    storyId: {
       control: 'text',
-      description: 'Epic slug override',
-    },
-    storySlug: {
-      control: 'text',
-      description: 'Story slug override',
+      description: 'Story ID override',
     },
   },
   args: {
     preset: 'running',
-    epicSlug: 'my-epic',
-    storySlug: 'my-story',
+    storyId: 'my-story',
   },
 };
 
@@ -331,13 +315,12 @@ const Showcase: Story = {
 
 /**
  * Interactive playground for exploring ActiveSessions states.
- * Use controls to switch between session presets and customize slugs.
+ * Use controls to switch between session presets and customize story ID.
  */
 const Playground: Story = {
   render: (args) => {
     const session = createMockSession(args.preset, {
-      epicSlug: args.epicSlug,
-      storySlug: args.storySlug,
+      storyId: args.storyId,
     });
 
     return (
@@ -364,15 +347,11 @@ const Playground: Story = {
     await expect(canvas.getByText(presetToLabel(args.preset))).toBeInTheDocument();
 
     // Verify session card rendered
-    await expect(canvas.getByText(args.storySlug)).toBeInTheDocument();
-    await expect(canvas.getByText(args.epicSlug)).toBeInTheDocument();
+    await expect(canvas.getByText(args.storyId)).toBeInTheDocument();
 
     // Verify link is present
     const link = canvas.getByRole('link');
-    await expect(link).toHaveAttribute(
-      'href',
-      `/epic/${args.epicSlug}/story/${args.storySlug}?tab=sessions`,
-    );
+    await expect(link).toHaveAttribute('href', `/story/${args.storyId}?tab=sessions`);
 
     // Check for output unavailable message when applicable
     if (args.preset === 'output-unavailable') {
@@ -409,8 +388,7 @@ const SingleSession: Story = {
         <div className="min-w-[300px] flex-shrink-0">
           <SessionCard
             session={createMockSession('running', {
-              epicSlug: 'my-epic',
-              storySlug: 'my-story',
+              storyId: 'my-story',
               outputPreview: '> Starting session...\n> Running tests...\n> All tests passed',
             })}
           />
@@ -423,7 +401,7 @@ const SingleSession: Story = {
     await expect(canvas.getByText('Active Sessions')).toBeInTheDocument();
     await expect(canvas.getByText('my-story')).toBeInTheDocument();
     const link = canvas.getByRole('link');
-    await expect(link).toHaveAttribute('href', '/epic/my-epic/story/my-story?tab=sessions');
+    await expect(link).toHaveAttribute('href', '/story/my-story?tab=sessions');
   },
 };
 
@@ -437,8 +415,7 @@ const MultipleSessions: Story = {
         <div className="min-w-[300px] flex-shrink-0">
           <SessionCard
             session={createMockSession('running', {
-              epicSlug: 'epic-1',
-              storySlug: 'story-1',
+              storyId: 'story-1',
               outputPreview: '> WebSocket server starting...',
             })}
           />
@@ -446,8 +423,7 @@ const MultipleSessions: Story = {
         <div className="min-w-[300px] flex-shrink-0">
           <SessionCard
             session={createMockSession('running', {
-              epicSlug: 'epic-2',
-              storySlug: 'story-2',
+              storyId: 'story-2',
               outputPreview: '> Discovering sessions...',
             })}
           />
@@ -455,8 +431,7 @@ const MultipleSessions: Story = {
         <div className="min-w-[300px] flex-shrink-0">
           <SessionCard
             session={createMockSession('long-running', {
-              epicSlug: 'epic-3',
-              storySlug: 'story-3',
+              storyId: 'story-3',
               outputPreview: '> Configuring OAuth...',
             })}
           />
@@ -464,8 +439,7 @@ const MultipleSessions: Story = {
         <div className="min-w-[300px] flex-shrink-0">
           <SessionCard
             session={createMockSession('just-started', {
-              epicSlug: 'epic-4',
-              storySlug: 'story-4',
+              storyId: 'story-4',
               outputPreview: '> Cache warming...',
             })}
           />
@@ -495,8 +469,7 @@ const MixedSessionStates: Story = {
         <div className="min-w-[300px] flex-shrink-0">
           <SessionCard
             session={createMockSession('running', {
-              epicSlug: 'epic-one',
-              storySlug: 'with-output',
+              storyId: 'with-output',
               outputPreview: '> Tests running...\n> 15/20 tests passed',
             })}
           />
@@ -504,16 +477,14 @@ const MixedSessionStates: Story = {
         <div className="min-w-[300px] flex-shrink-0">
           <SessionCard
             session={createMockSession('no-output', {
-              epicSlug: 'epic-two',
-              storySlug: 'no-output',
+              storyId: 'no-output',
             })}
           />
         </div>
         <div className="min-w-[300px] flex-shrink-0">
           <SessionCard
             session={createMockSession('output-unavailable', {
-              epicSlug: 'epic-three',
-              storySlug: 'unavailable',
+              storyId: 'unavailable',
             })}
           />
         </div>

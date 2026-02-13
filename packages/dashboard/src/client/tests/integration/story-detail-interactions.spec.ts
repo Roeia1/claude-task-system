@@ -17,9 +17,8 @@ const REGEX_SESSIONS = /Sessions/;
 
 // Session test data constants
 const RUNNING_SESSION: MockSession = {
-  name: 'saga__session-epic__session-story__12345',
-  epicSlug: 'session-epic',
-  storySlug: 'session-story',
+  name: 'saga-story-session-story-12345',
+  storyId: 'session-story',
   status: 'running',
   startTime: '2026-01-30T10:00:00Z',
   outputAvailable: true,
@@ -27,9 +26,8 @@ const RUNNING_SESSION: MockSession = {
 };
 
 const COMPLETED_SESSION: MockSession = {
-  name: 'saga__session-epic__session-story__67890',
-  epicSlug: 'session-epic',
-  storySlug: 'session-story',
+  name: 'saga-story-session-story-67890',
+  storyId: 'session-story',
   status: 'completed',
   startTime: '2026-01-30T08:00:00Z',
   outputAvailable: true,
@@ -37,9 +35,8 @@ const COMPLETED_SESSION: MockSession = {
 };
 
 const OUTPUT_UNAVAILABLE_SESSION: MockSession = {
-  name: 'saga__session-epic__session-story__11111',
-  epicSlug: 'session-epic',
-  storySlug: 'session-story',
+  name: 'saga-story-session-story-11111',
+  storyId: 'session-story',
   status: 'completed',
   startTime: '2026-01-30T06:00:00Z',
   outputAvailable: false,
@@ -53,17 +50,17 @@ test.describe('Story Detail Interactions', () => {
   test.describe('Tab Switching', () => {
     test('should show Tasks tab by default on story detail', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'tab-epic',
+        id: 'tab-epic',
         title: 'Tab Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'tab-story',
+        id: 'tab-story',
         title: 'Tab Story',
         status: 'in_progress',
-        epicSlug: 'tab-epic',
-        tasks: [createMockTask({ id: 't1', title: 'Sample Task', status: 'pending' })],
-        content: 'Story content here',
+        epic: 'tab-epic',
+        tasks: [createMockTask({ id: 't1', subject: 'Sample Task', status: 'pending' })],
+        description: 'Story content here',
         journal: [
           createMockJournalEntry({
             type: 'session',
@@ -76,7 +73,7 @@ test.describe('Story Detail Interactions', () => {
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/tab-epic/story/tab-story');
+      await page.goto('/story/tab-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -91,24 +88,24 @@ test.describe('Story Detail Interactions', () => {
 
     test('should switch to Story Content tab and display content', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'content-epic',
+        id: 'content-epic',
         title: 'Content Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'content-story',
+        id: 'content-story',
         title: 'Content Story',
-        status: 'ready',
-        epicSlug: 'content-epic',
+        status: 'pending',
+        epic: 'content-epic',
         tasks: [],
-        content: 'This is the full story content.',
+        description: 'This is the full story content.',
         journal: [],
       });
 
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/content-epic/story/content-story');
+      await page.goto('/story/content-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -126,15 +123,15 @@ test.describe('Story Detail Interactions', () => {
 
     test('should switch to Journal tab and display entries', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'journal-epic',
+        id: 'journal-epic',
         title: 'Journal Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'journal-story',
+        id: 'journal-story',
         title: 'Journal Story',
         status: 'in_progress',
-        epicSlug: 'journal-epic',
+        epic: 'journal-epic',
         tasks: [],
         journal: [
           createMockJournalEntry({
@@ -153,7 +150,7 @@ test.describe('Story Detail Interactions', () => {
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/journal-epic/story/journal-story');
+      await page.goto('/story/journal-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -172,15 +169,15 @@ test.describe('Story Detail Interactions', () => {
 
     test('should show blocker count badge on Journal tab when blockers exist', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'blocker-epic',
+        id: 'blocker-epic',
         title: 'Blocker Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'blocker-story',
+        id: 'blocker-story',
         title: 'Blocker Story',
-        status: 'blocked',
-        epicSlug: 'blocker-epic',
+        status: 'pending',
+        epic: 'blocker-epic',
         tasks: [],
         journal: [
           createMockJournalEntry({
@@ -199,7 +196,7 @@ test.describe('Story Detail Interactions', () => {
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/blocker-epic/story/blocker-story');
+      await page.goto('/story/blocker-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -211,17 +208,17 @@ test.describe('Story Detail Interactions', () => {
 
     test('should persist tab selection when switching between tabs', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'persist-epic',
+        id: 'persist-epic',
         title: 'Persist Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'persist-story',
+        id: 'persist-story',
         title: 'Persist Story',
-        status: 'ready',
-        epicSlug: 'persist-epic',
-        tasks: [createMockTask({ id: 't1', title: 'Task A', status: 'pending' })],
-        content: 'Content text',
+        status: 'pending',
+        epic: 'persist-epic',
+        tasks: [createMockTask({ id: 't1', subject: 'Task A', status: 'pending' })],
+        description: 'Content text',
         journal: [
           createMockJournalEntry({
             type: 'session',
@@ -234,7 +231,7 @@ test.describe('Story Detail Interactions', () => {
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/persist-epic/story/persist-story');
+      await page.goto('/story/persist-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -257,15 +254,15 @@ test.describe('Story Detail Interactions', () => {
   test.describe('Collapsible Journal Entries', () => {
     test('should expand journal entry when clicked', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'collapsible-epic',
+        id: 'collapsible-epic',
         title: 'Collapsible Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'collapsible-story',
+        id: 'collapsible-story',
         title: 'Collapsible Story',
         status: 'in_progress',
-        epicSlug: 'collapsible-epic',
+        epic: 'collapsible-epic',
         tasks: [],
         journal: [
           createMockJournalEntry({
@@ -279,7 +276,7 @@ test.describe('Story Detail Interactions', () => {
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/collapsible-epic/story/collapsible-story');
+      await page.goto('/story/collapsible-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -303,15 +300,15 @@ test.describe('Story Detail Interactions', () => {
 
     test('should collapse journal entry when clicked again', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'toggle-epic',
+        id: 'toggle-epic',
         title: 'Toggle Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'toggle-story',
+        id: 'toggle-story',
         title: 'Toggle Story',
         status: 'in_progress',
-        epicSlug: 'toggle-epic',
+        epic: 'toggle-epic',
         tasks: [],
         journal: [
           createMockJournalEntry({
@@ -325,7 +322,7 @@ test.describe('Story Detail Interactions', () => {
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/toggle-epic/story/toggle-story');
+      await page.goto('/story/toggle-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -342,15 +339,15 @@ test.describe('Story Detail Interactions', () => {
 
     test('should show blocker entries expanded by default', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'blocker-expand-epic',
+        id: 'blocker-expand-epic',
         title: 'Blocker Expand Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'blocker-expand-story',
+        id: 'blocker-expand-story',
         title: 'Blocker Expand Story',
-        status: 'blocked',
-        epicSlug: 'blocker-expand-epic',
+        status: 'pending',
+        epic: 'blocker-expand-epic',
         tasks: [],
         journal: [
           createMockJournalEntry({
@@ -364,7 +361,7 @@ test.describe('Story Detail Interactions', () => {
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/blocker-expand-epic/story/blocker-expand-story');
+      await page.goto('/story/blocker-expand-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -379,15 +376,15 @@ test.describe('Story Detail Interactions', () => {
 
     test('should allow multiple entries to be expanded independently', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'multi-epic',
+        id: 'multi-epic',
         title: 'Multi Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'multi-story',
+        id: 'multi-story',
         title: 'Multi Story',
         status: 'in_progress',
-        epicSlug: 'multi-epic',
+        epic: 'multi-epic',
         tasks: [],
         journal: [
           createMockJournalEntry({
@@ -406,7 +403,7 @@ test.describe('Story Detail Interactions', () => {
       await mockEpicDetail(page, epicDetail);
       await mockStoryDetail(page, storyDetail);
 
-      await page.goto('/epic/multi-epic/story/multi-story');
+      await page.goto('/story/multi-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -433,15 +430,15 @@ test.describe('Story Detail Interactions', () => {
       page,
     }) => {
       const epicDetail = createMockEpic({
-        slug: 'session-epic',
+        id: 'session-epic',
         title: 'Session Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'session-story',
+        id: 'session-story',
         title: 'Session Story',
         status: 'in_progress',
-        epicSlug: 'session-epic',
+        epic: 'session-epic',
         tasks: [],
         journal: [],
       });
@@ -450,7 +447,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
       await mockSessions(page, []);
 
-      await page.goto('/epic/session-epic/story/session-story');
+      await page.goto('/story/session-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -469,15 +466,15 @@ test.describe('Story Detail Interactions', () => {
 
     test('should display session cards when sessions exist', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'session-epic',
+        id: 'session-epic',
         title: 'Session Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'session-story',
+        id: 'session-story',
         title: 'Session Story',
         status: 'in_progress',
-        epicSlug: 'session-epic',
+        epic: 'session-epic',
         tasks: [],
         journal: [],
       });
@@ -486,7 +483,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
       await mockSessions(page, [RUNNING_SESSION, COMPLETED_SESSION]);
 
-      await page.goto('/epic/session-epic/story/session-story');
+      await page.goto('/story/session-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -506,15 +503,15 @@ test.describe('Story Detail Interactions', () => {
       page,
     }) => {
       const epicDetail = createMockEpic({
-        slug: 'session-epic',
+        id: 'session-epic',
         title: 'Session Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'session-story',
+        id: 'session-story',
         title: 'Session Story',
         status: 'in_progress',
-        epicSlug: 'session-epic',
+        epic: 'session-epic',
         tasks: [],
         journal: [],
       });
@@ -524,7 +521,7 @@ test.describe('Story Detail Interactions', () => {
       await mockSessions(page, [RUNNING_SESSION]);
 
       // Navigate directly with query parameter
-      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await page.goto('/story/session-story?tab=sessions');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -539,15 +536,15 @@ test.describe('Story Detail Interactions', () => {
 
     test('should show running session with Running status badge', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'session-epic',
+        id: 'session-epic',
         title: 'Session Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'session-story',
+        id: 'session-story',
         title: 'Session Story',
         status: 'in_progress',
-        epicSlug: 'session-epic',
+        epic: 'session-epic',
         tasks: [],
         journal: [],
       });
@@ -556,7 +553,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
       await mockSessions(page, [RUNNING_SESSION]);
 
-      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await page.goto('/story/session-story?tab=sessions');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -568,15 +565,15 @@ test.describe('Story Detail Interactions', () => {
 
     test('should show completed session with Completed status badge', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'session-epic',
+        id: 'session-epic',
         title: 'Session Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'session-story',
+        id: 'session-story',
         title: 'Session Story',
         status: 'in_progress',
-        epicSlug: 'session-epic',
+        epic: 'session-epic',
         tasks: [],
         journal: [],
       });
@@ -585,7 +582,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
       await mockSessions(page, [COMPLETED_SESSION]);
 
-      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await page.goto('/story/session-story?tab=sessions');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -597,15 +594,15 @@ test.describe('Story Detail Interactions', () => {
 
     test('should expand session card to show log viewer on click', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'session-epic',
+        id: 'session-epic',
         title: 'Session Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'session-story',
+        id: 'session-story',
         title: 'Session Story',
         status: 'in_progress',
-        epicSlug: 'session-epic',
+        epic: 'session-epic',
         tasks: [],
         journal: [],
       });
@@ -614,12 +611,12 @@ test.describe('Story Detail Interactions', () => {
       // Only the most recent one (by startTime) is auto-expanded
       const olderSession: MockSession = {
         ...COMPLETED_SESSION,
-        name: 'saga__session-epic__session-story__older',
+        name: 'saga-story-session-story-older',
         startTime: '2026-01-30T06:00:00Z', // Older
       };
       const newerSession: MockSession = {
         ...COMPLETED_SESSION,
-        name: 'saga__session-epic__session-story__newer',
+        name: 'saga-story-session-story-newer',
         startTime: '2026-01-30T10:00:00Z', // Newer (will be auto-expanded)
       };
 
@@ -627,7 +624,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
       await mockSessions(page, [olderSession, newerSession]);
 
-      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await page.goto('/story/session-story?tab=sessions');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -649,15 +646,15 @@ test.describe('Story Detail Interactions', () => {
 
     test('should collapse session card when clicked again', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'session-epic',
+        id: 'session-epic',
         title: 'Session Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'session-story',
+        id: 'session-story',
         title: 'Session Story',
         status: 'in_progress',
-        epicSlug: 'session-epic',
+        epic: 'session-epic',
         tasks: [],
         journal: [],
       });
@@ -666,7 +663,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
       await mockSessions(page, [RUNNING_SESSION]);
 
-      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await page.goto('/story/session-story?tab=sessions');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -683,15 +680,15 @@ test.describe('Story Detail Interactions', () => {
 
     test('should show "Output unavailable" for sessions without output', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'session-epic',
+        id: 'session-epic',
         title: 'Session Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'session-story',
+        id: 'session-story',
         title: 'Session Story',
         status: 'in_progress',
-        epicSlug: 'session-epic',
+        epic: 'session-epic',
         tasks: [],
         journal: [],
       });
@@ -700,7 +697,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
       await mockSessions(page, [OUTPUT_UNAVAILABLE_SESSION]);
 
-      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await page.goto('/story/session-story?tab=sessions');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });
@@ -711,33 +708,31 @@ test.describe('Story Detail Interactions', () => {
 
     test('should auto-expand most recent running session', async ({ page }) => {
       const epicDetail = createMockEpic({
-        slug: 'session-epic',
+        id: 'session-epic',
         title: 'Session Epic',
         stories: [],
       });
       const storyDetail = createMockStoryDetail({
-        slug: 'session-story',
+        id: 'session-story',
         title: 'Session Story',
         status: 'in_progress',
-        epicSlug: 'session-epic',
+        epic: 'session-epic',
         tasks: [],
         journal: [],
       });
 
       // Create sessions with different timestamps
       const olderRunningSession: MockSession = {
-        name: 'saga__session-epic__session-story__11111',
-        epicSlug: 'session-epic',
-        storySlug: 'session-story',
+        name: 'saga-story-session-story-11111',
+        storyId: 'session-story',
         status: 'running',
         startTime: '2026-01-30T08:00:00Z',
         outputAvailable: true,
         outputPreview: 'Older session...',
       };
       const newerRunningSession: MockSession = {
-        name: 'saga__session-epic__session-story__22222',
-        epicSlug: 'session-epic',
-        storySlug: 'session-story',
+        name: 'saga-story-session-story-22222',
+        storyId: 'session-story',
         status: 'running',
         startTime: '2026-01-30T12:00:00Z',
         outputAvailable: true,
@@ -748,7 +743,7 @@ test.describe('Story Detail Interactions', () => {
       await mockStoryDetail(page, storyDetail);
       await mockSessions(page, [olderRunningSession, newerRunningSession, COMPLETED_SESSION]);
 
-      await page.goto('/epic/session-epic/story/session-story?tab=sessions');
+      await page.goto('/story/session-story?tab=sessions');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: 10_000,
       });

@@ -1,15 +1,18 @@
 /**
  * Tests for the file system parsing module
+ *
+ * Tests use JSON-based .saga/stories/ and .saga/epics/ structure
+ * with derived statuses from @saga-ai/types.
  */
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { parseEpic, parseJournal, parseStory, scanSagaDirectory } from '../parser.ts';
+import { parseJournal, parseStory, scanSagaDirectory } from '../parser.ts';
 
 // ============================================================================
-// Test Constants
+// Test Helpers
 // ============================================================================
 
 /** Expected number of journal entries in mixed entry types test */
@@ -26,6 +29,31 @@ function assertDefined<T>(
   return value;
 }
 
+/** Write a story.json file */
+function writeStoryJson(sagaDir: string, storyId: string, data: Record<string, unknown>): void {
+  const storyDir = join(sagaDir, 'stories', storyId);
+  mkdirSync(storyDir, { recursive: true });
+  writeFileSync(join(storyDir, 'story.json'), JSON.stringify(data, null, 2));
+}
+
+/** Write a task JSON file */
+function writeTaskJson(
+  sagaDir: string,
+  storyId: string,
+  taskId: string,
+  data: Record<string, unknown>,
+): void {
+  const storyDir = join(sagaDir, 'stories', storyId);
+  mkdirSync(storyDir, { recursive: true });
+  writeFileSync(join(storyDir, `${taskId}.json`), JSON.stringify(data, null, 2));
+}
+
+/** Write an epic.json file */
+function writeEpicJson(sagaDir: string, epicId: string, data: Record<string, unknown>): void {
+  mkdirSync(join(sagaDir, 'epics'), { recursive: true });
+  writeFileSync(join(sagaDir, 'epics', `${epicId}.json`), JSON.stringify(data, null, 2));
+}
+
 describe('parser', () => {
   let testDir: string;
   let sagaDir: string;
@@ -33,8 +61,8 @@ describe('parser', () => {
   beforeEach(() => {
     testDir = mkdtempSync(join(tmpdir(), 'saga-parser-test-'));
     sagaDir = join(testDir, '.saga');
+    mkdirSync(join(sagaDir, 'stories'), { recursive: true });
     mkdirSync(join(sagaDir, 'epics'), { recursive: true });
-    mkdirSync(join(sagaDir, 'archive'), { recursive: true });
   });
 
   afterEach(() => {
@@ -42,221 +70,188 @@ describe('parser', () => {
   });
 
   describe('parseStory', () => {
-    it('should parse story with valid YAML frontmatter', async () => {
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'test-story');
-      mkdirSync(storyPath, { recursive: true });
-
-      const storyContent = `---
-id: test-story
-title: Test Story Title
-status: in_progress
-epic: test-epic
-tasks:
-  - id: t1
-    title: First Task
-    status: completed
-  - id: t2
-    title: Second Task
-    status: pending
----
-
-## Context
-
-This is the story context.
-`;
-      writeFileSync(join(storyPath, 'story.md'), storyContent);
-
-      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
-
-      expect(result.slug).toBe('test-story');
-      expect(result.title).toBe('Test Story Title');
-      expect(result.status).toBe('inProgress'); // API returns camelCase
-      expect(result.epicSlug).toBe('test-epic');
-      expect(result.tasks).toHaveLength(2);
-      expect(result.tasks[0]).toEqual({
+    it('should parse a story with tasks and derive status', async () => {
+      writeStoryJson(sagaDir, 'test-story', {
+        id: 'test-story',
+        title: 'Test Story Title',
+        description: 'A test story description',
+        epic: 'test-epic',
+      });
+      writeTaskJson(sagaDir, 'test-story', 't1', {
         id: 't1',
-        title: 'First Task',
+        subject: 'First Task',
+        description: 'Do the first thing',
         status: 'completed',
+        blockedBy: [],
       });
-      expect(result.tasks[1]).toEqual({
+      writeTaskJson(sagaDir, 'test-story', 't2', {
         id: 't2',
-        title: 'Second Task',
+        subject: 'Second Task',
+        description: 'Do the second thing',
         status: 'pending',
+        blockedBy: ['t1'],
       });
-      expect(result.content).toContain('## Context');
-      expect(result.content).toContain('This is the story context.');
+
+      const result = assertDefined(await parseStory(testDir, 'test-story'));
+
+      expect(result.id).toBe('test-story');
+      expect(result.title).toBe('Test Story Title');
+      expect(result.description).toBe('A test story description');
+      expect(result.epic).toBe('test-epic');
+      expect(result.status).toBe('pending'); // derived: not all completed, none in_progress
+      expect(result.tasks).toHaveLength(2);
+      expect(result.tasks.find((t) => t.id === 't1')).toMatchObject({
+        id: 't1',
+        subject: 'First Task',
+        description: 'Do the first thing',
+        status: 'completed',
+        blockedBy: [],
+      });
+      expect(result.tasks.find((t) => t.id === 't2')).toMatchObject({
+        id: 't2',
+        subject: 'Second Task',
+        description: 'Do the second thing',
+        status: 'pending',
+        blockedBy: ['t1'],
+      });
     });
 
-    it('should include body content in parsed story', async () => {
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'content-story');
-      mkdirSync(storyPath, { recursive: true });
+    it('should derive inProgress status when a task is in_progress', async () => {
+      writeStoryJson(sagaDir, 'ip-story', {
+        id: 'ip-story',
+        title: 'In Progress Story',
+        description: 'desc',
+      });
+      writeTaskJson(sagaDir, 'ip-story', 't1', {
+        id: 't1',
+        subject: 'Done Task',
+        description: 'done',
+        status: 'completed',
+        blockedBy: [],
+      });
+      writeTaskJson(sagaDir, 'ip-story', 't2', {
+        id: 't2',
+        subject: 'Active Task',
+        description: 'active',
+        status: 'in_progress',
+        blockedBy: [],
+      });
 
-      const storyContent = `---
-id: content-story
-title: Content Story
-status: ready
-tasks: []
----
-
-## Description
-
-This is the main description.
-
-## Acceptance Criteria
-
-- Criterion 1
-- Criterion 2
-`;
-      writeFileSync(join(storyPath, 'story.md'), storyContent);
-
-      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
-
-      expect(result.content).toBeDefined();
-      expect(result.content).toContain('## Description');
-      expect(result.content).toContain('This is the main description.');
-      expect(result.content).toContain('## Acceptance Criteria');
-      expect(result.content).toContain('- Criterion 1');
+      const result = assertDefined(await parseStory(testDir, 'ip-story'));
+      expect(result.status).toBe('inProgress');
     });
 
-    it('should return undefined content when story has no body', async () => {
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'empty-body-story');
-      mkdirSync(storyPath, { recursive: true });
+    it('should derive completed status when all tasks are completed', async () => {
+      writeStoryJson(sagaDir, 'done-story', {
+        id: 'done-story',
+        title: 'Done Story',
+        description: 'desc',
+      });
+      writeTaskJson(sagaDir, 'done-story', 't1', {
+        id: 't1',
+        subject: 'Done 1',
+        description: 'done',
+        status: 'completed',
+        blockedBy: [],
+      });
+      writeTaskJson(sagaDir, 'done-story', 't2', {
+        id: 't2',
+        subject: 'Done 2',
+        description: 'done',
+        status: 'completed',
+        blockedBy: [],
+      });
 
-      const storyContent = `---
-id: empty-body-story
-title: Empty Body Story
-status: ready
-tasks: []
----
-`;
-      writeFileSync(join(storyPath, 'story.md'), storyContent);
-
-      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
-
-      expect(result.content).toBeUndefined();
+      const result = assertDefined(await parseStory(testDir, 'done-story'));
+      expect(result.status).toBe('completed');
     });
 
-    it('should return null for non-existent file', async () => {
-      const result = await parseStory('/nonexistent/path/story.md', 'test-epic');
-      expect(result).toBeNull();
-    });
+    it('should derive pending status for story with no tasks', async () => {
+      writeStoryJson(sagaDir, 'empty-story', {
+        id: 'empty-story',
+        title: 'Empty Story',
+        description: 'desc',
+      });
 
-    it('should handle malformed YAML with sensible defaults', async () => {
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'bad-story');
-      mkdirSync(storyPath, { recursive: true });
-
-      // Malformed YAML - missing required fields
-      const storyContent = `---
-title: Just a Title
----
-
-Some content.
-`;
-      writeFileSync(join(storyPath, 'story.md'), storyContent);
-
-      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
-
-      expect(result.title).toBe('Just a Title');
-      expect(result.status).toBe('ready'); // default
-      expect(result.tasks).toEqual([]); // default empty array
-    });
-
-    it('should handle completely invalid YAML gracefully', async () => {
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'invalid-story');
-      mkdirSync(storyPath, { recursive: true });
-
-      // Completely invalid YAML
-      const storyContent = `---
-: : : invalid yaml
-  bad: indentation
-    worse: [unclosed
----
-
-Content here.
-`;
-      writeFileSync(join(storyPath, 'story.md'), storyContent);
-
-      // Should return with defaults rather than throwing
-      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
-
-      expect(result.status).toBe('ready');
+      const result = assertDefined(await parseStory(testDir, 'empty-story'));
+      expect(result.status).toBe('pending');
       expect(result.tasks).toEqual([]);
     });
 
-    it('should include paths in the result', async () => {
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'test-story');
-      mkdirSync(storyPath, { recursive: true });
+    it('should return null for non-existent story', async () => {
+      const result = await parseStory(testDir, 'nonexistent');
+      expect(result).toBeNull();
+    });
 
-      const storyContent = `---
-id: test-story
-title: Test Story
-status: ready
-epic: test-epic
-tasks: []
----
-`;
-      writeFileSync(join(storyPath, 'story.md'), storyContent);
+    it('should include optional story fields', async () => {
+      writeStoryJson(sagaDir, 'full-story', {
+        id: 'full-story',
+        title: 'Full Story',
+        description: 'Full description',
+        epic: 'my-epic',
+        guidance: 'Do it this way',
+        doneWhen: 'Tests pass',
+        avoid: 'Do not do this',
+        branch: 'feature/full-story',
+        pr: 'https://github.com/org/repo/pull/42',
+        worktree: '/path/to/worktree',
+      });
 
-      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
+      const result = assertDefined(await parseStory(testDir, 'full-story'));
 
-      expect(result.paths.storyMd).toContain('story.md');
+      expect(result.guidance).toBe('Do it this way');
+      expect(result.doneWhen).toBe('Tests pass');
+      expect(result.avoid).toBe('Do not do this');
+      expect(result.branch).toBe('feature/full-story');
+      expect(result.pr).toBe('https://github.com/org/repo/pull/42');
+      expect(result.worktree).toBe('/path/to/worktree');
+    });
+
+    it('should include task guidance, doneWhen, and activeForm', async () => {
+      writeStoryJson(sagaDir, 'task-fields-story', {
+        id: 'task-fields-story',
+        title: 'Task Fields',
+        description: 'desc',
+      });
+      writeTaskJson(sagaDir, 'task-fields-story', 't1', {
+        id: 't1',
+        subject: 'Detailed Task',
+        description: 'A detailed task',
+        status: 'in_progress',
+        blockedBy: [],
+        guidance: 'Follow TDD',
+        doneWhen: 'All tests green',
+        activeForm: 'Implementing the detailed task',
+      });
+
+      const result = assertDefined(await parseStory(testDir, 'task-fields-story'));
+
+      expect(result.tasks[0].guidance).toBe('Follow TDD');
+      expect(result.tasks[0].doneWhen).toBe('All tests green');
+      expect(result.tasks[0].activeForm).toBe('Implementing the detailed task');
     });
 
     it('should detect journal.md if present', async () => {
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'test-story');
-      mkdirSync(storyPath, { recursive: true });
+      writeStoryJson(sagaDir, 'journal-story', {
+        id: 'journal-story',
+        title: 'Story with Journal',
+        description: 'desc',
+      });
+      writeFileSync(join(sagaDir, 'stories', 'journal-story', 'journal.md'), '# Journal');
 
-      const storyContent = `---
-id: test-story
-title: Test Story
-status: ready
-epic: test-epic
-tasks: []
----
-`;
-      writeFileSync(join(storyPath, 'story.md'), storyContent);
-      writeFileSync(join(storyPath, 'journal.md'), '# Journal');
-
-      const result = assertDefined(await parseStory(join(storyPath, 'story.md'), 'test-epic'));
-
-      expect(result.paths.journalMd).toContain('journal.md');
-    });
-  });
-
-  describe('parseEpic', () => {
-    it('should extract title from first heading in epic.md', async () => {
-      const epicPath = join(sagaDir, 'epics', 'test-epic');
-      mkdirSync(epicPath, { recursive: true });
-
-      const epicContent = `# My Amazing Epic
-
-## Overview
-
-This is the epic overview.
-`;
-      writeFileSync(join(epicPath, 'epic.md'), epicContent);
-
-      const title = await parseEpic(join(epicPath, 'epic.md'));
-
-      expect(title).toBe('My Amazing Epic');
+      const result = assertDefined(await parseStory(testDir, 'journal-story'));
+      expect(result.journalPath).toContain('journal.md');
     });
 
-    it('should return null for non-existent file', async () => {
-      const result = await parseEpic('/nonexistent/epic.md');
-      expect(result).toBeNull();
-    });
+    it('should handle standalone story (no epic)', async () => {
+      writeStoryJson(sagaDir, 'standalone', {
+        id: 'standalone',
+        title: 'Standalone Story',
+        description: 'No epic here',
+      });
 
-    it('should return slug-based title if no heading found', async () => {
-      const epicPath = join(sagaDir, 'epics', 'test-epic');
-      mkdirSync(epicPath, { recursive: true });
-
-      const epicContent = 'No heading here, just text.';
-      writeFileSync(join(epicPath, 'epic.md'), epicContent);
-
-      const result = await parseEpic(join(epicPath, 'epic.md'));
-
-      // Should return null or undefined when no heading
-      expect(result).toBeNull();
+      const result = assertDefined(await parseStory(testDir, 'standalone'));
+      expect(result.epic).toBeUndefined();
     });
   });
 
@@ -278,11 +273,11 @@ This is the epic overview.
 - Continue with task t2
 `;
 
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'test-story');
-      mkdirSync(storyPath, { recursive: true });
-      writeFileSync(join(storyPath, 'journal.md'), journalContent);
+      const storyDir = join(sagaDir, 'stories', 'test-story');
+      mkdirSync(storyDir, { recursive: true });
+      writeFileSync(join(storyDir, 'journal.md'), journalContent);
 
-      const entries = await parseJournal(join(storyPath, 'journal.md'));
+      const entries = await parseJournal(join(storyDir, 'journal.md'));
 
       expect(entries).toHaveLength(1);
       expect(entries[0].type).toBe('session');
@@ -304,11 +299,11 @@ This is the epic overview.
 - Option B: GitHub OAuth
 `;
 
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'test-story');
-      mkdirSync(storyPath, { recursive: true });
-      writeFileSync(join(storyPath, 'journal.md'), journalContent);
+      const storyDir = join(sagaDir, 'stories', 'test-story');
+      mkdirSync(storyDir, { recursive: true });
+      writeFileSync(join(storyDir, 'journal.md'), journalContent);
 
-      const entries = await parseJournal(join(storyPath, 'journal.md'));
+      const entries = await parseJournal(join(storyDir, 'journal.md'));
 
       expect(entries).toHaveLength(1);
       expect(entries[0].type).toBe('blocker');
@@ -326,11 +321,11 @@ After team discussion, we decided to use Google OAuth because:
 - Simpler integration
 `;
 
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'test-story');
-      mkdirSync(storyPath, { recursive: true });
-      writeFileSync(join(storyPath, 'journal.md'), journalContent);
+      const storyDir = join(sagaDir, 'stories', 'test-story');
+      mkdirSync(storyDir, { recursive: true });
+      writeFileSync(join(storyDir, 'journal.md'), journalContent);
 
-      const entries = await parseJournal(join(storyPath, 'journal.md'));
+      const entries = await parseJournal(join(storyDir, 'journal.md'));
 
       expect(entries).toHaveLength(1);
       expect(entries[0].type).toBe('resolution');
@@ -358,11 +353,11 @@ Team chose GitHub OAuth.
 Implemented GitHub OAuth.
 `;
 
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'test-story');
-      mkdirSync(storyPath, { recursive: true });
-      writeFileSync(join(storyPath, 'journal.md'), journalContent);
+      const storyDir = join(sagaDir, 'stories', 'test-story');
+      mkdirSync(storyDir, { recursive: true });
+      writeFileSync(join(storyDir, 'journal.md'), journalContent);
 
-      const entries = await parseJournal(join(storyPath, 'journal.md'));
+      const entries = await parseJournal(join(storyDir, 'journal.md'));
 
       expect(entries).toHaveLength(EXPECTED_MIXED_JOURNAL_ENTRIES);
       expect(entries[0].type).toBe('session');
@@ -377,231 +372,274 @@ Implemented GitHub OAuth.
     });
 
     it('should return empty array for file with no recognized headers', async () => {
-      const storyPath = join(sagaDir, 'epics', 'test-epic', 'stories', 'test-story');
-      mkdirSync(storyPath, { recursive: true });
-      writeFileSync(join(storyPath, 'journal.md'), '# Just a title\n\nSome random content.');
+      const storyDir = join(sagaDir, 'stories', 'test-story');
+      mkdirSync(storyDir, { recursive: true });
+      writeFileSync(join(storyDir, 'journal.md'), '# Just a title\n\nSome random content.');
 
-      const entries = await parseJournal(join(storyPath, 'journal.md'));
+      const entries = await parseJournal(join(storyDir, 'journal.md'));
       expect(entries).toEqual([]);
     });
   });
 
   describe('scanSagaDirectory', () => {
-    it('should return empty array when no epics exist', async () => {
-      const result = await scanSagaDirectory(testDir);
+    it('should return empty epics and stories when nothing exists', () => {
+      const result = scanSagaDirectory(testDir);
 
-      expect(result).toEqual([]);
+      expect(result.epics).toEqual([]);
+      expect(result.standaloneStories).toEqual([]);
     });
 
-    it('should scan single epic with stories', async () => {
-      // Create epic
-      const epicPath = join(sagaDir, 'epics', 'my-epic');
-      mkdirSync(epicPath, { recursive: true });
-      writeFileSync(join(epicPath, 'epic.md'), '# My Test Epic\n\nContent here.');
+    it('should scan an epic with stories and derive status', () => {
+      writeEpicJson(sagaDir, 'my-epic', {
+        id: 'my-epic',
+        title: 'My Test Epic',
+        description: 'An epic description',
+        children: [{ id: 'my-story', blockedBy: [] }],
+      });
 
-      // Create story
-      const storyPath = join(epicPath, 'stories', 'my-story');
-      mkdirSync(storyPath, { recursive: true });
-      writeFileSync(
-        join(storyPath, 'story.md'),
-        `---
-id: my-story
-title: My Test Story
-status: ready
-epic: my-epic
-tasks:
-  - id: t1
-    title: Task One
-    status: pending
----
+      writeStoryJson(sagaDir, 'my-story', {
+        id: 'my-story',
+        title: 'My Test Story',
+        description: 'Story content.',
+        epic: 'my-epic',
+      });
+      writeTaskJson(sagaDir, 'my-story', 't1', {
+        id: 't1',
+        subject: 'Task One',
+        description: 'Do task one',
+        status: 'pending',
+        blockedBy: [],
+      });
 
-Story content.
-`,
-      );
+      const result = scanSagaDirectory(testDir);
 
-      const result = await scanSagaDirectory(testDir);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].slug).toBe('my-epic');
-      expect(result[0].title).toBe('My Test Epic');
-      expect(result[0].stories).toHaveLength(1);
-      expect(result[0].stories[0].slug).toBe('my-story');
-      expect(result[0].stories[0].title).toBe('My Test Story');
-      expect(result[0].stories[0].content).toContain('Story content.');
+      expect(result.epics).toHaveLength(1);
+      expect(result.epics[0].id).toBe('my-epic');
+      expect(result.epics[0].title).toBe('My Test Epic');
+      expect(result.epics[0].description).toBe('An epic description');
+      expect(result.epics[0].status).toBe('pending');
+      expect(result.epics[0].stories).toHaveLength(1);
+      expect(result.epics[0].stories[0].id).toBe('my-story');
+      expect(result.epics[0].stories[0].title).toBe('My Test Story');
+      expect(result.epics[0].stories[0].status).toBe('pending');
+      expect(result.epics[0].stories[0].tasks).toHaveLength(1);
     });
 
-    it('should calculate story counts correctly', async () => {
-      // Create epic
-      const epicPath = join(sagaDir, 'epics', 'counting-epic');
-      mkdirSync(epicPath, { recursive: true });
-      writeFileSync(join(epicPath, 'epic.md'), '# Counting Epic');
+    it('should calculate story counts with new statuses', () => {
+      writeEpicJson(sagaDir, 'counting-epic', {
+        id: 'counting-epic',
+        title: 'Counting Epic',
+        description: 'desc',
+        children: [
+          { id: 'story-0', blockedBy: [] },
+          { id: 'story-1', blockedBy: [] },
+          { id: 'story-2', blockedBy: [] },
+        ],
+      });
 
-      // Create stories with different statuses
-      const statuses = ['ready', 'in_progress', 'blocked', 'completed', 'completed'];
+      // story-0: all tasks pending -> pending
+      writeStoryJson(sagaDir, 'story-0', {
+        id: 'story-0',
+        title: 'Story 0',
+        description: 'desc',
+        epic: 'counting-epic',
+      });
+      writeTaskJson(sagaDir, 'story-0', 't1', {
+        id: 't1',
+        subject: 'Task',
+        description: 'd',
+        status: 'pending',
+        blockedBy: [],
+      });
 
-      for (let i = 0; i < statuses.length; i++) {
-        const storyPath = join(epicPath, 'stories', `story-${i}`);
-        mkdirSync(storyPath, { recursive: true });
-        writeFileSync(
-          join(storyPath, 'story.md'),
-          `---
-id: story-${i}
-title: Story ${i}
-status: ${statuses[i]}
-epic: counting-epic
-tasks: []
----
-`,
-        );
-      }
+      // story-1: one task in_progress -> inProgress
+      writeStoryJson(sagaDir, 'story-1', {
+        id: 'story-1',
+        title: 'Story 1',
+        description: 'desc',
+        epic: 'counting-epic',
+      });
+      writeTaskJson(sagaDir, 'story-1', 't1', {
+        id: 't1',
+        subject: 'Task',
+        description: 'd',
+        status: 'in_progress',
+        blockedBy: [],
+      });
 
-      const result = await scanSagaDirectory(testDir);
+      // story-2: all tasks completed -> completed
+      writeStoryJson(sagaDir, 'story-2', {
+        id: 'story-2',
+        title: 'Story 2',
+        description: 'desc',
+        epic: 'counting-epic',
+      });
+      writeTaskJson(sagaDir, 'story-2', 't1', {
+        id: 't1',
+        subject: 'Task',
+        description: 'd',
+        status: 'completed',
+        blockedBy: [],
+      });
 
-      expect(result).toHaveLength(1);
-      expect(result[0].storyCounts).toEqual({
-        total: 5,
-        ready: 1,
+      const result = scanSagaDirectory(testDir);
+
+      expect(result.epics[0].storyCounts).toEqual({
+        total: 3,
+        pending: 1,
         inProgress: 1,
-        blocked: 1,
-        completed: 2,
+        completed: 1,
       });
     });
 
-    it('should scan multiple epics', async () => {
-      // Create two epics
-      for (const epicSlug of ['epic-one', 'epic-two']) {
-        const epicPath = join(sagaDir, 'epics', epicSlug);
-        mkdirSync(epicPath, { recursive: true });
-        writeFileSync(join(epicPath, 'epic.md'), `# ${epicSlug} Title`);
+    it('should scan multiple epics', () => {
+      for (const epicId of ['epic-one', 'epic-two']) {
+        writeEpicJson(sagaDir, epicId, {
+          id: epicId,
+          title: `${epicId} Title`,
+          description: `${epicId} desc`,
+          children: [{ id: `story-${epicId}`, blockedBy: [] }],
+        });
 
-        const storyPath = join(epicPath, 'stories', 'story-a');
-        mkdirSync(storyPath, { recursive: true });
-        writeFileSync(
-          join(storyPath, 'story.md'),
-          `---
-id: story-a
-title: Story A for ${epicSlug}
-status: ready
-epic: ${epicSlug}
-tasks: []
----
-`,
-        );
+        writeStoryJson(sagaDir, `story-${epicId}`, {
+          id: `story-${epicId}`,
+          title: `Story for ${epicId}`,
+          description: 'desc',
+          epic: epicId,
+        });
       }
 
-      const result = await scanSagaDirectory(testDir);
+      const result = scanSagaDirectory(testDir);
 
-      expect(result).toHaveLength(2);
-      const slugs = result.map((e) => e.slug).sort();
-      expect(slugs).toEqual(['epic-one', 'epic-two']);
+      expect(result.epics).toHaveLength(2);
+      const ids = result.epics.map((e) => e.id).sort();
+      expect(ids).toEqual(['epic-one', 'epic-two']);
     });
 
-    it('should include archived stories with archived flag', async () => {
-      // Create epic in main location
-      const epicPath = join(sagaDir, 'epics', 'my-epic');
-      mkdirSync(epicPath, { recursive: true });
-      writeFileSync(join(epicPath, 'epic.md'), '# My Epic');
+    it('should include standalone stories (no epic)', () => {
+      writeStoryJson(sagaDir, 'standalone-story', {
+        id: 'standalone-story',
+        title: 'Standalone',
+        description: 'No epic',
+      });
+      writeTaskJson(sagaDir, 'standalone-story', 't1', {
+        id: 't1',
+        subject: 'Task',
+        description: 'd',
+        status: 'pending',
+        blockedBy: [],
+      });
 
-      // Create active story
-      const activeStoryPath = join(epicPath, 'stories', 'active-story');
-      mkdirSync(activeStoryPath, { recursive: true });
-      writeFileSync(
-        join(activeStoryPath, 'story.md'),
-        `---
-id: active-story
-title: Active Story
-status: ready
-epic: my-epic
-tasks: []
----
-`,
-      );
+      const result = scanSagaDirectory(testDir);
 
-      // Create archived story
-      const archivedPath = join(sagaDir, 'archive', 'my-epic', 'archived-story');
-      mkdirSync(archivedPath, { recursive: true });
-      writeFileSync(
-        join(archivedPath, 'story.md'),
-        `---
-id: archived-story
-title: Archived Story
-status: completed
-epic: my-epic
-tasks: []
----
-`,
-      );
-
-      const result = await scanSagaDirectory(testDir);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].stories).toHaveLength(2);
-
-      const activeStory = result[0].stories.find((s) => s.slug === 'active-story');
-      const archivedStory = result[0].stories.find((s) => s.slug === 'archived-story');
-
-      expect(activeStory).toBeDefined();
-      expect(assertDefined(activeStory).archived).toBeFalsy();
-
-      expect(archivedStory).toBeDefined();
-      expect(assertDefined(archivedStory).archived).toBe(true);
+      expect(result.standaloneStories).toHaveLength(1);
+      expect(result.standaloneStories[0].id).toBe('standalone-story');
+      expect(result.standaloneStories[0].status).toBe('pending');
     });
 
-    it('should handle epic with no stories directory', async () => {
-      const epicPath = join(sagaDir, 'epics', 'empty-epic');
-      mkdirSync(epicPath, { recursive: true });
-      writeFileSync(join(epicPath, 'epic.md'), '# Empty Epic');
+    it('should handle epic with no matching stories', () => {
+      writeEpicJson(sagaDir, 'empty-epic', {
+        id: 'empty-epic',
+        title: 'Empty Epic',
+        description: 'No stories',
+        children: [],
+      });
 
-      const result = await scanSagaDirectory(testDir);
+      const result = scanSagaDirectory(testDir);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].slug).toBe('empty-epic');
-      expect(result[0].stories).toEqual([]);
-      expect(result[0].storyCounts.total).toBe(0);
+      expect(result.epics).toHaveLength(1);
+      expect(result.epics[0].id).toBe('empty-epic');
+      expect(result.epics[0].stories).toEqual([]);
+      expect(result.epics[0].storyCounts.total).toBe(0);
+      expect(result.epics[0].status).toBe('pending');
     });
 
-    it('should use relative paths from saga root', async () => {
-      // Create epic with story
-      const epicPath = join(sagaDir, 'epics', 'path-test');
-      mkdirSync(epicPath, { recursive: true });
-      writeFileSync(join(epicPath, 'epic.md'), '# Path Test Epic');
+    it('should derive epic status from story statuses', () => {
+      writeEpicJson(sagaDir, 'mixed-epic', {
+        id: 'mixed-epic',
+        title: 'Mixed Epic',
+        description: 'desc',
+        children: [
+          { id: 'story-a', blockedBy: [] },
+          { id: 'story-b', blockedBy: ['story-a'] },
+        ],
+      });
 
-      const storyPath = join(epicPath, 'stories', 'my-story');
-      mkdirSync(storyPath, { recursive: true });
-      writeFileSync(
-        join(storyPath, 'story.md'),
-        `---
-id: my-story
-title: My Story
-status: ready
-epic: path-test
-tasks: []
----
-`,
-      );
+      // story-a: in_progress
+      writeStoryJson(sagaDir, 'story-a', {
+        id: 'story-a',
+        title: 'Story A',
+        description: 'desc',
+        epic: 'mixed-epic',
+      });
+      writeTaskJson(sagaDir, 'story-a', 't1', {
+        id: 't1',
+        subject: 'Task',
+        description: 'd',
+        status: 'in_progress',
+        blockedBy: [],
+      });
 
-      const result = await scanSagaDirectory(testDir);
+      // story-b: pending
+      writeStoryJson(sagaDir, 'story-b', {
+        id: 'story-b',
+        title: 'Story B',
+        description: 'desc',
+        epic: 'mixed-epic',
+      });
+      writeTaskJson(sagaDir, 'story-b', 't1', {
+        id: 't1',
+        subject: 'Task',
+        description: 'd',
+        status: 'pending',
+        blockedBy: [],
+      });
 
-      expect(result).toHaveLength(1);
-      // Paths should be relative to saga root, not absolute
-      expect(result[0].path).not.toContain(testDir);
-      expect(result[0].path).toContain('path-test');
-      expect(result[0].stories[0].paths.storyMd).not.toContain(testDir);
+      const result = scanSagaDirectory(testDir);
+
+      // Epic status should be in_progress (has an in_progress story)
+      expect(result.epics[0].status).toBe('inProgress');
     });
 
-    it('should skip non-directory entries in epics folder', async () => {
-      // Create a regular file in epics folder (should be ignored)
-      writeFileSync(join(sagaDir, 'epics', 'not-a-directory.txt'), 'ignored');
+    it('should include epic children with dependencies', () => {
+      writeEpicJson(sagaDir, 'dep-epic', {
+        id: 'dep-epic',
+        title: 'Dep Epic',
+        description: 'desc',
+        children: [
+          { id: 'story-a', blockedBy: [] },
+          { id: 'story-b', blockedBy: ['story-a'] },
+        ],
+      });
 
-      // Create a valid epic
-      const epicPath = join(sagaDir, 'epics', 'valid-epic');
-      mkdirSync(epicPath, { recursive: true });
-      writeFileSync(join(epicPath, 'epic.md'), '# Valid Epic');
+      writeStoryJson(sagaDir, 'story-a', {
+        id: 'story-a',
+        title: 'Story A',
+        description: 'desc',
+        epic: 'dep-epic',
+      });
+      writeStoryJson(sagaDir, 'story-b', {
+        id: 'story-b',
+        title: 'Story B',
+        description: 'desc',
+        epic: 'dep-epic',
+      });
 
-      const result = await scanSagaDirectory(testDir);
+      const result = scanSagaDirectory(testDir);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].slug).toBe('valid-epic');
+      expect(result.epics[0].children).toHaveLength(2);
+      expect(result.epics[0].children[1].blockedBy).toEqual(['story-a']);
+    });
+
+    it('should handle missing .saga directory', () => {
+      const emptyDir = mkdtempSync(join(tmpdir(), 'saga-empty-'));
+      try {
+        const result = scanSagaDirectory(emptyDir);
+        expect(result.epics).toEqual([]);
+        expect(result.standaloneStories).toEqual([]);
+      } finally {
+        rmSync(emptyDir, { recursive: true, force: true });
+      }
     });
   });
 });

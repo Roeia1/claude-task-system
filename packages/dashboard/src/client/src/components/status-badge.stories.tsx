@@ -1,51 +1,26 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge, StatusBadgeWithCount } from '@/components/StatusBadge';
 import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import type { StoryStatus } from '@/types/dashboard';
 
-// ============================================================================
-// StatusBadge Component Definitions (Story-only versions)
-// ============================================================================
-
-/** Color variants for each status type */
+/** Color variants for each status type (mirrored for test assertions) */
 const statusVariants: Record<StoryStatus, string> = {
-  ready: 'bg-text-muted/20 text-text-muted',
+  pending: 'bg-text-muted/20 text-text-muted',
   inProgress: 'bg-primary/20 text-primary',
-  blocked: 'bg-danger/20 text-danger',
   completed: 'bg-success/20 text-success',
 };
 
-/** Human-readable labels for each status type */
+/** Human-readable labels for each status type (mirrored for test assertions) */
 const statusLabels: Record<StoryStatus, string> = {
-  ready: 'Ready',
+  pending: 'Pending',
   inProgress: 'In Progress',
-  blocked: 'Blocked',
   completed: 'Completed',
 };
 
 /** Available status presets for Playground */
-const statusPresets = ['ready', 'inProgress', 'blocked', 'completed'] as const;
+const statusPresets = ['pending', 'inProgress', 'completed'] as const;
 type StatusPreset = (typeof statusPresets)[number];
-
-/**
- * Status badge with count - used in EpicList to show story counts per status.
- */
-function StatusBadgeWithCount({ status, count }: { status: StoryStatus; count: number }) {
-  return (
-    <Badge className={statusVariants[status]}>
-      {statusLabels[status]}: {count}
-    </Badge>
-  );
-}
-
-/**
- * Status badge without count - used in EpicDetail and StoryDetail to show
- * individual story/task status.
- */
-function StatusBadge({ status }: { status: StoryStatus }) {
-  return <Badge className={statusVariants[status]}>{statusLabels[status]}</Badge>;
-}
 
 // ============================================================================
 // Story Meta
@@ -59,9 +34,8 @@ function StatusBadge({ status }: { status: StoryStatus }) {
  * - **With count**: Used in EpicList to show aggregated story counts per status
  *
  * Color tokens:
- * - **Ready** (gray): `bg-text-muted/20 text-text-muted`
+ * - **Pending** (gray): `bg-text-muted/20 text-text-muted`
  * - **In Progress** (blue): `bg-primary/20 text-primary`
- * - **Blocked** (red): `bg-danger/20 text-danger`
  * - **Completed** (green): `bg-success/20 text-success`
  */
 const meta: Meta<{ preset: StatusPreset; count: number }> = {
@@ -78,7 +52,7 @@ const meta: Meta<{ preset: StatusPreset; count: number }> = {
     },
   },
   args: {
-    preset: 'ready',
+    preset: 'pending',
     count: 5,
   },
 };
@@ -102,9 +76,8 @@ const Showcase: Story = {
           Without Count (EpicDetail/StoryDetail)
         </h3>
         <div className="flex flex-wrap gap-2">
-          <StatusBadge status="ready" />
+          <StatusBadge status="pending" />
           <StatusBadge status="inProgress" />
-          <StatusBadge status="blocked" />
           <StatusBadge status="completed" />
         </div>
       </section>
@@ -113,9 +86,8 @@ const Showcase: Story = {
       <section>
         <h3 className="text-sm font-medium text-text-muted mb-3">With Count (EpicList)</h3>
         <div className="flex flex-wrap gap-2">
-          <StatusBadgeWithCount status="ready" count={5} />
+          <StatusBadgeWithCount status="pending" count={5} />
           <StatusBadgeWithCount status="inProgress" count={3} />
-          <StatusBadgeWithCount status="blocked" count={1} />
           <StatusBadgeWithCount status="completed" count={8} />
         </div>
       </section>
@@ -126,14 +98,14 @@ const Showcase: Story = {
         <div className="space-y-2">
           <div>
             <span className="text-xs text-text-muted mr-2">Zero counts:</span>
-            <StatusBadgeWithCount status="ready" count={0} />
+            <StatusBadgeWithCount status="pending" count={0} />
             <span className="ml-2">
-              <StatusBadgeWithCount status="blocked" count={0} />
+              <StatusBadgeWithCount status="completed" count={0} />
             </span>
           </div>
           <div>
             <span className="text-xs text-text-muted mr-2">Large counts:</span>
-            <StatusBadgeWithCount status="ready" count={42} />
+            <StatusBadgeWithCount status="pending" count={42} />
             <span className="ml-2">
               <StatusBadgeWithCount status="completed" count={100} />
             </span>
@@ -151,21 +123,19 @@ const Showcase: Story = {
     await expect(canvas.getByText('Edge Cases')).toBeInTheDocument();
 
     // Verify badges without count
-    await expect(canvas.getByText('Ready')).toBeInTheDocument();
+    await expect(canvas.getByText('Pending')).toBeInTheDocument();
     await expect(canvas.getByText('In Progress')).toBeInTheDocument();
-    await expect(canvas.getByText('Blocked')).toBeInTheDocument();
     await expect(canvas.getByText('Completed')).toBeInTheDocument();
 
     // Verify badges with count
-    await expect(canvas.getByText('Ready: 5')).toBeInTheDocument();
+    await expect(canvas.getByText('Pending: 5')).toBeInTheDocument();
     await expect(canvas.getByText('In Progress: 3')).toBeInTheDocument();
-    await expect(canvas.getByText('Blocked: 1')).toBeInTheDocument();
     await expect(canvas.getByText('Completed: 8')).toBeInTheDocument();
 
     // Verify edge cases
-    await expect(canvas.getByText('Ready: 0')).toBeInTheDocument();
-    await expect(canvas.getByText('Blocked: 0')).toBeInTheDocument();
-    await expect(canvas.getByText('Ready: 42')).toBeInTheDocument();
+    await expect(canvas.getByText('Pending: 0')).toBeInTheDocument();
+    await expect(canvas.getByText('Completed: 0')).toBeInTheDocument();
+    await expect(canvas.getByText('Pending: 42')).toBeInTheDocument();
     await expect(canvas.getByText('Completed: 100')).toBeInTheDocument();
 
     // Visual snapshot tests
@@ -197,7 +167,7 @@ const Playground: Story = {
     </div>
   ),
   args: {
-    preset: 'ready',
+    preset: 'pending',
     count: 5,
   },
   play: async ({ canvasElement, args }) => {

@@ -22,9 +22,9 @@ test.describe('Epic Content Display', () => {
   test.describe('Content visibility', () => {
     test('should display epic content section when epic has content', async ({ page }) => {
       const epicWithContent = createMockEpic({
-        slug: 'content-epic',
+        id: 'content-epic',
         title: 'Epic With Content',
-        content:
+        description:
           '# Epic Overview\n\nThis is the main description.\n\n## Goals\n\n- Goal 1\n- Goal 2',
         stories: [],
       });
@@ -50,9 +50,9 @@ test.describe('Epic Content Display', () => {
 
     test('should not display epic content section when epic has no content', async ({ page }) => {
       const epicWithoutContent = createMockEpic({
-        slug: 'no-content-epic',
+        id: 'no-content-epic',
         title: 'Epic Without Content',
-        content: undefined,
+        description: undefined,
         stories: [],
       });
 
@@ -74,9 +74,9 @@ test.describe('Epic Content Display', () => {
       page,
     }) => {
       const epicWithEmptyContent = createMockEpic({
-        slug: 'empty-content-epic',
+        id: 'empty-content-epic',
         title: 'Epic With Empty Content',
-        content: '',
+        description: '',
         stories: [],
       });
 
@@ -98,9 +98,9 @@ test.describe('Epic Content Display', () => {
   test.describe('Collapsible behavior', () => {
     test('should show content expanded by default', async ({ page }) => {
       const epic = createMockEpic({
-        slug: 'expanded-epic',
+        id: 'expanded-epic',
         title: 'Expanded Epic',
-        content: '# Welcome\n\nThis content should be visible by default.',
+        description: '# Welcome\n\nThis content should be visible by default.',
         stories: [],
       });
 
@@ -120,9 +120,9 @@ test.describe('Epic Content Display', () => {
 
     test('should collapse content when toggle button is clicked', async ({ page }) => {
       const epic = createMockEpic({
-        slug: 'collapsible-epic',
+        id: 'collapsible-epic',
         title: 'Collapsible Epic',
-        content: '# Collapsible Content\n\nThis content can be hidden.',
+        description: '# Collapsible Content\n\nThis content can be hidden.',
         stories: [],
       });
 
@@ -147,9 +147,9 @@ test.describe('Epic Content Display', () => {
 
     test('should expand content when toggle button is clicked again', async ({ page }) => {
       const epic = createMockEpic({
-        slug: 'toggle-epic',
+        id: 'toggle-epic',
         title: 'Toggle Epic',
-        content: '# Toggle Me\n\nContent to toggle.',
+        description: '# Toggle Me\n\nContent to toggle.',
         stories: [],
       });
 
@@ -178,15 +178,15 @@ test.describe('Epic Content Display', () => {
   test.describe('Content positioning', () => {
     test('should display epic content between header and stories', async ({ page }) => {
       const epic = createMockEpic({
-        slug: 'layout-epic',
+        id: 'layout-epic',
         title: 'Layout Epic',
-        content: '## Content Section\n\nLayout description here.',
+        description: '## Content Section\n\nLayout description here.',
         stories: [
           createMockStoryDetail({
-            slug: 'story-1',
+            id: 'story-1',
             title: 'First Story',
-            status: 'ready',
-            epicSlug: 'layout-epic',
+            status: 'pending',
+            epic: 'layout-epic',
           }),
         ],
       });
@@ -212,9 +212,9 @@ test.describe('Epic Content Display', () => {
   test.describe('Markdown rendering', () => {
     test('should render headings in markdown content', async ({ page }) => {
       const epic = createMockEpic({
-        slug: 'markdown-epic',
+        id: 'markdown-epic',
         title: 'Markdown Epic',
-        content: '# Main Heading\n\n## Subheading\n\n### Third Level',
+        description: '# Main Heading\n\n## Subheading\n\n### Third Level',
         stories: [],
       });
 
@@ -235,9 +235,9 @@ test.describe('Epic Content Display', () => {
 
     test('should render lists in markdown content', async ({ page }) => {
       const epic = createMockEpic({
-        slug: 'lists-epic',
+        id: 'lists-epic',
         title: 'Lists Epic',
-        content: '## Goals\n\n- First item\n- Second item\n- Third item',
+        description: '## Goals\n\n- First item\n- Second item\n- Third item',
         stories: [],
       });
 
@@ -256,9 +256,9 @@ test.describe('Epic Content Display', () => {
 
     test('should render code blocks in markdown content', async ({ page }) => {
       const epic = createMockEpic({
-        slug: 'code-epic',
+        id: 'code-epic',
         title: 'Code Epic',
-        content: MARKDOWN_WITH_CODE_BLOCK,
+        description: MARKDOWN_WITH_CODE_BLOCK,
         stories: [],
       });
 
@@ -275,9 +275,9 @@ test.describe('Epic Content Display', () => {
 
     test('should render tables in markdown content (GFM)', async ({ page }) => {
       const epic = createMockEpic({
-        slug: 'table-epic',
+        id: 'table-epic',
         title: 'Table Epic',
-        content: '## Data\n\n| Name | Value |\n|------|-------|\n| Key1 | Val1 |',
+        description: '## Data\n\n| Name | Value |\n|------|-------|\n| Key1 | Val1 |',
         stories: [],
       });
 

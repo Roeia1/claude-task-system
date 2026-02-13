@@ -56,11 +56,10 @@ describe('session routes', () => {
   // Helper function to create mock session data
   function createMockSession(overrides: Partial<DetailedSessionInfo> = {}): DetailedSessionInfo {
     return {
-      name: 'saga__test-epic__test-story__12345',
-      epicSlug: 'test-epic',
-      storySlug: 'test-story',
+      name: 'saga-story-test-story-12345',
+      storyId: 'test-story',
       status: 'running',
-      outputFile: '/tmp/saga-sessions/saga__test-epic__test-story__12345.out',
+      outputFile: '/tmp/saga-sessions/saga-story-test-story-12345.jsonl',
       outputAvailable: true,
       startTime: new Date('2026-01-29T10:00:00Z'),
       endTime: undefined,
@@ -73,14 +72,12 @@ describe('session routes', () => {
     it('should return all sessions', async () => {
       const mockSessions = [
         createMockSession({
-          name: 'saga__epic1__story1__111',
-          epicSlug: 'epic1',
-          storySlug: 'story1',
+          name: 'saga-story-story1-111',
+          storyId: 'story1',
         }),
         createMockSession({
-          name: 'saga__epic2__story2__222',
-          epicSlug: 'epic2',
-          storySlug: 'story2',
+          name: 'saga-story-story2-222',
+          storyId: 'story2',
         }),
       ];
       mockGetCurrentSessions.mockReturnValue(mockSessions);
@@ -101,13 +98,15 @@ describe('session routes', () => {
       expect(res.status).toBe(HTTP_OK);
       expect(res.body[0]).toMatchObject({
         name: mockSession.name,
-        epicSlug: mockSession.epicSlug,
-        storySlug: mockSession.storySlug,
+        storyId: mockSession.storyId,
         status: mockSession.status,
         outputFile: mockSession.outputFile,
         outputAvailable: mockSession.outputAvailable,
         outputPreview: mockSession.outputPreview,
       });
+      // Should NOT have epicSlug or storySlug
+      expect(res.body[0]).not.toHaveProperty('epicSlug');
+      expect(res.body[0]).not.toHaveProperty('storySlug');
       expect(res.body[0].startTime).toBeDefined();
     });
 
@@ -120,73 +119,42 @@ describe('session routes', () => {
       expect(res.body).toEqual([]);
     });
 
-    it('should filter by epicSlug', async () => {
+    it('should filter by storyId', async () => {
       const mockSessions = [
         createMockSession({
-          name: 'saga__epic1__story1__111',
-          epicSlug: 'epic1',
-          storySlug: 'story1',
+          name: 'saga-story-story1-111',
+          storyId: 'story1',
         }),
         createMockSession({
-          name: 'saga__epic2__story2__222',
-          epicSlug: 'epic2',
-          storySlug: 'story2',
+          name: 'saga-story-story2-222',
+          storyId: 'story2',
         }),
         createMockSession({
-          name: 'saga__epic1__story3__333',
-          epicSlug: 'epic1',
-          storySlug: 'story3',
+          name: 'saga-story-story1-333',
+          storyId: 'story1',
         }),
       ];
       mockGetCurrentSessions.mockReturnValue(mockSessions);
 
-      const res = await request(app).get('/api/sessions?epicSlug=epic1');
+      const res = await request(app).get('/api/sessions?storyId=story1');
 
       expect(res.status).toBe(HTTP_OK);
       expect(res.body.length).toBe(EXPECTED_COUNT_TWO);
-      expect(res.body.every((s: DetailedSessionInfo) => s.epicSlug === 'epic1')).toBe(true);
-    });
-
-    it('should filter by storySlug (requires epicSlug)', async () => {
-      const mockSessions = [
-        createMockSession({
-          name: 'saga__epic1__story1__111',
-          epicSlug: 'epic1',
-          storySlug: 'story1',
-        }),
-        createMockSession({
-          name: 'saga__epic1__story2__222',
-          epicSlug: 'epic1',
-          storySlug: 'story2',
-        }),
-        createMockSession({
-          name: 'saga__epic2__story1__333',
-          epicSlug: 'epic2',
-          storySlug: 'story1',
-        }),
-      ];
-      mockGetCurrentSessions.mockReturnValue(mockSessions);
-
-      const res = await request(app).get(sessionsPath({ epicSlug: 'epic1', storySlug: 'story1' }));
-
-      expect(res.status).toBe(HTTP_OK);
-      expect(res.body.length).toBe(EXPECTED_COUNT_ONE);
-      expect(res.body[0].epicSlug).toBe('epic1');
-      expect(res.body[0].storySlug).toBe('story1');
+      expect(res.body.every((s: DetailedSessionInfo) => s.storyId === 'story1')).toBe(true);
     });
 
     it('should filter by status=running', async () => {
       const mockSessions = [
         createMockSession({
-          name: 'saga__epic1__story1__111',
+          name: 'saga-story-story1-111',
           status: 'running',
         }),
         createMockSession({
-          name: 'saga__epic1__story2__222',
+          name: 'saga-story-story2-222',
           status: 'completed',
         }),
         createMockSession({
-          name: 'saga__epic1__story3__333',
+          name: 'saga-story-story3-333',
           status: 'running',
         }),
       ];
@@ -202,11 +170,11 @@ describe('session routes', () => {
     it('should filter by status=completed', async () => {
       const mockSessions = [
         createMockSession({
-          name: 'saga__epic1__story1__111',
+          name: 'saga-story-story1-111',
           status: 'running',
         }),
         createMockSession({
-          name: 'saga__epic1__story2__222',
+          name: 'saga-story-story2-222',
           status: 'completed',
         }),
       ];
@@ -219,30 +187,21 @@ describe('session routes', () => {
       expect(res.body[0].status).toBe('completed');
     });
 
-    it('should apply filters in order: epicSlug, then storySlug, then status', async () => {
+    it('should apply filters in order: storyId, then status', async () => {
       const mockSessions = [
         createMockSession({
-          name: 'saga__epic1__story1__111',
-          epicSlug: 'epic1',
-          storySlug: 'story1',
+          name: 'saga-story-story1-111',
+          storyId: 'story1',
           status: 'running',
         }),
         createMockSession({
-          name: 'saga__epic1__story1__222',
-          epicSlug: 'epic1',
-          storySlug: 'story1',
+          name: 'saga-story-story1-222',
+          storyId: 'story1',
           status: 'completed',
         }),
         createMockSession({
-          name: 'saga__epic1__story2__333',
-          epicSlug: 'epic1',
-          storySlug: 'story2',
-          status: 'running',
-        }),
-        createMockSession({
-          name: 'saga__epic2__story1__444',
-          epicSlug: 'epic2',
-          storySlug: 'story1',
+          name: 'saga-story-story2-333',
+          storyId: 'story2',
           status: 'running',
         }),
       ];
@@ -250,29 +209,28 @@ describe('session routes', () => {
 
       const res = await request(app).get(
         sessionsPath({
-          epicSlug: 'epic1',
-          storySlug: 'story1',
+          storyId: 'story1',
           status: 'running',
         }),
       );
 
       expect(res.status).toBe(HTTP_OK);
       expect(res.body.length).toBe(EXPECTED_COUNT_ONE);
-      expect(res.body[0].name).toBe('saga__epic1__story1__111');
+      expect(res.body[0].name).toBe('saga-story-story1-111');
     });
 
     it('should return results sorted by startTime descending', async () => {
       const mockSessions = [
         createMockSession({
-          name: 'saga__epic1__story1__111',
+          name: 'saga-story-story1-111',
           startTime: new Date('2026-01-29T10:00:00Z'),
         }),
         createMockSession({
-          name: 'saga__epic1__story2__222',
+          name: 'saga-story-story2-222',
           startTime: new Date('2026-01-29T12:00:00Z'),
         }),
         createMockSession({
-          name: 'saga__epic1__story3__333',
+          name: 'saga-story-story3-333',
           startTime: new Date('2026-01-29T08:00:00Z'),
         }),
       ];
@@ -288,71 +246,47 @@ describe('session routes', () => {
       expect(res.status).toBe(HTTP_OK);
       expect(res.body.length).toBe(EXPECTED_COUNT_THREE);
       // Results should maintain the sorted order
-      expect(res.body[0].name).toBe('saga__epic1__story2__222');
-      expect(res.body[2].name).toBe('saga__epic1__story3__333');
+      expect(res.body[0].name).toBe('saga-story-story2-222');
+      expect(res.body[2].name).toBe('saga-story-story3-333');
     });
 
     it('should return empty array when filters match nothing', async () => {
       const mockSessions = [
         createMockSession({
-          name: 'saga__epic1__story1__111',
-          epicSlug: 'epic1',
+          name: 'saga-story-story1-111',
+          storyId: 'story1',
         }),
       ];
       mockGetCurrentSessions.mockReturnValue(mockSessions);
 
-      const res = await request(app).get('/api/sessions?epicSlug=nonexistent');
+      const res = await request(app).get('/api/sessions?storyId=nonexistent');
 
       expect(res.status).toBe(HTTP_OK);
       expect(res.body).toEqual([]);
-    });
-
-    it('should ignore storySlug filter when epicSlug is not provided', async () => {
-      const mockSessions = [
-        createMockSession({
-          name: 'saga__epic1__story1__111',
-          epicSlug: 'epic1',
-          storySlug: 'story1',
-        }),
-        createMockSession({
-          name: 'saga__epic2__story1__222',
-          epicSlug: 'epic2',
-          storySlug: 'story1',
-        }),
-      ];
-      mockGetCurrentSessions.mockReturnValue(mockSessions);
-
-      // storySlug without epicSlug should be ignored
-      const res = await request(app).get('/api/sessions?storySlug=story1');
-
-      expect(res.status).toBe(HTTP_OK);
-      // Should return all sessions since storySlug is ignored without epicSlug
-      expect(res.body.length).toBe(EXPECTED_COUNT_TWO);
     });
   });
 
   describe('GET /api/sessions/:sessionName', () => {
     it('should return session by exact name', async () => {
       const mockSession = createMockSession({
-        name: 'saga__test-epic__test-story__12345',
+        name: 'saga-story-test-story-12345',
       });
       mockGetCurrentSessions.mockReturnValue([mockSession]);
 
-      const res = await request(app).get('/api/sessions/saga__test-epic__test-story__12345');
+      const res = await request(app).get('/api/sessions/saga-story-test-story-12345');
 
       expect(res.status).toBe(HTTP_OK);
-      expect(res.body.name).toBe('saga__test-epic__test-story__12345');
+      expect(res.body.name).toBe('saga-story-test-story-12345');
     });
 
     it('should return full SessionInfo object', async () => {
       const startTime = new Date('2026-01-29T10:00:00Z');
       const endTime = new Date('2026-01-29T11:00:00Z');
       const mockSession = createMockSession({
-        name: 'saga__test-epic__test-story__12345',
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
+        name: 'saga-story-test-story-12345',
+        storyId: 'test-story',
         status: 'completed',
-        outputFile: '/tmp/saga-sessions/saga__test-epic__test-story__12345.out',
+        outputFile: '/tmp/saga-sessions/saga-story-test-story-12345.jsonl',
         outputAvailable: true,
         startTime,
         endTime,
@@ -360,15 +294,14 @@ describe('session routes', () => {
       });
       mockGetCurrentSessions.mockReturnValue([mockSession]);
 
-      const res = await request(app).get('/api/sessions/saga__test-epic__test-story__12345');
+      const res = await request(app).get('/api/sessions/saga-story-test-story-12345');
 
       expect(res.status).toBe(HTTP_OK);
       expect(res.body).toMatchObject({
-        name: 'saga__test-epic__test-story__12345',
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
+        name: 'saga-story-test-story-12345',
+        storyId: 'test-story',
         status: 'completed',
-        outputFile: '/tmp/saga-sessions/saga__test-epic__test-story__12345.out',
+        outputFile: '/tmp/saga-sessions/saga-story-test-story-12345.jsonl',
         outputAvailable: true,
         outputPreview: 'Final output',
       });
@@ -387,12 +320,12 @@ describe('session routes', () => {
 
     it('should require exact name match', async () => {
       const mockSession = createMockSession({
-        name: 'saga__test-epic__test-story__12345',
+        name: 'saga-story-test-story-12345',
       });
       mockGetCurrentSessions.mockReturnValue([mockSession]);
 
       // Partial match should fail
-      const res = await request(app).get('/api/sessions/saga__test-epic__test-story');
+      const res = await request(app).get('/api/sessions/saga-story-test-story');
 
       expect(res.status).toBe(HTTP_NOT_FOUND);
       expect(res.body.error).toBe('Session not found');
@@ -400,15 +333,14 @@ describe('session routes', () => {
 
     it('should handle URL-encoded session names', async () => {
       const mockSession = createMockSession({
-        name: 'saga__test-epic__test-story__12345',
+        name: 'saga-story-test-story-12345',
       });
       mockGetCurrentSessions.mockReturnValue([mockSession]);
 
-      // URL encoding of saga__test-epic__test-story__12345
-      const res = await request(app).get('/api/sessions/saga__test-epic__test-story__12345');
+      const res = await request(app).get('/api/sessions/saga-story-test-story-12345');
 
       expect(res.status).toBe(HTTP_OK);
-      expect(res.body.name).toBe('saga__test-epic__test-story__12345');
+      expect(res.body.name).toBe('saga-story-test-story-12345');
     });
   });
 });

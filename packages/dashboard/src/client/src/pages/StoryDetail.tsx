@@ -4,22 +4,19 @@ import ReactMarkdown from 'react-markdown';
 import { Link, useParams, useSearchParams } from 'react-router';
 import remarkGfm from 'remark-gfm';
 import { SessionsPanel } from '@/components/SessionsPanel';
+import { StatusBadge } from '@/components/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDashboard } from '@/context/dashboard-context';
-import { showApiErrorToast } from '@/lib/toast-utils';
+import { assertStoryDetail, handleFetchError, processFetchResponse } from '@/lib/fetch-utils';
 import type {
   JournalEntry,
   JournalEntryType,
   StoryDetail as StoryDetailType,
-  StoryStatus,
   TaskStatus,
 } from '@/types/dashboard';
-
-/** HTTP 404 Not Found status code */
-const HTTP_NOT_FOUND = 404;
 
 /** Valid tab values for URL query parameter */
 const VALID_TABS = ['tasks', 'content', 'journal', 'sessions'] as const;
@@ -59,25 +56,6 @@ function ContentSkeleton() {
       </div>
     </div>
   );
-}
-
-/** Status badge with appropriate color based on story status */
-function StatusBadge({ status }: { status: StoryStatus }) {
-  const variants: Record<StoryStatus, string> = {
-    ready: 'bg-text-muted/20 text-text-muted',
-    inProgress: 'bg-primary/20 text-primary',
-    blocked: 'bg-danger/20 text-danger',
-    completed: 'bg-success/20 text-success',
-  };
-
-  const labels: Record<StoryStatus, string> = {
-    ready: 'Ready',
-    inProgress: 'In Progress',
-    blocked: 'Blocked',
-    completed: 'Completed',
-  };
-
-  return <Badge className={variants[status]}>{labels[status]}</Badge>;
 }
 
 /** Task status icon (visual only, not interactive) */
@@ -139,7 +117,7 @@ function TaskItem({ task }: { task: StoryDetailType['tasks'][0] }) {
     <div className="flex items-center gap-3 py-2 px-3 rounded-md hover:bg-bg-light/50">
       <TaskStatusIcon status={task.status} />
       <span className={task.status === 'completed' ? 'text-text-muted line-through' : 'text-text'}>
-        {task.title}
+        {task.subject}
       </span>
       <Badge className={`ml-auto text-xs ${badgeClass}`}>{taskStatusLabels[task.status]}</Badge>
     </div>
@@ -250,29 +228,26 @@ function groupJournalEntries(journal: JournalEntry[]) {
 }
 
 /** Story not found state */
-function StoryNotFoundState({ epicSlug, storySlug }: { epicSlug: string; storySlug: string }) {
+function StoryNotFoundState({ storyId }: { storyId: string }) {
   return (
     <div className="text-center py-12">
       <h1 className="text-2xl font-bold text-text mb-2">Story not found</h1>
-      <p className="text-text-muted mb-4">
-        The story &quot;{storySlug}&quot; does not exist in epic &quot;
-        {epicSlug}&quot;.
-      </p>
-      <Link to={`/epic/${epicSlug}`} className="text-primary hover:underline">
-        ← Back to epic
+      <p className="text-text-muted mb-4">The story &quot;{storyId}&quot; does not exist.</p>
+      <Link to="/" className="text-primary hover:underline">
+        ← Back to epics
       </Link>
     </div>
   );
 }
 
 /** Story error state */
-function StoryErrorState({ epicSlug, error }: { epicSlug: string; error: string }) {
+function StoryErrorState({ error }: { error: string }) {
   return (
     <div className="text-center py-12">
       <h1 className="text-2xl font-bold text-danger mb-2">Error</h1>
       <p className="text-text-muted mb-4">{error}</p>
-      <Link to={`/epic/${epicSlug}`} className="text-primary hover:underline">
-        ← Back to epic
+      <Link to="/" className="text-primary hover:underline">
+        ← Back to epics
       </Link>
     </div>
   );
@@ -288,26 +263,22 @@ function StoryLoadingState() {
   );
 }
 
-/** Story header with breadcrumb, title, and status */
-function StoryHeader({
-  story,
-  epicSlug,
-  storySlug,
-}: {
-  story: StoryDetailType;
-  epicSlug: string;
-  storySlug: string;
-}) {
+/** Story header with title and status */
+function StoryHeader({ story, storyId }: { story: StoryDetailType; storyId: string }) {
   const taskProgress = calculateTaskProgress(story);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm text-text-muted">
-        <Link to={`/epic/${epicSlug}`} className="hover:text-primary">
-          {epicSlug}
-        </Link>
-        <span>/</span>
-        <span className="text-text">{storySlug}</span>
+        {story.epic && (
+          <>
+            <Link to={`/epic/${story.epic}`} className="hover:text-primary">
+              {story.epic}
+            </Link>
+            <span>/</span>
+          </>
+        )}
+        <span className="text-text">{storyId}</span>
       </div>
       <h1 className="text-2xl font-bold text-text">{story.title}</h1>
       <div className="flex items-center gap-4">
@@ -429,66 +400,29 @@ function JournalTabContent({ journal }: { journal: JournalEntry[] }) {
   );
 }
 
-/** Result type for fetch response processing */
-type FetchResult = { type: 'notFound' } | { type: 'error' } | { type: 'success'; data: unknown };
-
-/** Process fetch response into a result type */
-async function processFetchResponse(response: Response): Promise<FetchResult> {
-  if (response.status === HTTP_NOT_FOUND) {
-    return { type: 'notFound' };
-  }
-  if (!response.ok) {
-    return { type: 'error' };
-  }
-  return { type: 'success', data: await response.json() };
-}
-
-/** Handle fetch error with toast notification */
-function handleFetchError(url: string, err: unknown, setError: (e: string) => void): void {
-  setError('Failed to load story');
-  showApiErrorToast(url, err instanceof Error ? err.message : 'Unknown error');
-}
-
-/** Handle the fetch result and update state accordingly */
-function applyFetchResult(
-  result: FetchResult,
-  setNotFound: (v: boolean) => void,
-  setError: (v: string | null) => void,
-  setCurrentStory: (data: unknown) => void,
-): void {
-  if (result.type === 'notFound') {
-    setNotFound(true);
-  } else if (result.type === 'error') {
-    setError('Failed to load story');
-  } else {
-    setCurrentStory(result.data);
-  }
-}
-
 /** Effect hook to subscribe to story updates via WebSocket */
 function useStorySubscription(
-  epicSlug: string | undefined,
-  storySlug: string | undefined,
-  hasSlugs: boolean,
+  storyId: string | undefined,
+  hasId: boolean,
   isConnected: boolean,
-  subscribeToStory: (e: string, s: string) => void,
-  unsubscribeFromStory: (e: string, s: string) => void,
+  subscribeToStory: (storyId: string) => void,
+  unsubscribeFromStory: (storyId: string) => void,
 ) {
   useEffect(() => {
-    if (!(hasSlugs && isConnected)) {
+    if (!(hasId && isConnected)) {
       return;
     }
 
-    subscribeToStory(epicSlug as string, storySlug as string);
+    subscribeToStory(storyId as string);
 
     return () => {
-      unsubscribeFromStory(epicSlug as string, storySlug as string);
+      unsubscribeFromStory(storyId as string);
     };
-  }, [epicSlug, storySlug, hasSlugs, isConnected, subscribeToStory, unsubscribeFromStory]);
+  }, [storyId, hasId, isConnected, subscribeToStory, unsubscribeFromStory]);
 }
 
 /** Custom hook for fetching story data */
-function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefined) {
+function useStoryFetch(storyId: string | undefined) {
   const {
     currentStory,
     setCurrentStory,
@@ -500,11 +434,11 @@ function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefin
   const [isFetching, setIsFetching] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const hasSlugs = Boolean(epicSlug && storySlug);
+  const hasId = Boolean(storyId);
 
   // Fetch story data on mount
   useEffect(() => {
-    if (!hasSlugs) {
+    if (!hasId) {
       return clearCurrentStory;
     }
 
@@ -514,11 +448,18 @@ function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefin
       setError(null);
 
       try {
-        const response = await fetch(`/api/stories/${epicSlug}/${storySlug}`);
+        const response = await fetch(`/api/stories/${storyId}`);
         const result = await processFetchResponse(response);
-        applyFetchResult(result, setNotFound, setError, setCurrentStory);
+        if (result.type === 'notFound') {
+          setNotFound(true);
+        } else if (result.type === 'error') {
+          setError('Failed to load story');
+        } else {
+          assertStoryDetail(result.data);
+          setCurrentStory(result.data);
+        }
       } catch (err) {
-        handleFetchError(`/api/stories/${epicSlug}/${storySlug}`, err, setError);
+        handleFetchError(`/api/stories/${storyId}`, 'story', err, setError);
       } finally {
         setIsFetching(false);
       }
@@ -527,35 +468,27 @@ function useStoryFetch(epicSlug: string | undefined, storySlug: string | undefin
     fetchStory();
 
     return clearCurrentStory;
-  }, [epicSlug, storySlug, hasSlugs, setCurrentStory, clearCurrentStory]);
+  }, [storyId, hasId, setCurrentStory, clearCurrentStory]);
 
   // Subscribe to story updates when WebSocket is connected
-  useStorySubscription(
-    epicSlug,
-    storySlug,
-    hasSlugs,
-    isConnected,
-    subscribeToStory,
-    unsubscribeFromStory,
-  );
+  useStorySubscription(storyId, hasId, isConnected, subscribeToStory, unsubscribeFromStory);
 
   return { currentStory, loading: isFetching, notFound, error };
 }
 
 function StoryDetail() {
-  const { epicSlug, storySlug } = useParams<{
-    epicSlug: string;
-    storySlug: string;
+  const { storyId } = useParams<{
+    storyId: string;
   }>();
   const [searchParams] = useSearchParams();
-  const { currentStory, loading, notFound, error } = useStoryFetch(epicSlug, storySlug);
+  const { currentStory, loading, notFound, error } = useStoryFetch(storyId);
   const initialTab = getInitialTabFromQuery(searchParams);
 
   if (notFound) {
-    return <StoryNotFoundState epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />;
+    return <StoryNotFoundState storyId={storyId ?? ''} />;
   }
   if (error && !loading) {
-    return <StoryErrorState epicSlug={epicSlug ?? ''} error={error} />;
+    return <StoryErrorState error={error} />;
   }
   if (loading || !currentStory) {
     return <StoryLoadingState />;
@@ -565,7 +498,7 @@ function StoryDetail() {
 
   return (
     <div className="space-y-6">
-      <StoryHeader story={currentStory} epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />
+      <StoryHeader story={currentStory} storyId={storyId ?? ''} />
       <Tabs defaultValue={initialTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
@@ -582,25 +515,17 @@ function StoryDetail() {
           <TasksTabContent tasks={currentStory.tasks} />
         </TabsContent>
         <TabsContent value="content" className="space-y-4">
-          <ContentTabContent content={currentStory.content} />
+          <ContentTabContent content={currentStory.description} />
         </TabsContent>
         <TabsContent value="journal" className="space-y-4">
           <JournalTabContent journal={currentStory.journal ?? []} />
         </TabsContent>
         <TabsContent value="sessions" className="space-y-4">
-          <SessionsPanel epicSlug={epicSlug ?? ''} storySlug={storySlug ?? ''} />
+          <SessionsPanel storyId={storyId ?? ''} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-export {
-  HeaderSkeleton,
-  ContentSkeleton,
-  StatusBadge,
-  TaskStatusIcon,
-  TaskItem,
-  JournalEntryItem,
-  StoryDetail,
-};
+export { HeaderSkeleton, ContentSkeleton, TaskStatusIcon, TaskItem, JournalEntryItem, StoryDetail };

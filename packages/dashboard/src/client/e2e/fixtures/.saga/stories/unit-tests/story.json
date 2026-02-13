@@ -1,0 +1,6 @@
+{
+  "id": "unit-tests",
+  "title": "Unit Testing Framework",
+  "description": "Set up the unit testing framework and establish patterns for writing tests across the codebase.",
+  "epic": "testing-suite"
+}

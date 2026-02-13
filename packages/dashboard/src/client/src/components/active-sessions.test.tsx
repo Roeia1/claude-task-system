@@ -72,8 +72,7 @@ describe('ActiveSessions', () => {
         json: async () => [
           {
             name: 'saga__epic1__story1__12345',
-            epicSlug: 'epic1',
-            storySlug: 'story1',
+            storyId: 'story1',
             status: 'completed',
             outputFile: '/tmp/output.txt',
             outputAvailable: true,
@@ -97,8 +96,7 @@ describe('ActiveSessions', () => {
     const runningSessions: SessionInfo[] = [
       {
         name: 'saga__dashboard__api-routes__12345',
-        epicSlug: 'dashboard',
-        storySlug: 'api-routes',
+        storyId: 'api-routes',
         status: 'running',
         outputFile: '/tmp/saga/output1.txt',
         outputAvailable: true,
@@ -107,8 +105,7 @@ describe('ActiveSessions', () => {
       },
       {
         name: 'saga__auth__login-flow__67890',
-        epicSlug: 'auth',
-        storySlug: 'login-flow',
+        storyId: 'login-flow',
         status: 'running',
         outputFile: '/tmp/saga/output2.txt',
         outputAvailable: true,
@@ -144,10 +141,6 @@ describe('ActiveSessions', () => {
         expect(screen.getByText('api-routes')).toBeInTheDocument();
         expect(screen.getByText('login-flow')).toBeInTheDocument();
       });
-
-      // Verify epic names are shown
-      expect(screen.getByText('dashboard')).toBeInTheDocument();
-      expect(screen.getByText('auth')).toBeInTheDocument();
     });
 
     it('renders output preview for sessions', async () => {
@@ -168,8 +161,7 @@ describe('ActiveSessions', () => {
       const mixedSessions: SessionInfo[] = [
         {
           name: 'saga__epic1__running-story__111',
-          epicSlug: 'epic1',
-          storySlug: 'running-story',
+          storyId: 'running-story',
           status: 'running',
           outputFile: '/tmp/output.txt',
           outputAvailable: true,
@@ -178,8 +170,7 @@ describe('ActiveSessions', () => {
         },
         {
           name: 'saga__epic1__completed-story__222',
-          epicSlug: 'epic1',
-          storySlug: 'completed-story',
+          storyId: 'completed-story',
           status: 'completed',
           outputFile: '/tmp/output2.txt',
           outputAvailable: true,
@@ -208,8 +199,7 @@ describe('ActiveSessions', () => {
       const sessions: SessionInfo[] = [
         {
           name: 'saga__my-epic__my-story__12345',
-          epicSlug: 'my-epic',
-          storySlug: 'my-story',
+          storyId: 'my-story',
           status: 'running',
           outputFile: '/tmp/output.txt',
           outputAvailable: true,
@@ -231,7 +221,7 @@ describe('ActiveSessions', () => {
 
       // Check that the card is wrapped in a link with correct href
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/epic/my-epic/story/my-story?tab=sessions');
+      expect(link).toHaveAttribute('href', '/story/my-story?tab=sessions');
     });
   });
 

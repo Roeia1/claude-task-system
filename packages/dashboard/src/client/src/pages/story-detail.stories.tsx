@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import remarkGfm from 'remark-gfm';
 import { expect, within } from 'storybook/test';
 import { SessionDetailCard, SessionsPanelEmpty } from '@/components/SessionsPanel';
+import { StatusBadge } from '@/components/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,7 +21,6 @@ import {
   ContentSkeleton,
   HeaderSkeleton,
   JournalEntryItem,
-  StatusBadge,
   StoryDetail,
   TaskItem,
 } from './StoryDetail.tsx';
@@ -38,59 +38,90 @@ const MIN_SKELETON_PLACEHOLDER_COUNT = 5;
 /** Expected number of completed tasks in Completed story */
 const EXPECTED_COMPLETED_TASK_COUNT = 4;
 
-/** Regex pattern for matching "back to epic" link text (case insensitive) */
-const BACK_TO_EPIC_PATTERN = /back to epic/i;
+/** Regex pattern for matching "back to epic list" link text (case insensitive) */
+const BACK_TO_EPIC_LIST_PATTERN = /back to epic list/i;
 
 // ============================================================================
 // Sample Data
 // ============================================================================
 
 const sampleStory: StoryDetailType = {
-  slug: 'storybook-setup-component-stories',
+  id: 'storybook-setup-component-stories',
   title: 'Storybook Setup and Component Stories',
   status: 'inProgress',
-  epicSlug: 'dashboard-restructure',
+  epic: 'dashboard-restructure',
+  description: `## Context
+
+The SAGA Dashboard needs Storybook for component development and documentation.
+
+## Acceptance Criteria
+
+- Storybook 10.x is installed and configured
+- Stories exist for all custom SAGA components
+- pnpm storybook starts without errors`,
   tasks: [
     {
       id: 't1',
-      title: 'Install and configure Storybook 10.x',
+      subject: 'Install and configure Storybook 10.x',
+      description: '',
       status: 'completed',
+      blockedBy: [],
     },
     {
       id: 't2',
-      title: 'Configure Tailwind CSS and theme integration',
+      subject: 'Configure Tailwind CSS and theme integration',
+      description: '',
       status: 'completed',
+      blockedBy: [],
     },
     {
       id: 't3',
-      title: 'Create stories for Layout component',
+      subject: 'Create stories for Layout component',
+      description: '',
       status: 'completed',
+      blockedBy: [],
     },
     {
       id: 't4',
-      title: 'Create stories for Breadcrumb component',
+      subject: 'Create stories for Breadcrumb component',
+      description: '',
       status: 'completed',
+      blockedBy: [],
     },
     {
       id: 't5',
-      title: 'Create stories for EpicList page',
+      subject: 'Create stories for EpicList page',
+      description: '',
       status: 'completed',
+      blockedBy: [],
     },
     {
       id: 't6',
-      title: 'Create stories for EpicDetail page',
+      subject: 'Create stories for EpicDetail page',
+      description: '',
       status: 'completed',
+      blockedBy: [],
     },
     {
       id: 't7',
-      title: 'Create stories for StoryDetail page',
+      subject: 'Create stories for StoryDetail page',
+      description: '',
       status: 'inProgress',
+      blockedBy: [],
     },
-    { id: 't8', title: 'Create stories for status badges', status: 'pending' },
+    {
+      id: 't8',
+      subject: 'Create stories for status badges',
+      description: '',
+      status: 'pending',
+      blockedBy: [],
+    },
     {
       id: 't9',
-      title: 'Add Storybook scripts and verify build',
+      subject: 'Add Storybook scripts and verify build',
+      description: '',
       status: 'pending',
+      blockedBy: [],
     },
   ],
   journal: [
@@ -118,15 +149,6 @@ const sampleStory: StoryDetailType = {
       timestamp: '2026-01-28 01:43 UTC',
     },
   ],
-  content: `## Context
-
-The SAGA Dashboard needs Storybook for component development and documentation.
-
-## Acceptance Criteria
-
-- Storybook 10.x is installed and configured
-- Stories exist for all custom SAGA components
-- pnpm storybook starts without errors`,
 };
 
 const blockerEntry: JournalEntry = {
@@ -163,15 +185,28 @@ const sessionEntry: JournalEntry = {
 };
 
 const storyWithBlocker: StoryDetailType = {
-  slug: 'api-integration',
+  id: 'api-integration',
   title: 'API Integration',
-  status: 'blocked',
-  epicSlug: 'dashboard-restructure',
+  description: '',
+  status: 'inProgress',
+  epic: 'dashboard-restructure',
   tasks: [
-    { id: 't1', title: 'Define API schema', status: 'completed' },
-    { id: 't2', title: 'Implement endpoints', status: 'inProgress' },
-    { id: 't3', title: 'Add authentication', status: 'pending' },
-    { id: 't4', title: 'Write integration tests', status: 'pending' },
+    { id: 't1', subject: 'Define API schema', description: '', status: 'completed', blockedBy: [] },
+    {
+      id: 't2',
+      subject: 'Implement endpoints',
+      description: '',
+      status: 'inProgress',
+      blockedBy: [],
+    },
+    { id: 't3', subject: 'Add authentication', description: '', status: 'pending', blockedBy: [] },
+    {
+      id: 't4',
+      subject: 'Write integration tests',
+      description: '',
+      status: 'pending',
+      blockedBy: [],
+    },
   ],
   journal: [blockerEntry, sessionEntry],
 };
@@ -182,21 +217,19 @@ const storyWithBlocker: StoryDetailType = {
 
 const sampleSessions: SessionInfo[] = [
   {
-    name: 'saga__dashboard-restructure__storybook-setup__12345',
-    epicSlug: 'dashboard-restructure',
-    storySlug: 'storybook-setup-component-stories',
+    name: 'saga-story-storybook-setup-component-stories-12345',
+    storyId: 'storybook-setup-component-stories',
     status: 'running',
-    outputFile: '/tmp/saga/sessions/12345.log',
+    outputFile: '/tmp/saga/sessions/12345.jsonl',
     outputAvailable: true,
     startTime: '2026-01-28T02:00:00Z',
     outputPreview: 'Running task t7...\nCreating stories...',
   },
   {
-    name: 'saga__dashboard-restructure__storybook-setup__67890',
-    epicSlug: 'dashboard-restructure',
-    storySlug: 'storybook-setup-component-stories',
+    name: 'saga-story-storybook-setup-component-stories-67890',
+    storyId: 'storybook-setup-component-stories',
     status: 'completed',
-    outputFile: '/tmp/saga/sessions/67890.log',
+    outputFile: '/tmp/saga/sessions/67890.jsonl',
     outputAvailable: true,
     startTime: '2026-01-28T01:00:00Z',
     endTime: '2026-01-28T01:45:00Z',
@@ -205,15 +238,34 @@ const sampleSessions: SessionInfo[] = [
 ];
 
 const completedStory: StoryDetailType = {
-  slug: 'setup-project',
+  id: 'setup-project',
   title: 'Setup Project Structure',
+  description: '',
   status: 'completed',
-  epicSlug: 'dashboard-restructure',
+  epic: 'dashboard-restructure',
   tasks: [
-    { id: 't1', title: 'Initialize repository', status: 'completed' },
-    { id: 't2', title: 'Configure build tools', status: 'completed' },
-    { id: 't3', title: 'Setup linting and formatting', status: 'completed' },
-    { id: 't4', title: 'Add CI pipeline', status: 'completed' },
+    {
+      id: 't1',
+      subject: 'Initialize repository',
+      description: '',
+      status: 'completed',
+      blockedBy: [],
+    },
+    {
+      id: 't2',
+      subject: 'Configure build tools',
+      description: '',
+      status: 'completed',
+      blockedBy: [],
+    },
+    {
+      id: 't3',
+      subject: 'Setup linting and formatting',
+      description: '',
+      status: 'completed',
+      blockedBy: [],
+    },
+    { id: 't4', subject: 'Add CI pipeline', description: '', status: 'completed', blockedBy: [] },
   ],
   journal: [
     {
@@ -258,13 +310,13 @@ function StoryHeader({
   const completedCount = story.tasks.filter((t) => t.status === 'completed').length;
   return (
     <div className="space-y-4">
-      {showEpicLink && (
+      {showEpicLink && story.epic && (
         <div className="flex items-center gap-2 text-sm text-text-muted">
-          <Link to={`/epic/${story.epicSlug}`} className="hover:text-primary">
-            {story.epicSlug}
+          <Link to={`/epic/${story.epic}`} className="hover:text-primary">
+            {story.epic}
           </Link>
           <span>/</span>
-          <span className="text-text">{story.slug}</span>
+          <span className="text-text">{story.id}</span>
         </div>
       )}
       <h1 className="text-2xl font-bold text-text">{story.title}</h1>
@@ -301,8 +353,8 @@ function TasksTabContent({ tasks }: { tasks: Task[] }) {
 }
 
 /** Renders the Story Content tab with markdown */
-function ContentTabContent({ content }: { content: string | undefined }) {
-  if (!content) {
+function ContentTabContent({ description }: { description: string | undefined }) {
+  if (!description) {
     return (
       <Card>
         <CardContent className="py-8">
@@ -318,7 +370,7 @@ function ContentTabContent({ content }: { content: string | undefined }) {
       </CardHeader>
       <CardContent>
         <div className="prose prose-sm prose-invert max-w-none prose-headings:text-text prose-p:text-text-muted prose-strong:text-text prose-code:text-primary prose-code:bg-bg-dark prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-bg-dark prose-pre:border prose-pre:border-border-muted prose-a:text-primary prose-a:no-underline prose-a:hover:underline prose-li:text-text-muted prose-table:border prose-table:border-border-muted prose-th:bg-bg-dark prose-th:px-3 prose-th:py-2 prose-th:text-text prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-border-muted">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
         </div>
       </CardContent>
     </Card>
@@ -428,11 +480,10 @@ function NotFoundSection() {
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold text-text mb-2">Story not found</h1>
         <p className="text-text-muted mb-4">
-          The story &quot;non-existent-story&quot; does not exist in epic
-          &quot;dashboard-restructure&quot;.
+          The story &quot;non-existent-story&quot; does not exist.
         </p>
-        <Link to="/epic/dashboard-restructure" className="text-primary hover:underline">
-          ← Back to epic
+        <Link to="/" className="text-primary hover:underline">
+          ← Back to epic list
         </Link>
       </div>
     </section>
@@ -442,10 +493,11 @@ function NotFoundSection() {
 /** Empty state section for Showcase */
 function EmptyStateSection() {
   const emptyStory: StoryDetailType = {
-    slug: 'new-story',
+    id: 'new-story',
     title: 'New Story',
-    status: 'ready',
-    epicSlug: 'dashboard-restructure',
+    description: '',
+    status: 'pending',
+    epic: 'dashboard-restructure',
     tasks: [],
     journal: [],
   };
@@ -518,7 +570,7 @@ function BlockedStateSection() {
             <TabsTrigger value="sessions">Sessions</TabsTrigger>
           </TabsList>
           <TabsContent value="journal">
-            <JournalTabContent journal={storyWithBlocker.journal} hasBlocker={true} />
+            <JournalTabContent journal={storyWithBlocker.journal ?? []} hasBlocker={true} />
           </TabsContent>
         </Tabs>
       </div>
@@ -563,7 +615,7 @@ const meta: Meta<typeof StoryDetail> = {
   component: StoryDetail,
   decorators: [
     (Story) => (
-      <PageWrapper route="/epic/dashboard-restructure/story/storybook-setup-component-stories">
+      <PageWrapper route="/story/storybook-setup-component-stories">
         <Story />
       </PageWrapper>
     ),
@@ -673,10 +725,10 @@ export const Playground: StoryDetailStory = {
           <TasksTabContent tasks={sampleStory.tasks} />
         </TabsContent>
         <TabsContent value="content">
-          <ContentTabContent content={sampleStory.content} />
+          <ContentTabContent description={sampleStory.description} />
         </TabsContent>
         <TabsContent value="journal">
-          <JournalTabContent journal={sampleStory.journal} />
+          <JournalTabContent journal={sampleStory.journal ?? []} />
         </TabsContent>
         <TabsContent value="sessions">
           <SessionsTabContent sessions={sampleSessions} />
@@ -753,11 +805,10 @@ export const NotFound: StoryDetailStory = {
     <div className="text-center py-12">
       <h1 className="text-2xl font-bold text-text mb-2">Story not found</h1>
       <p className="text-text-muted mb-4">
-        The story &quot;non-existent-story&quot; does not exist in epic
-        &quot;dashboard-restructure&quot;.
+        The story &quot;non-existent-story&quot; does not exist.
       </p>
-      <Link to="/epic/dashboard-restructure" className="text-primary hover:underline">
-        ← Back to epic
+      <Link to="/" className="text-primary hover:underline">
+        ← Back to epic list
       </Link>
     </div>
   ),
@@ -777,9 +828,9 @@ export const NotFound: StoryDetailStory = {
     // Filter by explicit back link (not breadcrumb)
     const backLinks = canvas
       .getAllByRole('link')
-      .filter((link) => BACK_TO_EPIC_PATTERN.test(link.textContent || ''));
+      .filter((link) => BACK_TO_EPIC_LIST_PATTERN.test(link.textContent || ''));
     await expect(backLinks.length).toBeGreaterThanOrEqual(1);
-    await expect(backLinks[0]).toHaveAttribute('href', '/epic/dashboard-restructure');
+    await expect(backLinks[0]).toHaveAttribute('href', '/');
 
     // Visual snapshot tests
     await matchDomSnapshot(canvasElement, 'story-detail-not-found');
@@ -795,8 +846,8 @@ export const ErrorState: StoryDetailStory = {
     <div className="text-center py-12">
       <h1 className="text-2xl font-bold text-danger mb-2">Error</h1>
       <p className="text-text-muted mb-4">Failed to load story</p>
-      <Link to="/epic/dashboard-restructure" className="text-primary hover:underline">
-        ← Back to epic
+      <Link to="/" className="text-primary hover:underline">
+        ← Back to epic list
       </Link>
     </div>
   ),
@@ -821,7 +872,7 @@ export const ErrorState: StoryDetailStory = {
     // Filter by explicit back link (not breadcrumb)
     const backLinks = canvas
       .getAllByRole('link')
-      .filter((link) => BACK_TO_EPIC_PATTERN.test(link.textContent || ''));
+      .filter((link) => BACK_TO_EPIC_LIST_PATTERN.test(link.textContent || ''));
     await expect(backLinks.length).toBeGreaterThanOrEqual(1);
   },
 };
@@ -877,7 +928,7 @@ export const Populated: StoryDetailStory = {
     await expect(canvas.getByRole('tab', { name: 'Journal' })).toBeInTheDocument();
     await expect(canvas.getByRole('tab', { name: 'Sessions' })).toBeInTheDocument();
 
-    // Verify some task items are rendered
+    // Verify some task items are rendered (using 'subject' field names from the data)
     await expect(canvas.getByText('Install and configure Storybook 10.x')).toBeInTheDocument();
     await expect(canvas.getByText('Create stories for StoryDetail page')).toBeInTheDocument();
 
@@ -893,10 +944,11 @@ export const Populated: StoryDetailStory = {
 export const EmptyTasks: StoryDetailStory = {
   render: () => {
     const emptyStory: StoryDetailType = {
-      slug: 'new-story',
+      id: 'new-story',
       title: 'New Story',
-      status: 'ready',
-      epicSlug: 'dashboard-restructure',
+      description: '',
+      status: 'pending',
+      epic: 'dashboard-restructure',
       tasks: [],
       journal: [],
     };
@@ -928,8 +980,8 @@ export const EmptyTasks: StoryDetailStory = {
     // Verify story title
     await expect(canvas.getByText('New Story')).toBeInTheDocument();
 
-    // Verify Ready status badge
-    const badge = canvas.getByText('Ready');
+    // Verify Pending status badge
+    const badge = canvas.getByText('Pending');
     await expect(badge).toBeInTheDocument();
 
     // Verify 0/0 tasks progress
@@ -958,7 +1010,7 @@ export const WithBlocker: StoryDetailStory = {
           <TabsTrigger value="sessions">Sessions</TabsTrigger>
         </TabsList>
         <TabsContent value="journal">
-          <JournalTabContent journal={storyWithBlocker.journal} hasBlocker={true} />
+          <JournalTabContent journal={storyWithBlocker.journal ?? []} hasBlocker={true} />
         </TabsContent>
       </Tabs>
     </div>
@@ -973,8 +1025,8 @@ export const WithBlocker: StoryDetailStory = {
     // Verify story title
     await expect(canvas.getByText('API Integration')).toBeInTheDocument();
 
-    // Verify Blocked status badge
-    const badge = canvas.getByText('Blocked');
+    // Verify In Progress status badge
+    const badge = canvas.getByText('In Progress');
     await expect(badge).toBeInTheDocument();
 
     // Verify task progress
@@ -1062,7 +1114,7 @@ export const WithContent: StoryDetailStory = {
           <TabsTrigger value="sessions">Sessions</TabsTrigger>
         </TabsList>
         <TabsContent value="content">
-          <ContentTabContent content={sampleStory.content} />
+          <ContentTabContent description={sampleStory.description} />
         </TabsContent>
       </Tabs>
     </div>
@@ -1100,14 +1152,15 @@ export const WithContent: StoryDetailStory = {
 export const EmptyJournal: StoryDetailStory = {
   render: () => {
     const storyWithEmptyJournal: StoryDetailType = {
-      slug: 'new-story',
+      id: 'new-story',
       title: 'New Story',
-      status: 'ready',
-      epicSlug: 'dashboard-restructure',
+      description: '',
+      status: 'pending',
+      epic: 'dashboard-restructure',
       tasks: [
-        { id: 't1', title: 'Task 1', status: 'pending' },
-        { id: 't2', title: 'Task 2', status: 'pending' },
-        { id: 't3', title: 'Task 3', status: 'pending' },
+        { id: 't1', subject: 'Task 1', description: '', status: 'pending', blockedBy: [] },
+        { id: 't2', subject: 'Task 2', description: '', status: 'pending', blockedBy: [] },
+        { id: 't3', subject: 'Task 3', description: '', status: 'pending', blockedBy: [] },
       ],
       journal: [],
     };
@@ -1139,8 +1192,8 @@ export const EmptyJournal: StoryDetailStory = {
     // Verify story title
     await expect(canvas.getByText('New Story')).toBeInTheDocument();
 
-    // Verify Ready status badge
-    await expect(canvas.getByText('Ready')).toBeInTheDocument();
+    // Verify Pending status badge
+    await expect(canvas.getByText('Pending')).toBeInTheDocument();
 
     // Verify task progress
     await expect(canvas.getByText('0/3 tasks completed')).toBeInTheDocument();

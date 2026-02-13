@@ -29,7 +29,7 @@ test.describe('API Mocking Infrastructure', () => {
   test.describe('Mock Data Factories', () => {
     test('createMockEpicSummary creates valid EpicSummary', () => {
       const epic = createMockEpicSummary();
-      expect(epic.slug).toBeDefined();
+      expect(epic.id).toBeDefined();
       expect(epic.title).toBeDefined();
       expect(epic.storyCounts).toBeDefined();
       expect(epic.storyCounts.total).toBeGreaterThanOrEqual(0);
@@ -37,18 +37,16 @@ test.describe('API Mocking Infrastructure', () => {
 
     test('createMockEpicSummary allows overrides', () => {
       const epic = createMockEpicSummary({
-        slug: 'custom-slug',
+        id: 'custom-id',
         title: 'Custom Title',
-        isArchived: true,
       });
-      expect(epic.slug).toBe('custom-slug');
+      expect(epic.id).toBe('custom-id');
       expect(epic.title).toBe('Custom Title');
-      expect(epic.isArchived).toBe(true);
     });
 
     test('createMockEpic creates valid Epic with stories', () => {
       const epic = createMockEpic();
-      expect(epic.slug).toBeDefined();
+      expect(epic.id).toBeDefined();
       expect(epic.title).toBeDefined();
       expect(epic.stories).toBeInstanceOf(Array);
       expect(epic.storyCounts).toBeDefined();
@@ -56,10 +54,10 @@ test.describe('API Mocking Infrastructure', () => {
 
     test('createMockStoryDetail creates valid StoryDetail', () => {
       const story = createMockStoryDetail();
-      expect(story.slug).toBeDefined();
+      expect(story.id).toBeDefined();
       expect(story.title).toBeDefined();
       expect(story.status).toBeDefined();
-      expect(story.epicSlug).toBeDefined();
+      expect(story.epic).toBeDefined();
       expect(story.tasks).toBeInstanceOf(Array);
       expect(story.journal).toBeInstanceOf(Array);
     });
@@ -68,8 +66,8 @@ test.describe('API Mocking Infrastructure', () => {
   test.describe('API Route Mocking', () => {
     test('mockEpicList mocks GET /api/epics', async ({ page }) => {
       const epics = [
-        createMockEpicSummary({ slug: 'epic-1', title: 'Epic One' }),
-        createMockEpicSummary({ slug: 'epic-2', title: 'Epic Two' }),
+        createMockEpicSummary({ id: 'epic-1', title: 'Epic One' }),
+        createMockEpicSummary({ id: 'epic-2', title: 'Epic Two' }),
       ];
 
       await mockEpicList(page, epics);
@@ -85,15 +83,15 @@ test.describe('API Mocking Infrastructure', () => {
       await expect(page.getByText('Epic Two')).toBeVisible();
     });
 
-    test('mockEpicDetail mocks GET /api/epics/:slug', async ({ page }) => {
+    test('mockEpicDetail mocks GET /api/epics/:id', async ({ page }) => {
       const epic = createMockEpic({
-        slug: 'test-epic',
+        id: 'test-epic',
         title: 'Test Epic Detail',
       });
 
       // Mock both the list (for initial load) and detail
       await mockEpicList(page, [
-        createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic Detail' }),
+        createMockEpicSummary({ id: 'test-epic', title: 'Test Epic Detail' }),
       ]);
       await mockEpicDetail(page, epic);
 
@@ -106,17 +104,17 @@ test.describe('API Mocking Infrastructure', () => {
       await expect(page.getByRole('heading', { name: 'Test Epic Detail' })).toBeVisible();
     });
 
-    test('mockStoryDetail mocks GET /api/stories/:epicSlug/:storySlug', async ({ page }) => {
+    test('mockStoryDetail mocks GET /api/stories/:storyId', async ({ page }) => {
       const story = createMockStoryDetail({
-        slug: 'test-story',
+        id: 'test-story',
         title: 'Test Story Detail',
-        epicSlug: 'test-epic',
+        epic: 'test-epic',
       });
 
       // Mock the story detail endpoint
       await mockStoryDetail(page, story);
 
-      await page.goto('/epic/test-epic/story/test-story');
+      await page.goto('/story/test-story');
       await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: LOADING_TIMEOUT_MS,
       });
@@ -137,7 +135,7 @@ test.describe('API Mocking Infrastructure', () => {
     });
 
     test('mockApiDelay adds delay to responses', async ({ page }) => {
-      const epics = [createMockEpicSummary({ slug: 'delayed-epic' })];
+      const epics = [createMockEpicSummary({ id: 'delayed-epic' })];
 
       // Add a 500ms delay to the response
       await mockApiDelay(page, '**/api/epics', DELAY_MS, {

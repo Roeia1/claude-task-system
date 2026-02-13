@@ -9,12 +9,11 @@
  * - story:updated: Broadcasts story detail to subscribed clients when a story changes
  *
  * Client → Server events:
- * - subscribe:story: Subscribe to updates for a specific story
+ * - subscribe:story: Subscribe to updates for a specific story (by storyId)
  * - unsubscribe:story: Unsubscribe from story updates
  */
 
 import type { Server as HttpServer } from 'node:http';
-import { join, relative } from 'node:path';
 import { type RawData, WebSocket, WebSocketServer } from 'ws';
 
 import {
@@ -48,16 +47,11 @@ const HEARTBEAT_INTERVAL_MS = 30_000;
 // ============================================================================
 
 /**
- * Subscription key for a story
- */
-type StoryKey = `${string}:${string}`;
-
-/**
  * Client connection state
  */
 interface ClientState {
   ws: WebSocket;
-  subscribedStories: Set<StoryKey>;
+  subscribedStories: Set<string>;
   isAlive: boolean;
 }
 
@@ -79,8 +73,7 @@ interface WebSocketInstance {
 interface ClientMessage {
   event: string;
   data?: {
-    epicSlug?: string;
-    storySlug?: string;
+    storyId?: string;
     sessionName?: string;
   };
 }
@@ -98,26 +91,15 @@ interface ServerMessage {
 // ============================================================================
 
 /**
- * Create a story key from epic and story slugs
+ * Convert ParsedEpic to EpicSummary (remove stories)
  */
-function makeStoryKey(epicSlug: string, storySlug: string): StoryKey {
-  return `${epicSlug}:${storySlug}`;
-}
-
-/**
- * Convert Epic to EpicSummary (remove stories and content)
- */
-function toEpicSummary(epic: {
-  slug: string;
-  title: string;
-  storyCounts: EpicSummary['storyCounts'];
-  path: string;
-}): EpicSummary {
+function toEpicSummary(epic: EpicSummary): EpicSummary {
   return {
-    slug: epic.slug,
+    id: epic.id,
     title: epic.title,
+    description: epic.description,
+    status: epic.status,
     storyCounts: epic.storyCounts,
-    path: epic.path,
   };
 }
 
@@ -151,13 +133,12 @@ function handleStorySubscription(
   data: ClientMessage['data'],
   subscribe: boolean,
 ): void {
-  const { epicSlug, storySlug } = data || {};
-  if (epicSlug && storySlug) {
-    const key = makeStoryKey(epicSlug, storySlug);
+  const { storyId } = data || {};
+  if (storyId) {
     if (subscribe) {
-      state.subscribedStories.add(key);
+      state.subscribedStories.add(storyId);
     } else {
-      state.subscribedStories.delete(key);
+      state.subscribedStories.delete(storyId);
     }
   }
 }
@@ -215,9 +196,9 @@ function processClientMessage(
 /**
  * Check if any client is subscribed to a story
  */
-function hasSubscribers(clients: Map<WebSocket, ClientState>, storyKey: StoryKey): boolean {
+function hasSubscribers(clients: Map<WebSocket, ClientState>, storyId: string): boolean {
   for (const [, state] of clients) {
-    if (state.subscribedStories.has(storyKey)) {
+    if (state.subscribedStories.has(storyId)) {
       return true;
     }
   }
@@ -225,45 +206,17 @@ function hasSubscribers(clients: Map<WebSocket, ClientState>, storyKey: StoryKey
 }
 
 /**
- * Get story path based on archived status
+ * Parse and enrich story data with journal
  */
-function getStoryPath(
-  sagaRoot: string,
-  epicSlug: string,
-  storySlug: string,
-  archived: boolean | undefined,
-): string {
-  return archived
-    ? join(sagaRoot, '.saga', 'archive', epicSlug, storySlug, 'story.md')
-    : join(sagaRoot, '.saga', 'epics', epicSlug, 'stories', storySlug, 'story.md');
-}
-
-/**
- * Parse and enrich story data with relative paths and journal
- */
-async function parseAndEnrichStory(
-  sagaRoot: string,
-  storyPath: string,
-  epicSlug: string,
-  archived: boolean | undefined,
-): Promise<StoryDetail | null> {
-  const story = await parseStory(storyPath, epicSlug);
+async function parseAndEnrichStory(sagaRoot: string, storyId: string): Promise<StoryDetail | null> {
+  const story = parseStory(sagaRoot, storyId);
   if (!story) {
     return null;
   }
 
-  // Make paths relative
-  story.paths.storyMd = relative(sagaRoot, story.paths.storyMd);
-  if (story.paths.journalMd) {
-    story.paths.journalMd = relative(sagaRoot, story.paths.journalMd);
-  }
-
-  story.archived = archived;
-
-  // Parse journal if it exists
-  if (story.paths.journalMd) {
-    const journalPath = join(sagaRoot, story.paths.journalMd);
-    const journal = await parseJournal(journalPath);
+  // Parse journal if story has a journal path
+  if (story.journalPath) {
+    const journal = await parseJournal(story.journalPath);
     if (journal.length > 0) {
       story.journal = journal;
     }
@@ -279,30 +232,27 @@ async function handleStoryChangeEvent(
   event: WatcherEvent,
   sagaRoot: string,
   clients: Map<WebSocket, ClientState>,
-  broadcastToSubscribers: (storyKey: StoryKey, message: ServerMessage) => void,
-  handleEpicChange: () => Promise<void>,
+  broadcastToSubscribers: (storyId: string, message: ServerMessage) => void,
+  handleEpicChange: () => void,
 ): Promise<void> {
-  const { epicSlug, storySlug, archived } = event;
-  if (!storySlug) {
+  const { storyId } = event;
+  if (!storyId) {
     return;
   }
 
-  const storyKey = makeStoryKey(epicSlug, storySlug);
-
-  if (!hasSubscribers(clients, storyKey)) {
-    await handleEpicChange();
+  if (!hasSubscribers(clients, storyId)) {
+    handleEpicChange();
     return;
   }
 
   try {
-    const storyPath = getStoryPath(sagaRoot, epicSlug, storySlug, archived);
-    const story = await parseAndEnrichStory(sagaRoot, storyPath, epicSlug, archived);
+    const story = await parseAndEnrichStory(sagaRoot, storyId);
 
     if (story) {
-      broadcastToSubscribers(storyKey, { event: 'story:updated', data: story });
+      broadcastToSubscribers(storyId, { event: 'story:updated', data: story });
     }
 
-    await handleEpicChange();
+    handleEpicChange();
   } catch {
     // Silently ignore story parsing errors
   }
@@ -394,12 +344,12 @@ function setupWatcherHandlers(
   sagaRoot: string,
   clients: Map<WebSocket, ClientState>,
   broadcast: (message: ServerMessage) => void,
-  broadcastToSubscribers: (storyKey: StoryKey, message: ServerMessage) => void,
+  broadcastToSubscribers: (storyId: string, message: ServerMessage) => void,
 ): void {
-  const handleEpicChange = async () => {
+  const handleEpicChange = () => {
     try {
-      const epics = await scanSagaDirectory(sagaRoot);
-      const summaries = epics.map(toEpicSummary);
+      const result = scanSagaDirectory(sagaRoot);
+      const summaries = result.epics.map(toEpicSummary);
       broadcast({ event: 'epics:updated', data: summaries });
     } catch {
       // Silently ignore epic scanning errors
@@ -487,7 +437,7 @@ interface WebSocketServerState {
   logStreamManager: LogStreamManager;
   heartbeatInterval: ReturnType<typeof setInterval>;
   broadcast: (message: ServerMessage) => void;
-  broadcastToSubscribers: (storyKey: StoryKey, message: ServerMessage) => void;
+  broadcastToSubscribers: (storyId: string, message: ServerMessage) => void;
 }
 
 /**
@@ -510,8 +460,7 @@ function createWebSocketInstance(state: WebSocketServerState): WebSocketInstance
     },
 
     broadcastStoryUpdated(story: StoryDetail): void {
-      const key = makeStoryKey(story.epicSlug, story.slug);
-      broadcastToSubscribers(key, { event: 'story:updated', data: story });
+      broadcastToSubscribers(story.id, { event: 'story:updated', data: story });
     },
 
     async close(): Promise<void> {
@@ -574,9 +523,9 @@ async function createWebSocketServer(
     }
   };
 
-  const broadcastToSubscribers = (storyKey: StoryKey, message: ServerMessage): void => {
+  const broadcastToSubscribers = (storyId: string, message: ServerMessage): void => {
     for (const [ws, state] of clients) {
-      if (state.subscribedStories.has(storyKey)) {
+      if (state.subscribedStories.has(storyId)) {
         sendToClient(ws, message);
       }
     }

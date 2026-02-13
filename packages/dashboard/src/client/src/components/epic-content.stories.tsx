@@ -54,15 +54,15 @@ Use the \`npm install\` command to install dependencies.
 
 \`\`\`typescript
 interface Epic {
-  slug: string;
+  id: string;
   title: string;
-  content?: string;
+  description?: string;
 }
 
 const epic: Epic = {
-  slug: 'my-epic',
+  id: 'my-epic',
   title: 'My Epic',
-  content: '# Documentation',
+  description: '# Documentation',
 };
 \`\`\`
 
@@ -75,9 +75,8 @@ saga dashboard
 
 | Status | Description | Color |
 |--------|-------------|-------|
-| ready | Not yet started | Gray |
-| in_progress | Currently being worked on | Blue |
-| blocked | Cannot proceed | Red |
+| pending | Not yet started | Gray |
+| inProgress | Currently being worked on | Blue |
 | completed | Successfully finished | Green |`,
 
   'gfm-features': `## GFM Features

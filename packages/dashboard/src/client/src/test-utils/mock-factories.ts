@@ -7,6 +7,7 @@
 
 import type {
   Epic,
+  EpicChild,
   EpicSummary,
   JournalEntry,
   JournalEntryType,
@@ -24,16 +25,10 @@ import type {
 // ============================================================================
 
 /** Preset types for Epic factory - represents different epic states */
-type EpicPreset =
-  | 'typical'
-  | 'just-started'
-  | 'in-progress'
-  | 'has-blockers'
-  | 'almost-done'
-  | 'completed';
+type EpicPreset = 'typical' | 'just-started' | 'in-progress' | 'almost-done' | 'completed';
 
 /** Preset types for Story factory - represents different story states */
-type StoryPreset = 'ready' | 'in-progress' | 'blocked' | 'almost-done' | 'completed';
+type StoryPreset = 'pending' | 'in-progress' | 'almost-done' | 'completed';
 
 /** Preset types for Session factory - represents different session states */
 type SessionPreset =
@@ -55,38 +50,45 @@ type JournalPreset = 'session' | 'blocker' | 'resolution';
 
 /** Override options for Epic factory */
 interface EpicOverrides {
-  slug?: string;
+  id?: string;
   title?: string;
-  content?: string;
+  description?: string;
   storyCounts?: Partial<StoryCounts>;
-  isArchived?: boolean;
   stories?: StoryDetail[];
+  children?: EpicChild[];
+  status?: StoryStatus;
 }
 
 /** Override options for EpicSummary factory */
 interface EpicSummaryOverrides {
-  slug?: string;
+  id?: string;
   title?: string;
+  description?: string;
   storyCounts?: Partial<StoryCounts>;
-  isArchived?: boolean;
+  status?: StoryStatus;
 }
 
 /** Override options for Story factory */
 interface StoryOverrides {
-  slug?: string;
+  id?: string;
   title?: string;
+  description?: string;
   status?: StoryStatus;
-  epicSlug?: string;
+  epic?: string;
   tasks?: Task[];
   journal?: JournalEntry[];
-  content?: string;
+  guidance?: string;
+  doneWhen?: string;
+  avoid?: string;
+  branch?: string;
+  pr?: string;
+  worktree?: string;
 }
 
 /** Override options for Session factory */
 interface SessionOverrides {
   name?: string;
-  epicSlug?: string;
-  storySlug?: string;
+  storyId?: string;
   status?: SessionStatus;
   outputFile?: string;
   outputAvailable?: boolean;
@@ -98,8 +100,13 @@ interface SessionOverrides {
 /** Override options for Task factory */
 interface TaskOverrides {
   id?: string;
-  title?: string;
+  subject?: string;
+  description?: string;
   status?: TaskStatus;
+  blockedBy?: string[];
+  guidance?: string;
+  doneWhen?: string;
+  activeForm?: string;
 }
 
 /** Override options for Journal factory */
@@ -128,43 +135,32 @@ const MS_ONE_HOUR_TWO_MINUTES = 3_720_000;
 
 /** Story counts for each epic preset */
 const epicPresetCounts: Record<EpicPreset, StoryCounts> = {
-  typical: { ready: 2, inProgress: 3, blocked: 1, completed: 4, total: 10 },
+  typical: { pending: 2, inProgress: 3, completed: 4, total: 9 },
   'just-started': {
-    ready: 5,
+    pending: 5,
     inProgress: 0,
-    blocked: 0,
     completed: 0,
     total: 5,
   },
   'in-progress': {
-    ready: 1,
+    pending: 1,
     inProgress: 4,
-    blocked: 0,
     completed: 2,
     total: 7,
   },
-  'has-blockers': {
-    ready: 1,
-    inProgress: 2,
-    blocked: 2,
-    completed: 1,
-    total: 6,
-  },
   'almost-done': {
-    ready: 0,
+    pending: 0,
     inProgress: 1,
-    blocked: 0,
     completed: 7,
     total: 8,
   },
-  completed: { ready: 0, inProgress: 0, blocked: 0, completed: 6, total: 6 },
+  completed: { pending: 0, inProgress: 0, completed: 6, total: 6 },
 };
 
 /** Status for each story preset */
 const storyPresetStatus: Record<StoryPreset, StoryStatus> = {
-  ready: 'ready',
+  pending: 'pending',
   'in-progress': 'inProgress',
-  blocked: 'blocked',
   'almost-done': 'inProgress',
   completed: 'completed',
 };
@@ -200,8 +196,13 @@ function createMockTask(preset: TaskPreset = 'pending', overrides: TaskOverrides
 
   return {
     id: overrides.id ?? `task-${id}`,
-    title: overrides.title ?? `Task ${id}: ${preset.replace('-', ' ')} task`,
+    subject: overrides.subject ?? `Task ${id}: ${preset.replace('-', ' ')} task`,
+    description: overrides.description ?? `Description for task ${id}`,
     status: overrides.status ?? taskPresetStatus[preset],
+    blockedBy: overrides.blockedBy ?? [],
+    guidance: overrides.guidance,
+    doneWhen: overrides.doneWhen,
+    activeForm: overrides.activeForm,
   };
 }
 
@@ -225,6 +226,20 @@ function createMockJournal(
   };
 }
 
+/** Derive epic status from story counts */
+function deriveEpicStatusFromCounts(counts: StoryCounts): StoryStatus {
+  if (counts.total === 0) {
+    return 'pending';
+  }
+  if (counts.completed === counts.total) {
+    return 'completed';
+  }
+  if (counts.inProgress > 0 || counts.completed > 0) {
+    return 'inProgress';
+  }
+  return 'pending';
+}
+
 /**
  * Creates a mock Epic with the specified preset and optional overrides.
  */
@@ -233,12 +248,13 @@ function createMockEpic(preset: EpicPreset = 'typical', overrides: EpicOverrides
   const storyCounts = { ...epicPresetCounts[preset], ...overrides.storyCounts };
 
   return {
-    slug: overrides.slug ?? `epic-${id}`,
+    id: overrides.id ?? `epic-${id}`,
     title: overrides.title ?? `Epic ${id}: ${preset.replace('-', ' ')}`,
-    content: overrides.content ?? `# Epic ${id}\n\nThis is a ${preset} epic for testing.`,
+    description: overrides.description ?? `This is a ${preset} epic for testing.`,
     stories: overrides.stories ?? [],
     storyCounts,
-    isArchived: overrides.isArchived ?? false,
+    children: overrides.children ?? [],
+    status: overrides.status ?? deriveEpicStatusFromCounts(storyCounts),
   };
 }
 
@@ -253,10 +269,11 @@ function createMockEpicSummary(
   const storyCounts = { ...epicPresetCounts[preset], ...overrides.storyCounts };
 
   return {
-    slug: overrides.slug ?? `epic-${id}`,
+    id: overrides.id ?? `epic-${id}`,
     title: overrides.title ?? `Epic ${id}: ${preset.replace('-', ' ')}`,
+    description: overrides.description ?? `This is a ${preset} epic summary.`,
     storyCounts,
-    isArchived: overrides.isArchived ?? false,
+    status: overrides.status ?? deriveEpicStatusFromCounts(storyCounts),
   };
 }
 
@@ -264,7 +281,7 @@ function createMockEpicSummary(
  * Creates a mock StoryDetail with the specified preset and optional overrides.
  */
 function createMockStory(
-  preset: StoryPreset = 'ready',
+  preset: StoryPreset = 'pending',
   overrides: StoryOverrides = {},
 ): StoryDetail {
   const id = ++storyCounter;
@@ -275,13 +292,19 @@ function createMockStory(
   const defaultJournal = generateJournalForPreset(preset);
 
   return {
-    slug: overrides.slug ?? `story-${id}`,
+    id: overrides.id ?? `story-${id}`,
     title: overrides.title ?? `Story ${id}: ${preset.replace('-', ' ')}`,
+    description: overrides.description ?? `Description for story ${id}`,
     status,
-    epicSlug: overrides.epicSlug ?? 'test-epic',
+    epic: overrides.epic ?? 'test-epic',
     tasks: overrides.tasks ?? defaultTasks,
     journal: overrides.journal ?? defaultJournal,
-    content: overrides.content,
+    guidance: overrides.guidance,
+    doneWhen: overrides.doneWhen,
+    avoid: overrides.avoid,
+    branch: overrides.branch,
+    pr: overrides.pr,
+    worktree: overrides.worktree,
   };
 }
 
@@ -310,17 +333,14 @@ function createMockSession(
   const startTime = overrides.startTime ?? new Date(Date.now() - startOffset).toISOString();
 
   // Determine output availability based on preset
-  // 'no-output' means output is available but empty (no preview shown)
-  // 'output-unavailable' means output file is not accessible (shows message)
   const outputAvailable = overrides.outputAvailable ?? preset !== 'output-unavailable';
   const outputPreview = getOutputPreviewForPreset(preset, overrides.outputPreview);
 
   return {
-    name: overrides.name ?? `saga__test-epic__story-${id}__${BASE_SESSION_PID + id}`,
-    epicSlug: overrides.epicSlug ?? 'test-epic',
-    storySlug: overrides.storySlug ?? `story-${id}`,
+    name: overrides.name ?? `saga-story-story-${id}-${BASE_SESSION_PID + id}`,
+    storyId: overrides.storyId ?? `story-${id}`,
     status: overrides.status ?? 'running',
-    outputFile: overrides.outputFile ?? `/tmp/saga/sessions/output-${id}.log`,
+    outputFile: overrides.outputFile ?? `/tmp/saga/sessions/output-${id}.jsonl`,
     outputAvailable,
     startTime,
     endTime: overrides.endTime,
@@ -337,44 +357,36 @@ function createMockSession(
  */
 function generateTasksForPreset(preset: StoryPreset): Task[] {
   switch (preset) {
-    case 'ready':
+    case 'pending':
       return [
-        createMockTask('pending', { title: 'Set up project structure' }),
-        createMockTask('pending', { title: 'Implement core feature' }),
-        createMockTask('pending', { title: 'Write tests' }),
+        createMockTask('pending', { subject: 'Set up project structure' }),
+        createMockTask('pending', { subject: 'Implement core feature' }),
+        createMockTask('pending', { subject: 'Write tests' }),
       ];
 
     case 'in-progress':
       return [
-        createMockTask('completed', { title: 'Set up project structure' }),
-        createMockTask('in-progress', { title: 'Implement core feature' }),
-        createMockTask('pending', { title: 'Write tests' }),
-      ];
-
-    case 'blocked':
-      return [
-        createMockTask('completed', { title: 'Set up project structure' }),
-        createMockTask('pending', { title: 'Waiting for API changes' }),
-        createMockTask('pending', { title: 'Write integration tests' }),
+        createMockTask('completed', { subject: 'Set up project structure' }),
+        createMockTask('in-progress', { subject: 'Implement core feature' }),
+        createMockTask('pending', { subject: 'Write tests' }),
       ];
 
     case 'almost-done':
       return [
-        createMockTask('completed', { title: 'Set up project structure' }),
-        createMockTask('completed', { title: 'Implement core feature' }),
-        createMockTask('completed', { title: 'Write unit tests' }),
-        createMockTask('in-progress', { title: 'Final cleanup' }),
+        createMockTask('completed', { subject: 'Set up project structure' }),
+        createMockTask('completed', { subject: 'Implement core feature' }),
+        createMockTask('completed', { subject: 'Write unit tests' }),
+        createMockTask('in-progress', { subject: 'Final cleanup' }),
       ];
 
     case 'completed':
       return [
-        createMockTask('completed', { title: 'Set up project structure' }),
-        createMockTask('completed', { title: 'Implement core feature' }),
-        createMockTask('completed', { title: 'Write tests' }),
+        createMockTask('completed', { subject: 'Set up project structure' }),
+        createMockTask('completed', { subject: 'Implement core feature' }),
+        createMockTask('completed', { subject: 'Write tests' }),
       ];
 
     default:
-      // Exhaustive check - TypeScript ensures all cases are handled
       return preset satisfies never;
   }
 }
@@ -384,7 +396,7 @@ function generateTasksForPreset(preset: StoryPreset): Task[] {
  */
 function generateJournalForPreset(preset: StoryPreset): JournalEntry[] {
   switch (preset) {
-    case 'ready':
+    case 'pending':
       return [];
 
     case 'in-progress':
@@ -392,19 +404,6 @@ function generateJournalForPreset(preset: StoryPreset): JournalEntry[] {
         createMockJournal('session', {
           title: 'Session 1: Initial setup',
           content: 'Completed project structure and started on core feature.',
-        }),
-      ];
-
-    case 'blocked':
-      return [
-        createMockJournal('session', {
-          title: 'Session 1: Initial work',
-          content: 'Set up the project structure.',
-        }),
-        createMockJournal('blocker', {
-          title: 'Blocked: Need API changes',
-          content:
-            'Cannot proceed until the backend API is updated to support the new endpoint format.',
         }),
       ];
 
@@ -429,7 +428,6 @@ function generateJournalForPreset(preset: StoryPreset): JournalEntry[] {
       ];
 
     default:
-      // Exhaustive check - TypeScript ensures all cases are handled
       return preset satisfies never;
   }
 }
@@ -457,7 +455,6 @@ function getOutputPreviewForPreset(preset: SessionPreset, override?: string): st
       return undefined;
 
     default:
-      // Exhaustive check - TypeScript ensures all cases are handled
       return preset satisfies never;
   }
 }
@@ -486,7 +483,6 @@ Need the backend team to update the API schema.`;
 The backend team has updated the API. Proceeding with implementation.`;
 
     default:
-      // Exhaustive check - TypeScript ensures all cases are handled
       return preset satisfies never;
   }
 }
@@ -503,7 +499,6 @@ function getJournalTitleForPreset(preset: JournalPreset): string {
     case 'resolution':
       return 'Resolution: API updated';
     default:
-      // Exhaustive check - TypeScript ensures all cases are handled
       return preset satisfies never;
   }
 }
@@ -527,9 +522,8 @@ function resetMockCounters(): void {
  */
 function createStoryCounts(overrides: Partial<StoryCounts> = {}): StoryCounts {
   return {
-    ready: overrides.ready ?? 0,
+    pending: overrides.pending ?? 0,
     inProgress: overrides.inProgress ?? 0,
-    blocked: overrides.blocked ?? 0,
     completed: overrides.completed ?? 0,
     total: overrides.total ?? 0,
   };

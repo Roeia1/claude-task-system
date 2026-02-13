@@ -10,7 +10,6 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Epic, Story, Task } from '@saga-ai/types';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   deriveEpicStatus,
   deriveStoryStatus,
@@ -27,7 +26,8 @@ import {
   writeEpic,
   writeStory,
   writeTask,
-} from './storage.ts';
+} from '@saga-ai/types';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('story storage', () => {
   let testDir: string;

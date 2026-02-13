@@ -11,7 +11,7 @@ const RETRY_BUTTON_PATTERN = /retry/i;
 
 // API endpoint for sessions
 const SESSIONS_API_BASE = '/api/sessions';
-const SESSIONS_API_ENDPOINT = `${SESSIONS_API_BASE}?epicSlug=my-epic&storySlug=my-story`;
+const SESSIONS_API_ENDPOINT = `${SESSIONS_API_BASE}?storyId=my-story`;
 
 /**
  * Helper to render components with all required providers
@@ -47,7 +47,7 @@ describe('SessionsPanel', () => {
           }),
       );
 
-      renderWithProviders(<SessionsPanel epicSlug="test-epic" storySlug="test-story" />);
+      renderWithProviders(<SessionsPanel storyId="test-story" />);
 
       expect(screen.getByTestId('sessions-panel-skeleton')).toBeInTheDocument();
     });
@@ -60,7 +60,7 @@ describe('SessionsPanel', () => {
         json: async () => [],
       });
 
-      renderWithProviders(<SessionsPanel epicSlug="test-epic" storySlug="test-story" />);
+      renderWithProviders(<SessionsPanel storyId="test-story" />);
 
       await waitFor(() => {
         expect(screen.queryByTestId('sessions-panel-skeleton')).not.toBeInTheDocument();
@@ -75,8 +75,7 @@ describe('SessionsPanel', () => {
     const mockSessions: SessionInfo[] = [
       {
         name: 'saga__test-epic__test-story__12345',
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
+        storyId: 'test-story',
         status: 'running',
         outputFile: '/tmp/saga/output1.txt',
         outputAvailable: true,
@@ -85,8 +84,7 @@ describe('SessionsPanel', () => {
       },
       {
         name: 'saga__test-epic__test-story__67890',
-        epicSlug: 'test-epic',
-        storySlug: 'test-story',
+        storyId: 'test-story',
         status: 'completed',
         outputFile: '/tmp/saga/output2.txt',
         outputAvailable: true,
@@ -102,7 +100,7 @@ describe('SessionsPanel', () => {
         json: async () => mockSessions,
       });
 
-      renderWithProviders(<SessionsPanel epicSlug="test-epic" storySlug="test-story" />);
+      renderWithProviders(<SessionsPanel storyId="test-story" />);
 
       await waitFor(() => {
         expect(screen.getByTestId('sessions-panel')).toBeInTheDocument();
@@ -117,8 +115,7 @@ describe('SessionsPanel', () => {
       const sessionsOutOfOrder: SessionInfo[] = [
         {
           name: 'saga__test-epic__test-story__older',
-          epicSlug: 'test-epic',
-          storySlug: 'test-story',
+          storyId: 'test-story',
           status: 'completed',
           outputFile: '/tmp/older.txt',
           outputAvailable: true,
@@ -127,8 +124,7 @@ describe('SessionsPanel', () => {
         },
         {
           name: 'saga__test-epic__test-story__newer',
-          epicSlug: 'test-epic',
-          storySlug: 'test-story',
+          storyId: 'test-story',
           status: 'running',
           outputFile: '/tmp/newer.txt',
           outputAvailable: true,
@@ -141,7 +137,7 @@ describe('SessionsPanel', () => {
         json: async () => sessionsOutOfOrder,
       });
 
-      renderWithProviders(<SessionsPanel epicSlug="test-epic" storySlug="test-story" />);
+      renderWithProviders(<SessionsPanel storyId="test-story" />);
 
       await waitFor(() => {
         const sessionCards = screen.getAllByTestId('session-detail-card');
@@ -159,7 +155,7 @@ describe('SessionsPanel', () => {
         json: async () => mockSessions,
       });
 
-      renderWithProviders(<SessionsPanel epicSlug="test-epic" storySlug="test-story" />);
+      renderWithProviders(<SessionsPanel storyId="test-story" />);
 
       await waitFor(() => {
         // Should have both running and completed badges
@@ -170,13 +166,13 @@ describe('SessionsPanel', () => {
   });
 
   describe('API call', () => {
-    it('fetches sessions with epicSlug and storySlug query params', async () => {
+    it('fetches sessions with storyId query param', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => [],
       });
 
-      renderWithProviders(<SessionsPanel epicSlug="my-epic" storySlug="my-story" />);
+      renderWithProviders(<SessionsPanel storyId="my-story" />);
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(SESSIONS_API_ENDPOINT);
@@ -191,7 +187,7 @@ describe('SessionsPanel', () => {
         status: 500,
       });
 
-      renderWithProviders(<SessionsPanel epicSlug="test-epic" storySlug="test-story" />);
+      renderWithProviders(<SessionsPanel storyId="test-story" />);
 
       await waitFor(() => {
         expect(screen.queryByTestId('sessions-panel-skeleton')).not.toBeInTheDocument();
@@ -205,7 +201,7 @@ describe('SessionsPanel', () => {
     it('shows error state when fetch throws error', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      renderWithProviders(<SessionsPanel epicSlug="test-epic" storySlug="test-story" />);
+      renderWithProviders(<SessionsPanel storyId="test-story" />);
 
       await waitFor(() => {
         expect(screen.queryByTestId('sessions-panel-skeleton')).not.toBeInTheDocument();
@@ -222,7 +218,7 @@ describe('SessionsPanel', () => {
         status: 500,
       });
 
-      renderWithProviders(<SessionsPanel epicSlug="test-epic" storySlug="test-story" />);
+      renderWithProviders(<SessionsPanel storyId="test-story" />);
 
       await waitFor(() => {
         expect(screen.getByTestId('sessions-panel-error')).toBeInTheDocument();

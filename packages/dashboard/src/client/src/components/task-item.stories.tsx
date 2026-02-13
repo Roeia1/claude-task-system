@@ -70,7 +70,7 @@ const Showcase: Story = {
               <div className="text-xs text-text-muted mb-1">Pending</div>
               <TaskItem
                 task={createMockTask('pending', {
-                  title: 'Write unit tests for API endpoints',
+                  subject: 'Write unit tests for API endpoints',
                 })}
               />
             </div>
@@ -78,7 +78,7 @@ const Showcase: Story = {
               <div className="text-xs text-text-muted mb-1">In Progress</div>
               <TaskItem
                 task={createMockTask('in-progress', {
-                  title: 'Implement authentication flow',
+                  subject: 'Implement authentication flow',
                 })}
               />
             </div>
@@ -86,7 +86,7 @@ const Showcase: Story = {
               <div className="text-xs text-text-muted mb-1">Completed</div>
               <TaskItem
                 task={createMockTask('completed', {
-                  title: 'Setup project structure',
+                  subject: 'Setup project structure',
                 })}
               />
             </div>
@@ -101,7 +101,7 @@ const Showcase: Story = {
               <div className="text-xs text-text-muted mb-1">Long Title</div>
               <TaskItem
                 task={createMockTask('in-progress', {
-                  title:
+                  subject:
                     'This is a very long task title that demonstrates how text wrapping works in the task item component when the content exceeds normal length',
                 })}
               />
@@ -110,7 +110,7 @@ const Showcase: Story = {
               <div className="text-xs text-text-muted mb-1">Special Characters</div>
               <TaskItem
                 task={createMockTask('pending', {
-                  title: 'Handle <script> tags & "quoted" strings in task names',
+                  subject: 'Handle <script> tags & "quoted" strings in task names',
                 })}
               />
             </div>
@@ -193,18 +193,18 @@ const Showcase: Story = {
  */
 const Playground: Story = {
   args: {
-    task: createMockTask('pending', { title: 'Example task' }),
+    task: createMockTask('pending', { subject: 'Example task' }),
   },
   argTypes: {
     task: { table: { disable: true } },
   },
   render: (_, { args }) => {
-    // Extract preset and title from globals or use defaults
+    // Extract preset and subject from globals or use defaults
     const preset = (args as unknown as { preset?: TaskPreset }).preset ?? 'pending';
-    const title = (args as unknown as { title?: string }).title ?? undefined;
+    const subject = (args as unknown as { subject?: string }).subject ?? undefined;
 
     resetMockCounters();
-    const task = createMockTask(preset, title ? { title } : {});
+    const task = createMockTask(preset, subject ? { subject } : {});
 
     return (
       <div className="space-y-4">
@@ -218,9 +218,9 @@ const Playground: Story = {
     );
   },
   parameters: {
-    controls: { include: ['preset', 'title'] },
+    controls: { include: ['preset', 'subject'] },
   },
-};
+} as Story;
 
 // Override meta to add Playground-specific argTypes
 Playground.argTypes = {
@@ -231,17 +231,17 @@ Playground.argTypes = {
     description: 'Task state preset',
     table: { category: 'Preset' },
   },
-  title: {
+  subject: {
     control: 'text',
-    description: 'Override task title',
+    description: 'Override task subject',
     table: { category: 'Overrides' },
   },
-};
+} as Story['argTypes'];
 
 Playground.args = {
   ...Playground.args,
   preset: 'pending' as TaskPreset,
-  title: '',
+  subject: '',
 } as unknown as Story['args'];
 
 Playground.play = async ({ canvasElement }) => {

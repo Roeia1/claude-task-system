@@ -76,13 +76,11 @@ function useDataActions(actorRef: DashboardActorRef) {
  */
 function useSubscriptionActions(actorRef: DashboardActorRef) {
   const subscribeToStory = useCallback(
-    (epicSlug: string, storySlug: string) =>
-      actorRef.send({ type: 'SUBSCRIBE_STORY', epicSlug, storySlug }),
+    (storyId: string) => actorRef.send({ type: 'SUBSCRIBE_STORY', storyId }),
     [actorRef],
   );
   const unsubscribeFromStory = useCallback(
-    (epicSlug: string, storySlug: string) =>
-      actorRef.send({ type: 'UNSUBSCRIBE_STORY', epicSlug, storySlug }),
+    (storyId: string) => actorRef.send({ type: 'UNSUBSCRIBE_STORY', storyId }),
     [actorRef],
   );
   return { subscribeToStory, unsubscribeFromStory };

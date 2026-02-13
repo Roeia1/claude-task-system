@@ -11,11 +11,11 @@ const routes = [
     children: [
       { path: '/', element: <EpicList /> },
       {
-        path: 'epic/:slug',
+        path: 'epic/:epicId',
         element: <EpicDetail />,
       },
       {
-        path: 'epic/:epicSlug/story/:storySlug',
+        path: 'story/:storyId',
         element: <StoryDetail />,
       },
     ],

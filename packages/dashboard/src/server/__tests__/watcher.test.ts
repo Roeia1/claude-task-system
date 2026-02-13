@@ -3,13 +3,19 @@
  *
  * Tests file watching with chokidar for .saga/ directory changes.
  *
+ * New path structure:
+ *   .saga/stories/<story-id>/story.json  → story:added/changed/removed
+ *   .saga/stories/<story-id>/<task-id>.json → story:changed (task change triggers story refresh)
+ *   .saga/stories/<story-id>/journal.md  → story:changed
+ *   .saga/epics/<epic-id>.json           → epic:added/changed/removed
+ *
  * Note: These tests involve real file system watching with debouncing and
  * awaitWriteFinish for reliability. Tests take ~500ms each due to:
  * watcher setup + awaitWriteFinish stabilization + debounce delay + FS events.
  * This is expected behavior for integration tests of file watching functionality.
  */
 
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -37,34 +43,44 @@ describe('watcher', () => {
     tempDir = await mkdtemp(join(tmpdir(), 'saga-watcher-test-'));
     sagaRoot = tempDir;
 
-    // Create basic .saga structure
-    await mkdir(join(sagaRoot, '.saga', 'epics', 'test-epic', 'stories', 'test-story'), {
+    // Create new .saga structure with stories/ and epics/
+    await mkdir(join(sagaRoot, '.saga', 'stories', 'test-story'), {
       recursive: true,
     });
-    await mkdir(join(sagaRoot, '.saga', 'archive'), { recursive: true });
+    await mkdir(join(sagaRoot, '.saga', 'epics'), { recursive: true });
 
-    // Create epic.md
+    // Create epic JSON file
     await writeFile(
-      join(sagaRoot, '.saga', 'epics', 'test-epic', 'epic.md'),
-      '# Test Epic\n\nSome content.',
+      join(sagaRoot, '.saga', 'epics', 'test-epic.json'),
+      JSON.stringify({
+        id: 'test-epic',
+        title: 'Test Epic',
+        description: 'A test epic',
+        children: [{ id: 'test-story', blockedBy: [] }],
+      }),
     );
 
-    // Create story.md
+    // Create story.json
     await writeFile(
-      join(sagaRoot, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-      `---
-id: test-story
-title: Test Story
-status: ready
-tasks:
-  - id: t1
-    title: Task 1
-    status: pending
----
+      join(sagaRoot, '.saga', 'stories', 'test-story', 'story.json'),
+      JSON.stringify({
+        id: 'test-story',
+        title: 'Test Story',
+        description: 'A test story',
+        epic: 'test-epic',
+      }),
+    );
 
-## Context
-Some context.
-`,
+    // Create task JSON file
+    await writeFile(
+      join(sagaRoot, '.saga', 'stories', 'test-story', 't1.json'),
+      JSON.stringify({
+        id: 't1',
+        subject: 'Task 1',
+        description: 'First task',
+        status: 'pending',
+        blockedBy: [],
+      }),
     );
   });
 
@@ -84,7 +100,7 @@ Some context.
       await watcher.close();
     });
 
-    it('should watch .saga/epics directory', async () => {
+    it('should watch .saga/stories directory', async () => {
       const watcher = await createSagaWatcher(sagaRoot);
 
       // Watcher should be able to listen for events
@@ -93,18 +109,18 @@ Some context.
       await watcher.close();
     });
 
-    it('should watch .saga/archive directory', async () => {
+    it('should watch .saga/epics directory', async () => {
       const watcher = await createSagaWatcher(sagaRoot);
 
-      // Verify watcher is created (archive watching verified through event tests)
+      // Verify watcher is created (epics watching verified through event tests)
       expect(watcher).toBeDefined();
 
       await watcher.close();
     });
   });
 
-  describe('file change detection', () => {
-    it('should emit story:changed event when story.md is modified', async () => {
+  describe('story file change detection', () => {
+    it('should emit story:changed event when story.json is modified', async () => {
       const watcher = await createSagaWatcher(sagaRoot);
       const events: WatcherEvent[] = [];
 
@@ -115,31 +131,89 @@ Some context.
       // Wait for watcher to be ready
       await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
-      // Modify story.md
+      // Modify story.json
       await writeFile(
-        join(sagaRoot, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        `---
-id: test-story
-title: Test Story Updated
-status: in_progress
-tasks:
-  - id: t1
-    title: Task 1
-    status: in_progress
----
-
-## Context
-Updated context.
-`,
+        join(sagaRoot, '.saga', 'stories', 'test-story', 'story.json'),
+        JSON.stringify({
+          id: 'test-story',
+          title: 'Test Story Updated',
+          description: 'Updated story',
+          epic: 'test-epic',
+        }),
       );
 
-      // Wait for debounced event (100ms debounce + buffer)
+      // Wait for debounced event
       await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
       expect(events[0].type).toBe('story:changed');
-      expect(events[0].epicSlug).toBe('test-epic');
-      expect(events[0].storySlug).toBe('test-story');
+      expect(events[0].storyId).toBe('test-story');
+
+      await watcher.close();
+    });
+
+    it('should emit story:changed event when a task JSON file is modified', async () => {
+      const watcher = await createSagaWatcher(sagaRoot);
+      const events: WatcherEvent[] = [];
+
+      watcher.on('story:changed', (event) => {
+        events.push(event);
+      });
+
+      // Wait for watcher to be ready
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
+
+      // Modify task file
+      await writeFile(
+        join(sagaRoot, '.saga', 'stories', 'test-story', 't1.json'),
+        JSON.stringify({
+          id: 't1',
+          subject: 'Task 1 Updated',
+          description: 'Updated task',
+          status: 'in_progress',
+          blockedBy: [],
+        }),
+      );
+
+      // Wait for debounced event
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
+
+      expect(events.length).toBeGreaterThanOrEqual(1);
+      expect(events[0].type).toBe('story:changed');
+      expect(events[0].storyId).toBe('test-story');
+
+      await watcher.close();
+    });
+
+    it('should emit story:changed event when a new task JSON file is added', async () => {
+      const watcher = await createSagaWatcher(sagaRoot);
+      const events: WatcherEvent[] = [];
+
+      watcher.on('story:changed', (event) => {
+        events.push(event);
+      });
+
+      // Wait for watcher to be ready
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
+
+      // Add new task file
+      await writeFile(
+        join(sagaRoot, '.saga', 'stories', 'test-story', 't2.json'),
+        JSON.stringify({
+          id: 't2',
+          subject: 'Task 2',
+          description: 'Second task',
+          status: 'pending',
+          blockedBy: [],
+        }),
+      );
+
+      // Wait for debounced event
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
+
+      expect(events.length).toBeGreaterThanOrEqual(1);
+      expect(events[0].type).toBe('story:changed');
+      expect(events[0].storyId).toBe('test-story');
 
       await watcher.close();
     });
@@ -157,7 +231,7 @@ Updated context.
 
       // Create journal.md
       await writeFile(
-        join(sagaRoot, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'journal.md'),
+        join(sagaRoot, '.saga', 'stories', 'test-story', 'journal.md'),
         `# Journal: test-story
 
 ## Session: 2026-01-27T00:00:00Z
@@ -174,67 +248,12 @@ Updated context.
 
       expect(events.length).toBeGreaterThanOrEqual(1);
       expect(events.some((e) => e.type === 'story:changed')).toBe(true);
+      expect(events[0].storyId).toBe('test-story');
 
       await watcher.close();
     });
 
-    it('should emit epic:changed event when epic.md is modified', async () => {
-      const watcher = await createSagaWatcher(sagaRoot);
-      const events: WatcherEvent[] = [];
-
-      watcher.on('epic:changed', (event) => {
-        events.push(event);
-      });
-
-      // Wait for watcher to be ready
-      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
-
-      // Modify epic.md
-      await writeFile(
-        join(sagaRoot, '.saga', 'epics', 'test-epic', 'epic.md'),
-        '# Test Epic Updated\n\nUpdated content.',
-      );
-
-      // Wait for debounced event
-      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
-
-      expect(events.length).toBeGreaterThanOrEqual(1);
-      expect(events[0].type).toBe('epic:changed');
-      expect(events[0].epicSlug).toBe('test-epic');
-
-      await watcher.close();
-    });
-
-    it('should emit epic:added event when new epic directory is created', async () => {
-      const watcher = await createSagaWatcher(sagaRoot);
-      const events: WatcherEvent[] = [];
-
-      watcher.on('epic:added', (event) => {
-        events.push(event);
-      });
-
-      // Wait for watcher to be ready
-      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
-
-      // Create new epic
-      await mkdir(join(sagaRoot, '.saga', 'epics', 'new-epic'), {
-        recursive: true,
-      });
-      await writeFile(
-        join(sagaRoot, '.saga', 'epics', 'new-epic', 'epic.md'),
-        '# New Epic\n\nNew content.',
-      );
-
-      // Wait for debounced event
-      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
-
-      expect(events.length).toBeGreaterThanOrEqual(1);
-      expect(events.some((e) => e.type === 'epic:added' && e.epicSlug === 'new-epic')).toBe(true);
-
-      await watcher.close();
-    });
-
-    it('should emit story:added event when new story is created', async () => {
+    it('should emit story:added event when new story folder with story.json is created', async () => {
       const watcher = await createSagaWatcher(sagaRoot);
       const events: WatcherEvent[] = [];
 
@@ -246,27 +265,136 @@ Updated context.
       await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
       // Create new story
-      await mkdir(join(sagaRoot, '.saga', 'epics', 'test-epic', 'stories', 'new-story'), {
+      await mkdir(join(sagaRoot, '.saga', 'stories', 'new-story'), {
         recursive: true,
       });
       await writeFile(
-        join(sagaRoot, '.saga', 'epics', 'test-epic', 'stories', 'new-story', 'story.md'),
-        `---
-id: new-story
-title: New Story
-status: ready
-tasks: []
----
-`,
+        join(sagaRoot, '.saga', 'stories', 'new-story', 'story.json'),
+        JSON.stringify({
+          id: 'new-story',
+          title: 'New Story',
+          description: 'A new story',
+        }),
       );
 
       // Wait for debounced event
       await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
-      expect(events.some((e) => e.type === 'story:added' && e.storySlug === 'new-story')).toBe(
-        true,
+      expect(events.some((e) => e.type === 'story:added' && e.storyId === 'new-story')).toBe(true);
+
+      await watcher.close();
+    });
+
+    it('should emit story:removed event when story.json is deleted', async () => {
+      const watcher = await createSagaWatcher(sagaRoot);
+      const events: WatcherEvent[] = [];
+
+      watcher.on('story:removed', (event) => {
+        events.push(event);
+      });
+
+      // Wait for watcher to be ready
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
+
+      // Remove story.json
+      await unlink(join(sagaRoot, '.saga', 'stories', 'test-story', 'story.json'));
+
+      // Wait for debounced event
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
+
+      expect(events.length).toBeGreaterThanOrEqual(1);
+      expect(events[0].type).toBe('story:removed');
+      expect(events[0].storyId).toBe('test-story');
+
+      await watcher.close();
+    });
+  });
+
+  describe('epic file change detection', () => {
+    it('should emit epic:changed event when epic JSON file is modified', async () => {
+      const watcher = await createSagaWatcher(sagaRoot);
+      const events: WatcherEvent[] = [];
+
+      watcher.on('epic:changed', (event) => {
+        events.push(event);
+      });
+
+      // Wait for watcher to be ready
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
+
+      // Modify epic JSON file
+      await writeFile(
+        join(sagaRoot, '.saga', 'epics', 'test-epic.json'),
+        JSON.stringify({
+          id: 'test-epic',
+          title: 'Test Epic Updated',
+          description: 'Updated epic',
+          children: [{ id: 'test-story', blockedBy: [] }],
+        }),
       );
+
+      // Wait for debounced event
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
+
+      expect(events.length).toBeGreaterThanOrEqual(1);
+      expect(events[0].type).toBe('epic:changed');
+      expect(events[0].epicId).toBe('test-epic');
+
+      await watcher.close();
+    });
+
+    it('should emit epic:added event when new epic JSON file is created', async () => {
+      const watcher = await createSagaWatcher(sagaRoot);
+      const events: WatcherEvent[] = [];
+
+      watcher.on('epic:added', (event) => {
+        events.push(event);
+      });
+
+      // Wait for watcher to be ready
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
+
+      // Create new epic
+      await writeFile(
+        join(sagaRoot, '.saga', 'epics', 'new-epic.json'),
+        JSON.stringify({
+          id: 'new-epic',
+          title: 'New Epic',
+          description: 'A new epic',
+          children: [],
+        }),
+      );
+
+      // Wait for debounced event
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
+
+      expect(events.length).toBeGreaterThanOrEqual(1);
+      expect(events.some((e) => e.type === 'epic:added' && e.epicId === 'new-epic')).toBe(true);
+
+      await watcher.close();
+    });
+
+    it('should emit epic:removed event when epic JSON file is deleted', async () => {
+      const watcher = await createSagaWatcher(sagaRoot);
+      const events: WatcherEvent[] = [];
+
+      watcher.on('epic:removed', (event) => {
+        events.push(event);
+      });
+
+      // Wait for watcher to be ready
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
+
+      // Remove epic file
+      await unlink(join(sagaRoot, '.saga', 'epics', 'test-epic.json'));
+
+      // Wait for debounced event
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
+
+      expect(events.length).toBeGreaterThanOrEqual(1);
+      expect(events[0].type).toBe('epic:removed');
+      expect(events[0].epicId).toBe('test-epic');
 
       await watcher.close();
     });
@@ -284,20 +412,12 @@ tasks: []
       // Wait for watcher to be ready
       await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
-      // Make rapid changes
-      const storyPath = join(
-        sagaRoot,
-        '.saga',
-        'epics',
-        'test-epic',
-        'stories',
-        'test-story',
-        'story.md',
-      );
+      // Make rapid changes to story.json
+      const storyPath = join(sagaRoot, '.saga', 'stories', 'test-story', 'story.json');
 
-      await writeFile(storyPath, '---\nid: test-story\ntitle: Change 1\nstatus: ready\n---\n');
-      await writeFile(storyPath, '---\nid: test-story\ntitle: Change 2\nstatus: ready\n---\n');
-      await writeFile(storyPath, '---\nid: test-story\ntitle: Change 3\nstatus: ready\n---\n');
+      await writeFile(storyPath, JSON.stringify({ id: 'test-story', title: 'Change 1' }));
+      await writeFile(storyPath, JSON.stringify({ id: 'test-story', title: 'Change 2' }));
+      await writeFile(storyPath, JSON.stringify({ id: 'test-story', title: 'Change 3' }));
 
       // Wait for debounce window to pass
       await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
@@ -307,10 +427,41 @@ tasks: []
 
       await watcher.close();
     });
+
+    it('should aggregate task and story changes for the same story', async () => {
+      const watcher = await createSagaWatcher(sagaRoot);
+      const events: WatcherEvent[] = [];
+
+      watcher.on('story:changed', (event) => {
+        events.push(event);
+      });
+
+      // Wait for watcher to be ready
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
+
+      // Modify both story.json and task file rapidly
+      await writeFile(
+        join(sagaRoot, '.saga', 'stories', 'test-story', 'story.json'),
+        JSON.stringify({ id: 'test-story', title: 'Updated' }),
+      );
+      await writeFile(
+        join(sagaRoot, '.saga', 'stories', 'test-story', 't1.json'),
+        JSON.stringify({ id: 't1', subject: 'Updated', status: 'completed', blockedBy: [] }),
+      );
+
+      // Wait for debounce window to pass
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
+
+      // Both changes should be debounced since they relate to the same story
+      expect(events.length).toBeLessThanOrEqual(2);
+      expect(events.every((e) => e.storyId === 'test-story')).toBe(true);
+
+      await watcher.close();
+    });
   });
 
   describe('file filtering', () => {
-    it('should only watch .md files', async () => {
+    it('should ignore non-JSON non-journal files in story directories', async () => {
       const watcher = await createSagaWatcher(sagaRoot);
       const events: WatcherEvent[] = [];
 
@@ -327,8 +478,37 @@ tasks: []
       // Clear any events that happened during watcher initialization
       events.length = 0;
 
-      // Create a non-md file
-      await writeFile(join(sagaRoot, '.saga', 'epics', 'test-epic', 'notes.txt'), 'Some notes');
+      // Create a non-JSON, non-journal file in a story directory
+      await writeFile(join(sagaRoot, '.saga', 'stories', 'test-story', 'notes.txt'), 'Some notes');
+
+      // Wait for potential event
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
+
+      // Should not have received any events for .txt file
+      expect(events.length).toBe(0);
+
+      await watcher.close();
+    });
+
+    it('should ignore non-JSON files in epics directory', async () => {
+      const watcher = await createSagaWatcher(sagaRoot);
+      const events: WatcherEvent[] = [];
+
+      watcher.on('epic:changed', (event) => {
+        events.push(event);
+      });
+      watcher.on('epic:added', (event) => {
+        events.push(event);
+      });
+
+      // Wait for watcher to be ready
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
+
+      // Clear any events
+      events.length = 0;
+
+      // Create a non-JSON file in epics directory
+      await writeFile(join(sagaRoot, '.saga', 'epics', 'notes.txt'), 'Some notes');
 
       // Wait for potential event
       await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
@@ -340,23 +520,8 @@ tasks: []
     });
   });
 
-  describe('archive watching', () => {
-    it('should emit story:changed event for archived story changes', async () => {
-      // Create archived story
-      await mkdir(join(sagaRoot, '.saga', 'archive', 'test-epic', 'archived-story'), {
-        recursive: true,
-      });
-      await writeFile(
-        join(sagaRoot, '.saga', 'archive', 'test-epic', 'archived-story', 'story.md'),
-        `---
-id: archived-story
-title: Archived Story
-status: completed
-tasks: []
----
-`,
-      );
-
+  describe('WatcherEvent fields', () => {
+    it('should use storyId field (not storySlug) in story events', async () => {
       const watcher = await createSagaWatcher(sagaRoot);
       const events: WatcherEvent[] = [];
 
@@ -367,24 +532,45 @@ tasks: []
       // Wait for watcher to be ready
       await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
-      // Modify archived story
       await writeFile(
-        join(sagaRoot, '.saga', 'archive', 'test-epic', 'archived-story', 'story.md'),
-        `---
-id: archived-story
-title: Archived Story Updated
-status: completed
-tasks: []
----
-`,
+        join(sagaRoot, '.saga', 'stories', 'test-story', 'story.json'),
+        JSON.stringify({ id: 'test-story', title: 'Updated' }),
       );
 
-      // Wait for debounced event
       await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
-      expect(events[0].storySlug).toBe('archived-story');
-      expect(events[0].archived).toBe(true);
+      expect(events[0].storyId).toBe('test-story');
+      // Should NOT have epicSlug or storySlug fields
+      expect('epicSlug' in events[0]).toBe(false);
+      expect('storySlug' in events[0]).toBe(false);
+      expect('archived' in events[0]).toBe(false);
+
+      await watcher.close();
+    });
+
+    it('should use epicId field (not epicSlug) in epic events', async () => {
+      const watcher = await createSagaWatcher(sagaRoot);
+      const events: WatcherEvent[] = [];
+
+      watcher.on('epic:changed', (event) => {
+        events.push(event);
+      });
+
+      // Wait for watcher to be ready
+      await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
+
+      await writeFile(
+        join(sagaRoot, '.saga', 'epics', 'test-epic.json'),
+        JSON.stringify({ id: 'test-epic', title: 'Updated' }),
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_WAIT_MS));
+
+      expect(events.length).toBeGreaterThanOrEqual(1);
+      expect(events[0].epicId).toBe('test-epic');
+      // Should NOT have epicSlug field
+      expect('epicSlug' in events[0]).toBe(false);
 
       await watcher.close();
     });
@@ -432,8 +618,8 @@ tasks: []
       await new Promise((resolve) => setTimeout(resolve, WATCHER_READY_DELAY_MS));
 
       await writeFile(
-        join(sagaRoot, '.saga', 'epics', 'test-epic', 'stories', 'test-story', 'story.md'),
-        '---\nid: test-story\ntitle: After Close\nstatus: ready\n---\n',
+        join(sagaRoot, '.saga', 'stories', 'test-story', 'story.json'),
+        JSON.stringify({ id: 'test-story', title: 'After Close' }),
       );
 
       // Wait for potential event

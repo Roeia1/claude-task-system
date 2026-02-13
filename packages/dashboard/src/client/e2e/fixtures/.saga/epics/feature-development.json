@@ -1,0 +1,9 @@
+{
+  "id": "feature-development",
+  "title": "Feature Development",
+  "description": "This epic covers the development of new features for the application.",
+  "children": [
+    { "id": "auth-implementation", "blockedBy": [] },
+    { "id": "api-design", "blockedBy": [] }
+  ]
+}

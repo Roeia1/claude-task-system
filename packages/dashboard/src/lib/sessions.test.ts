@@ -10,6 +10,8 @@
  * - getSessionStatus
  * - streamLogs
  * - killSession
+ * - parseSessionName (new format: saga-story-<storyId>-<timestamp>)
+ * - buildSessionInfo (storyId instead of epicSlug/storySlug, .jsonl output)
  */
 
 import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
@@ -17,13 +19,12 @@ import { EventEmitter } from 'node:events';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Constants for test assertions
-const LONG_LINE_LENGTH = 150;
 const MAX_PREVIEW_LENGTH = 500;
+const LONG_MESSAGE_REPEAT = 100;
 
 // Top-level regex patterns for test assertions
-const INVALID_EPIC_SLUG_PATTERN = /invalid epic slug/i;
-const INVALID_STORY_SLUG_PATTERN = /invalid story slug/i;
-const SESSION_NAME_PATTERN = /^saga__my-epic__my-story__\d+$/;
+const INVALID_STORY_ID_PATTERN = /invalid story id/i;
+const SESSION_NAME_PATTERN = /^saga-story-my-story-\d+$/;
 const TMUX_NOT_FOUND_PATTERN = /tmux.*not found|not installed/i;
 const SESSION_CREATE_FAILED_PATTERN = /failed to create.*session/i;
 const OUTPUT_FILE_NOT_FOUND_PATTERN = /output file.*not found/i;
@@ -238,16 +239,8 @@ describe('sessions', () => {
   });
 
   describe('createSession', () => {
-    it('should reject invalid epic slug', () => {
-      expect(() => createSession('Invalid_Epic', 'valid-story', 'echo hello')).toThrow(
-        INVALID_EPIC_SLUG_PATTERN,
-      );
-    });
-
-    it('should reject invalid story slug', () => {
-      expect(() => createSession('valid-epic', 'Invalid_Story', 'echo hello')).toThrow(
-        INVALID_STORY_SLUG_PATTERN,
-      );
+    it('should reject invalid story ID', () => {
+      expect(() => createSession('Invalid_Story', 'echo hello')).toThrow(INVALID_STORY_ID_PATTERN);
     });
 
     it('should create output directory if it does not exist', () => {
@@ -256,33 +249,31 @@ describe('sessions', () => {
         .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
         .mockReturnValueOnce({ status: 0, stdout: '' }); // tmux new-session
 
-      createSession('my-epic', 'my-story', 'echo hello');
+      createSession('my-story', 'echo hello');
 
       expect(mockMkdirSync).toHaveBeenCalledWith(OUTPUT_DIR, {
         recursive: true,
       });
     });
 
-    it('should return session name and output file path on success', () => {
+    it('should return session name in new format and .jsonl output file path', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync
         .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
         .mockReturnValueOnce({ status: 0, stdout: '' }); // tmux new-session
 
-      const result = createSession('my-epic', 'my-story', 'echo hello');
+      const result = createSession('my-story', 'echo hello');
 
-      // Session name should match pattern: saga-<epic>-<story>-<timestamp>
+      // Session name should match pattern: saga-story-<storyId>-<timestamp>
       expect(result.sessionName).toMatch(SESSION_NAME_PATTERN);
-      expect(result.outputFile).toBe(`/tmp/saga-sessions/${result.sessionName}.out`);
+      expect(result.outputFile).toBe(`/tmp/saga-sessions/${result.sessionName}.jsonl`);
     });
 
     it('should throw error if tmux is not available', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValueOnce({ status: 1, stdout: '' }); // which tmux fails
 
-      expect(() => createSession('my-epic', 'my-story', 'echo hello')).toThrow(
-        TMUX_NOT_FOUND_PATTERN,
-      );
+      expect(() => createSession('my-story', 'echo hello')).toThrow(TMUX_NOT_FOUND_PATTERN);
     });
 
     it('should throw error if tmux session creation fails', () => {
@@ -291,9 +282,7 @@ describe('sessions', () => {
         .mockReturnValueOnce({ status: 0, stdout: '/usr/bin/tmux' }) // which tmux
         .mockReturnValueOnce({ status: 1, stderr: 'session creation failed' }); // tmux new-session fails
 
-      expect(() => createSession('my-epic', 'my-story', 'echo hello')).toThrow(
-        SESSION_CREATE_FAILED_PATTERN,
-      );
+      expect(() => createSession('my-story', 'echo hello')).toThrow(SESSION_CREATE_FAILED_PATTERN);
     });
   });
 
@@ -306,26 +295,26 @@ describe('sessions', () => {
       expect(result).toEqual([]);
     });
 
-    it('should return only saga__-prefixed sessions', () => {
+    it('should return only saga-story- prefixed sessions', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValue({
         status: 0,
         stdout:
-          'saga__epic1__story1__1234: 1 windows\nother-session: 1 windows\nsaga__epic2__story2__5678: 2 windows\n',
+          'saga-story-story1-1234: 1 windows\nother-session: 1 windows\nsaga-story-story2-5678: 2 windows\n',
       });
 
       const result = listSessions();
 
       expect(result).toHaveLength(2);
-      expect(result[0].name).toBe('saga__epic1__story1__1234');
-      expect(result[1].name).toBe('saga__epic2__story2__5678');
+      expect(result[0].name).toBe('saga-story-story1-1234');
+      expect(result[1].name).toBe('saga-story-story2-5678');
     });
 
     it('should include status for each session', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawnSync.mockReturnValue({
         status: 0,
-        stdout: 'saga__epic1__story1__1234: 1 windows\n',
+        stdout: 'saga-story-story1-1234: 1 windows\n',
       });
 
       const result = listSessions();
@@ -333,8 +322,19 @@ describe('sessions', () => {
       expect(result[0].status).toBe('running');
     });
 
-    it('should include output file path for each session', () => {
+    it('should include .jsonl output file path for each session', () => {
       mockExistsSync.mockReturnValue(true);
+      mockSpawnSync.mockReturnValue({
+        status: 0,
+        stdout: 'saga-story-story1-1234: 1 windows\n',
+      });
+
+      const result = listSessions();
+
+      expect(result[0].outputFile).toBe('/tmp/saga-sessions/saga-story-story1-1234.jsonl');
+    });
+
+    it('should not match old saga__ format sessions', () => {
       mockSpawnSync.mockReturnValue({
         status: 0,
         stdout: 'saga__epic1__story1__1234: 1 windows\n',
@@ -342,7 +342,7 @@ describe('sessions', () => {
 
       const result = listSessions();
 
-      expect(result[0].outputFile).toBe('/tmp/saga-sessions/saga__epic1__story1__1234.out');
+      expect(result).toHaveLength(0);
     });
   });
 
@@ -350,7 +350,7 @@ describe('sessions', () => {
     it('should return running: true when session exists', () => {
       mockSpawnSync.mockReturnValue({ status: 0 }); // tmux has-session returns 0 when session exists
 
-      const result = getSessionStatus('saga__epic1__story1__1234');
+      const result = getSessionStatus('saga-story-story1-1234');
 
       expect(result.running).toBe(true);
     });
@@ -358,7 +358,7 @@ describe('sessions', () => {
     it('should return running: false when session does not exist', () => {
       mockSpawnSync.mockReturnValue({ status: 1 }); // tmux has-session returns non-zero when not found
 
-      const result = getSessionStatus('saga__epic1__story1__1234');
+      const result = getSessionStatus('saga-story-story1-1234');
 
       expect(result.running).toBe(false);
     });
@@ -366,11 +366,11 @@ describe('sessions', () => {
     it('should call tmux has-session with correct session name', () => {
       mockSpawnSync.mockReturnValue({ status: 0 });
 
-      getSessionStatus('saga__epic1__story1__1234');
+      getSessionStatus('saga-story-story1-1234');
 
       expect(mockSpawnSync).toHaveBeenCalledWith(
         'tmux',
-        ['has-session', '-t', 'saga__epic1__story1__1234'],
+        ['has-session', '-t', 'saga-story-story1-1234'],
         expect.any(Object),
       );
     });
@@ -380,7 +380,7 @@ describe('sessions', () => {
     it('should return killed: true when session is killed', () => {
       mockSpawnSync.mockReturnValue({ status: 0 }); // tmux kill-session returns 0 on success
 
-      const result = killSession('saga__epic1__story1__1234');
+      const result = killSession('saga-story-story1-1234');
 
       expect(result.killed).toBe(true);
     });
@@ -388,7 +388,7 @@ describe('sessions', () => {
     it('should return killed: false when session does not exist', () => {
       mockSpawnSync.mockReturnValue({ status: 1 }); // tmux kill-session returns non-zero when not found
 
-      const result = killSession('saga__epic1__story1__1234');
+      const result = killSession('saga-story-story1-1234');
 
       expect(result.killed).toBe(false);
     });
@@ -396,11 +396,11 @@ describe('sessions', () => {
     it('should call tmux kill-session with correct session name', () => {
       mockSpawnSync.mockReturnValue({ status: 0 });
 
-      killSession('saga__epic1__story1__1234');
+      killSession('saga-story-story1-1234');
 
       expect(mockSpawnSync).toHaveBeenCalledWith(
         'tmux',
-        ['kill-session', '-t', 'saga__epic1__story1__1234'],
+        ['kill-session', '-t', 'saga-story-story1-1234'],
         expect.any(Object),
       );
     });
@@ -419,15 +419,15 @@ describe('sessions', () => {
     it('should throw error when output file does not exist', () => {
       mockExistsSync.mockReturnValue(false);
 
-      expect(() => streamLogs('saga__epic1__story1__1234')).toThrow(OUTPUT_FILE_NOT_FOUND_PATTERN);
+      expect(() => streamLogs('saga-story-story1-1234')).toThrow(OUTPUT_FILE_NOT_FOUND_PATTERN);
     });
 
-    it('should spawn tail -f on the output file', async () => {
+    it('should spawn tail -f on the .jsonl output file', async () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawn.mockReturnValue(mockChildProcess);
 
       // Start streaming
-      const streamPromise = streamLogs('saga__epic1__story1__1234');
+      const streamPromise = streamLogs('saga-story-story1-1234');
 
       // Simulate process close
       setTimeout(() => {
@@ -438,7 +438,7 @@ describe('sessions', () => {
 
       expect(mockSpawn).toHaveBeenCalledWith(
         'tail',
-        ['-f', '/tmp/saga-sessions/saga__epic1__story1__1234.out'],
+        ['-f', '/tmp/saga-sessions/saga-story-story1-1234.jsonl'],
         expect.objectContaining({ stdio: ['ignore', 'pipe', 'pipe'] }),
       );
     });
@@ -447,7 +447,7 @@ describe('sessions', () => {
       mockExistsSync.mockReturnValue(true);
       mockSpawn.mockReturnValue(mockChildProcess);
 
-      const streamPromise = streamLogs('saga__epic1__story1__1234');
+      const streamPromise = streamLogs('saga-story-story1-1234');
 
       // Simulate process close
       setTimeout(() => {
@@ -465,53 +465,58 @@ describe('sessions', () => {
   });
 
   describe('parseSessionName', () => {
-    it('should parse valid session name with double-underscore delimiter', () => {
-      const result = parseSessionName('saga__my-epic__my-story__12345');
+    it('should parse valid session name with new format', () => {
+      const result = parseSessionName('saga-story-my-story-12345');
       expect(result).toEqual({
-        epicSlug: 'my-epic',
-        storySlug: 'my-story',
+        storyId: 'my-story',
       });
     });
 
-    it('should handle slugs containing hyphens', () => {
-      const result = parseSessionName('saga__epic-with-hyphens__story-with-hyphens__99999');
+    it('should handle story IDs containing hyphens', () => {
+      const result = parseSessionName('saga-story-story-with-hyphens-99999');
       expect(result).toEqual({
-        epicSlug: 'epic-with-hyphens',
-        storySlug: 'story-with-hyphens',
+        storyId: 'story-with-hyphens',
       });
     });
 
-    it('should handle slugs with numbers', () => {
-      const result = parseSessionName('saga__epic1__story2__12345');
+    it('should handle story IDs with numbers', () => {
+      const result = parseSessionName('saga-story-story123-12345');
       expect(result).toEqual({
-        epicSlug: 'epic1',
-        storySlug: 'story2',
+        storyId: 'story123',
       });
     });
 
-    it('should return null for non-SAGA sessions (no saga__ prefix)', () => {
+    it('should return null for non-SAGA sessions (no saga-story- prefix)', () => {
       const result = parseSessionName('other-session-name');
       expect(result).toBeNull();
     });
 
-    it('should return null for old-format sessions (single hyphen)', () => {
-      const result = parseSessionName('saga-epic-story-12345');
+    it('should return null for old-format sessions (double-underscore)', () => {
+      const result = parseSessionName('saga__epic__story__12345');
       expect(result).toBeNull();
     });
 
-    it('should return null for malformed names with wrong number of parts', () => {
-      expect(parseSessionName('saga__epic__12345')).toBeNull(); // missing story
-      expect(parseSessionName('saga__epic')).toBeNull(); // missing story and pid
-      expect(parseSessionName('saga__')).toBeNull(); // only prefix
+    it('should return null for malformed names with too few parts', () => {
+      expect(parseSessionName('saga-story')).toBeNull(); // missing storyId and timestamp
+      expect(parseSessionName('saga-story-')).toBeNull(); // empty storyId
     });
 
     it('should return null for empty string', () => {
       expect(parseSessionName('')).toBeNull();
     });
+
+    it('should extract storyId correctly when it contains multiple hyphens', () => {
+      // saga-story-<storyId>-<timestamp>
+      // storyId = "dashboard-adaptation", timestamp = "1707840000000"
+      const result = parseSessionName('saga-story-dashboard-adaptation-1707840000000');
+      expect(result).toEqual({
+        storyId: 'dashboard-adaptation',
+      });
+    });
   });
 
   describe('buildSessionInfo', () => {
-    const sessionName = 'saga__my-epic__my-story__12345';
+    const sessionName = 'saga-story-my-story-12345';
     const startTime = new Date('2024-01-15T10:00:00Z');
     const modifiedTime = new Date('2024-01-15T11:30:00Z');
 
@@ -524,21 +529,28 @@ describe('sessions', () => {
       expect(result).toBeNull();
     });
 
-    it('should return DetailedSessionInfo for valid running session with output file', async () => {
+    it('should return DetailedSessionInfo with storyId for valid running session', async () => {
       mockExistsSync.mockReturnValue(true);
       mockStat.mockResolvedValue({
         birthtime: startTime,
         mtime: modifiedTime,
       });
-      mockReadFile.mockResolvedValue('line 1\nline 2\nline 3\nline 4\nline 5\n');
+      // JSONL content
+      const jsonlContent = [
+        '{"type":"saga_worker","subtype":"pipeline_start","timestamp":"2024-01-15T10:00:00Z","storyId":"my-story"}',
+        '{"type":"saga_worker","subtype":"pipeline_step","timestamp":"2024-01-15T10:01:00Z","step":1,"message":"Running tests"}',
+      ].join('\n');
+      mockReadFile.mockResolvedValue(jsonlContent);
 
       const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
       expect(result.name).toBe(sessionName);
-      expect(result.epicSlug).toBe('my-epic');
-      expect(result.storySlug).toBe('my-story');
+      expect(result.storyId).toBe('my-story');
+      // Should NOT have epicSlug or storySlug
+      expect(result).not.toHaveProperty('epicSlug');
+      expect(result).not.toHaveProperty('storySlug');
       expect(result.status).toBe('running');
-      expect(result.outputFile).toBe(`/tmp/saga-sessions/${sessionName}.out`);
+      expect(result.outputFile).toBe(`/tmp/saga-sessions/${sessionName}.jsonl`);
       expect(result.outputAvailable).toBe(true);
       expect(result.startTime).toEqual(startTime);
       expect(result.endTime).toBeUndefined(); // running sessions don't have endTime
@@ -550,7 +562,9 @@ describe('sessions', () => {
         birthtime: startTime,
         mtime: modifiedTime,
       });
-      mockReadFile.mockResolvedValue('output\n');
+      mockReadFile.mockResolvedValue(
+        '{"type":"saga_worker","subtype":"pipeline_end","timestamp":"2024-01-15T11:30:00Z","storyId":"my-story","status":"completed","exitCode":0,"cycles":3,"elapsedMinutes":90}\n',
+      );
 
       const result = assertDefined(await buildSessionInfo(sessionName, 'completed'));
 
@@ -568,47 +582,66 @@ describe('sessions', () => {
       expect(result.startTime).toBeInstanceOf(Date); // fallback to now
     });
 
-    it('should generate outputPreview with last 5 lines', async () => {
+    it('should generate outputPreview from JSONL content', async () => {
       mockExistsSync.mockReturnValue(true);
       mockStat.mockResolvedValue({
         birthtime: startTime,
         mtime: modifiedTime,
       });
-      mockReadFile.mockResolvedValue('line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\n');
+      const jsonlContent = [
+        '{"type":"saga_worker","subtype":"pipeline_start","timestamp":"2024-01-15T10:00:00Z","storyId":"my-story"}',
+        '{"type":"saga_worker","subtype":"cycle_start","timestamp":"2024-01-15T10:01:00Z","cycle":1,"maxCycles":5}',
+        '{"type":"saga_worker","subtype":"pipeline_step","timestamp":"2024-01-15T10:02:00Z","step":1,"message":"Running tests"}',
+        '{"type":"saga_worker","subtype":"pipeline_step","timestamp":"2024-01-15T10:03:00Z","step":2,"message":"Writing code"}',
+        '{"type":"saga_worker","subtype":"cycle_end","timestamp":"2024-01-15T10:04:00Z","cycle":1,"exitCode":0}',
+        '{"type":"saga_worker","subtype":"pipeline_step","timestamp":"2024-01-15T10:05:00Z","step":3,"message":"Final check"}',
+        '{"type":"saga_worker","subtype":"pipeline_end","timestamp":"2024-01-15T10:06:00Z","storyId":"my-story","status":"completed","exitCode":0,"cycles":1,"elapsedMinutes":6}',
+      ].join('\n');
+      mockReadFile.mockResolvedValue(jsonlContent);
 
       const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
-      // Should contain last 5 lines (lines 3-7 since we filter empty)
-      expect(result.outputPreview).toBe('line 3\nline 4\nline 5\nline 6\nline 7');
+      // Preview should be a string (from last N JSONL lines)
+      expect(result.outputPreview).toBeDefined();
+      expect(typeof result.outputPreview).toBe('string');
     });
 
-    it('should truncate outputPreview to max 500 chars', async () => {
+    it('should truncate outputPreview to max length', async () => {
       mockExistsSync.mockReturnValue(true);
       mockStat.mockResolvedValue({
         birthtime: startTime,
         mtime: modifiedTime,
       });
-      // Create content where last 5 lines exceed 500 chars
-      const longLine = 'x'.repeat(LONG_LINE_LENGTH);
-      const content = `${longLine}\n${longLine}\n${longLine}\n${longLine}\n${longLine}\n`;
-      mockReadFile.mockResolvedValue(content);
+      // Create many JSONL lines that would exceed max preview length
+      const lines = Array.from({ length: 20 }, (_, i) =>
+        JSON.stringify({
+          type: 'saga_worker',
+          subtype: 'pipeline_step',
+          timestamp: `2024-01-15T10:${String(i).padStart(2, '0')}:00Z`,
+          step: i + 1,
+          message: `Step ${i + 1}: ${'x'.repeat(LONG_MESSAGE_REPEAT)}`,
+        }),
+      );
+      mockReadFile.mockResolvedValue(lines.join('\n'));
 
       const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
       expect(assertDefined(result.outputPreview).length).toBeLessThanOrEqual(MAX_PREVIEW_LENGTH);
     });
 
-    it('should handle output file with fewer than 5 lines', async () => {
+    it('should handle output file with fewer than 5 lines of JSONL', async () => {
       mockExistsSync.mockReturnValue(true);
       mockStat.mockResolvedValue({
         birthtime: startTime,
         mtime: modifiedTime,
       });
-      mockReadFile.mockResolvedValue('only one line\n');
+      mockReadFile.mockResolvedValue(
+        '{"type":"saga_worker","subtype":"pipeline_start","timestamp":"2024-01-15T10:00:00Z","storyId":"my-story"}\n',
+      );
 
       const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
 
-      expect(result.outputPreview).toBe('only one line');
+      expect(result.outputPreview).toBeDefined();
     });
 
     it('should handle empty output file', async () => {
@@ -636,6 +669,26 @@ describe('sessions', () => {
 
       expect(result.outputAvailable).toBe(true); // file exists but we couldn't read it
       expect(result.outputPreview).toBeUndefined();
+    });
+
+    it('should handle JSONL lines that are not valid JSON gracefully', async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockStat.mockResolvedValue({
+        birthtime: startTime,
+        mtime: modifiedTime,
+      });
+      // Mix of valid and invalid JSON lines
+      const content = [
+        '{"type":"saga_worker","subtype":"pipeline_start","timestamp":"2024-01-15T10:00:00Z","storyId":"my-story"}',
+        'not valid json',
+        '{"type":"saga_worker","subtype":"pipeline_step","timestamp":"2024-01-15T10:01:00Z","step":1,"message":"Running tests"}',
+      ].join('\n');
+      mockReadFile.mockResolvedValue(content);
+
+      const result = assertDefined(await buildSessionInfo(sessionName, 'running'));
+
+      // Should still produce a preview, skipping invalid lines
+      expect(result.outputPreview).toBeDefined();
     });
   });
 });

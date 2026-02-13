@@ -1,171 +1,133 @@
 /**
  * File System Parsing Module
  *
- * Parses .saga/ directory structure including epic.md, story.md, and journal.md files.
- * Uses the shared saga-scanner for directory traversal and adds rich parsing
- * for tasks and journal entries.
+ * Parses .saga/ directory structure using JSON-based storage from @saga-ai/types.
+ * Stories and epics are read from .saga/stories/ and .saga/epics/ as JSON files.
+ * Status is derived at read time from task/story statuses.
+ * Journal parsing remains unchanged (journal.md is still markdown).
  */
 
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { relative } from 'node:path';
-import matter from 'gray-matter';
-import { type ScannedStory, scanAllStories, scanEpics } from '../utils/saga-scanner.ts';
+import {
+  createStoryPaths,
+  deriveEpicStatus,
+  deriveStoryStatus,
+  listTasks,
+  readStory,
+  type Task as SagaTask,
+  type TaskStatus,
+} from '@saga-ai/types';
+import {
+  type ScannedEpic,
+  type ScannedStory,
+  scanEpics,
+  scanStories,
+} from '../utils/saga-scanner.ts';
 
-// Regex patterns used for parsing (defined at module level for performance)
-const STORY_MD_SUFFIX_PATTERN = /\/story\.md$/;
-const TITLE_HEADING_PATTERN = /^#\s+(.+)$/m;
+// Regex pattern for journal section headers
 const JOURNAL_SECTION_PATTERN = /^##\s+/m;
 
-// Type definitions for internal use (snake_case from YAML files)
-type InternalStoryStatus = 'ready' | 'in_progress' | 'blocked' | 'completed';
-type InternalTaskStatus = 'pending' | 'in_progress' | 'completed';
-
-// Type definitions for API responses (camelCase for frontend)
-type ApiStoryStatus = 'ready' | 'inProgress' | 'blocked' | 'completed';
-type ApiTaskStatus = 'pending' | 'inProgress' | 'completed';
-
 /**
- * Convert snake_case status to camelCase for API response
+ * Convert snake_case TaskStatus to camelCase for API response
  */
-function toApiStoryStatus(status: InternalStoryStatus): ApiStoryStatus {
+type ApiStatus = 'pending' | 'inProgress' | 'completed';
+
+function toApiStatus(status: TaskStatus): ApiStatus {
   return status === 'in_progress' ? 'inProgress' : status;
 }
 
 /**
- * Convert snake_case task status to camelCase for API response
+ * Convert a ScannedStory to a StoryDetail
  */
-function toApiTaskStatus(status: InternalTaskStatus): ApiTaskStatus {
-  return status === 'in_progress' ? 'inProgress' : status;
-}
+function toStoryDetail(story: ScannedStory): StoryDetail {
+  const derivedStatus = deriveStoryStatus(story.tasks);
 
-/**
- * Validate and normalize story status from YAML
- */
-function validateStatus(status: unknown): InternalStoryStatus {
-  const validStatuses = ['ready', 'in_progress', 'blocked', 'completed'];
-  if (typeof status === 'string' && validStatuses.includes(status)) {
-    return status as InternalStoryStatus;
-  }
-  return 'ready'; // default
-}
-
-/**
- * Validate and normalize task status from YAML
- */
-function validateTaskStatus(status: unknown): InternalTaskStatus {
-  const validStatuses = ['pending', 'in_progress', 'completed'];
-  if (typeof status === 'string' && validStatuses.includes(status)) {
-    return status as InternalTaskStatus;
-  }
-  return 'pending'; // default
-}
-
-/**
- * Parse tasks array from frontmatter
- */
-function parseTasks(tasks: unknown): Array<{ id: string; title: string; status: ApiTaskStatus }> {
-  if (!Array.isArray(tasks)) {
-    return [];
-  }
-
-  return tasks
-    .filter((t): t is Record<string, unknown> => typeof t === 'object' && t !== null)
-    .map((t) => ({
-      id: typeof t.id === 'string' ? t.id : 'unknown',
-      title: typeof t.title === 'string' ? t.title : 'Unknown Task',
-      status: toApiTaskStatus(validateTaskStatus(t.status)),
-    }));
-}
-
-/**
- * Convert ScannedStory to StoryDetail with rich parsing
- */
-async function toStoryDetail(story: ScannedStory, sagaRoot: string): Promise<StoryDetail> {
-  // Parse tasks from frontmatter using gray-matter for complex YAML
-  let tasks: Task[] = [];
-  try {
-    const content = await readFile(story.storyPath, 'utf-8');
-    const parsed = matter(content);
-    tasks = parseTasks(parsed.data.tasks);
-  } catch {
-    // Use simple frontmatter if gray-matter fails
-    tasks = parseTasks(story.frontmatter.tasks);
-  }
+  const tasks: Task[] = story.tasks.map((t) => ({
+    id: t.id,
+    subject: t.subject,
+    description: t.description,
+    status: toApiStatus(t.status),
+    blockedBy: t.blockedBy,
+    guidance: t.guidance,
+    doneWhen: t.doneWhen,
+    activeForm: t.activeForm,
+  }));
 
   return {
-    slug: story.slug,
-    epicSlug: story.epicSlug,
+    id: story.id,
     title: story.title,
-    status: toApiStoryStatus(validateStatus(story.status)),
+    description: story.description,
+    epic: story.epicId,
+    status: toApiStatus(derivedStatus),
     tasks,
-    content: story.body || undefined,
-    archived: story.archived,
-    paths: {
-      storyMd: relative(sagaRoot, story.storyPath),
-      ...(story.journalPath ? { journalMd: relative(sagaRoot, story.journalPath) } : {}),
-      ...(story.worktreePath ? { worktree: relative(sagaRoot, story.worktreePath) } : {}),
-    },
+    guidance: story.guidance,
+    doneWhen: story.doneWhen,
+    avoid: story.avoid,
+    branch: story.branch,
+    pr: story.pr,
+    worktree: story.worktree,
+    journalPath: story.journalPath,
   };
 }
 
 /**
- * Build a single Epic object from scanned data
+ * Build a ParsedEpic from scanned epic and its stories
  */
-async function buildEpic(
-  scannedEpic: {
-    slug: string;
-    title: string;
-    content: string;
-    epicPath: string;
-  },
-  epicStories: ScannedStory[],
-  sagaRoot: string,
-): Promise<Epic> {
-  // Convert scanned stories to StoryDetail with tasks
-  const stories = await Promise.all(epicStories.map((s) => toStoryDetail(s, sagaRoot)));
-
-  // Calculate story counts (status is now camelCase from API conversion)
+function buildEpic(scannedEpic: ScannedEpic, epicStories: StoryDetail[]): ParsedEpic {
   const storyCounts: StoryCounts = {
-    total: stories.length,
-    ready: stories.filter((s) => s.status === 'ready').length,
-    inProgress: stories.filter((s) => s.status === 'inProgress').length,
-    blocked: stories.filter((s) => s.status === 'blocked').length,
-    completed: stories.filter((s) => s.status === 'completed').length,
+    total: epicStories.length,
+    pending: epicStories.filter((s) => s.status === 'pending').length,
+    inProgress: epicStories.filter((s) => s.status === 'inProgress').length,
+    completed: epicStories.filter((s) => s.status === 'completed').length,
   };
 
+  // Derive epic status from story statuses
+  const storyStatuses: TaskStatus[] = epicStories.map((s) => {
+    if (s.status === 'inProgress') {
+      return 'in_progress';
+    }
+    return s.status as TaskStatus;
+  });
+  const derivedStatus = deriveEpicStatus(storyStatuses);
+
   return {
-    slug: scannedEpic.slug,
+    id: scannedEpic.id,
     title: scannedEpic.title,
-    content: scannedEpic.content,
+    description: scannedEpic.description,
+    children: scannedEpic.children,
+    status: toApiStatus(derivedStatus),
     storyCounts,
-    stories,
-    path: relative(sagaRoot, scannedEpic.epicPath),
+    stories: epicStories,
   };
 }
 
 // ============================================================================
 // EXPORTED INTERFACES AND FUNCTIONS
-// All exports are declared at the end of the module per useExportsLast rule
 // ============================================================================
 
 /**
- * Story counts by status
+ * Story counts by status (new model: pending/inProgress/completed)
  */
 export interface StoryCounts {
   total: number;
-  ready: number;
+  pending: number;
   inProgress: number;
-  blocked: number;
   completed: number;
 }
 
 /**
- * Task within a story
+ * Task within a story (full detail from JSON storage)
  */
 export interface Task {
   id: string;
-  title: string;
-  status: 'pending' | 'inProgress' | 'completed';
+  subject: string;
+  description: string;
+  status: ApiStatus;
+  blockedBy: string[];
+  guidance?: string;
+  doneWhen?: string;
+  activeForm?: string;
 }
 
 /**
@@ -179,124 +141,108 @@ export interface JournalEntry {
 }
 
 /**
- * Story detail including tasks and journal
+ * Story detail with tasks and derived status
  */
 export interface StoryDetail {
-  slug: string;
-  epicSlug: string;
+  id: string;
   title: string;
-  status: 'ready' | 'inProgress' | 'blocked' | 'completed';
+  description: string;
+  epic?: string;
+  status: ApiStatus;
   tasks: Task[];
   journal?: JournalEntry[];
-  content?: string;
-  archived?: boolean;
-  paths: {
-    storyMd: string;
-    journalMd?: string;
-    worktree?: string;
-  };
+  guidance?: string;
+  doneWhen?: string;
+  avoid?: string;
+  branch?: string;
+  pr?: string;
+  worktree?: string;
+  journalPath?: string;
 }
 
 /**
  * Epic summary for list view
  */
 export interface EpicSummary {
-  slug: string;
+  id: string;
   title: string;
+  description: string;
+  status: ApiStatus;
   storyCounts: StoryCounts;
-  path: string;
+}
+
+/**
+ * Epic child reference with dependency info
+ */
+export interface EpicChild {
+  id: string;
+  blockedBy: string[];
 }
 
 /**
  * Epic detail including stories
  */
-export interface Epic extends EpicSummary {
-  content: string;
+export interface ParsedEpic extends EpicSummary {
+  children: EpicChild[];
   stories: StoryDetail[];
 }
 
 /**
- * Parse a story.md file into StoryDetail
- *
- * Used by websocket for real-time updates when a specific story file changes.
- *
- * @param storyPath - Full path to the story.md file
- * @param epicSlug - The slug of the parent epic
- * @returns StoryDetail or null if file doesn't exist
+ * Result of scanning the .saga directory
  */
-export async function parseStory(storyPath: string, epicSlug: string): Promise<StoryDetail | null> {
-  const { join } = await import('node:path');
-  const { stat } = await import('node:fs/promises');
-
-  let content: string;
-  try {
-    content = await readFile(storyPath, 'utf-8');
-  } catch {
-    // File doesn't exist
-    return null;
-  }
-
-  const storyDir = storyPath.replace(STORY_MD_SUFFIX_PATTERN, '');
-  const dirName = storyDir.split('/').pop() || 'unknown';
-
-  // Try to parse frontmatter, use defaults if invalid
-  let frontmatter: Record<string, unknown> = {};
-  let bodyContent = '';
-  try {
-    const parsed = matter(content);
-    frontmatter = parsed.data as Record<string, unknown>;
-    bodyContent = parsed.content;
-  } catch {
-    // Invalid YAML, continue with empty frontmatter
-  }
-
-  // Extract values with defaults
-  const slug = (frontmatter.id as string) || (frontmatter.slug as string) || dirName;
-  const title = (frontmatter.title as string) || dirName;
-  const status = toApiStoryStatus(validateStatus(frontmatter.status));
-  const tasks = parseTasks(frontmatter.tasks);
-
-  // Check for journal.md
-  const journalPath = join(storyDir, 'journal.md');
-  let hasJournal = false;
-  try {
-    await stat(journalPath);
-    hasJournal = true;
-  } catch {
-    // No journal
-  }
-
-  return {
-    slug,
-    epicSlug,
-    title,
-    status,
-    tasks,
-    content: bodyContent || undefined,
-    paths: {
-      storyMd: storyPath,
-      ...(hasJournal ? { journalMd: journalPath } : {}),
-    },
-  };
+export interface ScanResult {
+  epics: ParsedEpic[];
+  standaloneStories: StoryDetail[];
 }
 
 /**
- * Parse an epic.md file to extract the title
+ * Parse a single story by ID from the JSON storage
  *
- * @param epicPath - Full path to the epic.md file
- * @returns Title string or null if file doesn't exist or no heading found
+ * Used by websocket for real-time updates when a specific story changes.
+ *
+ * @param sagaRoot - Path to the project root containing .saga/ directory
+ * @param storyId - The story ID to parse
+ * @returns StoryDetail or null if story doesn't exist
  */
-export async function parseEpic(epicPath: string): Promise<string | null> {
+export function parseStory(sagaRoot: string, storyId: string): StoryDetail | null {
   try {
-    const content = await readFile(epicPath, 'utf-8');
-
-    // Extract title from first # heading
-    const match = content.match(TITLE_HEADING_PATTERN);
-    if (match) {
-      return match[1].trim();
+    const story = readStory(sagaRoot, storyId);
+    let tasks: SagaTask[] = [];
+    try {
+      tasks = listTasks(sagaRoot, storyId);
+    } catch {
+      // No tasks
     }
 
-    return null;
+    const { journalMd } = createStoryPaths(sagaRoot, storyId);
+    const hasJournal = existsSync(journalMd);
+
+    const derivedStatus = deriveStoryStatus(tasks);
+
+    return {
+      id: story.id,
+      title: story.title,
+      description: story.description,
+      epic: story.epic,
+      status: toApiStatus(derivedStatus),
+      tasks: tasks.map((t) => ({
+        id: t.id,
+        subject: t.subject,
+        description: t.description,
+        status: toApiStatus(t.status),
+        blockedBy: t.blockedBy,
+        guidance: t.guidance,
+        doneWhen: t.doneWhen,
+        activeForm: t.activeForm,
+      })),
+      guidance: story.guidance,
+      doneWhen: story.doneWhen,
+      avoid: story.avoid,
+      branch: story.branch,
+      pr: story.pr,
+      worktree: story.worktree,
+      journalPath: hasJournal ? journalMd : undefined,
+    };
   } catch {
     return null;
   }
@@ -364,32 +310,38 @@ export async function parseJournal(journalPath: string): Promise<JournalEntry[]>
 /**
  * Scan the .saga/ directory and return complete data structure
  *
- * Uses the shared saga-scanner for directory traversal and adds rich parsing
- * for tasks and journal entries.
+ * Uses the shared saga-scanner for directory traversal and @saga-ai/types
+ * for status derivation. Returns epics with nested stories plus standalone stories.
  *
  * @param sagaRoot - Path to the project root containing .saga/ directory
- * @returns Array of Epic objects with nested stories
+ * @returns ScanResult with epics and standalone stories
  */
-export async function scanSagaDirectory(sagaRoot: string): Promise<Epic[]> {
-  // Use shared scanner to get all epics and stories
-  const [scannedEpics, scannedStories] = await Promise.all([
-    scanEpics(sagaRoot),
-    scanAllStories(sagaRoot),
-  ]);
+export function scanSagaDirectory(sagaRoot: string): ScanResult {
+  const scannedStories = scanStories(sagaRoot);
+  const scannedEpics = scanEpics(sagaRoot);
+
+  // Convert all stories to StoryDetail
+  const allStories = scannedStories.map(toStoryDetail);
 
   // Group stories by epic
-  const storiesByEpic = new Map<string, ScannedStory[]>();
-  for (const story of scannedStories) {
-    const existing = storiesByEpic.get(story.epicSlug) || [];
-    existing.push(story);
-    storiesByEpic.set(story.epicSlug, existing);
+  const storiesByEpic = new Map<string, StoryDetail[]>();
+  const standaloneStories: StoryDetail[] = [];
+
+  for (const story of allStories) {
+    if (story.epic) {
+      const existing = storiesByEpic.get(story.epic) || [];
+      existing.push(story);
+      storiesByEpic.set(story.epic, existing);
+    } else {
+      standaloneStories.push(story);
+    }
   }
 
-  // Build Epic objects with rich story details (using Promise.all to avoid await in loop)
-  const epicPromises = scannedEpics.map((scannedEpic) => {
-    const epicStories = storiesByEpic.get(scannedEpic.slug) || [];
-    return buildEpic(scannedEpic, epicStories, sagaRoot);
+  // Build parsed epics
+  const epics = scannedEpics.map((scannedEpic) => {
+    const epicStories = storiesByEpic.get(scannedEpic.id) || [];
+    return buildEpic(scannedEpic, epicStories);
   });
 
-  return Promise.all(epicPromises);
+  return { epics, standaloneStories };
 }

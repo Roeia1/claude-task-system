@@ -129,7 +129,7 @@ test.describe('Error States', () => {
 
     test('should allow navigation back to epic list from error page', async ({ page }) => {
       // First mock the epic list
-      await mockEpicList(page, [createMockEpicSummary({ slug: 'test-epic', title: 'Test Epic' })]);
+      await mockEpicList(page, [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })]);
 
       // Mock 404 for the detail page
       await mockApiError(page, '**/api/epics/missing-epic', HTTP_NOT_FOUND, 'Epic not found');
@@ -160,18 +160,16 @@ test.describe('Error States', () => {
       // Mock 404 for non-existent story
       await mockApiError(
         page,
-        '**/api/stories/test-epic/non-existent-story',
+        '**/api/stories/non-existent-story',
         HTTP_NOT_FOUND,
         'Story not found',
       );
 
-      await page.goto('/epic/test-epic/story/non-existent-story');
+      await page.goto('/story/non-existent-story');
 
       // Should show the 404 error message
       await expect(page.getByRole('heading', { name: 'Story not found' })).toBeVisible();
-      await expect(
-        page.getByText('The story "non-existent-story" does not exist in epic "test-epic".'),
-      ).toBeVisible();
+      await expect(page.getByText('The story "non-existent-story" does not exist.')).toBeVisible();
 
       // Should have a link back to epic
       await expect(page.getByRole('link', { name: BACK_TO_EPIC_REGEX })).toBeVisible();
@@ -181,12 +179,12 @@ test.describe('Error States', () => {
       // Mock 500 error for story detail
       await mockApiError(
         page,
-        '**/api/stories/test-epic/broken-story',
+        '**/api/stories/broken-story',
         HTTP_INTERNAL_SERVER_ERROR,
         'Internal Server Error',
       );
 
-      await page.goto('/epic/test-epic/story/broken-story');
+      await page.goto('/story/broken-story');
 
       // Should show the error state
       await expect(page.getByRole('heading', { name: 'Error' })).toBeVisible();
@@ -198,9 +196,9 @@ test.describe('Error States', () => {
 
     test('should show toast notification on network failure', async ({ page }) => {
       // Mock network failure
-      await mockNetworkFailure(page, '**/api/stories/test-epic/network-error-story');
+      await mockNetworkFailure(page, '**/api/stories/network-error-story');
 
-      await page.goto('/epic/test-epic/story/network-error-story');
+      await page.goto('/story/network-error-story');
 
       // Toast notification should appear - use .first() as defensive measure
       // since toast deduplication should prevent duplicates but edge cases exist
@@ -211,19 +209,14 @@ test.describe('Error States', () => {
       await expect(page.getByRole('heading', { name: 'Error' })).toBeVisible();
     });
 
-    test('should allow navigation back to epic from error page', async ({ page }) => {
-      // Mock the epic detail
-      await mockEpicDetail(page, createMockEpic({ slug: 'test-epic', title: 'Test Epic' }));
+    test('should allow navigation back to epic list from error page', async ({ page }) => {
+      // Mock the epic list
+      await mockEpicList(page, [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })]);
 
       // Mock 404 for the story
-      await mockApiError(
-        page,
-        '**/api/stories/test-epic/missing-story',
-        HTTP_NOT_FOUND,
-        'Story not found',
-      );
+      await mockApiError(page, '**/api/stories/missing-story', HTTP_NOT_FOUND, 'Story not found');
 
-      await page.goto('/epic/test-epic/story/missing-story');
+      await page.goto('/story/missing-story');
 
       // Wait for error page to load
       await expect(page.getByRole('heading', { name: 'Story not found' })).toBeVisible({
@@ -233,20 +226,20 @@ test.describe('Error States', () => {
       // Click the back link
       await page.getByRole('link', { name: BACK_TO_EPIC_REGEX }).click();
 
-      // Wait for epic detail to load
-      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, {
+      // Should navigate to epic list and show the Epics heading
+      await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible({
         timeout: LOADING_TIMEOUT_MS,
       });
 
-      // Should navigate to epic detail
-      await expect(page.getByRole('heading', { name: 'Test Epic' })).toBeVisible();
+      // Verify the epic is listed
+      await expect(page.getByText('Test Epic')).toBeVisible();
     });
   });
 
   test.describe('Mixed Error Scenarios', () => {
     test('should handle error on one page and success on another', async ({ page }) => {
       // Epic list works
-      await mockEpicList(page, [createMockEpicSummary({ slug: 'good-epic', title: 'Good Epic' })]);
+      await mockEpicList(page, [createMockEpicSummary({ id: 'good-epic', title: 'Good Epic' })]);
 
       // But epic detail fails
       await mockApiError(
@@ -273,13 +266,13 @@ test.describe('Error States', () => {
     test('should recover after navigating away from error page', async ({ page }) => {
       // Mock working epic list
       await mockEpicList(page, [
-        createMockEpicSummary({ slug: 'working-epic', title: 'Working Epic' }),
+        createMockEpicSummary({ id: 'working-epic', title: 'Working Epic' }),
       ]);
 
       // Mock working epic detail
       await mockEpicDetail(
         page,
-        createMockEpic({ slug: 'working-epic', title: 'Working Epic Detail' }),
+        createMockEpic({ id: 'working-epic', title: 'Working Epic Detail' }),
       );
 
       // Mock error for non-existent epic

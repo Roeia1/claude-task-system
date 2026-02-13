@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { expect, within } from 'storybook/test';
+import { DashboardProvider } from '@/context/dashboard-context';
+import { dashboardMachine } from '@/machines/dashboardMachine';
 import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import { Breadcrumb } from './Breadcrumb.tsx';
 
@@ -12,7 +14,7 @@ import { Breadcrumb } from './Breadcrumb.tsx';
 const EPICS_LINK_PATTERN = /epics/i;
 
 /** Available route presets for Playground */
-const routePresets = ['root', 'epicDetail', 'storyDetail', 'longEpicSlug', 'longSlugs'] as const;
+const routePresets = ['root', 'epicDetail', 'storyDetail', 'longEpicSlug', 'longStoryId'] as const;
 type RoutePreset = (typeof routePresets)[number];
 
 /** Route configuration for each preset */
@@ -26,17 +28,16 @@ const routeConfigs: Record<RoutePreset, { route: string; description: string }> 
     description: 'Epic detail page',
   },
   storyDetail: {
-    route: '/epic/dashboard-restructure/story/storybook-setup',
+    route: '/story/storybook-setup',
     description: 'Story detail page',
   },
   longEpicSlug: {
     route: '/epic/implement-authentication-and-authorization-system',
     description: 'Long epic slug',
   },
-  longSlugs: {
-    route:
-      '/epic/implement-authentication-and-authorization-system/story/add-oauth-provider-integration',
-    description: 'Long epic and story slugs',
+  longStoryId: {
+    route: '/story/add-oauth-provider-integration-with-long-id',
+    description: 'Long story ID',
   },
 };
 
@@ -49,13 +50,15 @@ const routeConfigs: Record<RoutePreset, { route: string; description: string }> 
  */
 function BreadcrumbWithRouter({ route }: { route: string }) {
   return (
-    <MemoryRouter initialEntries={[route]}>
-      <Routes>
-        <Route path="/" element={<Breadcrumb />} />
-        <Route path="/epic/:slug" element={<Breadcrumb />} />
-        <Route path="/epic/:epicSlug/story/:storySlug" element={<Breadcrumb />} />
-      </Routes>
-    </MemoryRouter>
+    <DashboardProvider logic={dashboardMachine}>
+      <MemoryRouter initialEntries={[route]}>
+        <Routes>
+          <Route path="/" element={<Breadcrumb />} />
+          <Route path="/epic/:epicId" element={<Breadcrumb />} />
+          <Route path="/story/:storyId" element={<Breadcrumb />} />
+        </Routes>
+      </MemoryRouter>
+    </DashboardProvider>
   );
 }
 
@@ -71,7 +74,7 @@ function BreadcrumbWithRouter({ route }: { route: string }) {
  * **Variants:**
  * - **Root**: Shows "Epics" with home icon (at `/`)
  * - **Epic Detail**: Shows Epics > epic-slug (at `/epic/:slug`)
- * - **Story Detail**: Shows Epics > epic-slug > story-slug (at `/epic/:epicSlug/story/:storySlug`)
+ * - **Story Detail**: Shows Epics > story-id (at `/story/:storyId`)
  */
 const meta: Meta<{ preset: RoutePreset; customRoute: string }> = {
   title: 'Atoms/Breadcrumb',
@@ -130,22 +133,22 @@ const Showcase: Story = {
           </div>
           <div>
             <span className="text-xs text-text-muted block mb-1">Story Detail:</span>
-            <BreadcrumbWithRouter route="/epic/dashboard-restructure/story/storybook-setup" />
+            <BreadcrumbWithRouter route="/story/storybook-setup" />
           </div>
         </div>
       </section>
 
       {/* Edge Cases */}
       <section>
-        <h3 className="text-sm font-medium text-text-muted mb-3">Edge Cases (Long Slugs)</h3>
+        <h3 className="text-sm font-medium text-text-muted mb-3">Edge Cases (Long IDs)</h3>
         <div className="space-y-4">
           <div>
             <span className="text-xs text-text-muted block mb-1">Long Epic Slug:</span>
             <BreadcrumbWithRouter route="/epic/implement-authentication-and-authorization-system" />
           </div>
           <div>
-            <span className="text-xs text-text-muted block mb-1">Long Epic + Story Slugs:</span>
-            <BreadcrumbWithRouter route="/epic/implement-authentication-and-authorization-system/story/add-oauth-provider-integration" />
+            <span className="text-xs text-text-muted block mb-1">Long Story ID:</span>
+            <BreadcrumbWithRouter route="/story/add-oauth-provider-integration-with-long-id" />
           </div>
         </div>
       </section>
@@ -156,7 +159,7 @@ const Showcase: Story = {
 
     // Verify section headers
     await expect(canvas.getByText('Navigation States')).toBeInTheDocument();
-    await expect(canvas.getByText('Edge Cases (Long Slugs)')).toBeInTheDocument();
+    await expect(canvas.getByText('Edge Cases (Long IDs)')).toBeInTheDocument();
 
     // Verify root breadcrumb - contains "Epics" text and home icon
     const epicsTexts = canvas.getAllByText('Epics');
@@ -164,17 +167,19 @@ const Showcase: Story = {
     const homeIcons = canvas.getAllByTestId('breadcrumb-home-icon');
     await expect(homeIcons.length).toBeGreaterThan(0);
 
-    // Verify epic/story detail breadcrumbs - dashboard-restructure appears in both epic and story detail
-    const dashboardRestructureTexts = canvas.getAllByText('dashboard-restructure');
-    await expect(dashboardRestructureTexts.length).toBeGreaterThanOrEqual(2); // Epic detail + Story detail
+    // Verify epic detail breadcrumb - dashboard-restructure appears
+    await expect(canvas.getByText('dashboard-restructure')).toBeInTheDocument();
 
     // Verify story detail breadcrumb - contains storybook-setup
     await expect(canvas.getByText('storybook-setup')).toBeInTheDocument();
 
-    // Verify long slugs are displayed
-    const longEpicSlugs = canvas.getAllByText('implement-authentication-and-authorization-system');
-    await expect(longEpicSlugs.length).toBe(2); // Appears in both long slug examples
-    await expect(canvas.getByText('add-oauth-provider-integration')).toBeInTheDocument();
+    // Verify long IDs are displayed
+    await expect(
+      canvas.getByText('implement-authentication-and-authorization-system'),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByText('add-oauth-provider-integration-with-long-id'),
+    ).toBeInTheDocument();
 
     // Visual snapshot tests
     await matchDomSnapshot(canvasElement, 'breadcrumb-showcase');
@@ -234,17 +239,13 @@ const Playground: Story = {
       await expect(separators.length).toBe(1);
     }
 
-    // For storyDetail preset, verify full breadcrumb trail
+    // For storyDetail preset, verify breadcrumb trail
     if (args.preset === 'storyDetail' && !args.customRoute) {
       const epicsLink = canvas.getByRole('link', { name: EPICS_LINK_PATTERN });
       await expect(epicsLink).toHaveAttribute('href', '/');
-      const epicSlugLink = canvas.getByRole('link', {
-        name: 'dashboard-restructure',
-      });
-      await expect(epicSlugLink).toHaveAttribute('href', '/epic/dashboard-restructure');
       await expect(canvas.getByText('storybook-setup')).toBeInTheDocument();
       const separators = canvas.getAllByTestId('breadcrumb-separator');
-      await expect(separators.length).toBe(2);
+      await expect(separators.length).toBe(1);
     }
 
     // Accessibility: Verify nav has proper aria-label

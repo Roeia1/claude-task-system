@@ -1,0 +1,7 @@
+{
+  "id": "t1",
+  "subject": "Define API endpoints",
+  "description": "Map all CRUD operations to endpoints",
+  "status": "completed",
+  "blockedBy": []
+}

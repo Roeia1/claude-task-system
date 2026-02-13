@@ -3,17 +3,18 @@
  *
  * Provides endpoints for reading epic and story data:
  * - GET /api/epics - returns EpicSummary[]
- * - GET /api/epics/:slug - returns Epic with full story list
- * - GET /api/stories/:epicSlug/:storySlug - returns StoryDetail with parsed journal
+ * - GET /api/epics/:epicId - returns ParsedEpic with full story list and dependencies
+ * - GET /api/stories - returns standalone stories (not belonging to any epic)
+ * - GET /api/stories/:storyId - returns StoryDetail with parsed journal
  */
 
-import { join } from 'node:path';
 import { type Request, type Response, Router } from 'express';
 import {
-  type Epic,
   type EpicSummary,
+  type ParsedEpic,
   parseJournal,
-  type StoryDetail,
+  parseStory,
+  type ScanResult,
   scanSagaDirectory,
 } from './parser.ts';
 import { createSessionApiRouter } from './session-routes.ts';
@@ -23,24 +24,22 @@ const HTTP_NOT_FOUND = 404;
 const HTTP_INTERNAL_ERROR = 500;
 
 /**
- * Get epics by scanning the saga directory
- *
- * Note: The file watcher triggers WebSocket updates on changes,
- * so fresh scanning on each request ensures data consistency.
+ * Scan the saga directory and return structured data
  */
-function getEpics(sagaRoot: string): Promise<Epic[]> {
+function getScanResult(sagaRoot: string): ScanResult {
   return scanSagaDirectory(sagaRoot);
 }
 
 /**
- * Convert Epic to EpicSummary (remove stories and content)
+ * Convert ParsedEpic to EpicSummary (remove stories, children, and content)
  */
-function toEpicSummary(epic: Epic): EpicSummary {
+function toEpicSummary(epic: ParsedEpic): EpicSummary {
   return {
-    slug: epic.slug,
+    id: epic.id,
     title: epic.title,
+    description: epic.description,
+    status: epic.status,
     storyCounts: epic.storyCounts,
-    path: epic.path,
   };
 }
 
@@ -52,9 +51,9 @@ function registerEpicsRoutes(router: Router, sagaRoot: string): void {
    * GET /api/epics
    * Returns list of epic summaries without full story details
    */
-  router.get('/epics', async (_req: Request, res: Response) => {
+  router.get('/epics', (_req: Request, res: Response) => {
     try {
-      const epics = await getEpics(sagaRoot);
+      const { epics } = getScanResult(sagaRoot);
       const summaries = epics.map(toEpicSummary);
       res.json(summaries);
     } catch (_error) {
@@ -63,17 +62,17 @@ function registerEpicsRoutes(router: Router, sagaRoot: string): void {
   });
 
   /**
-   * GET /api/epics/:slug
-   * Returns epic detail with full story list
+   * GET /api/epics/:epicId
+   * Returns epic detail with full story list and dependency graph
    */
-  router.get('/epics/:slug', async (req: Request, res: Response) => {
+  router.get('/epics/:epicId', (req: Request, res: Response) => {
     try {
-      const { slug } = req.params;
-      const epics = await getEpics(sagaRoot);
-      const epic = epics.find((e) => e.slug === slug);
+      const { epicId } = req.params;
+      const { epics } = getScanResult(sagaRoot);
+      const epic = epics.find((e) => e.id === epicId);
 
       if (!epic) {
-        res.status(HTTP_NOT_FOUND).json({ error: `Epic not found: ${slug}` });
+        res.status(HTTP_NOT_FOUND).json({ error: `Epic not found: ${epicId}` });
         return;
       }
 
@@ -89,33 +88,37 @@ function registerEpicsRoutes(router: Router, sagaRoot: string): void {
  */
 function registerStoriesRoutes(router: Router, sagaRoot: string): void {
   /**
-   * GET /api/stories/:epicSlug/:storySlug
+   * GET /api/stories
+   * Returns standalone stories (those not belonging to any epic)
+   */
+  router.get('/stories', (_req: Request, res: Response) => {
+    try {
+      const { standaloneStories } = getScanResult(sagaRoot);
+      res.json(standaloneStories);
+    } catch (_error) {
+      res.status(HTTP_INTERNAL_ERROR).json({ error: 'Failed to fetch stories' });
+    }
+  });
+
+  /**
+   * GET /api/stories/:storyId
    * Returns story detail with parsed journal
    */
-  router.get('/stories/:epicSlug/:storySlug', async (req: Request, res: Response) => {
+  router.get('/stories/:storyId', async (req: Request, res: Response) => {
     try {
-      const { epicSlug, storySlug } = req.params;
-      const epics = await getEpics(sagaRoot);
-      const epic = epics.find((e) => e.slug === epicSlug);
-
-      if (!epic) {
-        res.status(HTTP_NOT_FOUND).json({ error: `Epic not found: ${epicSlug}` });
-        return;
-      }
-
-      const story = epic.stories.find((s) => s.slug === storySlug);
+      const { storyId } = req.params;
+      const story = parseStory(sagaRoot, storyId);
 
       if (!story) {
-        res.status(HTTP_NOT_FOUND).json({ error: `Story not found: ${storySlug}` });
+        res.status(HTTP_NOT_FOUND).json({ error: `Story not found: ${storyId}` });
         return;
       }
 
       // If story has a journal path, parse it
-      if (story.paths.journalMd) {
-        const journalPath = join(sagaRoot, story.paths.journalMd);
-        const journal = await parseJournal(journalPath);
+      if (story.journalPath) {
+        const journal = await parseJournal(story.journalPath);
         if (journal.length > 0) {
-          (story as StoryDetail).journal = journal;
+          story.journal = journal;
         }
       }
 

@@ -59,18 +59,15 @@ function presetToLabel(preset: SessionPreset): string {
 /** Wrapper component providing MemoryRouter context for SessionCard */
 function SessionCardWithRouter({
   preset,
-  epicSlug,
-  storySlug,
+  storyId,
   outputPreview,
 }: {
   preset: SessionPreset;
-  epicSlug?: string;
-  storySlug?: string;
+  storyId?: string;
   outputPreview?: string;
 }) {
   const session = createMockSession(preset, {
-    epicSlug,
-    storySlug,
+    storyId,
     outputPreview,
   });
   return (
@@ -93,15 +90,14 @@ function SessionCardWithRouter({
  */
 const meta: Meta<{
   preset: SessionPreset;
-  epicSlug: string;
-  storySlug: string;
+  storyId: string;
 }> = {
   title: 'Components/SessionCard',
   parameters: {
     docs: {
       description: {
         component:
-          'Card component for displaying a running session with story/epic titles, live duration counter, and output preview. Clicking navigates to the story detail Sessions tab.',
+          'Card component for displaying a running session with story ID, live duration counter, and output preview. Clicking navigates to the story detail Sessions tab.',
       },
     },
   },
@@ -111,19 +107,14 @@ const meta: Meta<{
       options: SESSION_PRESETS,
       description: 'Session preset determining duration and output state',
     },
-    epicSlug: {
+    storyId: {
       control: 'text',
-      description: 'Epic slug for the session',
-    },
-    storySlug: {
-      control: 'text',
-      description: 'Story slug for the session',
+      description: 'Story ID for the session',
     },
   },
   args: {
     preset: 'running',
-    epicSlug: 'test-epic',
-    storySlug: 'test-story',
+    storyId: 'test-story',
   },
 };
 
@@ -150,11 +141,7 @@ const Showcase: Story = {
               <div key={preset} className="space-y-2">
                 <div className="text-sm text-text-muted">{presetToLabel(preset)}</div>
                 <div className="w-[300px]">
-                  <SessionCardWithRouter
-                    preset={preset}
-                    epicSlug="feature-epic"
-                    storySlug={`${preset}-session`}
-                  />
+                  <SessionCardWithRouter preset={preset} storyId={`${preset}-session`} />
                 </div>
               </div>
             ))}
@@ -166,12 +153,11 @@ const Showcase: Story = {
           <h2 className="text-lg font-semibold text-text mb-4">Edge Cases</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <div className="text-sm text-text-muted">Long Epic/Story Slugs</div>
+              <div className="text-sm text-text-muted">Long Story ID</div>
               <div className="w-[300px]">
                 <SessionCardWithRouter
                   preset="running"
-                  epicSlug="very-long-epic-slug-that-might-overflow"
-                  storySlug="another-very-long-story-slug-for-testing"
+                  storyId="very-long-story-id-that-might-overflow-the-card"
                 />
               </div>
             </div>
@@ -180,8 +166,7 @@ const Showcase: Story = {
               <div className="w-[300px]">
                 <SessionCardWithRouter
                   preset="running"
-                  epicSlug="test-epic"
-                  storySlug="long-output"
+                  storyId="long-output"
                   outputPreview={Array.from(
                     { length: 20 },
                     (_, i) =>
@@ -239,7 +224,7 @@ const Showcase: Story = {
     await expect(canvas.getByText('Output unavailable')).toBeInTheDocument();
 
     // Verify edge cases section
-    await expect(canvas.getByText('Long Epic/Story Slugs')).toBeInTheDocument();
+    await expect(canvas.getByText('Long Story ID')).toBeInTheDocument();
     await expect(canvas.getByText('Long Output Preview')).toBeInTheDocument();
 
     // Verify formatDuration utility section
@@ -271,19 +256,14 @@ const Playground: Story = {
           <span className="font-medium">Preset:</span> {presetToLabel(args.preset)}
         </div>
         <div className="w-[350px]">
-          <SessionCardWithRouter
-            preset={args.preset}
-            epicSlug={args.epicSlug}
-            storySlug={args.storySlug}
-          />
+          <SessionCardWithRouter preset={args.preset} storyId={args.storyId} />
         </div>
       </div>
     );
   },
   args: {
     preset: 'running',
-    epicSlug: 'feature-epic',
-    storySlug: 'active-session',
+    storyId: 'active-session',
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
@@ -291,11 +271,8 @@ const Playground: Story = {
     // Verify preset label is displayed
     await expect(canvas.getByText(presetToLabel(args.preset))).toBeInTheDocument();
 
-    // Verify story slug is displayed
-    await expect(canvas.getByText(args.storySlug)).toBeInTheDocument();
-
-    // Verify epic slug is displayed
-    await expect(canvas.getByText(args.epicSlug)).toBeInTheDocument();
+    // Verify story ID is displayed
+    await expect(canvas.getByText(args.storyId)).toBeInTheDocument();
 
     // Verify duration is displayed
     const durationElement = canvas.getByText(DURATION_PATTERN);
@@ -303,10 +280,7 @@ const Playground: Story = {
 
     // Verify link exists with correct format
     const link = canvas.getByRole('link');
-    await expect(link).toHaveAttribute(
-      'href',
-      `/epic/${args.epicSlug}/story/${args.storySlug}?tab=sessions`,
-    );
+    await expect(link).toHaveAttribute('href', `/story/${args.storyId}?tab=sessions`);
 
     // Handle preset-specific checks
     if (args.preset === 'output-unavailable') {

@@ -10,15 +10,14 @@ import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapsh
 // Constants
 // ============================================================================
 
-/** Total number of epic cards in Showcase (6 presets + 2 edge cases) */
-const SHOWCASE_CARD_COUNT = 8;
+/** Total number of epic cards in Showcase (5 presets + 2 edge cases) */
+const SHOWCASE_CARD_COUNT = 7;
 
 /** Available epic presets for Playground */
 const epicPresets: EpicPreset[] = [
   'typical',
   'just-started',
   'in-progress',
-  'has-blockers',
   'almost-done',
   'completed',
 ];
@@ -35,9 +34,9 @@ const epicPresets: EpicPreset[] = [
  * - Progress bar showing completion percentage
  * - Status badges showing story counts (only visible when count > 0)
  * - Hover state with primary border
- * - Navigation link to `/epic/{slug}`
+ * - Navigation link to `/epic/{id}`
  */
-const meta: Meta<{ preset: EpicPreset; title?: string; isArchived?: boolean }> = {
+const meta: Meta<{ preset: EpicPreset; title?: string }> = {
   title: 'Components/EpicCard',
   decorators: [
     (Story) => (
@@ -56,14 +55,9 @@ const meta: Meta<{ preset: EpicPreset; title?: string; isArchived?: boolean }> =
       control: 'text',
       description: 'Override the epic title',
     },
-    isArchived: {
-      control: 'boolean',
-      description: 'Whether the epic is archived',
-    },
   },
   args: {
     preset: 'typical',
-    isArchived: false,
   },
   parameters: {
     docs: {
@@ -85,11 +79,10 @@ type Story = StoryObj<typeof meta>;
 // ============================================================================
 
 /**
- * Curated display of EpicCard showing all 6 preset states:
+ * Curated display of EpicCard showing all 5 preset states:
  * - Typical: Mixed progress with all status types
- * - Just Started: All stories ready, none completed
+ * - Just Started: All stories pending, none completed
  * - In Progress: Active work with some completion
- * - Has Blockers: Stories blocked requiring attention
  * - Almost Done: Most stories completed, one in progress
  * - Completed: All stories done
  */
@@ -107,7 +100,7 @@ const Showcase: Story = {
               <EpicCard
                 epic={createMockEpicSummary('typical', {
                   title: 'Dashboard Restructure',
-                  slug: 'dashboard-restructure',
+                  id: 'dashboard-restructure',
                 })}
               />
             </div>
@@ -116,7 +109,7 @@ const Showcase: Story = {
               <EpicCard
                 epic={createMockEpicSummary('just-started', {
                   title: 'New Feature Implementation',
-                  slug: 'new-feature',
+                  id: 'new-feature',
                 })}
               />
             </div>
@@ -125,16 +118,7 @@ const Showcase: Story = {
               <EpicCard
                 epic={createMockEpicSummary('in-progress', {
                   title: 'API Integration',
-                  slug: 'api-integration',
-                })}
-              />
-            </div>
-            <div className="space-y-2">
-              <span className="text-xs text-text-muted">Has Blockers</span>
-              <EpicCard
-                epic={createMockEpicSummary('has-blockers', {
-                  title: 'Database Migration',
-                  slug: 'db-migration',
+                  id: 'api-integration',
                 })}
               />
             </div>
@@ -143,7 +127,7 @@ const Showcase: Story = {
               <EpicCard
                 epic={createMockEpicSummary('almost-done', {
                   title: 'Authentication System',
-                  slug: 'auth-system',
+                  id: 'auth-system',
                 })}
               />
             </div>
@@ -152,7 +136,7 @@ const Showcase: Story = {
               <EpicCard
                 epic={createMockEpicSummary('completed', {
                   title: 'Legacy Cleanup',
-                  slug: 'legacy-cleanup',
+                  id: 'legacy-cleanup',
                 })}
               />
             </div>
@@ -169,17 +153,16 @@ const Showcase: Story = {
                 epic={createMockEpicSummary('typical', {
                   title:
                     'This Is a Very Long Epic Title That Demonstrates How Text Wrapping Works in the Card Component',
-                  slug: 'long-title-epic',
+                  id: 'long-title-epic',
                 })}
               />
             </div>
             <div className="space-y-2">
-              <span className="text-xs text-text-muted">Archived</span>
+              <span className="text-xs text-text-muted">Completed Epic</span>
               <EpicCard
                 epic={createMockEpicSummary('completed', {
-                  title: 'Archived Feature',
-                  slug: 'archived-feature',
-                  isArchived: true,
+                  title: 'Completed Feature',
+                  id: 'completed-feature',
                 })}
               />
             </div>
@@ -199,7 +182,6 @@ const Showcase: Story = {
     await expect(canvas.getByText('Typical')).toBeInTheDocument();
     await expect(canvas.getByText('Just Started')).toBeInTheDocument();
     await expect(canvas.getByText('In Progress')).toBeInTheDocument();
-    await expect(canvas.getByText('Has Blockers')).toBeInTheDocument();
     await expect(canvas.getByText('Almost Done')).toBeInTheDocument();
     await expect(canvas.getByText('Completed')).toBeInTheDocument();
 
@@ -207,7 +189,6 @@ const Showcase: Story = {
     await expect(canvas.getByText('Dashboard Restructure')).toBeInTheDocument();
     await expect(canvas.getByText('New Feature Implementation')).toBeInTheDocument();
     await expect(canvas.getByText('API Integration')).toBeInTheDocument();
-    await expect(canvas.getByText('Database Migration')).toBeInTheDocument();
     await expect(canvas.getByText('Authentication System')).toBeInTheDocument();
     await expect(canvas.getByText('Legacy Cleanup')).toBeInTheDocument();
 
@@ -217,9 +198,9 @@ const Showcase: Story = {
         'This Is a Very Long Epic Title That Demonstrates How Text Wrapping Works in the Card Component',
       ),
     ).toBeInTheDocument();
-    await expect(canvas.getByText('Archived Feature')).toBeInTheDocument();
+    await expect(canvas.getByText('Completed Feature')).toBeInTheDocument();
 
-    // Verify links are present (6 presets + 2 edge cases)
+    // Verify links are present (5 presets + 2 edge cases)
     const links = canvas.getAllByRole('link');
     await expect(links.length).toBe(SHOWCASE_CARD_COUNT);
 
@@ -238,19 +219,16 @@ const Showcase: Story = {
 
 /**
  * Interactive playground for exploring EpicCard with different presets.
- * Use the controls to change the epic preset and customize title/archived state.
+ * Use the controls to change the epic preset and customize title.
  */
 const Playground: Story = {
   render: (args) => {
     resetMockCounters();
     const overrides: EpicSummaryOverrides = {
-      slug: 'playground-epic',
+      id: 'playground-epic',
     };
     if (args.title) {
       overrides.title = args.title;
-    }
-    if (args.isArchived !== undefined) {
-      overrides.isArchived = args.isArchived;
     }
     const epic = createMockEpicSummary(args.preset, overrides);
 
@@ -258,16 +236,14 @@ const Playground: Story = {
       <div className="space-y-4">
         <div className="text-sm text-text-muted">
           <span className="font-medium">Preset:</span> {args.preset}
-          {args.isArchived && <span className="ml-2">(Archived)</span>}
         </div>
         <div className="max-w-md">
           <EpicCard epic={epic} />
         </div>
         <div className="text-xs text-text-muted/70 space-y-1">
           <div>
-            Story counts: Ready: {epic.storyCounts.ready}, In Progress:{' '}
-            {epic.storyCounts.inProgress}, Blocked: {epic.storyCounts.blocked}, Completed:{' '}
-            {epic.storyCounts.completed}
+            Story counts: Pending: {epic.storyCounts.pending}, In Progress:{' '}
+            {epic.storyCounts.inProgress}, Completed: {epic.storyCounts.completed}
           </div>
           <div>Total: {epic.storyCounts.total} stories</div>
         </div>
@@ -277,7 +253,6 @@ const Playground: Story = {
   args: {
     preset: 'typical',
     title: '',
-    isArchived: false,
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

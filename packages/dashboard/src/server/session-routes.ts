@@ -27,8 +27,7 @@ export function createSessionApiRouter(): Router {
    * Returns list of sessions with optional filtering.
    *
    * Query parameters:
-   * - epicSlug: Filter by epic slug
-   * - storySlug: Filter by story slug (requires epicSlug)
+   * - storyId: Filter by story ID
    * - status: Filter by status ('running' or 'completed')
    *
    * Results are sorted by startTime descending (newest first).
@@ -37,17 +36,12 @@ export function createSessionApiRouter(): Router {
     try {
       let sessions = getCurrentSessions();
 
-      // Apply filters in order: epicSlug, then storySlug (requires epicSlug), then status
-      const { epicSlug, storySlug, status } = _req.query;
+      // Apply filters: storyId, then status
+      const { storyId, status } = _req.query;
 
-      // Filter by epicSlug
-      if (epicSlug && typeof epicSlug === 'string') {
-        sessions = sessions.filter((s) => s.epicSlug === epicSlug);
-
-        // Filter by storySlug (only if epicSlug was provided)
-        if (storySlug && typeof storySlug === 'string') {
-          sessions = sessions.filter((s) => s.storySlug === storySlug);
-        }
+      // Filter by storyId
+      if (storyId && typeof storyId === 'string') {
+        sessions = sessions.filter((s) => s.storyId === storyId);
       }
 
       // Filter by status
