@@ -1,0 +1,12 @@
+{
+  "id": "dummy-add-docs",
+  "title": "Add Dummy Documentation",
+  "description": "## Scope\nAdd documentation for the dummy module created in previous stories.\n\n## Technical Details\n- Create a `dummy/README.md` documenting the `greet` and `calculate` functions\n- Include usage examples and API reference\n- Add inline JSDoc comments to the exported functions\n\n## Acceptance Criteria\n- `dummy/README.md` exists with function documentation\n- Both `greet` and `calculate` are documented with examples\n- JSDoc comments are added to exported functions in `dummy/index.js`",
+  "epic": "dummy-test-epic",
+  "guidance": "This is a dummy story for testing. Keep documentation minimal but complete.",
+  "doneWhen": "README and JSDoc comments exist for all exported functions.",
+  "avoid": "Do not generate auto-documentation or add documentation tooling.",
+  "branch": "story/dummy-add-docs",
+  "pr": "https://github.com/Roeia1/SAGA/pull/71",
+  "worktree": ".saga/worktrees/dummy-add-docs/"
+}
