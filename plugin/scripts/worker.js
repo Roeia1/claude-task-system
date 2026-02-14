@@ -6,7 +6,7 @@ var __export = (target, all) => {
 };
 
 // src/scripts/worker.ts
-import process9 from "node:process";
+import process8 from "node:process";
 
 // src/scripts/shared/env.ts
 import process2 from "node:process";
@@ -4425,7 +4425,7 @@ function createNoopMessageWriter() {
 // src/scripts/worker/run-headless-loop.ts
 import { readdirSync as readdirSync3, readFileSync as readFileSync4 } from "node:fs";
 import { join as join4 } from "node:path";
-import process7 from "node:process";
+import process6 from "node:process";
 
 // ../../node_modules/.pnpm/@anthropic-ai+claude-agent-sdk@0.2.39_zod@3.25.76/node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs
 import { join as az } from "path";
@@ -13247,30 +13247,7 @@ function Qx({ prompt: X, options: Q }) {
 
 // src/scripts/scope-validator.ts
 import { relative, resolve } from "node:path";
-import process6 from "node:process";
-var EXIT_ALLOWED = 0;
-var EXIT_BLOCKED = 2;
-var FILE_PATH_WIDTH = 50;
-var SCOPE_VALUE_WIDTH = 43;
-var REASON_WIDTH = 56;
 var WRITE_TOOLS = /* @__PURE__ */ new Set(["Write", "Edit"]);
-function getFilePathFromInput(hookInput) {
-  try {
-    const data = JSON.parse(hookInput);
-    const toolInput = data.tool_input || {};
-    return toolInput.file_path || toolInput.path || null;
-  } catch {
-    return null;
-  }
-}
-function getToolNameFromInput(hookInput) {
-  try {
-    const data = JSON.parse(hookInput);
-    return data.tool_name || null;
-  } catch {
-    return null;
-  }
-}
 function normalizePath(path) {
   if (path.startsWith("./")) {
     return path.slice(2);
@@ -13340,51 +13317,6 @@ function checkStoryAccessById(path, allowedStoryId) {
   }
   return true;
 }
-function printScopeViolation(filePath, scope, worktreePath, reason) {
-  const scopeLines = [
-    `\u2502    Story:    ${scope.storyId.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`,
-    `\u2502    Worktree: ${worktreePath.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`
-  ];
-  const message = [
-    "",
-    "\u256D\u2500 Scope Violation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E",
-    "\u2502                                                           \u2502",
-    `\u2502  File: ${filePath.slice(0, FILE_PATH_WIDTH).padEnd(FILE_PATH_WIDTH)}\u2502`,
-    "\u2502                                                           \u2502",
-    `\u2502  ${reason.split("\n")[0].padEnd(REASON_WIDTH)}\u2502`,
-    "\u2502                                                           \u2502",
-    "\u2502  Current scope:                                           \u2502",
-    ...scopeLines,
-    "\u2502                                                           \u2502",
-    "\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F",
-    ""
-  ].join("\n");
-  process6.stderr.write(message);
-}
-async function readStdinInput() {
-  const chunks = [];
-  for await (const chunk of process6.stdin) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks).toString("utf-8");
-}
-function getScopeEnvironment() {
-  const worktreePath = process6.env.SAGA_PROJECT_DIR || "";
-  if (!worktreePath) {
-    process6.stderr.write(
-      'scope-validator: Missing required environment variable: SAGA_PROJECT_DIR\n\nThe scope validator cannot verify file access without this variable.\nThis is a configuration error - the orchestrator should set this variable.\n\nYou MUST exit with status BLOCKED and set blocker to:\n"Scope validator misconfigured: missing SAGA_PROJECT_DIR"\n'
-    );
-    return null;
-  }
-  const storyId = process6.env.SAGA_STORY_ID || "";
-  if (!storyId) {
-    process6.stderr.write(
-      'scope-validator: Missing required environment variable: SAGA_STORY_ID\n\nThe scope validator cannot verify file access without this variable.\nThis is a configuration error - the worker should set SAGA_STORY_ID.\n\nYou MUST exit with status BLOCKED and set blocker to:\n"Scope validator misconfigured: missing SAGA_STORY_ID"\n'
-    );
-    return null;
-  }
-  return { storyId, worktreePath };
-}
 function validatePath(filePath, worktreePath, scope, toolName) {
   const normPath = normalizePath(filePath);
   if (!isWithinWorktree(normPath, worktreePath)) {
@@ -13400,29 +13332,6 @@ function validatePath(filePath, worktreePath, scope, toolName) {
     return ".saga write blocked\nReason: Only journal.md is writable inside the .saga directory. All other .saga files are immutable during execution.";
   }
   return null;
-}
-async function main() {
-  const env = getScopeEnvironment();
-  if (!env) {
-    process6.exit(EXIT_BLOCKED);
-  }
-  const toolInput = await readStdinInput();
-  const filePath = getFilePathFromInput(toolInput);
-  if (!filePath) {
-    process6.exit(EXIT_ALLOWED);
-  }
-  const toolName = getToolNameFromInput(toolInput);
-  const { worktreePath, ...scope } = env;
-  const violation = validatePath(filePath, worktreePath, scope, toolName ?? void 0);
-  if (violation) {
-    printScopeViolation(filePath, scope, worktreePath, violation);
-    process6.exit(EXIT_BLOCKED);
-  }
-  process6.exit(EXIT_ALLOWED);
-}
-var isDirectExecution = process6.argv[1] && import.meta.url.endsWith(process6.argv[1].replace(/\\/g, "/"));
-if (isDirectExecution) {
-  main();
 }
 
 // src/scripts/scope-validator-hook.ts
@@ -13536,7 +13445,7 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
         model,
         cwd: worktreePath,
         env: {
-          ...process7.env,
+          ...process6.env,
           [ENV_PROJECT_DIR]: worktreePath,
           [ENV_ENABLE_TASKS]: "true",
           [ENV_TASK_LIST_ID]: taskListId,
@@ -13574,7 +13483,7 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
     return { exitCode };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    process7.stderr.write(`[worker] Headless run error: ${errorMessage}
+    process6.stderr.write(`[worker] Headless run error: ${errorMessage}
 `);
     return { exitCode: 1 };
   }
@@ -13587,7 +13496,7 @@ function executeCycle(config, state) {
     return Promise.resolve({ shouldContinue: false });
   }
   const cycleNum = state.cycles + 1;
-  process7.stdout.write(`[worker] Starting headless run cycle ${cycleNum}/${config.maxCycles}
+  process6.stdout.write(`[worker] Starting headless run cycle ${cycleNum}/${config.maxCycles}
 `);
   config.messagesWriter.write({
     type: "saga_worker",
@@ -13686,7 +13595,7 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
 import { execFileSync as execFileSync3 } from "node:child_process";
 import { existsSync as existsSync4, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
 import { dirname as dirname2 } from "node:path";
-import process8 from "node:process";
+import process7 from "node:process";
 function runGit(args, cwd) {
   try {
     const output = execFileSync3("git", args, {
@@ -13717,11 +13626,11 @@ function setupWorktree(storyId, projectDir) {
   if (existsSync4(worktreeDir)) {
     const valid = runGit(["rev-parse", "--git-dir"], worktreeDir);
     if (valid.success) {
-      process8.stdout.write(`[worker] Worktree already exists: ${worktreeDir}
+      process7.stdout.write(`[worker] Worktree already exists: ${worktreeDir}
 `);
       return { worktreePath: worktreeDir, branch, alreadyExisted: true };
     }
-    process8.stdout.write(`[worker] Removing broken worktree: ${worktreeDir}
+    process7.stdout.write(`[worker] Removing broken worktree: ${worktreeDir}
 `);
     runGit(["worktree", "remove", "--force", worktreeDir], projectDir);
     rmSync2(worktreeDir, { recursive: true, force: true });
@@ -13730,7 +13639,7 @@ function setupWorktree(storyId, projectDir) {
   runGit(["fetch", "origin", mainBranch], projectDir);
   mkdirSync4(dirname2(worktreeDir), { recursive: true });
   if (branchExists(branch, projectDir)) {
-    process8.stdout.write(`[worker] Branch ${branch} exists, re-creating worktree
+    process7.stdout.write(`[worker] Branch ${branch} exists, re-creating worktree
 `);
     const result = runGit(["worktree", "add", worktreeDir, branch], projectDir);
     if (!result.success) {
@@ -13745,7 +13654,7 @@ function setupWorktree(storyId, projectDir) {
       throw new Error(`Failed to create worktree and branch: ${result.output}`);
     }
   }
-  process8.stdout.write(`[worker] Created worktree: ${worktreeDir} (branch: ${branch})
+  process7.stdout.write(`[worker] Created worktree: ${worktreeDir} (branch: ${branch})
 `);
   return { worktreePath: worktreeDir, branch, alreadyExisted: false };
 }
@@ -13786,11 +13695,11 @@ Examples:
   # Run with custom options
   node worker.js auth-setup-db --max-cycles 5 --model sonnet
 `.trim();
-  process9.stdout.write(`${usage}
+  process8.stdout.write(`${usage}
 `);
 }
 function printError(message) {
-  process9.stderr.write(`Error: ${message}
+  process8.stderr.write(`Error: ${message}
 `);
 }
 function parsePositiveInt(value) {
@@ -13863,7 +13772,7 @@ function processOption(arg, iter, options) {
 function processArg(arg, iter, options, state) {
   if (arg === "--help" || arg === "-h") {
     printUsage();
-    process9.exit(0);
+    process8.exit(0);
   }
   const optionResult = processOption(arg, iter, options);
   if (optionResult !== null) {
@@ -13957,25 +13866,25 @@ async function runPipeline(storyId, options) {
   writePipelineEnd(writer, storyId, summary);
   return summary;
 }
-async function main2() {
-  const parsed = parseArgs(process9.argv.slice(2));
+async function main() {
+  const parsed = parseArgs(process8.argv.slice(2));
   if (!parsed) {
-    process9.exit(1);
+    process8.exit(1);
   }
   const { storyId, options } = parsed;
-  process9.stdout.write(`[worker] Starting pipeline for story: ${storyId}
+  process8.stdout.write(`[worker] Starting pipeline for story: ${storyId}
 `);
   const summary = await runPipeline(storyId, options);
-  process9.stdout.write(
+  process8.stdout.write(
     `[worker] Pipeline complete. Status: ${summary.status}, cycles: ${summary.cycles}, elapsed: ${summary.elapsedMinutes.toFixed(1)}m
 `
   );
-  process9.exit(summary.exitCode);
+  process8.exit(summary.exitCode);
 }
-main2().catch((error) => {
-  process9.stderr.write(`Error: ${error instanceof Error ? error.message : String(error)}
+main().catch((error) => {
+  process8.stderr.write(`Error: ${error instanceof Error ? error.message : String(error)}
 `);
-  process9.exit(1);
+  process8.exit(1);
 });
 export {
   parseArgs

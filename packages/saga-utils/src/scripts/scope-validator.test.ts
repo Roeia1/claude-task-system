@@ -1,10 +1,7 @@
 import process from 'node:process';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   checkStoryAccessById,
-  getFilePathFromInput,
-  getScopeEnvironment,
-  getToolNameFromInput,
   isArchiveAccess,
   isJournalPath,
   isSagaPath,
@@ -14,16 +11,6 @@ import {
 } from './scope-validator.ts';
 
 describe('scope-validator', () => {
-  const originalEnv = process.env;
-
-  beforeEach(() => {
-    process.env = { ...originalEnv };
-  });
-
-  afterEach(() => {
-    process.env = originalEnv;
-  });
-
   describe('isWithinWorktree', () => {
     it('should allow paths within the worktree', () => {
       expect(isWithinWorktree('/project/worktree/src/file.ts', '/project/worktree')).toBe(true);
@@ -55,49 +42,6 @@ describe('scope-validator', () => {
       const cwd = process.cwd();
       expect(isWithinWorktree(`${cwd}/subdir/file.ts`, cwd)).toBe(true);
       expect(isWithinWorktree('../outside.ts', cwd)).toBe(false);
-    });
-  });
-
-  describe('file path extraction from hook input', () => {
-    it('should extract file_path from Read tool input', () => {
-      const input = JSON.stringify({
-        tool_name: 'Read',
-        tool_input: { file_path: '/path/to/file.ts' },
-      });
-      expect(getFilePathFromInput(input)).toBe('/path/to/file.ts');
-    });
-
-    it('should extract path from Glob tool input', () => {
-      const input = JSON.stringify({
-        tool_name: 'Glob',
-        tool_input: { pattern: '**/*.ts', path: '/path/to/search' },
-      });
-      expect(getFilePathFromInput(input)).toBe('/path/to/search');
-    });
-
-    it('should prefer file_path over path', () => {
-      const input = JSON.stringify({
-        tool_name: 'Read',
-        tool_input: { file_path: '/first.ts', path: '/second.ts' },
-      });
-      expect(getFilePathFromInput(input)).toBe('/first.ts');
-    });
-
-    it('should return null for invalid JSON', () => {
-      expect(getFilePathFromInput('not json')).toBeNull();
-    });
-
-    it('should return null if no path fields present', () => {
-      const input = JSON.stringify({
-        tool_name: 'Bash',
-        tool_input: { command: 'echo hello' },
-      });
-      expect(getFilePathFromInput(input)).toBeNull();
-    });
-
-    it('should return null if tool_input is missing', () => {
-      const input = JSON.stringify({ tool_name: 'Read' });
-      expect(getFilePathFromInput(input)).toBeNull();
     });
   });
 
@@ -192,46 +136,6 @@ describe('scope-validator', () => {
       expect(
         checkStoryAccessById('.saga/epics/my-epic/stories/auth-setup-db/story.md', 'auth-setup-db'),
       ).toBe(false);
-    });
-  });
-
-  describe('getScopeEnvironment', () => {
-    it('should return scope when SAGA_STORY_ID is set', () => {
-      process.env.SAGA_PROJECT_DIR = '/project/worktree';
-      process.env.SAGA_STORY_ID = 'auth-setup-db';
-      const env = getScopeEnvironment();
-      expect(env).not.toBeNull();
-      expect(env?.storyId).toBe('auth-setup-db');
-    });
-
-    it('should return null when SAGA_STORY_ID is not set', () => {
-      process.env.SAGA_PROJECT_DIR = '/project/worktree';
-      process.env.SAGA_STORY_ID = undefined;
-      const env = getScopeEnvironment();
-      expect(env).toBeNull();
-    });
-
-    it('should return null when SAGA_PROJECT_DIR is missing', () => {
-      process.env.SAGA_PROJECT_DIR = undefined;
-      process.env.SAGA_STORY_ID = 'auth-setup-db';
-      const env = getScopeEnvironment();
-      expect(env).toBeNull();
-    });
-  });
-
-  describe('tool name extraction', () => {
-    it('should extract tool_name from valid JSON', () => {
-      const input = JSON.stringify({ tool_name: 'Write', tool_input: {} });
-      expect(getToolNameFromInput(input)).toBe('Write');
-    });
-
-    it('should return null for invalid JSON', () => {
-      expect(getToolNameFromInput('not json')).toBeNull();
-    });
-
-    it('should return null when tool_name is missing', () => {
-      const input = JSON.stringify({ tool_input: {} });
-      expect(getToolNameFromInput(input)).toBeNull();
     });
   });
 
