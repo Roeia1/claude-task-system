@@ -1,0 +1,11 @@
+{
+  "id": "update-find-scanner",
+  "subject": "Replace find.js saga-scanner with shared scanStories",
+  "description": "Update `packages/saga-utils/src/scripts/find/finder.ts` to import `scanStories` from `../../storage.ts` instead of `./saga-scanner.ts`.\n\n**Steps:**\n1. Update imports in `finder.ts` — replace `scanStories`, `storiesDirectoryExists`, `epicsDirectoryExists` imports from `./saga-scanner.ts` with imports from `../../storage.ts`\n2. Update `ScannedStory` type reference — the new type from storage.ts may have slightly different fields. Ensure `toStoryInfo()` mapping still works or adjust it.\n3. The `findStory()` function calls `scanStories()` which was async — the new one is sync. Update to remove `await` and make `findStory` / `loadAndFilterStories` sync (or wrap in Promise.resolve if keeping the async signature for backwards compat).\n4. Delete `packages/saga-utils/src/scripts/find/saga-scanner.ts`\n5. Update or delete `packages/saga-utils/src/scripts/find/saga-scanner.test.ts` — move any unique test cases to `storage.test.ts`, delete the file\n6. Run find.js tests to verify: `pnpm test -- --testPathPattern find`",
+  "activeForm": "Updating find.js scanner",
+  "status": "pending",
+  "blockedBy": [
+    "implement-scan-stories"
+  ],
+  "doneWhen": "finder.ts imports from storage.ts. saga-scanner.ts under find/ is deleted. All find tests pass."
+}

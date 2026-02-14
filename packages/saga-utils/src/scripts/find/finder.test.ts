@@ -179,7 +179,7 @@ describe('findStory', () => {
     }
   }
 
-  it('should find story by exact ID match', async () => {
+  it('should find story by exact ID match', () => {
     setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
@@ -187,7 +187,7 @@ describe('findStory', () => {
       epic: 'auth-epic',
     });
 
-    const result = await findStory(testDir, 'implement-login');
+    const result = findStory(testDir, 'implement-login');
 
     expect(result.found).toBe(true);
     if (result.found) {
@@ -198,7 +198,7 @@ describe('findStory', () => {
     }
   });
 
-  it('should find story by title match', async () => {
+  it('should find story by title match', () => {
     setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
@@ -206,7 +206,7 @@ describe('findStory', () => {
       epic: 'auth-epic',
     });
 
-    const result = await findStory(testDir, 'login feature');
+    const result = findStory(testDir, 'login feature');
 
     expect(result.found).toBe(true);
     if (result.found) {
@@ -214,7 +214,7 @@ describe('findStory', () => {
     }
   });
 
-  it('should find story with case-insensitive match', async () => {
+  it('should find story with case-insensitive match', () => {
     setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
@@ -222,12 +222,12 @@ describe('findStory', () => {
       epic: 'auth-epic',
     });
 
-    const result = await findStory(testDir, 'IMPLEMENT-LOGIN');
+    const result = findStory(testDir, 'IMPLEMENT-LOGIN');
 
     expect(result.found).toBe(true);
   });
 
-  it('should normalize underscore to space in query', async () => {
+  it('should normalize underscore to space in query', () => {
     setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
@@ -235,12 +235,12 @@ describe('findStory', () => {
       epic: 'auth-epic',
     });
 
-    const result = await findStory(testDir, 'implement_login');
+    const result = findStory(testDir, 'implement_login');
 
     expect(result.found).toBe(true);
   });
 
-  it('should include description from story.json', async () => {
+  it('should include description from story.json', () => {
     setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
@@ -248,7 +248,7 @@ describe('findStory', () => {
       epic: 'auth-epic',
     });
 
-    const result = await findStory(testDir, 'implement-login');
+    const result = findStory(testDir, 'implement-login');
 
     expect(result.found).toBe(true);
     if (result.found) {
@@ -258,7 +258,7 @@ describe('findStory', () => {
     }
   });
 
-  it('should return storyPath and worktreePath', async () => {
+  it('should return storyPath and worktreePath', () => {
     setupStory(
       'implement-login',
       {
@@ -270,7 +270,7 @@ describe('findStory', () => {
       { withWorktree: true },
     );
 
-    const result = await findStory(testDir, 'implement-login');
+    const result = findStory(testDir, 'implement-login');
 
     expect(result.found).toBe(true);
     if (result.found) {
@@ -279,7 +279,7 @@ describe('findStory', () => {
     }
   });
 
-  it('should return multiple matches when ambiguous', async () => {
+  it('should return multiple matches when ambiguous', () => {
     setupStory('login-ui', {
       id: 'login-ui',
       title: 'Login UI',
@@ -293,7 +293,7 @@ describe('findStory', () => {
       epic: 'auth-epic',
     });
 
-    const result = await findStory(testDir, 'login');
+    const result = findStory(testDir, 'login');
 
     expect(result.found).toBe(false);
     if (!result.found && 'matches' in result) {
@@ -301,8 +301,8 @@ describe('findStory', () => {
     }
   });
 
-  it('should return error when no stories directory', async () => {
-    const result = await findStory(testDir, 'anything');
+  it('should return error when no stories directory', () => {
+    const result = findStory(testDir, 'anything');
 
     expect(result.found).toBe(false);
     if (!result.found && 'error' in result) {
@@ -310,7 +310,7 @@ describe('findStory', () => {
     }
   });
 
-  it('should return error when no match found', async () => {
+  it('should return error when no match found', () => {
     setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login',
@@ -318,7 +318,7 @@ describe('findStory', () => {
       epic: 'auth-epic',
     });
 
-    const result = await findStory(testDir, 'nonexistent');
+    const result = findStory(testDir, 'nonexistent');
 
     expect(result.found).toBe(false);
     if (!result.found && 'error' in result) {
@@ -326,21 +326,19 @@ describe('findStory', () => {
     }
   });
 
-  it('should fallback to directory name if no id in story.json', async () => {
+  it('should skip stories with invalid story.json (missing id)', () => {
     setupStory('implement-login', {
       title: 'Implement Login',
       description: 'Login feature',
     });
 
-    const result = await findStory(testDir, 'implement-login');
+    const result = findStory(testDir, 'implement-login');
 
-    expect(result.found).toBe(true);
-    if (result.found) {
-      expect(result.data.storyId).toBe('implement-login');
-    }
+    // Story without id fails schema validation and is skipped
+    expect(result.found).toBe(false);
   });
 
-  it('should find story with typo using fuzzy matching', async () => {
+  it('should find story with typo using fuzzy matching', () => {
     setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
@@ -349,7 +347,7 @@ describe('findStory', () => {
     });
 
     // "implment" has a typo (missing 'e')
-    const result = await findStory(testDir, 'implment-login');
+    const result = findStory(testDir, 'implment-login');
 
     expect(result.found).toBe(true);
     if (result.found) {
@@ -357,7 +355,7 @@ describe('findStory', () => {
     }
   });
 
-  it('should find story by fuzzy title match', async () => {
+  it('should find story by fuzzy title match', () => {
     setupStory('implement-login', {
       id: 'implement-login',
       title: 'Implement Login Feature',
@@ -366,7 +364,7 @@ describe('findStory', () => {
     });
 
     // Fuzzy match on title
-    const result = await findStory(testDir, 'Login Feture');
+    const result = findStory(testDir, 'Login Feture');
 
     expect(result.found).toBe(true);
     if (result.found) {
@@ -374,7 +372,7 @@ describe('findStory', () => {
     }
   });
 
-  it('should filter stories by status', async () => {
+  it('should filter stories by status', () => {
     setupStory(
       'story-a',
       {
@@ -399,13 +397,13 @@ describe('findStory', () => {
       [{ id: 't1', status: 'in_progress' }],
     );
 
-    const resultCompleted = await findStory(testDir, 'story', { status: 'completed' });
+    const resultCompleted = findStory(testDir, 'story', { status: 'completed' });
     expect(resultCompleted.found).toBe(true);
     if (resultCompleted.found) {
       expect(resultCompleted.data.storyId).toBe('story-a');
     }
 
-    const resultInProgress = await findStory(testDir, 'story', { status: 'in_progress' });
+    const resultInProgress = findStory(testDir, 'story', { status: 'in_progress' });
     expect(resultInProgress.found).toBe(true);
     if (resultInProgress.found) {
       expect(resultInProgress.data.storyId).toBe('story-b');

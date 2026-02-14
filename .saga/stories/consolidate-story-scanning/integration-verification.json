@@ -1,0 +1,12 @@
+{
+  "id": "integration-verification",
+  "subject": "Verify end-to-end integration",
+  "description": "Run the full test suite across both packages and verify the dashboard works correctly with worktree stories.\n\n**Steps:**\n1. Run `cd packages/saga-utils && pnpm test` — all tests pass\n2. Run `cd packages/dashboard && pnpm test` — all tests pass\n3. Build the saga-utils package: `cd packages/saga-utils && pnpm build`\n4. Build the dashboard: `cd packages/dashboard && pnpm build`\n5. Verify no TypeScript errors\n6. Verify biome lint passes: `pnpm biome check`",
+  "activeForm": "Verifying integration",
+  "status": "pending",
+  "blockedBy": [
+    "update-find-scanner",
+    "update-dashboard-scanner"
+  ],
+  "doneWhen": "All tests pass across both packages. Both packages build successfully. Lint passes."
+}

@@ -4173,7 +4173,7 @@ function getProjectDir() {
 }
 
 // src/scripts/find/finder.ts
-import { readdirSync } from "node:fs";
+import { readdirSync as readdirSync2 } from "node:fs";
 
 // ../../node_modules/.pnpm/fuse.js@7.1.0/node_modules/fuse.js/dist/fuse.mjs
 function isArray(value) {
@@ -5494,105 +5494,107 @@ Fuse.config = Config;
   register(ExtendedSearch);
 }
 
-// src/scripts/find/saga-scanner.ts
-import { existsSync } from "node:fs";
-import { readdir, readFile, stat } from "node:fs/promises";
-async function isDirectory(path) {
+// src/storage.ts
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+function buildScannedStory(storyDir, storyJsonPath, worktreePath) {
+  if (!existsSync(storyJsonPath)) {
+    return null;
+  }
+  let storyData;
   try {
-    const stats = await stat(path);
-    return stats.isDirectory();
+    const raw = readFileSync(storyJsonPath, "utf-8");
+    storyData = StorySchema.parse(JSON.parse(raw));
   } catch {
-    return false;
+    return null;
+  }
+  let tasks = [];
+  try {
+    const files = readdirSync(storyDir);
+    tasks = files.filter((f) => f.endsWith(".json") && f !== "story.json").map((f) => {
+      const raw = readFileSync(join(storyDir, f), "utf-8");
+      return TaskSchema.parse(JSON.parse(raw));
+    });
+  } catch {
+  }
+  const status = deriveStoryStatus(tasks);
+  const journalMdPath = join(storyDir, "journal.md");
+  return {
+    ...storyData,
+    status,
+    storyPath: storyJsonPath,
+    worktreePath,
+    journalPath: existsSync(journalMdPath) ? journalMdPath : void 0,
+    tasks
+  };
+}
+function scanMasterStories(projectRoot, storyMap) {
+  const { stories } = createSagaPaths(projectRoot);
+  if (!existsSync(stories)) {
+    return;
+  }
+  const entries = readdirSync(stories, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const storyPaths = createStoryPaths(projectRoot, entry.name);
+    const scanned = buildScannedStory(storyPaths.storyDir, storyPaths.storyJson);
+    if (!scanned) {
+      continue;
+    }
+    const wtPaths = createWorktreePaths(projectRoot, entry.name);
+    if (existsSync(wtPaths.worktreeDir)) {
+      scanned.worktreePath = wtPaths.worktreeDir;
+    }
+    storyMap.set(scanned.id, scanned);
   }
 }
-async function fileExists(path) {
-  try {
-    await stat(path);
-    return true;
-  } catch {
-    return false;
+function scanWorktreeStories(projectRoot, storyMap) {
+  const { worktrees } = createSagaPaths(projectRoot);
+  if (!existsSync(worktrees)) {
+    return;
+  }
+  const entries = readdirSync(worktrees, { withFileTypes: true });
+  for (const wtEntry of entries) {
+    if (!wtEntry.isDirectory()) {
+      continue;
+    }
+    const storyId = wtEntry.name;
+    const wtStoryDir = join(worktrees, storyId, ".saga", "stories", storyId);
+    const wtStoryJson = join(wtStoryDir, "story.json");
+    const wtPath = join(worktrees, storyId);
+    const scanned = buildScannedStory(wtStoryDir, wtStoryJson, wtPath);
+    if (scanned) {
+      storyMap.set(scanned.id, scanned);
+    }
   }
 }
 function deriveStoryStatus(tasks) {
   if (tasks.length === 0) {
     return "pending";
   }
-  if (tasks.every((t) => t.status === "completed")) {
-    return "completed";
-  }
   if (tasks.some((t) => t.status === "in_progress")) {
     return "in_progress";
   }
+  if (tasks.every((t) => t.status === "completed")) {
+    return "completed";
+  }
   return "pending";
 }
-async function readTaskFiles(storyDir) {
-  try {
-    const entries = await readdir(storyDir);
-    const taskFiles = entries.filter((entry) => entry.endsWith(".json") && entry !== "story.json");
-    const tasks = await Promise.all(
-      taskFiles.map(async (file) => {
-        try {
-          const content = await readFile(`${storyDir}/${file}`, "utf-8");
-          const parsed = JSON.parse(content);
-          return { status: parsed.status || "pending" };
-        } catch {
-          return { status: "pending" };
-        }
-      })
-    );
-    return tasks;
-  } catch {
-    return [];
-  }
+function storiesDirectoryExists(projectRoot) {
+  const { stories } = createSagaPaths(projectRoot);
+  return existsSync(stories);
 }
-async function scanStories(sagaRoot) {
-  const sagaPaths = createSagaPaths(sagaRoot);
-  if (!await isDirectory(sagaPaths.stories)) {
-    return [];
-  }
-  const storyEntries = await readdir(sagaPaths.stories);
-  const storyPromises = storyEntries.map(async (storyId) => {
-    const storyPaths = createStoryPaths(sagaRoot, storyId);
-    if (!await isDirectory(storyPaths.storyDir)) {
-      return null;
-    }
-    try {
-      const content = await readFile(storyPaths.storyJson, "utf-8");
-      const storyData = JSON.parse(content);
-      const tasks = await readTaskFiles(storyPaths.storyDir);
-      const status = deriveStoryStatus(tasks);
-      const worktreePaths = createWorktreePaths(sagaRoot, storyId);
-      const hasWorktree = await isDirectory(worktreePaths.worktreeDir);
-      const hasJournal = await fileExists(storyPaths.journalMd);
-      const scanned = {
-        id: storyData.id || storyId,
-        title: storyData.title || storyId,
-        description: storyData.description || "",
-        status,
-        epicId: storyData.epic || "",
-        storyPath: storyPaths.storyJson
-      };
-      if (hasWorktree) {
-        scanned.worktreePath = worktreePaths.worktreeDir;
-      }
-      if (hasJournal) {
-        scanned.journalPath = storyPaths.journalMd;
-      }
-      return scanned;
-    } catch {
-      return null;
-    }
-  });
-  const stories = await Promise.all(storyPromises);
-  return stories.filter((story) => story !== null);
+function epicsDirectoryExists(projectRoot) {
+  const { epics } = createSagaPaths(projectRoot);
+  return existsSync(epics);
 }
-function storiesDirectoryExists(projectPath) {
-  const sagaPaths = createSagaPaths(projectPath);
-  return existsSync(sagaPaths.stories);
-}
-function epicsDirectoryExists(projectPath) {
-  const sagaPaths = createSagaPaths(projectPath);
-  return existsSync(sagaPaths.epics);
+function scanStories(projectRoot) {
+  const storyMap = /* @__PURE__ */ new Map();
+  scanMasterStories(projectRoot, storyMap);
+  scanWorktreeStories(projectRoot, storyMap);
+  return Array.from(storyMap.values());
 }
 
 // src/scripts/find/finder.ts
@@ -5609,7 +5611,7 @@ function toStoryInfo(story) {
     title: story.title,
     status: story.status,
     description: story.description,
-    epicId: story.epicId,
+    epicId: story.epic || "",
     storyPath: story.storyPath,
     worktreePath: story.worktreePath || ""
   };
@@ -5632,7 +5634,7 @@ function processFuzzyResults(results) {
 }
 function getEpicIds(projectPath) {
   const sagaPaths = createSagaPaths(projectPath);
-  return readdirSync(sagaPaths.epics, { withFileTypes: true }).filter((d) => d.isFile() && d.name.endsWith(".json")).map((d) => d.name.replace(JSON_EXT_PATTERN, ""));
+  return readdirSync2(sagaPaths.epics, { withFileTypes: true }).filter((d) => d.isFile() && d.name.endsWith(".json")).map((d) => d.name.replace(JSON_EXT_PATTERN, ""));
 }
 function findExactEpicMatch(epicIds, queryNormalized) {
   for (const id of epicIds) {
@@ -5694,8 +5696,8 @@ function fuzzySearchStories(allStories, query) {
   }
   return processFuzzyResults(results);
 }
-async function loadAndFilterStories(projectPath, query, options) {
-  const scannedStories = await scanStories(projectPath);
+function loadAndFilterStories(projectPath, query, options) {
+  const scannedStories = scanStories(projectPath);
   if (scannedStories.length === 0) {
     return { found: false, error: `No story found matching '${query}'` };
   }
@@ -5711,14 +5713,14 @@ async function loadAndFilterStories(projectPath, query, options) {
   }
   return allStories;
 }
-async function findStory(projectPath, query, options = {}) {
+function findStory(projectPath, query, options = {}) {
   if (!storiesDirectoryExists(projectPath)) {
     return {
       found: false,
       error: "No .saga/stories/ directory found. Run /generate-stories first."
     };
   }
-  const storiesOrError = await loadAndFilterStories(projectPath, query, options);
+  const storiesOrError = loadAndFilterStories(projectPath, query, options);
   if (!Array.isArray(storiesOrError)) {
     return storiesOrError;
   }

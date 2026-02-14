@@ -1,0 +1,11 @@
+{
+  "id": "implement-scan-stories",
+  "subject": "Implement scanStories in storage.ts",
+  "description": "Add the `scanStories()` function to `packages/saga-utils/src/storage.ts` and export it from `index.ts`.\n\n**Implementation:**\n1. Define `ScannedStory` interface:\n   ```typescript\n   interface ScannedStory {\n     id: string;\n     title: string;\n     description: string;\n     status: TaskStatus;\n     epicId?: string;\n     guidance?: string;\n     doneWhen?: string;\n     avoid?: string;\n     branch?: string;\n     pr?: string;\n     worktree?: string;\n     storyPath: string;\n     worktreePath?: string;\n     journalPath?: string;\n     tasks: Task[];\n   }\n   ```\n2. Implement `scanStories(projectRoot: string): ScannedStory[]`:\n   - Build a `Map<string, ScannedStory>` for deduplication\n   - Scan `.saga/stories/` if it exists — for each story dir, read `story.json`, read tasks via `listTasks()`, derive status via `deriveStoryStatus()`, check for journal.md, check for worktree dir\n   - Scan `.saga/worktrees/` if it exists — for each worktree dir, check if `.saga/stories/<id>/story.json` exists inside it, if so read story + tasks from the worktree path, derive status\n   - Worktree entries overwrite master entries in the map (worktree takes priority)\n   - Return `Array.from(map.values())`\n3. Add `storiesDirectoryExists()` and `epicsDirectoryExists()` helper functions\n4. Export `scanStories`, `ScannedStory`, `storiesDirectoryExists`, `epicsDirectoryExists` from `index.ts`",
+  "activeForm": "Implementing scanStories",
+  "status": "pending",
+  "blockedBy": [
+    "write-scan-stories-tests"
+  ],
+  "doneWhen": "All scanStories tests pass. Function is exported from @saga-ai/utils."
+}
