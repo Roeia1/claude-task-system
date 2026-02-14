@@ -11,19 +11,18 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import {
   createStoryPaths,
+  createWorktreePaths,
   deriveEpicStatus,
   deriveStoryStatus,
+  type Epic,
+  listEpics,
   listTasks,
   readStory,
   type Task as SagaTask,
+  type ScannedStory,
+  scanStories,
   type TaskStatus,
 } from '@saga-ai/utils';
-import {
-  type ScannedEpic,
-  type ScannedStory,
-  scanEpics,
-  scanStories,
-} from '../utils/saga-scanner.ts';
 
 // Regex pattern for journal section headers
 const JOURNAL_SECTION_PATTERN = /^##\s+/m;
@@ -58,7 +57,7 @@ function toStoryDetail(story: ScannedStory): StoryDetail {
     id: story.id,
     title: story.title,
     description: story.description,
-    epic: story.epicId,
+    epic: story.epic,
     status: toApiStatus(derivedStatus),
     tasks,
     guidance: story.guidance,
@@ -74,7 +73,7 @@ function toStoryDetail(story: ScannedStory): StoryDetail {
 /**
  * Build a ParsedEpic from scanned epic and its stories
  */
-function buildEpic(scannedEpic: ScannedEpic, epicStories: StoryDetail[]): ParsedEpic {
+function buildEpic(scannedEpic: Epic, epicStories: StoryDetail[]): ParsedEpic {
   const storyCounts: StoryCounts = {
     total: epicStories.length,
     pending: epicStories.filter((s) => s.status === 'pending').length,
@@ -206,15 +205,23 @@ export interface ScanResult {
  */
 export function parseStory(sagaRoot: string, storyId: string): StoryDetail | null {
   try {
-    const story = readStory(sagaRoot, storyId);
+    // Try worktree path first (has latest execution state), then fall back to master
+    const wtPaths = createWorktreePaths(sagaRoot, storyId);
+    const wtStoryDir = `${wtPaths.worktreeDir}/.saga/stories/${storyId}`;
+    const wtStoryJson = `${wtStoryDir}/story.json`;
+    const useWorktree = existsSync(wtStoryJson);
+
+    const storyRoot = useWorktree ? wtPaths.worktreeDir : sagaRoot;
+    const story = readStory(storyRoot, storyId);
+
     let tasks: SagaTask[] = [];
     try {
-      tasks = listTasks(sagaRoot, storyId);
+      tasks = listTasks(storyRoot, storyId);
     } catch {
       // No tasks
     }
 
-    const { journalMd } = createStoryPaths(sagaRoot, storyId);
+    const { journalMd } = createStoryPaths(storyRoot, storyId);
     const hasJournal = existsSync(journalMd);
 
     const derivedStatus = deriveStoryStatus(tasks);
@@ -318,7 +325,13 @@ export async function parseJournal(journalPath: string): Promise<JournalEntry[]>
  */
 export function scanSagaDirectory(sagaRoot: string): ScanResult {
   const scannedStories = scanStories(sagaRoot);
-  const scannedEpics = scanEpics(sagaRoot);
+
+  let scannedEpics: Epic[] = [];
+  try {
+    scannedEpics = listEpics(sagaRoot);
+  } catch {
+    // No epics directory
+  }
 
   // Convert all stories to StoryDetail
   const allStories = scannedStories.map(toStoryDetail);
