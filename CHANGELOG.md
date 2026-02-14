@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.3] - 2026-02-14
+
+### Fixed
+
+- **worker**: Resolve claude binary path for headless SDK runs — the Agent SDK's `query()` couldn't find the CLI because it defaults to looking for `cli.js` next to the bundled worker script; now explicitly passes `pathToClaudeCodeExecutable`
+- **build**: Switch prebuild/build lint steps to `biome check --write` for safe auto-fixing
+
 ## [4.2.2] - 2026-02-14
 
 ### Fixed
