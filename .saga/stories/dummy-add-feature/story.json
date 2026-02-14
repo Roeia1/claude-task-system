@@ -1,0 +1,12 @@
+{
+  "id": "dummy-add-feature",
+  "title": "Add Dummy Feature",
+  "description": "## Scope\nBuild on the foundation to add a dummy feature with a simple function and corresponding test.\n\n## Technical Details\n- Add a `calculate` function to the dummy module that performs basic arithmetic\n- The function takes two numbers and an operator string (`add`, `subtract`, `multiply`)\n- Returns the result of the operation\n\n## Acceptance Criteria\n- `calculate(2, 3, 'add')` returns `5`\n- `calculate(5, 2, 'subtract')` returns `3`\n- `calculate(4, 3, 'multiply')` returns `12`\n- Invalid operator throws an error",
+  "epic": "dummy-test-epic",
+  "guidance": "This is a dummy story for testing. Keep the implementation minimal and straightforward.",
+  "doneWhen": "The calculate function works correctly and all tests pass.",
+  "avoid": "Do not add complex math operations or external dependencies.",
+  "branch": "story/dummy-add-feature",
+  "pr": "https://github.com/Roeia1/SAGA/pull/70",
+  "worktree": ".saga/worktrees/dummy-add-feature/"
+}
