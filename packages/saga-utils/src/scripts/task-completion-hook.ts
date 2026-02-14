@@ -7,14 +7,12 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
 import process from 'node:process';
 import type {
   HookCallback,
   HookJSONOutput,
   PostToolUseHookInput,
 } from '@anthropic-ai/claude-agent-sdk';
-import { createTaskPath } from '../directory.ts';
 
 /**
  * Run a git command in the given cwd. Returns success/failure without throwing.
@@ -35,42 +33,15 @@ function runGit(args: string[], cwd: string): { success: boolean; output: string
 }
 
 /**
- * Read the task subject from the SAGA task JSON file.
- * Returns undefined if the file doesn't exist or can't be parsed.
- */
-function readTaskSubject(
-  worktreePath: string,
-  storyId: string,
-  taskId: string,
-): string | undefined {
-  try {
-    const taskPath = createTaskPath(worktreePath, storyId, taskId);
-    if (!existsSync(taskPath)) {
-      return undefined;
-    }
-    const taskData = JSON.parse(readFileSync(taskPath, 'utf-8')) as { subject?: string };
-    return taskData.subject;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
  * Build the additionalContext string returned after a task is completed.
  */
-function buildAdditionalContext(
-  storyId: string,
-  taskId: string,
-  subject: string | undefined,
-): string {
-  const taskLabel = subject ? `${taskId} - ${subject}` : taskId;
-
+function buildAdditionalContext(storyId: string, taskId: string): string {
   return [
-    `Task "${taskLabel}" completed. Changes committed and pushed.`,
+    `Task "${taskId}" completed. Changes committed and pushed.`,
     '',
     `REQUIRED: Write a journal entry to .saga/stories/${storyId}/journal.md:`,
     `## Session: ${new Date().toISOString()}`,
-    `### Task: ${taskLabel}`,
+    `### Task: ${taskId}`,
     '**What was done:** ...',
     '**Decisions:** ...',
     '**Next steps:** ...',
@@ -104,11 +75,7 @@ function createTaskCompletionHook(worktreePath: string, storyId: string): HookCa
       return Promise.resolve({ continue: true });
     }
 
-    // Read task subject for the commit message
-    const subject = readTaskSubject(worktreePath, storyId, taskId);
-    const commitMessage = subject
-      ? `feat(${storyId}): complete ${taskId} - ${subject}`
-      : `feat(${storyId}): complete ${taskId}`;
+    const commitMessage = `feat(${storyId}): complete ${taskId}`;
 
     // Auto-commit + push (failures logged but never crash)
     try {
@@ -121,7 +88,7 @@ function createTaskCompletionHook(worktreePath: string, storyId: string): HookCa
     }
 
     // Return additionalContext regardless of git success/failure
-    const additionalContext = buildAdditionalContext(storyId, taskId, subject);
+    const additionalContext = buildAdditionalContext(storyId, taskId);
 
     return Promise.resolve({
       continue: true,

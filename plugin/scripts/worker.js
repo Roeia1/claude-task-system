@@ -4424,7 +4424,7 @@ function createNoopMessageWriter() {
 
 // src/scripts/worker/run-headless-loop.ts
 import { execFileSync as execFileSync4 } from "node:child_process";
-import { readdirSync as readdirSync3, readFileSync as readFileSync5 } from "node:fs";
+import { readdirSync as readdirSync3, readFileSync as readFileSync4 } from "node:fs";
 import { join as join4 } from "node:path";
 import process7 from "node:process";
 
@@ -13385,7 +13385,6 @@ function createSyncHook(worktreePath, storyId) {
 
 // src/scripts/task-completion-hook.ts
 import { execFileSync as execFileSync3 } from "node:child_process";
-import { existsSync as existsSync4, readFileSync as readFileSync4 } from "node:fs";
 import process6 from "node:process";
 function runGit(args, cwd) {
   try {
@@ -13401,26 +13400,13 @@ function runGit(args, cwd) {
     return { success: false, output: stderr };
   }
 }
-function readTaskSubject(worktreePath, storyId, taskId) {
-  try {
-    const taskPath = createTaskPath(worktreePath, storyId, taskId);
-    if (!existsSync4(taskPath)) {
-      return void 0;
-    }
-    const taskData = JSON.parse(readFileSync4(taskPath, "utf-8"));
-    return taskData.subject;
-  } catch {
-    return void 0;
-  }
-}
-function buildAdditionalContext(storyId, taskId, subject) {
-  const taskLabel = subject ? `${taskId} - ${subject}` : taskId;
+function buildAdditionalContext(storyId, taskId) {
   return [
-    `Task "${taskLabel}" completed. Changes committed and pushed.`,
+    `Task "${taskId}" completed. Changes committed and pushed.`,
     "",
     `REQUIRED: Write a journal entry to .saga/stories/${storyId}/journal.md:`,
     `## Session: ${(/* @__PURE__ */ new Date()).toISOString()}`,
-    `### Task: ${taskLabel}`,
+    `### Task: ${taskId}`,
     "**What was done:** ...",
     "**Decisions:** ...",
     "**Next steps:** ...",
@@ -13439,8 +13425,7 @@ function createTaskCompletionHook(worktreePath, storyId) {
     if (!(taskId && status) || status !== "completed") {
       return Promise.resolve({ continue: true });
     }
-    const subject = readTaskSubject(worktreePath, storyId, taskId);
-    const commitMessage = subject ? `feat(${storyId}): complete ${taskId} - ${subject}` : `feat(${storyId}): complete ${taskId}`;
+    const commitMessage = `feat(${storyId}): complete ${taskId}`;
     try {
       runGit(["add", "."], worktreePath);
       runGit(["commit", "-m", commitMessage], worktreePath);
@@ -13450,7 +13435,7 @@ function createTaskCompletionHook(worktreePath, storyId) {
       process6.stderr.write(`[worker] Task completion git error: ${errorMessage}
 `);
     }
-    const additionalContext = buildAdditionalContext(storyId, taskId, subject);
+    const additionalContext = buildAdditionalContext(storyId, taskId);
     return Promise.resolve({
       continue: true,
       hookSpecificOutput: {
@@ -13549,7 +13534,7 @@ function checkAllTasksCompleted(storyDir) {
   }
   for (const file of files) {
     const filePath = join4(storyDir, file);
-    const raw = readFileSync5(filePath, "utf-8");
+    const raw = readFileSync4(filePath, "utf-8");
     const task = JSON.parse(raw);
     if (task.status !== "completed") {
       return false;
@@ -13719,7 +13704,7 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
 
 // src/scripts/worker/setup-worktree.ts
 import { execFileSync as execFileSync5 } from "node:child_process";
-import { existsSync as existsSync5, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
+import { existsSync as existsSync4, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
 import { dirname as dirname2 } from "node:path";
 import process8 from "node:process";
 function runGit2(args, cwd) {
@@ -13749,7 +13734,7 @@ function getMainBranch(cwd) {
 function setupWorktree(storyId, projectDir) {
   const branch = `story/${storyId}`;
   const { worktreeDir } = createWorktreePaths(projectDir, storyId);
-  if (existsSync5(worktreeDir)) {
+  if (existsSync4(worktreeDir)) {
     const valid = runGit2(["rev-parse", "--git-dir"], worktreeDir);
     if (valid.success) {
       process8.stdout.write(`[worker] Worktree already exists: ${worktreeDir}
