@@ -107,11 +107,44 @@ describe('schemas script', () => {
     });
   });
 
+  describe('create-story-input schema', () => {
+    it('should output combined format with all schemas', () => {
+      const result = runScript(['create-story-input']);
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('# create-story-input');
+      expect(result.stdout).toContain('## Input Format');
+      // Contains all three sub-schemas
+      expect(result.stdout).toContain('# Story Schema');
+      expect(result.stdout).toContain('# Task Schema');
+      expect(result.stdout).toContain('# Epic Schema');
+    });
+
+    it('should include full example with story and tasks', () => {
+      const result = runScript(['create-story-input']);
+      expect(result.stdout).toContain('# Full Example');
+      // The full example JSON should have story + tasks structure
+      expect(result.stdout).toContain('"story"');
+      expect(result.stdout).toContain('"tasks"');
+    });
+
+    it('should include writing guides', () => {
+      const result = runScript(['create-story-input']);
+      expect(result.stdout).toContain('## Writing Guide');
+    });
+  });
+
   describe('error handling', () => {
     it('should exit 1 for unknown schema', () => {
       const result = runScript(['unknown']);
       expect(result.status).toBe(1);
       expect(result.stderr).toContain('Unknown schema');
+    });
+  });
+
+  describe('help text', () => {
+    it('should list create-story-input in available schemas', () => {
+      const result = runScript(['--help']);
+      expect(result.stdout).toContain('create-story-input');
     });
   });
 });
