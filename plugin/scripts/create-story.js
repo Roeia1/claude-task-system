@@ -4352,13 +4352,13 @@ function getProjectDir() {
 
 // src/scripts/create-story.ts
 function printHelp() {
-  console.log(`Usage: echo '{"story":{...},"tasks":[...]}' | create-story [options]
+  console.log(`Usage: create-story [options]
 
 Create git infrastructure for a SAGA story.
 
-Reads JSON from stdin with fields:
-  story    Story object (id, title, description, ...)
-  tasks    Array of Task objects
+Input (JSON with "story" and "tasks" fields):
+  --input <path>   Read JSON from a file (recommended)
+  <stdin>          Read JSON from stdin (fallback)
 
 Options:
   --skip-install   Skip dependency installation in worktree
@@ -4377,15 +4377,19 @@ function parseArgs(args) {
   const result = {
     help: false,
     skipInstall: false,
-    skipPr: false
+    skipPr: false,
+    input: null
   };
-  for (const arg of args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     if (arg === "--help" || arg === "-h") {
       result.help = true;
     } else if (arg === "--skip-install") {
       result.skipInstall = true;
     } else if (arg === "--skip-pr") {
       result.skipPr = true;
+    } else if (arg === "--input" && i + 1 < args.length) {
+      result.input = args[++i];
     }
   }
   return result;
@@ -4393,19 +4397,21 @@ function parseArgs(args) {
 function outputError(error) {
   console.log(JSON.stringify({ success: false, error }, null, 2));
 }
-function readAndParseInput() {
+function readAndParseInput(inputPath) {
   let rawInput;
   try {
-    rawInput = readFileSync2(0, "utf-8");
+    rawInput = inputPath ? readFileSync2(inputPath, "utf-8") : readFileSync2(0, "utf-8");
   } catch {
-    outputError("Failed to read from stdin");
+    outputError(
+      inputPath ? `Failed to read input file: ${inputPath}` : "Failed to read from stdin"
+    );
     return null;
   }
   let input;
   try {
     input = JSON.parse(rawInput);
   } catch {
-    outputError("Invalid JSON on stdin");
+    outputError(inputPath ? `Invalid JSON in file: ${inputPath}` : "Invalid JSON on stdin");
     return null;
   }
   const inputObj = input;
@@ -4421,7 +4427,7 @@ function main() {
     printHelp();
     process2.exit(0);
   }
-  const input = readAndParseInput();
+  const input = readAndParseInput(args.input);
   if (!input) {
     process2.exit(1);
   }

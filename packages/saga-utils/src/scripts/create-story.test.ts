@@ -94,6 +94,33 @@ describe('create-story CLI', () => {
     }
   }
 
+  function runScriptFromFile(
+    inputFilePath: string,
+    flags: string[] = [],
+    opts: { projectDir?: string } = {},
+  ): { stdout: string; stderr: string; exitCode: number } {
+    const projectDir = opts.projectDir ?? testDir;
+    const allFlags = ['--input', inputFilePath, ...flags];
+    const flagStr = allFlags.join(' ');
+    const cmd = `npx tsx ${scriptPath} ${flagStr}`;
+    try {
+      const stdout = execSync(cmd, {
+        cwd: testDir,
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, SAGA_PROJECT_DIR: projectDir },
+      });
+      return { stdout, stderr: '', exitCode: 0 };
+    } catch (error) {
+      const e = error as { stdout?: Buffer; stderr?: Buffer; status?: number };
+      return {
+        stdout: e.stdout?.toString() || '',
+        stderr: e.stderr?.toString() || '',
+        exitCode: e.status || 1,
+      };
+    }
+  }
+
   describe('successful execution', () => {
     it('should create story from valid stdin JSON', () => {
       const result = runScript(validInput, ['--skip-install', '--skip-pr']);
@@ -189,6 +216,71 @@ describe('create-story CLI', () => {
       const output = JSON.parse(result.stdout);
       expect(output.success).toBe(false);
       expect(output.error).toContain('Invalid story');
+    });
+  });
+
+  describe('--input flag', () => {
+    it('should create story from a JSON file', () => {
+      const inputFile = join(testDir, 'story-input.json');
+      writeFileSync(inputFile, validInput);
+
+      const result = runScriptFromFile(inputFile, ['--skip-install', '--skip-pr']);
+
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.success).toBe(true);
+      expect(output.storyId).toBe('test-story');
+      expect(output.branch).toBe('story/test-story');
+    });
+
+    it('should handle markdown-heavy descriptions in file input', () => {
+      const richInput = JSON.stringify({
+        story: {
+          id: 'rich-story',
+          title: 'Rich Markdown Story',
+          description:
+            '## Overview\n\nThis story has `backticks`, "quotes", and \'single quotes\'.\n\n```js\nconst x = 1;\n```\n\n- Bullet 1\n- Bullet 2\n',
+        },
+        tasks: [
+          {
+            id: 't1',
+            subject: 'Task with special chars',
+            description: 'Contains $variables and `code blocks`\nand newlines.',
+            status: 'pending',
+            blockedBy: [],
+          },
+        ],
+      });
+      const inputFile = join(testDir, 'rich-input.json');
+      writeFileSync(inputFile, richInput);
+
+      const result = runScriptFromFile(inputFile, ['--skip-install', '--skip-pr']);
+
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.success).toBe(true);
+      expect(output.storyId).toBe('rich-story');
+    });
+
+    it('should fail when input file does not exist', () => {
+      const result = runScriptFromFile('/nonexistent/path.json', ['--skip-install', '--skip-pr']);
+
+      expect(result.exitCode).not.toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.success).toBe(false);
+      expect(output.error).toContain('Failed to read input file');
+    });
+
+    it('should fail with invalid JSON in file', () => {
+      const inputFile = join(testDir, 'bad-input.json');
+      writeFileSync(inputFile, 'not valid json');
+
+      const result = runScriptFromFile(inputFile, ['--skip-install', '--skip-pr']);
+
+      expect(result.exitCode).not.toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.success).toBe(false);
+      expect(output.error).toContain('Invalid JSON in file');
     });
   });
 });

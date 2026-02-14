@@ -1,15 +1,15 @@
 /**
  * saga create-story script - Create git infrastructure for a story
  *
- * Reads story + tasks JSON from stdin and creates:
+ * Reads story + tasks JSON from a file (--input) or stdin and creates:
  *   - Git branch: story/<storyId>
  *   - Git worktree: .saga/worktrees/<storyId>/
  *   - Story and task files in the worktree
  *   - Commit, push, and (optionally) draft PR
  *
  * Usage:
+ *   node create-story.js --input story.json --skip-install --skip-pr
  *   echo '{"story":{...},"tasks":[...]}' | node create-story.js
- *   echo '{"story":{...},"tasks":[...]}' | node create-story.js --skip-install --skip-pr
  *
  * Output (JSON):
  *   { "success": true, "storyId": "...", "storyTitle": "...", ... }
@@ -28,13 +28,13 @@ import { getProjectDir } from './shared/env.ts';
 // ============================================================================
 
 function printHelp(): void {
-  console.log(`Usage: echo '{"story":{...},"tasks":[...]}' | create-story [options]
+  console.log(`Usage: create-story [options]
 
 Create git infrastructure for a SAGA story.
 
-Reads JSON from stdin with fields:
-  story    Story object (id, title, description, ...)
-  tasks    Array of Task objects
+Input (JSON with "story" and "tasks" fields):
+  --input <path>   Read JSON from a file (recommended)
+  <stdin>          Read JSON from stdin (fallback)
 
 Options:
   --skip-install   Skip dependency installation in worktree
@@ -54,6 +54,7 @@ interface ParsedArgs {
   help: boolean;
   skipInstall: boolean;
   skipPr: boolean;
+  input: string | null;
 }
 
 function parseArgs(args: string[]): ParsedArgs {
@@ -61,15 +62,19 @@ function parseArgs(args: string[]): ParsedArgs {
     help: false,
     skipInstall: false,
     skipPr: false,
+    input: null,
   };
 
-  for (const arg of args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     if (arg === '--help' || arg === '-h') {
       result.help = true;
     } else if (arg === '--skip-install') {
       result.skipInstall = true;
     } else if (arg === '--skip-pr') {
       result.skipPr = true;
+    } else if (arg === '--input' && i + 1 < args.length) {
+      result.input = args[++i];
     }
   }
 
@@ -84,12 +89,14 @@ function outputError(error: string): void {
   console.log(JSON.stringify({ success: false, error }, null, 2));
 }
 
-function readAndParseInput(): { story: unknown; tasks: unknown } | null {
+function readAndParseInput(inputPath: string | null): { story: unknown; tasks: unknown } | null {
   let rawInput: string;
   try {
-    rawInput = readFileSync(0, 'utf-8');
+    rawInput = inputPath ? readFileSync(inputPath, 'utf-8') : readFileSync(0, 'utf-8');
   } catch {
-    outputError('Failed to read from stdin');
+    outputError(
+      inputPath ? `Failed to read input file: ${inputPath}` : 'Failed to read from stdin',
+    );
     return null;
   }
 
@@ -97,7 +104,7 @@ function readAndParseInput(): { story: unknown; tasks: unknown } | null {
   try {
     input = JSON.parse(rawInput);
   } catch {
-    outputError('Invalid JSON on stdin');
+    outputError(inputPath ? `Invalid JSON in file: ${inputPath}` : 'Invalid JSON on stdin');
     return null;
   }
 
@@ -122,7 +129,7 @@ function main(): void {
     process.exit(0);
   }
 
-  const input = readAndParseInput();
+  const input = readAndParseInput(args.input);
   if (!input) {
     process.exit(1);
   }
