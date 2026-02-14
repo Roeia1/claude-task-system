@@ -1,0 +1,11 @@
+{
+  "id": "update-dashboard-scanner",
+  "subject": "Replace dashboard saga-scanner with shared scanStories",
+  "description": "Update `packages/dashboard/src/server/parser.ts` to import `scanStories` and `listEpics` from `@saga-ai/utils` instead of the local `../utils/saga-scanner.ts`.\n\n**Steps:**\n1. Update imports in `parser.ts` — replace `scanStories`, `scanEpics`, `ScannedStory`, `ScannedEpic` from `../utils/saga-scanner.ts` with imports from `@saga-ai/utils`\n2. Map `ScannedStory` from the new shared type to whatever `toStoryDetail()` needs. The field names may differ slightly (e.g., `epicId` vs `epic`) — adjust the mapping.\n3. `scanEpics()` in the dashboard scanner was just a wrapper around `listEpics()` — replace with direct `listEpics()` call. The dashboard's `ScannedEpic` type was already `Epic` from utils.\n4. Update `parseStory()` to try the worktree path first: check if `.saga/worktrees/<storyId>/` exists, if so read story from there, otherwise from `.saga/stories/<storyId>/`.\n5. Delete `packages/dashboard/src/utils/saga-scanner.ts`\n6. Update `packages/dashboard/src/utils/__tests__/saga-scanner.test.ts` — move any unique test cases to saga-utils, delete the file\n7. Check if `parseFrontmatter` from the deleted scanner is used elsewhere — if so, move it to parser.ts or a local util\n8. Run dashboard tests to verify: `cd packages/dashboard && pnpm test`",
+  "activeForm": "Updating dashboard scanner",
+  "status": "pending",
+  "blockedBy": [
+    "implement-scan-stories"
+  ],
+  "doneWhen": "parser.ts imports from @saga-ai/utils. Dashboard saga-scanner.ts is deleted. All dashboard tests pass."
+}

@@ -1,0 +1,9 @@
+{
+  "id": "write-scan-stories-tests",
+  "subject": "Write scanStories tests in storage.test.ts",
+  "description": "Add tests for the new `scanStories()` function in `packages/saga-utils/src/storage.test.ts`.\n\n**Test cases:**\n1. Returns empty array when `.saga/stories/` doesn't exist and no worktrees\n2. Scans stories from `.saga/stories/` with tasks and derived status\n3. Scans stories from `.saga/worktrees/<id>/.saga/stories/<id>/` \n4. When a story exists in both master and worktree, worktree version wins\n5. Detects worktree path when worktree directory exists\n6. Detects journal.md path when journal exists\n7. Stories with no tasks have 'pending' status\n8. Stories with all completed tasks have 'completed' status\n9. Stories with any in_progress task have 'in_progress' status\n\nAlso add tests for `storiesDirectoryExists()` and `epicsDirectoryExists()` if moving them here.\n\nRefer to the existing tests in `saga-scanner.test.ts` (both the find and dashboard versions) for test patterns and fixtures. Use the same `tmp` directory approach with `mkdirSync`/`writeFileSync` for test fixtures.\n\nUse TDD — write tests first, they should fail since `scanStories()` doesn't exist yet.",
+  "activeForm": "Writing scanStories tests",
+  "status": "pending",
+  "blockedBy": [],
+  "doneWhen": "All scanStories test cases are written and fail with 'not found' or 'not a function' errors (TDD red phase)."
+}
