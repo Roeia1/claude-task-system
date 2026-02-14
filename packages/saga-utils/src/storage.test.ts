@@ -15,6 +15,7 @@ import {
   deriveEpicStatus,
   deriveStoryStatus,
   ensureUniqueStoryId,
+  epicsDirectoryExists,
   listEpicStories,
   listEpics,
   listStandaloneStories,
@@ -23,6 +24,8 @@ import {
   readEpic,
   readStory,
   readTask,
+  scanStories,
+  storiesDirectoryExists,
   validateStoryId,
   writeEpic,
   writeStory,
@@ -1113,5 +1116,386 @@ describe('ensureUniqueStoryId', () => {
     mkdirSync(join(testDir, '.saga', 'stories', 'duplicate-story'), { recursive: true });
 
     expect(() => ensureUniqueStoryId(testDir, 'duplicate-story')).toThrow('duplicate-story');
+  });
+});
+
+// ============================================================================
+// scanStories
+// ============================================================================
+
+describe('scanStories', () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = realpathSync(mkdtempSync(join(tmpdir(), 'saga-scan-stories-test-')));
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  /**
+   * Create a story in .saga/stories/{storyId}/ with optional tasks and journal
+   */
+  function setupStory(
+    storyId: string,
+    storyData: Record<string, unknown>,
+    tasks: Array<{ id: string; status: string }> = [],
+    options: { withJournal?: boolean } = {},
+  ): void {
+    const storyDir = join(testDir, '.saga', 'stories', storyId);
+    mkdirSync(storyDir, { recursive: true });
+    writeFileSync(join(storyDir, 'story.json'), JSON.stringify(storyData, null, 2));
+
+    for (const task of tasks) {
+      writeFileSync(
+        join(storyDir, `${task.id}.json`),
+        JSON.stringify({
+          id: task.id,
+          subject: `Task ${task.id}`,
+          description: 'Test task',
+          status: task.status,
+          blockedBy: [],
+        }),
+      );
+    }
+
+    if (options.withJournal) {
+      writeFileSync(join(storyDir, 'journal.md'), '# Journal\n');
+    }
+  }
+
+  /**
+   * Create a worktree story in .saga/worktrees/{storyId}/.saga/stories/{storyId}/
+   */
+  function setupWorktreeStory(
+    storyId: string,
+    storyData: Record<string, unknown>,
+    tasks: Array<{ id: string; status: string }> = [],
+    options: { withJournal?: boolean } = {},
+  ): void {
+    const wtStoryDir = join(testDir, '.saga', 'worktrees', storyId, '.saga', 'stories', storyId);
+    mkdirSync(wtStoryDir, { recursive: true });
+    writeFileSync(join(wtStoryDir, 'story.json'), JSON.stringify(storyData, null, 2));
+
+    for (const task of tasks) {
+      writeFileSync(
+        join(wtStoryDir, `${task.id}.json`),
+        JSON.stringify({
+          id: task.id,
+          subject: `Task ${task.id}`,
+          description: 'Test task',
+          status: task.status,
+          blockedBy: [],
+        }),
+      );
+    }
+
+    if (options.withJournal) {
+      writeFileSync(join(wtStoryDir, 'journal.md'), '# Journal\n');
+    }
+  }
+
+  it('returns empty array when .saga/stories/ does not exist and no worktrees', () => {
+    const result = scanStories(testDir);
+    expect(result).toEqual([]);
+  });
+
+  it('scans stories from .saga/stories/ with tasks and derived status', () => {
+    setupStory(
+      'implement-login',
+      {
+        id: 'implement-login',
+        title: 'Implement Login',
+        description: 'Login feature',
+        epic: 'auth-epic',
+      },
+      [
+        { id: 't1', status: 'completed' },
+        { id: 't2', status: 'in_progress' },
+      ],
+    );
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('implement-login');
+    expect(result[0].title).toBe('Implement Login');
+    expect(result[0].description).toBe('Login feature');
+    expect(result[0].epic).toBe('auth-epic');
+    expect(result[0].status).toBe('in_progress');
+    expect(result[0].tasks).toHaveLength(2);
+    expect(result[0].storyPath).toContain('story.json');
+  });
+
+  it('scans stories from .saga/worktrees/<id>/.saga/stories/<id>/', () => {
+    setupWorktreeStory('wt-story', {
+      id: 'wt-story',
+      title: 'Worktree Story',
+      description: 'A worktree story',
+    });
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('wt-story');
+    expect(result[0].title).toBe('Worktree Story');
+    expect(result[0].worktreePath).toBeDefined();
+    expect(result[0].worktreePath).toContain('worktrees/wt-story');
+  });
+
+  it('worktree version wins when a story exists in both master and worktree', () => {
+    // Master version: pending tasks
+    setupStory(
+      'dual-story',
+      {
+        id: 'dual-story',
+        title: 'Master Title',
+        description: 'Master description',
+      },
+      [{ id: 't1', status: 'pending' }],
+    );
+
+    // Worktree version: completed tasks
+    setupWorktreeStory(
+      'dual-story',
+      {
+        id: 'dual-story',
+        title: 'Worktree Title',
+        description: 'Worktree description',
+      },
+      [{ id: 't1', status: 'completed' }],
+    );
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe('Worktree Title');
+    expect(result[0].description).toBe('Worktree description');
+    expect(result[0].status).toBe('completed');
+    expect(result[0].worktreePath).toBeDefined();
+  });
+
+  it('detects worktree path when .saga/worktrees/<id>/ directory exists', () => {
+    setupStory('has-worktree', {
+      id: 'has-worktree',
+      title: 'Has Worktree',
+      description: 'Story with worktree dir',
+    });
+
+    // Create the worktree directory (but no story inside it)
+    mkdirSync(join(testDir, '.saga', 'worktrees', 'has-worktree'), { recursive: true });
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].worktreePath).toBeDefined();
+    expect(result[0].worktreePath).toContain('has-worktree');
+  });
+
+  it('detects journal.md path when journal exists', () => {
+    setupStory(
+      'journaled',
+      {
+        id: 'journaled',
+        title: 'Journaled Story',
+        description: 'Has a journal',
+      },
+      [],
+      { withJournal: true },
+    );
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].journalPath).toBeDefined();
+    expect(result[0].journalPath).toContain('journal.md');
+  });
+
+  it('stories with no tasks have pending status', () => {
+    setupStory('no-tasks', {
+      id: 'no-tasks',
+      title: 'No Tasks',
+      description: 'Story with no tasks',
+    });
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe('pending');
+    expect(result[0].tasks).toEqual([]);
+  });
+
+  it('stories with all completed tasks have completed status', () => {
+    setupStory(
+      'all-done',
+      {
+        id: 'all-done',
+        title: 'All Done',
+        description: 'Everything completed',
+      },
+      [
+        { id: 't1', status: 'completed' },
+        { id: 't2', status: 'completed' },
+      ],
+    );
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe('completed');
+  });
+
+  it('stories with any in_progress task have in_progress status', () => {
+    setupStory(
+      'in-progress',
+      {
+        id: 'in-progress',
+        title: 'In Progress',
+        description: 'Has an active task',
+      },
+      [
+        { id: 't1', status: 'completed' },
+        { id: 't2', status: 'in_progress' },
+        { id: 't3', status: 'pending' },
+      ],
+    );
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe('in_progress');
+  });
+
+  it('includes optional story fields (guidance, doneWhen, avoid, branch, pr, worktree)', () => {
+    setupStory('full-story', {
+      id: 'full-story',
+      title: 'Full Story',
+      description: 'Has all fields',
+      epic: 'my-epic',
+      guidance: 'Follow TDD',
+      doneWhen: 'All tests pass',
+      avoid: 'Do not change X',
+      branch: 'feature/full-story',
+      pr: 'https://github.com/org/repo/pull/42',
+      worktree: '/tmp/worktrees/full-story',
+    });
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].guidance).toBe('Follow TDD');
+    expect(result[0].doneWhen).toBe('All tests pass');
+    expect(result[0].avoid).toBe('Do not change X');
+    expect(result[0].branch).toBe('feature/full-story');
+    expect(result[0].pr).toBe('https://github.com/org/repo/pull/42');
+    expect(result[0].worktree).toBe('/tmp/worktrees/full-story');
+  });
+
+  it('epic is undefined for standalone stories', () => {
+    setupStory('standalone', {
+      id: 'standalone',
+      title: 'Standalone',
+      description: 'No epic',
+    });
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].epic).toBeUndefined();
+  });
+
+  it('scans multiple stories from both master and worktrees', () => {
+    setupStory('master-story', {
+      id: 'master-story',
+      title: 'Master Story',
+      description: 'In master',
+    });
+
+    setupWorktreeStory('worktree-story', {
+      id: 'worktree-story',
+      title: 'Worktree Story',
+      description: 'In worktree',
+    });
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(2);
+    const ids = result.map((s) => s.id).sort();
+    expect(ids).toEqual(['master-story', 'worktree-story']);
+  });
+
+  it('skips directories without story.json', () => {
+    // Create stories dir with an empty sub-directory
+    mkdirSync(join(testDir, '.saga', 'stories', 'empty-dir'), { recursive: true });
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(0);
+  });
+
+  it('worktree story detects journal.md from worktree path', () => {
+    setupWorktreeStory(
+      'wt-journal',
+      {
+        id: 'wt-journal',
+        title: 'WT Journal',
+        description: 'Worktree with journal',
+      },
+      [],
+      { withJournal: true },
+    );
+
+    const result = scanStories(testDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].journalPath).toBeDefined();
+    expect(result[0].journalPath).toContain('journal.md');
+  });
+});
+
+// ============================================================================
+// storiesDirectoryExists / epicsDirectoryExists
+// ============================================================================
+
+describe('storiesDirectoryExists', () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = realpathSync(mkdtempSync(join(tmpdir(), 'saga-dir-exists-test-')));
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('returns false when .saga/stories/ does not exist', () => {
+    expect(storiesDirectoryExists(testDir)).toBe(false);
+  });
+
+  it('returns true when .saga/stories/ exists', () => {
+    mkdirSync(join(testDir, '.saga', 'stories'), { recursive: true });
+    expect(storiesDirectoryExists(testDir)).toBe(true);
+  });
+});
+
+describe('epicsDirectoryExists', () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = realpathSync(mkdtempSync(join(tmpdir(), 'saga-dir-exists-test-')));
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('returns false when .saga/epics/ does not exist', () => {
+    expect(epicsDirectoryExists(testDir)).toBe(false);
+  });
+
+  it('returns true when .saga/epics/ exists', () => {
+    mkdirSync(join(testDir, '.saga', 'epics'), { recursive: true });
+    expect(epicsDirectoryExists(testDir)).toBe(true);
   });
 });

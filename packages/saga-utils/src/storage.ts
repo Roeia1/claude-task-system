@@ -3,10 +3,152 @@ import { join } from 'node:path';
 
 const STORY_ID_PATTERN = /^[a-z0-9-]+$/;
 
-import { createEpicPaths, createSagaPaths, createStoryPaths } from './directory.ts';
+import {
+  createEpicPaths,
+  createSagaPaths,
+  createStoryPaths,
+  createWorktreePaths,
+} from './directory.ts';
 import { type Epic, EpicSchema } from './schemas/epic.ts';
 import { type Story, StorySchema } from './schemas/story.ts';
 import { type Task, TaskSchema, type TaskStatus } from './schemas/task.ts';
+
+// ============================================================================
+// ScannedStory type
+// ============================================================================
+
+/**
+ * A story with its tasks, derived status, and path metadata.
+ *
+ * Extends Story to stay coupled with the story.json schema.
+ * Returned by `scanStories()` — the single source of truth for story scanning.
+ */
+interface ScannedStory extends Story {
+  /** Derived status from task statuses */
+  status: TaskStatus;
+  /** Full path to story.json */
+  storyPath: string;
+  /** Full path to worktree directory (if exists) */
+  worktreePath?: string;
+  /** Full path to journal.md (if exists) */
+  journalPath?: string;
+  /** Tasks belonging to this story */
+  tasks: Task[];
+}
+
+// ============================================================================
+// scanStories — internal helpers (must precede exports for biome)
+// ============================================================================
+
+/**
+ * Build a ScannedStory from a story directory path.
+ *
+ * Reads story.json and task files, derives status, checks for journal.md.
+ * Returns null if story.json doesn't exist or is invalid.
+ */
+function buildScannedStory(
+  storyDir: string,
+  storyJsonPath: string,
+  worktreePath?: string,
+): ScannedStory | null {
+  if (!existsSync(storyJsonPath)) {
+    return null;
+  }
+
+  let storyData: Story;
+  try {
+    const raw = readFileSync(storyJsonPath, 'utf-8');
+    storyData = StorySchema.parse(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+
+  // Read tasks from the story directory
+  let tasks: Task[] = [];
+  try {
+    const files = readdirSync(storyDir);
+    tasks = files
+      .filter((f) => f.endsWith('.json') && f !== 'story.json')
+      .map((f) => {
+        const raw = readFileSync(join(storyDir, f), 'utf-8');
+        return TaskSchema.parse(JSON.parse(raw));
+      });
+  } catch {
+    // No tasks or read error
+  }
+
+  const status = deriveStoryStatus(tasks);
+  const journalMdPath = join(storyDir, 'journal.md');
+
+  return {
+    ...storyData,
+    status,
+    storyPath: storyJsonPath,
+    worktreePath,
+    journalPath: existsSync(journalMdPath) ? journalMdPath : undefined,
+    tasks,
+  };
+}
+
+/**
+ * Scan .saga/stories/ for master-branch stories.
+ */
+function scanMasterStories(projectRoot: string, storyMap: Map<string, ScannedStory>): void {
+  const { stories } = createSagaPaths(projectRoot);
+  if (!existsSync(stories)) {
+    return;
+  }
+
+  const entries = readdirSync(stories, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const storyPaths = createStoryPaths(projectRoot, entry.name);
+    const scanned = buildScannedStory(storyPaths.storyDir, storyPaths.storyJson);
+    if (!scanned) {
+      continue;
+    }
+
+    const wtPaths = createWorktreePaths(projectRoot, entry.name);
+    if (existsSync(wtPaths.worktreeDir)) {
+      scanned.worktreePath = wtPaths.worktreeDir;
+    }
+    storyMap.set(scanned.id, scanned);
+  }
+}
+
+/**
+ * Scan .saga/worktrees/ for worktree stories (overwrite master entries).
+ */
+function scanWorktreeStories(projectRoot: string, storyMap: Map<string, ScannedStory>): void {
+  const { worktrees } = createSagaPaths(projectRoot);
+  if (!existsSync(worktrees)) {
+    return;
+  }
+
+  const entries = readdirSync(worktrees, { withFileTypes: true });
+  for (const wtEntry of entries) {
+    if (!wtEntry.isDirectory()) {
+      continue;
+    }
+
+    const storyId = wtEntry.name;
+    const wtStoryDir = join(worktrees, storyId, '.saga', 'stories', storyId);
+    const wtStoryJson = join(wtStoryDir, 'story.json');
+    const wtPath = join(worktrees, storyId);
+    const scanned = buildScannedStory(wtStoryDir, wtStoryJson, wtPath);
+
+    if (scanned) {
+      storyMap.set(scanned.id, scanned);
+    }
+  }
+}
+
+// ============================================================================
+// Exported storage functions
+// ============================================================================
 
 /**
  * Write a story.json file to .saga/stories/<story.id>/story.json
@@ -316,3 +458,37 @@ export function ensureUniqueStoryId(projectRoot: string, id: string): void {
     throw new Error(`Story ID "${id}" already exists: ${storyDir}`);
   }
 }
+
+/**
+ * Check if .saga/stories/ directory exists.
+ */
+export function storiesDirectoryExists(projectRoot: string): boolean {
+  const { stories } = createSagaPaths(projectRoot);
+  return existsSync(stories);
+}
+
+/**
+ * Check if .saga/epics/ directory exists.
+ */
+export function epicsDirectoryExists(projectRoot: string): boolean {
+  const { epics } = createSagaPaths(projectRoot);
+  return existsSync(epics);
+}
+
+/**
+ * Scan all stories from .saga/stories/ and .saga/worktrees/, returning
+ * ScannedStory objects with tasks, derived status, and path metadata.
+ *
+ * - Scans `.saga/stories/` for stories on the current branch
+ * - Scans `.saga/worktrees/<id>/.saga/stories/<id>/` for worktree stories
+ * - When a story exists in both, the worktree version takes priority entirely
+ * - Also detects worktree directory existence for master-only stories
+ */
+export function scanStories(projectRoot: string): ScannedStory[] {
+  const storyMap = new Map<string, ScannedStory>();
+  scanMasterStories(projectRoot, storyMap);
+  scanWorktreeStories(projectRoot, storyMap);
+  return Array.from(storyMap.values());
+}
+
+export type { ScannedStory };
