@@ -1,0 +1,9 @@
+{
+  "id": "write-readme",
+  "subject": "Write dummy module README",
+  "description": "Create `dummy/README.md` with:\n\n1. A brief overview of the dummy module\n2. API reference for `greet(name)` with usage example\n3. API reference for `calculate(a, b, operator)` with usage examples\n4. List of supported operators",
+  "activeForm": "Writing dummy module README",
+  "status": "pending",
+  "blockedBy": [],
+  "doneWhen": "README exists with complete API documentation."
+}

@@ -1,0 +1,11 @@
+{
+  "id": "add-jsdoc-comments",
+  "subject": "Add JSDoc comments to exports",
+  "description": "Add JSDoc comments to `dummy/index.js` for:\n\n1. `greet(name)` — document the parameter and return value\n2. `calculate(a, b, operator)` — document parameters, return value, and thrown errors",
+  "activeForm": "Adding JSDoc comments",
+  "status": "pending",
+  "blockedBy": [
+    "write-readme"
+  ],
+  "doneWhen": "All exported functions have JSDoc comments."
+}
