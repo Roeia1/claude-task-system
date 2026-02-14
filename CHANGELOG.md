@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.1] - 2026-02-14
+
+### Changed
+
+- **storage**: Consolidate story scanning into shared `scanStories()` in `storage.ts`, replacing duplicate scanners in `saga-utils/find` and `dashboard`
+- **storage**: `ScannedStory` now extends `Story` interface for better field coupling
+
+### Fixed
+
+- **biome**: Exclude `.saga/` directory from biome linting and formatting checks
+
 ## [4.2.0] - 2026-02-14
 
 ### Added
