@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **plan**: Replace `generate-story` LLM agent with deterministic `create-story.js` script — story creation is now pure file I/O + git, no LLM tokens spent
+- **plan**: Both single-story and multi-story paths now use the same `create-story.js` script
+
+### Added
+
+- **scripts**: New `create-story.js` — reads story+tasks JSON from stdin, creates worktree/branch/files/commit/push/PR in one deterministic pass
+
+### Removed
+
+- **agent**: Delete `generate-story` agent (fully replaced by `create-story.js`)
+- **scripts**: Delete `worktree.js` (logic absorbed into `create-story.js`)
+
 ## [4.1.0] - 2026-02-13
 
 ### Changed

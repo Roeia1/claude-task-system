@@ -5,7 +5,7 @@
 [![npm](https://img.shields.io/npm/v/@saga-ai/dashboard)](https://www.npmjs.com/package/@saga-ai/dashboard)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Skills](https://img.shields.io/badge/skills-5-green)](https://github.com/Roeia1/saga)
-[![Agents](https://img.shields.io/badge/agents-1-blue)](https://github.com/Roeia1/saga)
+[![Scripts](https://img.shields.io/badge/scripts-deterministic-blue)](https://github.com/Roeia1/saga)
 
 > **S**tructured **A**utonomous **G**oal **A**chievement - Transform epic ideas into shipped code through structured planning, autonomous execution, and continuous journaling.
 
@@ -203,14 +203,6 @@ All functionality is accessed through skills (slash commands):
 | Resolve Blocker | `/resolve-blocker [story-slug]` | Analyze and resolve blockers |
 | List Sessions | `/list-sessions` | List all running SAGA sessions |
 
-### Agents
-
-Agents are Claude Code subagents that run autonomously. They are spawned by skills via the Task tool.
-
-| Agent | Description |
-|-------|-------------|
-| `generate-story` | Creates a single story with full content and git infrastructure. Spawned by `/plan`. |
-
 ---
 
 ## Workflow Examples
@@ -301,8 +293,8 @@ git commit -m "fix(cart-api): handle empty cart edge case"
 plugin/
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin manifest
-├── agents/                    # Claude Code agents
-│   └── generate-story.md     # Story generation agent
+├── scripts/                   # Built scripts (from saga-utils)
+│   └── create-story.js       # Deterministic story creation
 ├── skills/                    # Core skills
 │   ├── init/                 # /init - Initialize structure
 │   ├── plan/                 # /plan - Collaborative planning

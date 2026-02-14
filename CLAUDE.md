@@ -38,12 +38,6 @@ saga/
 | `/create-epic` (deprecated) | [`plugin/skills/create-epic/SKILL.md`](plugin/skills/create-epic/SKILL.md) |
 | `/generate-stories` (deprecated) | [`plugin/skills/generate-stories/SKILL.md`](plugin/skills/generate-stories/SKILL.md) |
 
-## Agents
-
-| Agent | Location |
-|-------|----------|
-| `generate-story` | [`plugin/agents/generate-story.md`](plugin/agents/generate-story.md) |
-
 ## Quick Reference
 
 ### Path References
