@@ -1,0 +1,9 @@
+{
+  "id": "write-setup-tests",
+  "subject": "Write infrastructure setup tests",
+  "description": "Create tests that verify the expected configuration files and directory structure exist. These tests should initially fail (TDD red phase).",
+  "activeForm": "Writing infrastructure setup tests",
+  "status": "pending",
+  "blockedBy": [],
+  "doneWhen": "Tests are written and fail with expected errors."
+}

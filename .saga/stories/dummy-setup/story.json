@@ -1,0 +1,12 @@
+{
+  "id": "dummy-setup",
+  "title": "Setup Dummy Infrastructure",
+  "description": "## Scope\nSet up the foundational infrastructure for the dummy goal, including configuration files and basic scaffolding.\n\n## Technical Details\n- Create placeholder configuration files\n- Set up basic directory structure\n- Add any necessary dependencies\n\n## Acceptance Criteria\n- Configuration files are in place\n- Directory structure is created\n- Basic scaffolding is ready for the implementation story",
+  "epic": "dummy-goal",
+  "guidance": "This is a test story — create minimal placeholder files to validate the workflow.",
+  "doneWhen": "Basic scaffolding and configuration files are in place.",
+  "avoid": "Do not implement any actual feature logic — that belongs in the implementation story.",
+  "branch": "story/dummy-setup",
+  "worktree": ".saga/worktrees/dummy-setup/",
+  "pr": "https://github.com/Roeia1/SAGA/pull/68"
+}

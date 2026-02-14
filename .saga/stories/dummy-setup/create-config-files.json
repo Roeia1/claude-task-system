@@ -1,0 +1,9 @@
+{
+  "id": "create-config-files",
+  "subject": "Create configuration files",
+  "description": "Create the necessary placeholder configuration files and directory structure to satisfy the setup tests.",
+  "activeForm": "Creating configuration files",
+  "status": "pending",
+  "blockedBy": ["write-setup-tests"],
+  "doneWhen": "Setup tests pass."
+}
