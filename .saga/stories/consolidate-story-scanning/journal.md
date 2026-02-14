@@ -10,7 +10,15 @@ Starting story execution. Read all three scanner implementations and their tests
 Plan: Write TDD tests first for the new consolidated `scanStories()` in storage.ts, then implement, then update consumers.
 
 Key decisions:
-- New `ScannedStory` combines both scanners' contracts: includes tasks array AND derived status
-- `epicId` will be `string | undefined` (matching dashboard pattern), not `''` (find pattern)
+- `ScannedStory extends Story` — coupled with story.json schema, adds `status`, `storyPath`, `worktreePath?`, `journalPath?`, `tasks[]`
+- Uses `epic` field from Story (not `epicId`) for consistency
 - Sync function using `readdirSync`/`readFileSync`
 - Worktree stories at `<root>/.saga/worktrees/<id>/.saga/stories/<id>/story.json` take priority
+- `parseStory()` now tries worktree path first for WebSocket real-time updates
+
+Results:
+- Added `scanStories()`, `ScannedStory`, `storiesDirectoryExists()`, `epicsDirectoryExists()` to `@saga-ai/utils`
+- Deleted `packages/saga-utils/src/scripts/find/saga-scanner.ts` and test
+- Deleted `packages/dashboard/src/utils/saga-scanner.ts` and test
+- Updated `finder.ts` (now sync) and `parser.ts` to use shared scanner
+- 554 saga-utils tests pass, 38 dashboard tests pass, both packages build
