@@ -6,6 +6,7 @@
  * environment variables, and loops until all tasks are completed or limits are reached.
  */
 
+import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
@@ -32,6 +33,18 @@ const ENV_ENABLE_TASKS = 'CLAUDE_CODE_ENABLE_TASKS';
 const ENV_TASK_LIST_ID = 'CLAUDE_CODE_TASK_LIST_ID';
 const ENV_STORY_ID = 'SAGA_STORY_ID';
 const ENV_STORY_TASK_LIST_ID = 'SAGA_STORY_TASK_LIST_ID';
+
+/**
+ * Resolve the path to the `claude` CLI binary using `which`.
+ * Throws if the binary cannot be found.
+ */
+function resolveClaudeBinary(): string {
+  try {
+    return execFileSync('which', ['claude'], { encoding: 'utf-8' }).trim();
+  } catch {
+    throw new Error('Could not find `claude` binary. Ensure Claude Code is installed and on PATH.');
+  }
+}
 
 // Tools to scope-validate (file-accessing tools)
 const SCOPE_TOOLS = ['Read', 'Write', 'Edit', 'Glob', 'Grep'];
@@ -153,6 +166,7 @@ async function spawnHeadlessRun(
     for await (const message of query({
       prompt,
       options: {
+        pathToClaudeCodeExecutable: resolveClaudeBinary(),
         model,
         cwd: worktreePath,
         env: {

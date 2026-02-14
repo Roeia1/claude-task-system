@@ -12,7 +12,7 @@
     "./conversion": "./src/conversion.ts"
   },
   "scripts": {
-    "prebuild": "biome check .",
+    "prebuild": "biome check --write .",
     "build": "node esbuild.config.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

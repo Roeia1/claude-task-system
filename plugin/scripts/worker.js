@@ -4423,6 +4423,7 @@ function createNoopMessageWriter() {
 }
 
 // src/scripts/worker/run-headless-loop.ts
+import { execFileSync as execFileSync3 } from "node:child_process";
 import { readdirSync as readdirSync3, readFileSync as readFileSync4 } from "node:fs";
 import { join as join4 } from "node:path";
 import process6 from "node:process";
@@ -13392,6 +13393,13 @@ var ENV_ENABLE_TASKS = "CLAUDE_CODE_ENABLE_TASKS";
 var ENV_TASK_LIST_ID = "CLAUDE_CODE_TASK_LIST_ID";
 var ENV_STORY_ID = "SAGA_STORY_ID";
 var ENV_STORY_TASK_LIST_ID = "SAGA_STORY_TASK_LIST_ID";
+function resolveClaudeBinary() {
+  try {
+    return execFileSync3("which", ["claude"], { encoding: "utf-8" }).trim();
+  } catch {
+    throw new Error("Could not find `claude` binary. Ensure Claude Code is installed and on PATH.");
+  }
+}
 var SCOPE_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep"];
 var SCOPE_TOOL_MATCHER = SCOPE_TOOLS.join("|");
 var PRE_TOOL_USE = "PreToolUse";
@@ -13442,6 +13450,7 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
     for await (const message of Qx({
       prompt,
       options: {
+        pathToClaudeCodeExecutable: resolveClaudeBinary(),
         model,
         cwd: worktreePath,
         env: {
@@ -13592,13 +13601,13 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
 }
 
 // src/scripts/worker/setup-worktree.ts
-import { execFileSync as execFileSync3 } from "node:child_process";
+import { execFileSync as execFileSync4 } from "node:child_process";
 import { existsSync as existsSync4, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
 import { dirname as dirname2 } from "node:path";
 import process7 from "node:process";
 function runGit(args, cwd) {
   try {
-    const output = execFileSync3("git", args, {
+    const output = execFileSync4("git", args, {
       cwd,
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"]
