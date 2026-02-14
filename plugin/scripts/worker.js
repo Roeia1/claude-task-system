@@ -6,7 +6,7 @@ var __export = (target, all) => {
 };
 
 // src/scripts/worker.ts
-import process8 from "node:process";
+import process9 from "node:process";
 
 // src/scripts/shared/env.ts
 import process2 from "node:process";
@@ -4423,10 +4423,10 @@ function createNoopMessageWriter() {
 }
 
 // src/scripts/worker/run-headless-loop.ts
-import { execFileSync as execFileSync3 } from "node:child_process";
-import { readdirSync as readdirSync3, readFileSync as readFileSync4 } from "node:fs";
+import { execFileSync as execFileSync4 } from "node:child_process";
+import { readdirSync as readdirSync3, readFileSync as readFileSync5 } from "node:fs";
 import { join as join4 } from "node:path";
-import process6 from "node:process";
+import process7 from "node:process";
 
 // ../../node_modules/.pnpm/@anthropic-ai+claude-agent-sdk@0.2.39_zod@3.25.76/node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs
 import { join as az } from "path";
@@ -13383,6 +13383,84 @@ function createSyncHook(worktreePath, storyId) {
   };
 }
 
+// src/scripts/task-completion-hook.ts
+import { execFileSync as execFileSync3 } from "node:child_process";
+import { existsSync as existsSync4, readFileSync as readFileSync4 } from "node:fs";
+import process6 from "node:process";
+function runGit(args, cwd) {
+  try {
+    const output = execFileSync3("git", args, {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    return { success: true, output: output.trim() };
+  } catch (error) {
+    const execError = error;
+    const stderr = execError.stderr?.toString().trim() || execError.message || String(error);
+    return { success: false, output: stderr };
+  }
+}
+function readTaskSubject(worktreePath, storyId, taskId) {
+  try {
+    const taskPath = createTaskPath(worktreePath, storyId, taskId);
+    if (!existsSync4(taskPath)) {
+      return void 0;
+    }
+    const taskData = JSON.parse(readFileSync4(taskPath, "utf-8"));
+    return taskData.subject;
+  } catch {
+    return void 0;
+  }
+}
+function buildAdditionalContext(storyId, taskId, subject) {
+  const taskLabel = subject ? `${taskId} - ${subject}` : taskId;
+  return [
+    `Task "${taskLabel}" completed. Changes committed and pushed.`,
+    "",
+    `REQUIRED: Write a journal entry to .saga/stories/${storyId}/journal.md:`,
+    `## Session: ${(/* @__PURE__ */ new Date()).toISOString()}`,
+    `### Task: ${taskLabel}`,
+    "**What was done:** ...",
+    "**Decisions:** ...",
+    "**Next steps:** ...",
+    "",
+    "CONTEXT CHECK: Target 40-70% context utilization per session.",
+    "- If you have capacity, pick up the next unblocked task from TaskList.",
+    "- If context is getting heavy, commit any remaining work and exit."
+  ].join("\n");
+}
+function createTaskCompletionHook(worktreePath, storyId) {
+  return (_input, _toolUseID, _options) => {
+    const hookInput = _input;
+    const toolInput = hookInput.tool_input ?? {};
+    const taskId = toolInput.taskId;
+    const status = toolInput.status;
+    if (!(taskId && status) || status !== "completed") {
+      return Promise.resolve({ continue: true });
+    }
+    const subject = readTaskSubject(worktreePath, storyId, taskId);
+    const commitMessage = subject ? `feat(${storyId}): complete ${taskId} - ${subject}` : `feat(${storyId}): complete ${taskId}`;
+    try {
+      runGit(["add", "."], worktreePath);
+      runGit(["commit", "-m", commitMessage], worktreePath);
+      runGit(["push"], worktreePath);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      process6.stderr.write(`[worker] Task completion git error: ${errorMessage}
+`);
+    }
+    const additionalContext = buildAdditionalContext(storyId, taskId, subject);
+    return Promise.resolve({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext
+      }
+    });
+  };
+}
+
 // src/scripts/worker/run-headless-loop.ts
 var DEFAULT_MAX_CYCLES = 10;
 var DEFAULT_MAX_TIME_MINUTES = 60;
@@ -13393,9 +13471,10 @@ var ENV_ENABLE_TASKS = "CLAUDE_CODE_ENABLE_TASKS";
 var ENV_TASK_LIST_ID = "CLAUDE_CODE_TASK_LIST_ID";
 var ENV_STORY_ID = "SAGA_STORY_ID";
 var ENV_STORY_TASK_LIST_ID = "SAGA_STORY_TASK_LIST_ID";
+var ENV_CLAUDECODE = "CLAUDECODE";
 function resolveClaudeBinary() {
   try {
-    return execFileSync3("which", ["claude"], { encoding: "utf-8" }).trim();
+    return execFileSync4("which", ["claude"], { encoding: "utf-8" }).trim();
   } catch {
     throw new Error("Could not find `claude` binary. Ensure Claude Code is installed and on PATH.");
   }
@@ -13405,9 +13484,43 @@ var SCOPE_TOOL_MATCHER = SCOPE_TOOLS.join("|");
 var PRE_TOOL_USE = "PreToolUse";
 var POST_TOOL_USE = "PostToolUse";
 var SYNC_TOOL_MATCHER = "TaskUpdate";
-function buildPrompt(meta) {
+function buildWorkerInstructions(storyId) {
+  return `# Worker Instructions
+
+## Session Startup
+1. Run TaskList to see available tasks and their status.
+2. Run \`git log -5 --oneline && git status\` to understand the current state of the branch.
+3. Run existing tests to establish a baseline before making changes.
+
+## TDD Workflow
+- Write failing tests FIRST, then implement until they pass.
+- After implementation, run the full test suite to verify no regressions.
+- Do not modify existing tests without explicit approval.
+
+## Task Pacing
+- Complete 1-3 tasks per session, targeting 40-70% context usage.
+- After completing a task, assess context usage and next task complexity to decide whether to continue or exit.
+- If approaching context limits, commit all work and exit gracefully.
+
+## Commit Discipline
+- Commit after completing each task. Use the format: \`feat|test|fix|refactor(${storyId}): <description>\`
+- Always push after committing: \`git push\`
+- Never amend commits. Always create new commits.
+
+## Scope Rules
+- Only read and write files within the worktree (your current working directory).
+- Only modify SAGA files in \`.saga/stories/${storyId}/\` (journal, task files).
+- Do not access files outside your worktree or other stories' directories.
+
+## Context Awareness
+- If context is getting heavy (many tool calls, large file reads), commit current work and exit.
+- It is better to exit cleanly and resume in a new session than to run out of context mid-task.
+`;
+}
+function buildPrompt(meta, storyId) {
   const lines = [];
-  lines.push(`You are working on: ${meta.title}`);
+  lines.push(buildWorkerInstructions(storyId));
+  lines.push(`# Story: ${meta.title}`);
   lines.push("");
   lines.push(meta.description);
   if (meta.guidance) {
@@ -13436,7 +13549,7 @@ function checkAllTasksCompleted(storyDir) {
   }
   for (const file of files) {
     const filePath = join4(storyDir, file);
-    const raw = readFileSync4(filePath, "utf-8");
+    const raw = readFileSync5(filePath, "utf-8");
     const task = JSON.parse(raw);
     if (task.status !== "completed") {
       return false;
@@ -13454,7 +13567,8 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
         model,
         cwd: worktreePath,
         env: {
-          ...process6.env,
+          ...process7.env,
+          [ENV_CLAUDECODE]: void 0,
           [ENV_PROJECT_DIR]: worktreePath,
           [ENV_ENABLE_TASKS]: "true",
           [ENV_TASK_LIST_ID]: taskListId,
@@ -13478,7 +13592,10 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
           [POST_TOOL_USE]: [
             {
               matcher: SYNC_TOOL_MATCHER,
-              hooks: [createSyncHook(worktreePath, storyId)]
+              hooks: [
+                createSyncHook(worktreePath, storyId),
+                createTaskCompletionHook(worktreePath, storyId)
+              ]
             }
           ]
         }
@@ -13492,7 +13609,7 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
     return { exitCode };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    process6.stderr.write(`[worker] Headless run error: ${errorMessage}
+    process7.stderr.write(`[worker] Headless run error: ${errorMessage}
 `);
     return { exitCode: 1 };
   }
@@ -13505,7 +13622,7 @@ function executeCycle(config, state) {
     return Promise.resolve({ shouldContinue: false });
   }
   const cycleNum = state.cycles + 1;
-  process6.stdout.write(`[worker] Starting headless run cycle ${cycleNum}/${config.maxCycles}
+  process7.stdout.write(`[worker] Starting headless run cycle ${cycleNum}/${config.maxCycles}
 `);
   config.messagesWriter.write({
     type: "saga_worker",
@@ -13567,7 +13684,7 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
-  const prompt = buildPrompt(storyMeta);
+  const prompt = buildPrompt(storyMeta, storyId);
   const startTime = Date.now();
   const { storyDir } = createStoryPaths(worktreePath, storyId);
   const taskFiles = getTaskFiles(storyDir);
@@ -13601,13 +13718,13 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
 }
 
 // src/scripts/worker/setup-worktree.ts
-import { execFileSync as execFileSync4 } from "node:child_process";
-import { existsSync as existsSync4, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
+import { execFileSync as execFileSync5 } from "node:child_process";
+import { existsSync as existsSync5, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
 import { dirname as dirname2 } from "node:path";
-import process7 from "node:process";
-function runGit(args, cwd) {
+import process8 from "node:process";
+function runGit2(args, cwd) {
   try {
-    const output = execFileSync4("git", args, {
+    const output = execFileSync5("git", args, {
       cwd,
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"]
@@ -13620,10 +13737,10 @@ function runGit(args, cwd) {
   }
 }
 function branchExists(branchName, cwd) {
-  return runGit(["rev-parse", "--verify", branchName], cwd).success;
+  return runGit2(["rev-parse", "--verify", branchName], cwd).success;
 }
 function getMainBranch(cwd) {
-  const result = runGit(["symbolic-ref", "refs/remotes/origin/HEAD"], cwd);
+  const result = runGit2(["symbolic-ref", "refs/remotes/origin/HEAD"], cwd);
   if (result.success) {
     return result.output.replace("refs/remotes/origin/", "");
   }
@@ -13632,30 +13749,30 @@ function getMainBranch(cwd) {
 function setupWorktree(storyId, projectDir) {
   const branch = `story/${storyId}`;
   const { worktreeDir } = createWorktreePaths(projectDir, storyId);
-  if (existsSync4(worktreeDir)) {
-    const valid = runGit(["rev-parse", "--git-dir"], worktreeDir);
+  if (existsSync5(worktreeDir)) {
+    const valid = runGit2(["rev-parse", "--git-dir"], worktreeDir);
     if (valid.success) {
-      process7.stdout.write(`[worker] Worktree already exists: ${worktreeDir}
+      process8.stdout.write(`[worker] Worktree already exists: ${worktreeDir}
 `);
       return { worktreePath: worktreeDir, branch, alreadyExisted: true };
     }
-    process7.stdout.write(`[worker] Removing broken worktree: ${worktreeDir}
+    process8.stdout.write(`[worker] Removing broken worktree: ${worktreeDir}
 `);
-    runGit(["worktree", "remove", "--force", worktreeDir], projectDir);
+    runGit2(["worktree", "remove", "--force", worktreeDir], projectDir);
     rmSync2(worktreeDir, { recursive: true, force: true });
   }
   const mainBranch = getMainBranch(projectDir);
-  runGit(["fetch", "origin", mainBranch], projectDir);
+  runGit2(["fetch", "origin", mainBranch], projectDir);
   mkdirSync4(dirname2(worktreeDir), { recursive: true });
   if (branchExists(branch, projectDir)) {
-    process7.stdout.write(`[worker] Branch ${branch} exists, re-creating worktree
+    process8.stdout.write(`[worker] Branch ${branch} exists, re-creating worktree
 `);
-    const result = runGit(["worktree", "add", worktreeDir, branch], projectDir);
+    const result = runGit2(["worktree", "add", worktreeDir, branch], projectDir);
     if (!result.success) {
       throw new Error(`Failed to create worktree from existing branch: ${result.output}`);
     }
   } else {
-    const result = runGit(
+    const result = runGit2(
       ["worktree", "add", "-b", branch, worktreeDir, `origin/${mainBranch}`],
       projectDir
     );
@@ -13663,7 +13780,7 @@ function setupWorktree(storyId, projectDir) {
       throw new Error(`Failed to create worktree and branch: ${result.output}`);
     }
   }
-  process7.stdout.write(`[worker] Created worktree: ${worktreeDir} (branch: ${branch})
+  process8.stdout.write(`[worker] Created worktree: ${worktreeDir} (branch: ${branch})
 `);
   return { worktreePath: worktreeDir, branch, alreadyExisted: false };
 }
@@ -13704,11 +13821,11 @@ Examples:
   # Run with custom options
   node worker.js auth-setup-db --max-cycles 5 --model sonnet
 `.trim();
-  process8.stdout.write(`${usage}
+  process9.stdout.write(`${usage}
 `);
 }
 function printError(message) {
-  process8.stderr.write(`Error: ${message}
+  process9.stderr.write(`Error: ${message}
 `);
 }
 function parsePositiveInt(value) {
@@ -13781,7 +13898,7 @@ function processOption(arg, iter, options) {
 function processArg(arg, iter, options, state) {
   if (arg === "--help" || arg === "-h") {
     printUsage();
-    process8.exit(0);
+    process9.exit(0);
   }
   const optionResult = processOption(arg, iter, options);
   if (optionResult !== null) {
@@ -13876,24 +13993,24 @@ async function runPipeline(storyId, options) {
   return summary;
 }
 async function main() {
-  const parsed = parseArgs(process8.argv.slice(2));
+  const parsed = parseArgs(process9.argv.slice(2));
   if (!parsed) {
-    process8.exit(1);
+    process9.exit(1);
   }
   const { storyId, options } = parsed;
-  process8.stdout.write(`[worker] Starting pipeline for story: ${storyId}
+  process9.stdout.write(`[worker] Starting pipeline for story: ${storyId}
 `);
   const summary = await runPipeline(storyId, options);
-  process8.stdout.write(
+  process9.stdout.write(
     `[worker] Pipeline complete. Status: ${summary.status}, cycles: ${summary.cycles}, elapsed: ${summary.elapsedMinutes.toFixed(1)}m
 `
   );
-  process8.exit(summary.exitCode);
+  process9.exit(summary.exitCode);
 }
 main().catch((error) => {
-  process8.stderr.write(`Error: ${error instanceof Error ? error.message : String(error)}
+  process9.stderr.write(`Error: ${error instanceof Error ? error.message : String(error)}
 `);
-  process8.exit(1);
+  process9.exit(1);
 });
 export {
   parseArgs

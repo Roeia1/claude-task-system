@@ -15,6 +15,7 @@ import { createStoryPaths } from '../../directory.ts';
 import type { StoryMeta } from '../hydrate/service.ts';
 import { createScopeValidatorHook } from '../scope-validator-hook.ts';
 import { createSyncHook } from '../sync-hook.ts';
+import { createTaskCompletionHook } from '../task-completion-hook.ts';
 import type { MessageWriter } from './message-writer.ts';
 import { createNoopMessageWriter } from './message-writer.ts';
 
@@ -33,6 +34,7 @@ const ENV_ENABLE_TASKS = 'CLAUDE_CODE_ENABLE_TASKS';
 const ENV_TASK_LIST_ID = 'CLAUDE_CODE_TASK_LIST_ID';
 const ENV_STORY_ID = 'SAGA_STORY_ID';
 const ENV_STORY_TASK_LIST_ID = 'SAGA_STORY_TASK_LIST_ID';
+const ENV_CLAUDECODE = 'CLAUDECODE';
 
 /**
  * Resolve the path to the `claude` CLI binary using `which`.
@@ -79,13 +81,57 @@ interface RunLoopResult {
 // ============================================================================
 
 /**
- * Build the headless run prompt from story metadata.
- * Only includes non-empty fields.
+ * Worker instructions prepended to every headless prompt.
+ * Covers session startup, TDD workflow, task pacing, commit discipline,
+ * scope rules, and context awareness.
  */
-function buildPrompt(meta: StoryMeta): string {
+function buildWorkerInstructions(storyId: string): string {
+  return `# Worker Instructions
+
+## Session Startup
+1. Run TaskList to see available tasks and their status.
+2. Run \`git log -5 --oneline && git status\` to understand the current state of the branch.
+3. Run existing tests to establish a baseline before making changes.
+
+## TDD Workflow
+- Write failing tests FIRST, then implement until they pass.
+- After implementation, run the full test suite to verify no regressions.
+- Do not modify existing tests without explicit approval.
+
+## Task Pacing
+- Complete 1-3 tasks per session, targeting 40-70% context usage.
+- After completing a task, assess context usage and next task complexity to decide whether to continue or exit.
+- If approaching context limits, commit all work and exit gracefully.
+
+## Commit Discipline
+- Commit after completing each task. Use the format: \`feat|test|fix|refactor(${storyId}): <description>\`
+- Always push after committing: \`git push\`
+- Never amend commits. Always create new commits.
+
+## Scope Rules
+- Only read and write files within the worktree (your current working directory).
+- Only modify SAGA files in \`.saga/stories/${storyId}/\` (journal, task files).
+- Do not access files outside your worktree or other stories' directories.
+
+## Context Awareness
+- If context is getting heavy (many tool calls, large file reads), commit current work and exit.
+- It is better to exit cleanly and resume in a new session than to run out of context mid-task.
+`;
+}
+
+/**
+ * Build the headless run prompt from story metadata.
+ * Prepends worker instructions, then includes story-specific content.
+ * Only includes non-empty metadata fields.
+ */
+function buildPrompt(meta: StoryMeta, storyId: string): string {
   const lines: string[] = [];
 
-  lines.push(`You are working on: ${meta.title}`);
+  // Worker instructions first
+  lines.push(buildWorkerInstructions(storyId));
+
+  // Story metadata
+  lines.push(`# Story: ${meta.title}`);
   lines.push('');
   lines.push(meta.description);
 
@@ -171,6 +217,7 @@ async function spawnHeadlessRun(
         cwd: worktreePath,
         env: {
           ...process.env,
+          [ENV_CLAUDECODE]: undefined,
           [ENV_PROJECT_DIR]: worktreePath,
           [ENV_ENABLE_TASKS]: 'true',
           [ENV_TASK_LIST_ID]: taskListId,
@@ -194,7 +241,10 @@ async function spawnHeadlessRun(
           [POST_TOOL_USE]: [
             {
               matcher: SYNC_TOOL_MATCHER,
-              hooks: [createSyncHook(worktreePath, storyId)],
+              hooks: [
+                createSyncHook(worktreePath, storyId),
+                createTaskCompletionHook(worktreePath, storyId),
+              ],
             },
           ],
         },
@@ -340,7 +390,7 @@ async function runHeadlessLoop(
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
 
-  const prompt = buildPrompt(storyMeta);
+  const prompt = buildPrompt(storyMeta, storyId);
   const startTime = Date.now();
   const { storyDir } = createStoryPaths(worktreePath, storyId);
 

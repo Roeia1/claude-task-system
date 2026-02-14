@@ -138,6 +138,8 @@ function createMockQueryWithAssistant(): ReturnType<typeof query> {
 }
 
 describe('buildPrompt', () => {
+  const testStoryId = 'auth-setup-db';
+
   it('should include all non-empty story metadata fields', () => {
     const meta: StoryMeta = {
       title: 'Auth Setup',
@@ -147,9 +149,9 @@ describe('buildPrompt', () => {
       avoid: 'Do not use sessions',
     };
 
-    const prompt = buildPrompt(meta);
+    const prompt = buildPrompt(meta, testStoryId);
 
-    expect(prompt).toContain('You are working on: Auth Setup');
+    expect(prompt).toContain('Auth Setup');
     expect(prompt).toContain('Set up authentication');
     expect(prompt).toContain('Guidance: Use JWT tokens');
     expect(prompt).toContain('Done when: All auth tests pass');
@@ -162,9 +164,9 @@ describe('buildPrompt', () => {
       description: 'Set up authentication',
     };
 
-    const prompt = buildPrompt(meta);
+    const prompt = buildPrompt(meta, testStoryId);
 
-    expect(prompt).toContain('You are working on: Auth Setup');
+    expect(prompt).toContain('Auth Setup');
     expect(prompt).toContain('Set up authentication');
     expect(prompt).not.toContain('Guidance:');
     expect(prompt).not.toContain('Done when:');
@@ -177,7 +179,7 @@ describe('buildPrompt', () => {
       description: 'Set up authentication',
     };
 
-    const prompt = buildPrompt(meta);
+    const prompt = buildPrompt(meta, testStoryId);
 
     expect(prompt).toContain('TaskList');
     expect(prompt).toContain('TaskGet');
@@ -193,11 +195,63 @@ describe('buildPrompt', () => {
       avoid: undefined,
     };
 
-    const prompt = buildPrompt(meta);
+    const prompt = buildPrompt(meta, testStoryId);
 
     expect(prompt).toContain('Done when: Tests pass');
     expect(prompt).not.toContain('Guidance:');
     expect(prompt).not.toContain('Avoid:');
+  });
+
+  it('should include session startup instructions', () => {
+    const meta: StoryMeta = {
+      title: 'Auth Setup',
+      description: 'Set up authentication',
+    };
+
+    const prompt = buildPrompt(meta, testStoryId);
+
+    expect(prompt).toContain('Session Startup');
+    expect(prompt).toContain('TaskList');
+    expect(prompt).toContain('git log');
+    expect(prompt).toContain('git status');
+  });
+
+  it('should include TDD workflow instructions', () => {
+    const meta: StoryMeta = {
+      title: 'Auth Setup',
+      description: 'Set up authentication',
+    };
+
+    const prompt = buildPrompt(meta, testStoryId);
+
+    expect(prompt).toContain('TDD');
+    expect(prompt).toContain('failing tests FIRST');
+  });
+
+  it('should include commit discipline with storyId', () => {
+    const meta: StoryMeta = {
+      title: 'Auth Setup',
+      description: 'Set up authentication',
+    };
+
+    const prompt = buildPrompt(meta, testStoryId);
+
+    expect(prompt).toContain('Commit Discipline');
+    expect(prompt).toContain(`feat|test|fix|refactor(${testStoryId})`);
+    expect(prompt).toContain('git push');
+  });
+
+  it('should include task pacing instructions', () => {
+    const meta: StoryMeta = {
+      title: 'Auth Setup',
+      description: 'Set up authentication',
+    };
+
+    const prompt = buildPrompt(meta, testStoryId);
+
+    expect(prompt).toContain('Task Pacing');
+    expect(prompt).toContain('1-3 tasks per session');
+    expect(prompt).toContain('40-70%');
   });
 });
 
@@ -572,8 +626,9 @@ describe('runHeadlessLoop', () => {
     expect(hooks?.PostToolUse).toBeDefined();
     expect(hooks?.PostToolUse).toHaveLength(1);
     expect(hooks?.PostToolUse?.[0].matcher).toBe('TaskUpdate');
-    expect(hooks?.PostToolUse?.[0].hooks).toHaveLength(1);
+    expect(hooks?.PostToolUse?.[0].hooks).toHaveLength(2);
     expect(typeof hooks?.PostToolUse?.[0].hooks[0]).toBe('function');
+    expect(typeof hooks?.PostToolUse?.[0].hooks[1]).toBe('function');
   });
 
   it('should set SAGA_PROJECT_DIR to worktreePath in query() env', async () => {
