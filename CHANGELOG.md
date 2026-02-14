@@ -7,14 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-02-14
+
+### Added
+
+- **scripts**: New `create-story.js` — reads story+tasks JSON from stdin or `--input` file, creates worktree/branch/files/commit/push/PR in one deterministic pass
+- **scripts**: `create-story.js` supports `--input` flag for file-based JSON input
+- **scripts**: Enriched `schemas.js` output with improved LLM-readable documentation
+
 ### Changed
 
 - **plan**: Replace `generate-story` LLM agent with deterministic `create-story.js` script — story creation is now pure file I/O + git, no LLM tokens spent
 - **plan**: Both single-story and multi-story paths now use the same `create-story.js` script
+- **plugin**: Rename plugin identifier from `core@saga` to `saga-core@saga`
 
-### Added
+### Fixed
 
-- **scripts**: New `create-story.js` — reads story+tasks JSON from stdin, creates worktree/branch/files/commit/push/PR in one deterministic pass
+- **publish**: Update stale references in publish skill
+- **plan**: Remove duplicate tests, fix stale refs, fix `!node` syntax
 
 ### Removed
 
