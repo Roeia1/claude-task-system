@@ -5,10 +5,10 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// src/worker.ts
+// src/scripts/worker.ts
 import process9 from "node:process";
 
-// src/shared/env.ts
+// src/scripts/shared/env.ts
 import process2 from "node:process";
 function getProjectDir() {
   const projectDir = process2.env.SAGA_PROJECT_DIR;
@@ -20,7 +20,7 @@ function getProjectDir() {
   return projectDir;
 }
 
-// src/worker/create-draft-pr.ts
+// src/scripts/worker/create-draft-pr.ts
 import { execFileSync } from "node:child_process";
 import process3 from "node:process";
 function findExistingPr(branch, cwd) {
@@ -79,12 +79,51 @@ Created by SAGA worker.`
   }
 }
 
-// src/worker/hydrate-tasks.ts
+// src/scripts/worker/hydrate-tasks.ts
 import process4 from "node:process";
 
-// src/hydrate/service.ts
+// src/scripts/hydrate/service.ts
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join as join3 } from "node:path";
+
+// src/directory.ts
+import { join } from "node:path";
+function normalizeRoot(projectRoot) {
+  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
+}
+function createSagaPaths(projectRoot) {
+  const root = normalizeRoot(projectRoot);
+  const saga = `${root}/.saga`;
+  return {
+    root,
+    saga,
+    epics: `${saga}/epics`,
+    stories: `${saga}/stories`,
+    worktrees: `${saga}/worktrees`,
+    archive: `${saga}/archive`
+  };
+}
+function createStoryPaths(projectRoot, storyId) {
+  const { stories } = createSagaPaths(projectRoot);
+  const storyDir = `${stories}/${storyId}`;
+  return {
+    storyId,
+    storyDir,
+    storyJson: `${storyDir}/story.json`,
+    journalMd: `${storyDir}/journal.md`
+  };
+}
+function createWorktreePaths(projectRoot, storyId) {
+  const { worktrees } = createSagaPaths(projectRoot);
+  return {
+    storyId,
+    worktreeDir: `${worktrees}/${storyId}`
+  };
+}
+function createTaskPath(projectRoot, storyId, taskId) {
+  const { storyDir } = createStoryPaths(projectRoot, storyId);
+  return join(storyDir, `${taskId}.json`);
+}
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4127,7 +4166,7 @@ var coerce = {
 };
 var NEVER = INVALID;
 
-// ../saga-types/src/task.ts
+// src/schemas/task.ts
 var TaskStatusSchema = external_exports.enum(["pending", "in_progress", "completed"]);
 var TaskSchema = external_exports.object({
   id: external_exports.string(),
@@ -4141,7 +4180,7 @@ var TaskSchema = external_exports.object({
 });
 var StoryIdSchema = external_exports.string().regex(/^[a-z0-9-]+$/);
 
-// ../saga-types/src/claude-code-task.ts
+// src/schemas/claude-code-task.ts
 var ClaudeCodeTaskSchema = external_exports.object({
   id: external_exports.string(),
   subject: external_exports.string(),
@@ -4154,67 +4193,7 @@ var ClaudeCodeTaskSchema = external_exports.object({
   metadata: external_exports.record(external_exports.string(), external_exports.unknown()).optional()
 });
 
-// ../saga-types/src/conversion.ts
-function toClaudeTask(sagaTask) {
-  const metadata = {};
-  if (sagaTask.guidance !== void 0) {
-    metadata.guidance = sagaTask.guidance;
-  }
-  if (sagaTask.doneWhen !== void 0) {
-    metadata.doneWhen = sagaTask.doneWhen;
-  }
-  return {
-    id: sagaTask.id,
-    subject: sagaTask.subject,
-    description: sagaTask.description,
-    ...sagaTask.activeForm !== void 0 && { activeForm: sagaTask.activeForm },
-    status: sagaTask.status,
-    blockedBy: sagaTask.blockedBy,
-    blocks: [],
-    ...Object.keys(metadata).length > 0 && { metadata }
-  };
-}
-
-// ../saga-types/src/directory.ts
-import { join } from "node:path";
-function normalizeRoot(projectRoot) {
-  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
-}
-function createSagaPaths(projectRoot) {
-  const root = normalizeRoot(projectRoot);
-  const saga = `${root}/.saga`;
-  return {
-    root,
-    saga,
-    epics: `${saga}/epics`,
-    stories: `${saga}/stories`,
-    worktrees: `${saga}/worktrees`,
-    archive: `${saga}/archive`
-  };
-}
-function createStoryPaths(projectRoot, storyId) {
-  const { stories } = createSagaPaths(projectRoot);
-  const storyDir = `${stories}/${storyId}`;
-  return {
-    storyId,
-    storyDir,
-    storyJson: `${storyDir}/story.json`,
-    journalMd: `${storyDir}/journal.md`
-  };
-}
-function createWorktreePaths(projectRoot, storyId) {
-  const { worktrees } = createSagaPaths(projectRoot);
-  return {
-    storyId,
-    worktreeDir: `${worktrees}/${storyId}`
-  };
-}
-function createTaskPath(projectRoot, storyId, taskId) {
-  const { storyDir } = createStoryPaths(projectRoot, storyId);
-  return join(storyDir, `${taskId}.json`);
-}
-
-// ../saga-types/src/epic.ts
+// src/schemas/epic.ts
 var EpicChildSchema = external_exports.object({
   id: external_exports.string(),
   blockedBy: external_exports.array(external_exports.string())
@@ -4226,7 +4205,7 @@ var EpicSchema = external_exports.object({
   children: external_exports.array(EpicChildSchema)
 }).strict();
 
-// ../saga-types/src/session.ts
+// src/schemas/session.ts
 var SessionStatusSchema = external_exports.enum(["running", "completed"]);
 var SessionSchema = external_exports.object({
   /** Unique session name (saga__<epic>__<story>__<pid>) */
@@ -4249,7 +4228,7 @@ var SessionSchema = external_exports.object({
   outputPreview: external_exports.string().optional()
 });
 
-// ../saga-types/src/story.ts
+// src/schemas/story.ts
 var StorySchema = external_exports.object({
   id: external_exports.string(),
   title: external_exports.string(),
@@ -4263,7 +4242,28 @@ var StorySchema = external_exports.object({
   worktree: external_exports.string().optional()
 }).strict();
 
-// src/hydrate/conversion.ts
+// src/conversion.ts
+function toClaudeTask(sagaTask) {
+  const metadata = {};
+  if (sagaTask.guidance !== void 0) {
+    metadata.guidance = sagaTask.guidance;
+  }
+  if (sagaTask.doneWhen !== void 0) {
+    metadata.doneWhen = sagaTask.doneWhen;
+  }
+  return {
+    id: sagaTask.id,
+    subject: sagaTask.subject,
+    description: sagaTask.description,
+    ...sagaTask.activeForm !== void 0 && { activeForm: sagaTask.activeForm },
+    status: sagaTask.status,
+    blockedBy: sagaTask.blockedBy,
+    blocks: [],
+    ...Object.keys(metadata).length > 0 && { metadata }
+  };
+}
+
+// src/scripts/hydrate/conversion.ts
 function convertTask(task, allTasks) {
   const blocks = allTasks.filter((other) => other.blockedBy.includes(task.id)).map((other) => other.id);
   const converted = toClaudeTask(task);
@@ -4274,7 +4274,7 @@ function convertTasks(tasks) {
   return tasks.map((task) => convertTask(task, tasks));
 }
 
-// src/hydrate/namespace.ts
+// src/scripts/hydrate/namespace.ts
 import { homedir } from "node:os";
 import { join as join2 } from "node:path";
 function generateTaskListId(storyId, sessionTimestamp) {
@@ -4285,8 +4285,8 @@ function getTaskListDir(taskListId, baseDir) {
   return join2(base, taskListId);
 }
 
-// src/hydrate/service.ts
-function readStory2(storyJsonPath) {
+// src/scripts/hydrate/service.ts
+function readStory(storyJsonPath) {
   if (!existsSync(storyJsonPath)) {
     throw new Error(`story.json not found: ${storyJsonPath}`);
   }
@@ -4342,7 +4342,7 @@ function hydrate(storyId, sessionTimestamp, projectDir, claudeTasksBase) {
   if (!existsSync(storyDir)) {
     throw new Error(`Story directory not found: ${storyDir}`);
   }
-  const story = readStory2(storyJson);
+  const story = readStory(storyJson);
   const tasks = readTasks(storyDir);
   const claudeTasks = convertTasks(tasks);
   const taskListId = generateTaskListId(storyId, sessionTimestamp);
@@ -4355,7 +4355,7 @@ function hydrate(storyId, sessionTimestamp, projectDir, claudeTasksBase) {
   };
 }
 
-// src/worker/hydrate-tasks.ts
+// src/scripts/worker/hydrate-tasks.ts
 function hydrateTasks(storyId, projectDir, claudeTasksBase) {
   const sessionTimestamp = Date.now();
   const result = hydrate(storyId, sessionTimestamp, projectDir, claudeTasksBase);
@@ -4366,7 +4366,7 @@ function hydrateTasks(storyId, projectDir, claudeTasksBase) {
   return result;
 }
 
-// src/worker/mark-pr-ready.ts
+// src/scripts/worker/mark-pr-ready.ts
 import { execFileSync as execFileSync2 } from "node:child_process";
 import process5 from "node:process";
 var EXIT_SUCCESS = 0;
@@ -4399,7 +4399,7 @@ function buildStatusSummary(allCompleted, cycles, elapsedMinutes) {
   };
 }
 
-// src/worker/message-writer.ts
+// src/scripts/worker/message-writer.ts
 import { appendFileSync, mkdirSync as mkdirSync2 } from "node:fs";
 import { dirname } from "node:path";
 function createFileMessageWriter(filePath) {
@@ -4422,7 +4422,7 @@ function createNoopMessageWriter() {
   };
 }
 
-// src/worker/run-headless-loop.ts
+// src/scripts/worker/run-headless-loop.ts
 import { readdirSync as readdirSync3, readFileSync as readFileSync4 } from "node:fs";
 import { join as join4 } from "node:path";
 import process7 from "node:process";
@@ -13245,7 +13245,7 @@ function Qx({ prompt: X, options: Q }) {
   return K7;
 }
 
-// src/scope-validator.ts
+// src/scripts/scope-validator.ts
 import { relative, resolve } from "node:path";
 import process6 from "node:process";
 var EXIT_ALLOWED = 0;
@@ -13425,7 +13425,7 @@ if (isDirectExecution) {
   main();
 }
 
-// src/scope-validator-hook.ts
+// src/scripts/scope-validator-hook.ts
 function createScopeValidatorHook(worktreePath, storyId) {
   return (_input, _toolUseID, _options) => {
     const hookInput = _input;
@@ -13450,7 +13450,7 @@ function createScopeValidatorHook(worktreePath, storyId) {
   };
 }
 
-// src/sync-hook.ts
+// src/scripts/sync-hook.ts
 import { existsSync as existsSync3, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "node:fs";
 function createSyncHook(worktreePath, storyId) {
   return (_input, _toolUseID, _options) => {
@@ -13473,7 +13473,7 @@ function createSyncHook(worktreePath, storyId) {
   };
 }
 
-// src/worker/run-headless-loop.ts
+// src/scripts/worker/run-headless-loop.ts
 var DEFAULT_MAX_CYCLES = 10;
 var DEFAULT_MAX_TIME_MINUTES = 60;
 var DEFAULT_MODEL = "opus";
@@ -13682,7 +13682,7 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
   };
 }
 
-// src/worker/setup-worktree.ts
+// src/scripts/worker/setup-worktree.ts
 import { execFileSync as execFileSync3 } from "node:child_process";
 import { existsSync as existsSync4, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
 import { dirname as dirname2 } from "node:path";
@@ -13750,7 +13750,7 @@ function setupWorktree(storyId, projectDir) {
   return { worktreePath: worktreeDir, branch, alreadyExisted: false };
 }
 
-// src/worker.ts
+// src/scripts/worker.ts
 function printUsage() {
   const usage = `
 Usage: worker <story-id> [options]

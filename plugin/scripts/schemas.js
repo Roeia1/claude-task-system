@@ -5,39 +5,8 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// src/scripts/hydrate.ts
-import process2 from "node:process";
-
-// src/scripts/hydrate/service.ts
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join as join2 } from "node:path";
-
-// src/directory.ts
-function normalizeRoot(projectRoot) {
-  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
-}
-function createSagaPaths(projectRoot) {
-  const root = normalizeRoot(projectRoot);
-  const saga = `${root}/.saga`;
-  return {
-    root,
-    saga,
-    epics: `${saga}/epics`,
-    stories: `${saga}/stories`,
-    worktrees: `${saga}/worktrees`,
-    archive: `${saga}/archive`
-  };
-}
-function createStoryPaths(projectRoot, storyId) {
-  const { stories } = createSagaPaths(projectRoot);
-  const storyDir = `${stories}/${storyId}`;
-  return {
-    storyId,
-    storyDir,
-    storyJson: `${storyDir}/story.json`,
-    journalMd: `${storyDir}/journal.md`
-  };
-}
+// src/scripts/schemas.ts
+import process from "node:process";
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4080,33 +4049,6 @@ var coerce = {
 };
 var NEVER = INVALID;
 
-// src/schemas/task.ts
-var TaskStatusSchema = external_exports.enum(["pending", "in_progress", "completed"]);
-var TaskSchema = external_exports.object({
-  id: external_exports.string(),
-  subject: external_exports.string(),
-  description: external_exports.string(),
-  activeForm: external_exports.string().optional(),
-  status: TaskStatusSchema,
-  blockedBy: external_exports.array(external_exports.string()),
-  guidance: external_exports.string().optional(),
-  doneWhen: external_exports.string().optional()
-});
-var StoryIdSchema = external_exports.string().regex(/^[a-z0-9-]+$/);
-
-// src/schemas/claude-code-task.ts
-var ClaudeCodeTaskSchema = external_exports.object({
-  id: external_exports.string(),
-  subject: external_exports.string(),
-  description: external_exports.string(),
-  activeForm: external_exports.string().optional(),
-  status: TaskStatusSchema,
-  owner: external_exports.string().optional(),
-  blocks: external_exports.array(external_exports.string()),
-  blockedBy: external_exports.array(external_exports.string()),
-  metadata: external_exports.record(external_exports.string(), external_exports.unknown()).optional()
-});
-
 // src/schemas/epic.ts
 var EpicChildSchema = external_exports.object({
   id: external_exports.string(),
@@ -4118,29 +4060,6 @@ var EpicSchema = external_exports.object({
   description: external_exports.string(),
   children: external_exports.array(EpicChildSchema)
 }).strict();
-
-// src/schemas/session.ts
-var SessionStatusSchema = external_exports.enum(["running", "completed"]);
-var SessionSchema = external_exports.object({
-  /** Unique session name (saga__<epic>__<story>__<pid>) */
-  name: external_exports.string(),
-  /** Epic slug extracted from session name */
-  epicSlug: external_exports.string(),
-  /** Story slug extracted from session name */
-  storySlug: external_exports.string(),
-  /** Current session status */
-  status: SessionStatusSchema,
-  /** Path to the output file */
-  outputFile: external_exports.string(),
-  /** Whether the output file exists and is readable */
-  outputAvailable: external_exports.boolean(),
-  /** Session start time (ISO 8601 string) */
-  startTime: external_exports.string(),
-  /** Session end time (ISO 8601 string), only present for completed sessions */
-  endTime: external_exports.string().optional(),
-  /** Preview of the last lines of output */
-  outputPreview: external_exports.string().optional()
-});
 
 // src/schemas/story.ts
 var StorySchema = external_exports.object({
@@ -4156,220 +4075,443 @@ var StorySchema = external_exports.object({
   worktree: external_exports.string().optional()
 }).strict();
 
-// src/conversion.ts
-function toClaudeTask(sagaTask) {
-  const metadata = {};
-  if (sagaTask.guidance !== void 0) {
-    metadata.guidance = sagaTask.guidance;
-  }
-  if (sagaTask.doneWhen !== void 0) {
-    metadata.doneWhen = sagaTask.doneWhen;
-  }
-  return {
-    id: sagaTask.id,
-    subject: sagaTask.subject,
-    description: sagaTask.description,
-    ...sagaTask.activeForm !== void 0 && { activeForm: sagaTask.activeForm },
-    status: sagaTask.status,
-    blockedBy: sagaTask.blockedBy,
-    blocks: [],
-    ...Object.keys(metadata).length > 0 && { metadata }
-  };
-}
+// src/schemas/task.ts
+var TaskStatusSchema = external_exports.enum(["pending", "in_progress", "completed"]);
+var TaskSchema = external_exports.object({
+  id: external_exports.string(),
+  subject: external_exports.string(),
+  description: external_exports.string(),
+  activeForm: external_exports.string().optional(),
+  status: TaskStatusSchema,
+  blockedBy: external_exports.array(external_exports.string()),
+  guidance: external_exports.string().optional(),
+  doneWhen: external_exports.string().optional()
+});
+var StoryIdSchema = external_exports.string().regex(/^[a-z0-9-]+$/);
 
-// src/scripts/hydrate/conversion.ts
-function convertTask(task, allTasks) {
-  const blocks = allTasks.filter((other) => other.blockedBy.includes(task.id)).map((other) => other.id);
-  const converted = toClaudeTask(task);
-  converted.blocks = blocks;
-  return converted;
-}
-function convertTasks(tasks) {
-  return tasks.map((task) => convertTask(task, tasks));
-}
-
-// src/scripts/hydrate/namespace.ts
-import { homedir } from "node:os";
-import { join } from "node:path";
-function generateTaskListId(storyId, sessionTimestamp) {
-  return `saga__${storyId}__${sessionTimestamp}`;
-}
-function getTaskListDir(taskListId, baseDir) {
-  const base = baseDir ?? join(homedir(), ".claude", "tasks");
-  return join(base, taskListId);
-}
-
-// src/scripts/hydrate/service.ts
-function readStory(storyJsonPath) {
-  if (!existsSync(storyJsonPath)) {
-    throw new Error(`story.json not found: ${storyJsonPath}`);
+// src/scripts/schemas.ts
+var SCHEMAS = {
+  epic: {
+    schema: EpicSchema,
+    description: "Epic structure stored at `.saga/epics/<id>.json`. Status is derived at read time.",
+    nested: {
+      "children[]": {
+        schema: EpicChildSchema,
+        description: "A child story reference within an epic."
+      }
+    }
+  },
+  story: {
+    schema: StorySchema,
+    description: "Story metadata stored at `.saga/stories/<id>/story.json`. Status is derived from task statuses."
+  },
+  task: {
+    schema: TaskSchema,
+    description: "Task stored at `.saga/stories/<storyId>/<id>.json`."
   }
-  try {
-    const raw = readFileSync(storyJsonPath, "utf-8");
-    return StorySchema.parse(JSON.parse(raw));
-  } catch (error) {
-    throw new Error(
-      `Failed to parse story.json: ${error instanceof Error ? error.message : String(error)}`
-    );
+};
+function describeZodType(zodType) {
+  const def = zodType._def;
+  const typeName = def.typeName ?? "";
+  if (typeName === "ZodOptional") {
+    const inner = describeZodType(def.innerType);
+    return { ...inner, required: false };
   }
+  if (typeName === "ZodDefault") {
+    const inner = describeZodType(def.innerType);
+    return { ...inner, required: false };
+  }
+  if (typeName === "ZodString") {
+    return { type: "string", required: true };
+  }
+  if (typeName === "ZodNumber") {
+    return { type: "number", required: true };
+  }
+  if (typeName === "ZodBoolean") {
+    return { type: "boolean", required: true };
+  }
+  if (typeName === "ZodEnum") {
+    const values = def.values.map((v) => `"${v}"`).join(" | ");
+    return { type: `enum(${values})`, required: true };
+  }
+  if (typeName === "ZodArray") {
+    const inner = describeZodType(def.type);
+    return { type: `${inner.type}[]`, required: true };
+  }
+  if (typeName === "ZodObject") {
+    return { type: "object", required: true };
+  }
+  if (typeName === "ZodRecord") {
+    return { type: "Record<string, unknown>", required: true };
+  }
+  return { type: "unknown", required: true };
 }
-function readTasks(storyDir) {
-  const files = readdirSync(storyDir).filter((f) => f.endsWith(".json") && f !== "story.json");
-  const tasks = [];
-  for (const file of files) {
-    const filePath = join2(storyDir, file);
-    try {
-      const raw = readFileSync(filePath, "utf-8");
-      tasks.push(TaskSchema.parse(JSON.parse(raw)));
-    } catch (error) {
-      throw new Error(
-        `Failed to parse task file ${file}: ${error instanceof Error ? error.message : String(error)}`
-      );
+var FIELD_DESCRIPTIONS = {
+  // Epic fields
+  "epic.id": "Unique identifier (kebab-case, lowercase, 3-5 words). Must be globally unique across all epics.",
+  "epic.title": "Short human-readable title summarizing the epic (5-10 words).",
+  "epic.description": "Rich markdown capturing the full scope, motivation, technical approach, success criteria, and key decisions. A developer reading only this field should understand the entire initiative.",
+  "epic.children": "Ordered list of child story references with dependency declarations.",
+  // Epic child fields
+  "children[].id": "The story ID this child references. Must match a story ID exactly.",
+  "children[].blockedBy": "Array of sibling story IDs that must complete before this story can start. Use for true data/API dependencies, not just preferred ordering.",
+  // Story fields
+  "story.id": "Unique identifier (kebab-case, lowercase, 3-5 words). Must be globally unique across all stories.",
+  "story.title": "Short human-readable title summarizing the story (5-10 words).",
+  "story.description": "Rich markdown capturing scope, approach, acceptance criteria, technical details, edge cases, and decisions. A developer reading only this field should fully understand what to build.",
+  "story.epic": "Parent epic ID. Set when the story belongs to an epic, omit for standalone stories.",
+  "story.guidance": "Implementation hints, suggested approach, libraries to use, or patterns to follow. Helps the executor make good choices without being overly prescriptive.",
+  "story.doneWhen": "Concrete acceptance criteria. What must be true for this story to be considered complete.",
+  "story.avoid": "Anti-patterns, constraints, or things explicitly out of scope. Prevents the executor from going down wrong paths.",
+  "story.branch": "Git branch name (auto-set by create-story.js, do not set manually).",
+  "story.pr": "Pull request URL (auto-set by create-story.js, do not set manually).",
+  "story.worktree": "Worktree path (auto-set by create-story.js, do not set manually).",
+  // Task fields
+  "task.id": "Kebab-case slug describing the task (e.g. `write-auth-tests`, `implement-login`). Unique within the story.",
+  "task.subject": 'Brief imperative title for the task (e.g. "Write auth middleware tests"). 5-10 words.',
+  "task.description": "Detailed markdown with context, guidance, references, pitfalls, and done-when criteria. Should be self-contained \u2014 the executor reads this to know exactly what to do.",
+  "task.activeForm": 'Present-continuous label shown in the UI spinner during execution (e.g. "Writing auth middleware tests"). Must grammatically work as "Currently: <activeForm>".',
+  "task.status": "Current status. Always set to `pending` when generating new tasks.",
+  "task.blockedBy": "Array of task IDs (within the same story) that must complete before this task can start. Use `[]` for unblocked tasks.",
+  "task.guidance": "Implementation hints specific to this task. Supplements the description with tactical advice.",
+  "task.doneWhen": "Concrete acceptance criteria for this task. What must be true for it to be marked complete."
+};
+function getFieldDescription(schemaName, fieldName) {
+  return FIELD_DESCRIPTIONS[`${schemaName}.${fieldName}`] ?? "";
+}
+function generateFieldTable(schemaName, schema) {
+  const shape = schema.shape;
+  const lines = [
+    "| Field | Type | Required | Description |",
+    "|-------|------|----------|-------------|"
+  ];
+  for (const [name, zodType] of Object.entries(shape)) {
+    const { type, required } = describeZodType(zodType);
+    const desc = getFieldDescription(schemaName, name);
+    lines.push(`| \`${name}\` | ${type} | ${required ? "yes" : "no"} | ${desc} |`);
+  }
+  return lines.join("\n");
+}
+var EPIC_EXAMPLE = {
+  id: "user-authentication",
+  title: "User Authentication System",
+  description: [
+    "## Overview",
+    "Implement a complete authentication system with login, registration, password reset, and session management.",
+    "",
+    "## Motivation",
+    "The app currently has no auth \u2014 all endpoints are public. We need user accounts to support personalized features and data isolation.",
+    "",
+    "## Technical Approach",
+    "- Use **bcrypt** for password hashing",
+    "- JWT tokens stored in httpOnly cookies",
+    "- Middleware-based auth checks on protected routes",
+    "- PostgreSQL `users` table with email uniqueness constraint",
+    "",
+    "## Success Criteria",
+    "- Users can register, log in, and log out",
+    "- Protected routes reject unauthenticated requests with 401",
+    "- Passwords are never stored in plain text",
+    "- Sessions expire after 24 hours of inactivity"
+  ].join("\n"),
+  children: [
+    { id: "auth-data-model", blockedBy: [] },
+    { id: "auth-login-register", blockedBy: ["auth-data-model"] },
+    { id: "auth-session-management", blockedBy: ["auth-login-register"] }
+  ]
+};
+var STORY_EXAMPLE = {
+  id: "auth-login-register",
+  title: "Login and Registration Endpoints",
+  description: [
+    "## Scope",
+    "Build the core authentication endpoints: `POST /api/register` and `POST /api/login`.",
+    "",
+    "## Technical Details",
+    "- **Registration**: Validate email format, check uniqueness, hash password with bcrypt (12 rounds), insert into `users` table, return JWT",
+    "- **Login**: Look up user by email, compare password hash, return JWT on success, 401 on failure",
+    "- JWT payload: `{ sub: userId, email, iat, exp }`",
+    "- Token expiry: 24 hours",
+    "",
+    "## Acceptance Criteria",
+    "- `POST /api/register` creates a user and returns a token",
+    "- `POST /api/register` with duplicate email returns 409",
+    "- `POST /api/login` with valid credentials returns a token",
+    "- `POST /api/login` with invalid credentials returns 401",
+    "- All passwords are hashed before storage",
+    "",
+    "## Edge Cases",
+    "- Email normalization (trim, lowercase)",
+    "- Concurrent registration with same email (unique constraint handles it)",
+    "- Empty or missing fields return 400 with descriptive errors"
+  ].join("\n"),
+  epic: "user-authentication",
+  guidance: "Use the existing Express router pattern in `src/routes/`. Add a new `src/routes/auth.ts` file. Use the `jsonwebtoken` library already in package.json.",
+  doneWhen: "Both endpoints work correctly, all tests pass, and passwords are hashed with bcrypt.",
+  avoid: "Do not implement OAuth or social login \u2014 that is a separate story. Do not add rate limiting yet."
+};
+var TASK_EXAMPLE = {
+  id: "write-auth-tests",
+  subject: "Write auth endpoint tests",
+  description: [
+    "Create test file `src/routes/__tests__/auth.test.ts` covering:",
+    "",
+    "**Registration tests:**",
+    "- Valid registration returns 201 + JWT token",
+    "- Duplicate email returns 409",
+    "- Missing email returns 400",
+    "- Missing password returns 400",
+    "- Invalid email format returns 400",
+    "",
+    "**Login tests:**",
+    "- Valid login returns 200 + JWT token",
+    "- Wrong password returns 401",
+    "- Non-existent email returns 401",
+    "- Missing fields return 400",
+    "",
+    "Use `supertest` for HTTP assertions. Set up a test database with `beforeAll`/`afterAll` hooks."
+  ].join("\n"),
+  activeForm: "Writing auth endpoint tests",
+  status: "pending",
+  blockedBy: [],
+  guidance: "Follow the test patterns in `src/routes/__tests__/health.test.ts`.",
+  doneWhen: 'All test cases are written and fail with "not implemented" errors (TDD red phase).'
+};
+var EXAMPLES = {
+  epic: EPIC_EXAMPLE,
+  story: STORY_EXAMPLE,
+  task: TASK_EXAMPLE
+};
+function generateExample(schemaName) {
+  return JSON.stringify(EXAMPLES[schemaName] ?? {}, null, 2);
+}
+var WRITING_GUIDES = {
+  epic: [
+    "## Writing Guide",
+    "",
+    "- The `description` should be **extensive markdown** \u2014 multiple sections with headers, bullet lists, and code references",
+    "- Think of it as a mini design doc: motivation, approach, success criteria, and scope boundaries",
+    "- `children` order matters \u2014 it defines the default execution sequence",
+    "- Only use `blockedBy` for true dependencies (story B needs an API that story A creates), not just preferred ordering",
+    "- Epic IDs should be descriptive and concise: `user-authentication`, `payment-integration`, `dashboard-redesign`"
+  ].join("\n"),
+  story: [
+    "## Writing Guide",
+    "",
+    "- The `description` should be **extensive markdown** \u2014 use headers (`##`), bullet lists, code blocks, and bold for emphasis",
+    "- Structure the description with sections like: Scope, Technical Details, Acceptance Criteria, Edge Cases",
+    "- A developer reading only the description should fully understand what to build without asking questions",
+    "- `guidance` is tactical advice for the executor: which files to look at, which patterns to follow, which libraries to use",
+    '- `doneWhen` should be concrete and verifiable, not vague ("works correctly")',
+    "- `avoid` prevents the executor from over-scoping or making wrong assumptions",
+    "- Do NOT set `branch`, `pr`, or `worktree` \u2014 these are auto-populated by `create-story.js`"
+  ].join("\n"),
+  task: [
+    "## Writing Guide",
+    "",
+    "- Task IDs are kebab-case slugs describing the task: `write-auth-tests`, `implement-login`, `add-validation`",
+    "- Always set `status` to `pending` when generating tasks",
+    '- `subject` is imperative mood: "Write tests", "Implement endpoint", "Add validation"',
+    '- `activeForm` is present-continuous: "Writing tests", "Implementing endpoint", "Adding validation"',
+    "- `description` should be self-contained \u2014 include what files to create/modify, what the expected behavior is, and how to verify",
+    '- Use `blockedBy` to reference other task IDs within the same story (e.g. `["write-auth-tests"]`). Use `[]` for unblocked tasks',
+    "- Typical task patterns: write tests (TDD) -> implement -> integrate -> document"
+  ].join("\n")
+};
+function generateMarkdown(name, entry) {
+  const lines = [];
+  lines.push(`# ${name.charAt(0).toUpperCase() + name.slice(1)} Schema`);
+  lines.push("");
+  lines.push(entry.description);
+  lines.push("");
+  lines.push("## Fields");
+  lines.push("");
+  lines.push(generateFieldTable(name, entry.schema));
+  if (name === "task") {
+    lines.push("");
+    lines.push(`**Status values:** ${TaskStatusSchema.options.map((v) => `\`${v}\``).join(", ")}`);
+  }
+  if (entry.nested) {
+    for (const [nestedName, nestedEntry] of Object.entries(entry.nested)) {
+      lines.push("");
+      lines.push(`### ${nestedName}`);
+      lines.push("");
+      lines.push(nestedEntry.description);
+      lines.push("");
+      lines.push(generateFieldTable(nestedName, nestedEntry.schema));
     }
   }
-  return tasks;
-}
-function writeTasks(claudeTasks, taskListDir) {
-  try {
-    mkdirSync(taskListDir, { recursive: true });
-  } catch (error) {
-    throw new Error(
-      `Failed to create task list directory ${taskListDir}: ${error instanceof Error ? error.message : String(error)}`
-    );
+  lines.push("");
+  lines.push("## Example");
+  lines.push("");
+  lines.push("```json");
+  lines.push(generateExample(name));
+  lines.push("```");
+  const guide = WRITING_GUIDES[name];
+  if (guide) {
+    lines.push("");
+    lines.push(guide);
   }
-  for (const claudeTask of claudeTasks) {
-    const taskPath = join2(taskListDir, `${claudeTask.id}.json`);
-    writeFileSync(taskPath, JSON.stringify(claudeTask, null, 2));
-  }
+  return lines.join("\n");
 }
-function extractStoryMeta(story) {
-  return {
-    title: story.title,
-    description: story.description,
-    ...story.guidance !== void 0 && { guidance: story.guidance },
-    ...story.doneWhen !== void 0 && { doneWhen: story.doneWhen },
-    ...story.avoid !== void 0 && { avoid: story.avoid }
-  };
-}
-function hydrate(storyId, sessionTimestamp, projectDir, claudeTasksBase) {
-  const { storyDir, storyJson } = createStoryPaths(projectDir, storyId);
-  if (!existsSync(storyDir)) {
-    throw new Error(`Story directory not found: ${storyDir}`);
-  }
-  const story = readStory(storyJson);
-  const tasks = readTasks(storyDir);
-  const claudeTasks = convertTasks(tasks);
-  const taskListId = generateTaskListId(storyId, sessionTimestamp);
-  const taskListDir = getTaskListDir(taskListId, claudeTasksBase);
-  writeTasks(claudeTasks, taskListDir);
-  return {
-    taskListId,
-    taskCount: claudeTasks.length,
-    storyMeta: extractStoryMeta(story)
-  };
-}
-
-// src/scripts/shared/env.ts
-import process from "node:process";
-function getProjectDir() {
-  const projectDir = process.env.SAGA_PROJECT_DIR;
-  if (!projectDir) {
-    throw new Error(
-      "SAGA_PROJECT_DIR environment variable is not set.\nThis script must be run from a SAGA session where env vars are set."
-    );
-  }
-  return projectDir;
-}
-
-// src/scripts/hydrate.ts
-function printHelp() {
-  console.log(`Usage: hydrate <story-id> [session-timestamp]
-
-Hydrate SAGA tasks into Claude Code format.
-
-Arguments:
-  story-id            The story identifier
-  session-timestamp   Optional session timestamp (default: Date.now())
-
-Options:
-  --help       Show this help message
-
-Environment (required):
-  SAGA_PROJECT_DIR        Project root directory
-  SAGA_CLAUDE_TASKS_BASE  Override base tasks directory (optional, for testing)
-
-Output (JSON):
-  { "success": true, "taskListId": "saga__...", "taskCount": N, "storyMeta": {...} }
-  { "success": false, "error": "..." }
-
-Examples:
-  hydrate my-story
-  hydrate my-story 1700000000000
-`);
-}
-function parseArgs(args) {
-  const result = {
-    help: false
-  };
-  const positional = [];
-  for (const arg of args) {
-    if (arg === "--help" || arg === "-h") {
-      result.help = true;
-    } else if (!arg.startsWith("-")) {
-      positional.push(arg);
+var INPUT_FORMAT_SKELETON = {
+  story: {
+    id: "<story-id>",
+    title: "<title>",
+    description: "<rich markdown>",
+    epic: "<epic-id or omit>",
+    guidance: "<optional>",
+    doneWhen: "<optional>",
+    avoid: "<optional>"
+  },
+  tasks: [
+    {
+      id: "<kebab-case-slug>",
+      subject: "<imperative title>",
+      description: "<detailed markdown>",
+      activeForm: "<present-continuous>",
+      status: "pending",
+      blockedBy: []
     }
-  }
-  if (positional.length > 0) {
-    result.storyId = positional[0];
-  }
-  if (positional.length >= 2) {
-    const ts = Number(positional[1]);
-    if (!Number.isNaN(ts)) {
-      result.sessionTimestamp = ts;
-    }
-  }
-  return result;
+  ]
+};
+function generateInputFormatSection() {
+  const lines = [];
+  lines.push("## Input Format");
+  lines.push("");
+  lines.push("The input JSON has two top-level fields:");
+  lines.push("");
+  lines.push("```json");
+  lines.push(JSON.stringify(INPUT_FORMAT_SKELETON, null, 2));
+  lines.push("```");
+  lines.push("");
+  lines.push("Do NOT include `branch`, `pr`, or `worktree` in the story \u2014 these are auto-set.");
+  return lines.join("\n");
 }
+var FULL_INPUT_EXAMPLE = {
+  story: STORY_EXAMPLE,
+  tasks: [
+    {
+      id: "write-auth-tests",
+      subject: "Write auth endpoint tests",
+      description: [
+        "Create test file `src/routes/__tests__/auth.test.ts` covering:",
+        "",
+        "**Registration tests:**",
+        "- Valid registration returns 201 + JWT token",
+        "- Duplicate email returns 409",
+        "- Missing email/password returns 400",
+        "",
+        "**Login tests:**",
+        "- Valid login returns 200 + JWT token",
+        "- Wrong password returns 401",
+        "- Non-existent email returns 401",
+        "",
+        "Use `supertest` for HTTP assertions."
+      ].join("\n"),
+      activeForm: "Writing auth endpoint tests",
+      status: "pending",
+      blockedBy: [],
+      guidance: "Follow the test patterns in `src/routes/__tests__/health.test.ts`.",
+      doneWhen: 'All test cases written and fail with "not implemented" errors (TDD red phase).'
+    },
+    {
+      id: "implement-registration",
+      subject: "Implement registration endpoint",
+      description: [
+        "Create `POST /api/register` in `src/routes/auth.ts`:",
+        "",
+        "1. Validate request body (email, password)",
+        "2. Check email uniqueness in database",
+        "3. Hash password with bcrypt (12 rounds)",
+        "4. Insert user record",
+        "5. Generate and return JWT token"
+      ].join("\n"),
+      activeForm: "Implementing registration endpoint",
+      status: "pending",
+      blockedBy: ["write-auth-tests"],
+      doneWhen: "Registration tests pass."
+    },
+    {
+      id: "implement-login",
+      subject: "Implement login endpoint",
+      description: [
+        "Create `POST /api/login` in `src/routes/auth.ts`:",
+        "",
+        "1. Look up user by email",
+        "2. Compare password with bcrypt",
+        "3. Return JWT on success, 401 on failure"
+      ].join("\n"),
+      activeForm: "Implementing login endpoint",
+      status: "pending",
+      blockedBy: ["write-auth-tests"],
+      doneWhen: "Login tests pass."
+    }
+  ]
+};
+function generateFullInputExample() {
+  const lines = [];
+  lines.push("# Full Example \u2014 create-story-input JSON");
+  lines.push("");
+  lines.push(
+    "A complete, realistic example of the JSON you would write to `story-<id>.json` and pass to `create-story.js --input`:"
+  );
+  lines.push("");
+  lines.push("```json");
+  lines.push(JSON.stringify(FULL_INPUT_EXAMPLE, null, 2));
+  lines.push("```");
+  return lines.join("\n");
+}
+function generateCreateStoryInputDocs() {
+  const sections = [
+    "# create-story-input \u2014 Combined Schema Reference",
+    "",
+    "Complete reference for the JSON input to `create-story.js`. One file per story, containing the story metadata and all its tasks.",
+    "",
+    generateInputFormatSection(),
+    "",
+    "---",
+    "",
+    generateMarkdown("story", SCHEMAS.story),
+    "",
+    "---",
+    "",
+    generateMarkdown("task", SCHEMAS.task),
+    "",
+    "---",
+    "",
+    generateMarkdown("epic", SCHEMAS.epic),
+    "",
+    "---",
+    "",
+    generateFullInputExample()
+  ];
+  return sections.join("\n");
+}
+var AVAILABLE_SCHEMAS = [...Object.keys(SCHEMAS), "create-story-input"];
 function main() {
-  const args = parseArgs(process2.argv.slice(2));
-  if (args.help) {
-    printHelp();
-    process2.exit(0);
+  const args = process.argv.slice(2);
+  if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
+    console.log(`Usage: node schemas.js <${AVAILABLE_SCHEMAS.join("|")}>`);
+    console.log("");
+    console.log("Outputs LLM-readable schema documentation as markdown.");
+    console.log("");
+    console.log("Available schemas:");
+    for (const name of AVAILABLE_SCHEMAS) {
+      console.log(`  ${name}`);
+    }
+    process.exit(0);
   }
-  if (!args.storyId) {
-    console.error("Error: story-id is required.\n");
-    printHelp();
-    process2.exit(1);
+  const schemaName = args[0].toLowerCase();
+  if (schemaName === "create-story-input") {
+    console.log(generateCreateStoryInputDocs());
+    return;
   }
-  let projectDir;
-  try {
-    projectDir = getProjectDir();
-  } catch (error) {
-    const result = {
-      success: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-    console.log(JSON.stringify(result, null, 2));
-    process2.exit(1);
+  const entry = SCHEMAS[schemaName];
+  if (!entry) {
+    console.error(`Unknown schema: "${schemaName}". Available: ${AVAILABLE_SCHEMAS.join(", ")}`);
+    process.exit(1);
   }
-  const sessionTimestamp = args.sessionTimestamp ?? Date.now();
-  const claudeTasksBase = process2.env.SAGA_CLAUDE_TASKS_BASE || void 0;
-  try {
-    const hydrationResult = hydrate(args.storyId, sessionTimestamp, projectDir, claudeTasksBase);
-    const result = {
-      success: true,
-      taskListId: hydrationResult.taskListId,
-      taskCount: hydrationResult.taskCount,
-      storyMeta: hydrationResult.storyMeta
-    };
-    console.log(JSON.stringify(result, null, 2));
-  } catch (error) {
-    const result = {
-      success: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-    console.log(JSON.stringify(result, null, 2));
-    process2.exit(1);
-  }
+  console.log(generateMarkdown(schemaName, entry));
 }
 main();

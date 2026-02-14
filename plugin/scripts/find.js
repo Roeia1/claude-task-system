@@ -5,9 +5,43 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// src/find/index.ts
+// src/scripts/find/index.ts
 import { existsSync as existsSync2 } from "node:fs";
 import process2 from "node:process";
+
+// src/directory.ts
+function normalizeRoot(projectRoot) {
+  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
+}
+function createSagaPaths(projectRoot) {
+  const root = normalizeRoot(projectRoot);
+  const saga = `${root}/.saga`;
+  return {
+    root,
+    saga,
+    epics: `${saga}/epics`,
+    stories: `${saga}/stories`,
+    worktrees: `${saga}/worktrees`,
+    archive: `${saga}/archive`
+  };
+}
+function createStoryPaths(projectRoot, storyId) {
+  const { stories } = createSagaPaths(projectRoot);
+  const storyDir = `${stories}/${storyId}`;
+  return {
+    storyId,
+    storyDir,
+    storyJson: `${storyDir}/story.json`,
+    journalMd: `${storyDir}/journal.md`
+  };
+}
+function createWorktreePaths(projectRoot, storyId) {
+  const { worktrees } = createSagaPaths(projectRoot);
+  return {
+    storyId,
+    worktreeDir: `${worktrees}/${storyId}`
+  };
+}
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4050,7 +4084,7 @@ var coerce = {
 };
 var NEVER = INVALID;
 
-// ../saga-types/src/task.ts
+// src/schemas/task.ts
 var TaskStatusSchema = external_exports.enum(["pending", "in_progress", "completed"]);
 var TaskSchema = external_exports.object({
   id: external_exports.string(),
@@ -4064,7 +4098,7 @@ var TaskSchema = external_exports.object({
 });
 var StoryIdSchema = external_exports.string().regex(/^[a-z0-9-]+$/);
 
-// ../saga-types/src/claude-code-task.ts
+// src/schemas/claude-code-task.ts
 var ClaudeCodeTaskSchema = external_exports.object({
   id: external_exports.string(),
   subject: external_exports.string(),
@@ -4077,41 +4111,7 @@ var ClaudeCodeTaskSchema = external_exports.object({
   metadata: external_exports.record(external_exports.string(), external_exports.unknown()).optional()
 });
 
-// ../saga-types/src/directory.ts
-function normalizeRoot(projectRoot) {
-  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
-}
-function createSagaPaths(projectRoot) {
-  const root = normalizeRoot(projectRoot);
-  const saga = `${root}/.saga`;
-  return {
-    root,
-    saga,
-    epics: `${saga}/epics`,
-    stories: `${saga}/stories`,
-    worktrees: `${saga}/worktrees`,
-    archive: `${saga}/archive`
-  };
-}
-function createStoryPaths(projectRoot, storyId) {
-  const { stories } = createSagaPaths(projectRoot);
-  const storyDir = `${stories}/${storyId}`;
-  return {
-    storyId,
-    storyDir,
-    storyJson: `${storyDir}/story.json`,
-    journalMd: `${storyDir}/journal.md`
-  };
-}
-function createWorktreePaths(projectRoot, storyId) {
-  const { worktrees } = createSagaPaths(projectRoot);
-  return {
-    storyId,
-    worktreeDir: `${worktrees}/${storyId}`
-  };
-}
-
-// ../saga-types/src/epic.ts
+// src/schemas/epic.ts
 var EpicChildSchema = external_exports.object({
   id: external_exports.string(),
   blockedBy: external_exports.array(external_exports.string())
@@ -4123,7 +4123,7 @@ var EpicSchema = external_exports.object({
   children: external_exports.array(EpicChildSchema)
 }).strict();
 
-// ../saga-types/src/session.ts
+// src/schemas/session.ts
 var SessionStatusSchema = external_exports.enum(["running", "completed"]);
 var SessionSchema = external_exports.object({
   /** Unique session name (saga__<epic>__<story>__<pid>) */
@@ -4146,7 +4146,7 @@ var SessionSchema = external_exports.object({
   outputPreview: external_exports.string().optional()
 });
 
-// ../saga-types/src/story.ts
+// src/schemas/story.ts
 var StorySchema = external_exports.object({
   id: external_exports.string(),
   title: external_exports.string(),
@@ -4160,7 +4160,7 @@ var StorySchema = external_exports.object({
   worktree: external_exports.string().optional()
 }).strict();
 
-// src/shared/env.ts
+// src/scripts/shared/env.ts
 import process from "node:process";
 function getProjectDir() {
   const projectDir = process.env.SAGA_PROJECT_DIR;
@@ -4172,7 +4172,7 @@ function getProjectDir() {
   return projectDir;
 }
 
-// src/find/finder.ts
+// src/scripts/find/finder.ts
 import { readdirSync } from "node:fs";
 
 // ../../node_modules/.pnpm/fuse.js@7.1.0/node_modules/fuse.js/dist/fuse.mjs
@@ -5494,7 +5494,7 @@ Fuse.config = Config;
   register(ExtendedSearch);
 }
 
-// src/find/saga-scanner.ts
+// src/scripts/find/saga-scanner.ts
 import { existsSync } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 async function isDirectory(path) {
@@ -5513,7 +5513,7 @@ async function fileExists(path) {
     return false;
   }
 }
-function deriveStoryStatus2(tasks) {
+function deriveStoryStatus(tasks) {
   if (tasks.length === 0) {
     return "pending";
   }
@@ -5560,7 +5560,7 @@ async function scanStories(sagaRoot) {
       const content = await readFile(storyPaths.storyJson, "utf-8");
       const storyData = JSON.parse(content);
       const tasks = await readTaskFiles(storyPaths.storyDir);
-      const status = deriveStoryStatus2(tasks);
+      const status = deriveStoryStatus(tasks);
       const worktreePaths = createWorktreePaths(sagaRoot, storyId);
       const hasWorktree = await isDirectory(worktreePaths.worktreeDir);
       const hasJournal = await fileExists(storyPaths.journalMd);
@@ -5595,7 +5595,7 @@ function epicsDirectoryExists(projectPath) {
   return existsSync(sagaPaths.epics);
 }
 
-// src/find/finder.ts
+// src/scripts/find/finder.ts
 var JSON_EXT_PATTERN = /\.json$/;
 var FUZZY_THRESHOLD = 0.3;
 var MATCH_THRESHOLD = 0.6;
@@ -5731,7 +5731,7 @@ async function findStory(projectPath, query, options = {}) {
   return fuzzySearchStories(allStories, query);
 }
 
-// src/find/index.ts
+// src/scripts/find/index.ts
 function getProjectDir2() {
   const projectDir = getProjectDir();
   const sagaPaths = createSagaPaths(projectDir);

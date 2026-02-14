@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// src/sessions-kill.ts
+// src/scripts/sessions-kill.ts
 import { spawnSync } from "node:child_process";
 import process from "node:process";
 function killSession(sessionName) {

@@ -5,39 +5,9 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// src/scripts/hydrate.ts
+// src/scripts/create-story.ts
+import { readFileSync as readFileSync2 } from "node:fs";
 import process2 from "node:process";
-
-// src/scripts/hydrate/service.ts
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join as join2 } from "node:path";
-
-// src/directory.ts
-function normalizeRoot(projectRoot) {
-  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
-}
-function createSagaPaths(projectRoot) {
-  const root = normalizeRoot(projectRoot);
-  const saga = `${root}/.saga`;
-  return {
-    root,
-    saga,
-    epics: `${saga}/epics`,
-    stories: `${saga}/stories`,
-    worktrees: `${saga}/worktrees`,
-    archive: `${saga}/archive`
-  };
-}
-function createStoryPaths(projectRoot, storyId) {
-  const { stories } = createSagaPaths(projectRoot);
-  const storyDir = `${stories}/${storyId}`;
-  return {
-    storyId,
-    storyDir,
-    storyJson: `${storyDir}/story.json`,
-    journalMd: `${storyDir}/journal.md`
-  };
-}
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4080,68 +4050,6 @@ var coerce = {
 };
 var NEVER = INVALID;
 
-// src/schemas/task.ts
-var TaskStatusSchema = external_exports.enum(["pending", "in_progress", "completed"]);
-var TaskSchema = external_exports.object({
-  id: external_exports.string(),
-  subject: external_exports.string(),
-  description: external_exports.string(),
-  activeForm: external_exports.string().optional(),
-  status: TaskStatusSchema,
-  blockedBy: external_exports.array(external_exports.string()),
-  guidance: external_exports.string().optional(),
-  doneWhen: external_exports.string().optional()
-});
-var StoryIdSchema = external_exports.string().regex(/^[a-z0-9-]+$/);
-
-// src/schemas/claude-code-task.ts
-var ClaudeCodeTaskSchema = external_exports.object({
-  id: external_exports.string(),
-  subject: external_exports.string(),
-  description: external_exports.string(),
-  activeForm: external_exports.string().optional(),
-  status: TaskStatusSchema,
-  owner: external_exports.string().optional(),
-  blocks: external_exports.array(external_exports.string()),
-  blockedBy: external_exports.array(external_exports.string()),
-  metadata: external_exports.record(external_exports.string(), external_exports.unknown()).optional()
-});
-
-// src/schemas/epic.ts
-var EpicChildSchema = external_exports.object({
-  id: external_exports.string(),
-  blockedBy: external_exports.array(external_exports.string())
-}).strict();
-var EpicSchema = external_exports.object({
-  id: external_exports.string(),
-  title: external_exports.string(),
-  description: external_exports.string(),
-  children: external_exports.array(EpicChildSchema)
-}).strict();
-
-// src/schemas/session.ts
-var SessionStatusSchema = external_exports.enum(["running", "completed"]);
-var SessionSchema = external_exports.object({
-  /** Unique session name (saga__<epic>__<story>__<pid>) */
-  name: external_exports.string(),
-  /** Epic slug extracted from session name */
-  epicSlug: external_exports.string(),
-  /** Story slug extracted from session name */
-  storySlug: external_exports.string(),
-  /** Current session status */
-  status: SessionStatusSchema,
-  /** Path to the output file */
-  outputFile: external_exports.string(),
-  /** Whether the output file exists and is readable */
-  outputAvailable: external_exports.boolean(),
-  /** Session start time (ISO 8601 string) */
-  startTime: external_exports.string(),
-  /** Session end time (ISO 8601 string), only present for completed sessions */
-  endTime: external_exports.string().optional(),
-  /** Preview of the last lines of output */
-  outputPreview: external_exports.string().optional()
-});
-
 // src/schemas/story.ts
 var StorySchema = external_exports.object({
   id: external_exports.string(),
@@ -4156,116 +4064,277 @@ var StorySchema = external_exports.object({
   worktree: external_exports.string().optional()
 }).strict();
 
-// src/conversion.ts
-function toClaudeTask(sagaTask) {
-  const metadata = {};
-  if (sagaTask.guidance !== void 0) {
-    metadata.guidance = sagaTask.guidance;
-  }
-  if (sagaTask.doneWhen !== void 0) {
-    metadata.doneWhen = sagaTask.doneWhen;
-  }
+// src/schemas/task.ts
+var TaskStatusSchema = external_exports.enum(["pending", "in_progress", "completed"]);
+var TaskSchema = external_exports.object({
+  id: external_exports.string(),
+  subject: external_exports.string(),
+  description: external_exports.string(),
+  activeForm: external_exports.string().optional(),
+  status: TaskStatusSchema,
+  blockedBy: external_exports.array(external_exports.string()),
+  guidance: external_exports.string().optional(),
+  doneWhen: external_exports.string().optional()
+});
+var StoryIdSchema = external_exports.string().regex(/^[a-z0-9-]+$/);
+
+// src/scripts/create-story/service.ts
+import { execFileSync } from "node:child_process";
+import { existsSync as existsSync2, mkdirSync as mkdirSync2 } from "node:fs";
+import { dirname } from "node:path";
+
+// src/directory.ts
+function normalizeRoot(projectRoot) {
+  return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
+}
+function createSagaPaths(projectRoot) {
+  const root = normalizeRoot(projectRoot);
+  const saga = `${root}/.saga`;
   return {
-    id: sagaTask.id,
-    subject: sagaTask.subject,
-    description: sagaTask.description,
-    ...sagaTask.activeForm !== void 0 && { activeForm: sagaTask.activeForm },
-    status: sagaTask.status,
-    blockedBy: sagaTask.blockedBy,
-    blocks: [],
-    ...Object.keys(metadata).length > 0 && { metadata }
+    root,
+    saga,
+    epics: `${saga}/epics`,
+    stories: `${saga}/stories`,
+    worktrees: `${saga}/worktrees`,
+    archive: `${saga}/archive`
+  };
+}
+function createStoryPaths(projectRoot, storyId) {
+  const { stories } = createSagaPaths(projectRoot);
+  const storyDir = `${stories}/${storyId}`;
+  return {
+    storyId,
+    storyDir,
+    storyJson: `${storyDir}/story.json`,
+    journalMd: `${storyDir}/journal.md`
+  };
+}
+function createWorktreePaths(projectRoot, storyId) {
+  const { worktrees } = createSagaPaths(projectRoot);
+  return {
+    storyId,
+    worktreeDir: `${worktrees}/${storyId}`
   };
 }
 
-// src/scripts/hydrate/conversion.ts
-function convertTask(task, allTasks) {
-  const blocks = allTasks.filter((other) => other.blockedBy.includes(task.id)).map((other) => other.id);
-  const converted = toClaudeTask(task);
-  converted.blocks = blocks;
-  return converted;
-}
-function convertTasks(tasks) {
-  return tasks.map((task) => convertTask(task, tasks));
-}
-
-// src/scripts/hydrate/namespace.ts
-import { homedir } from "node:os";
+// src/storage.ts
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-function generateTaskListId(storyId, sessionTimestamp) {
-  return `saga__${storyId}__${sessionTimestamp}`;
+
+// src/schemas/epic.ts
+var EpicChildSchema = external_exports.object({
+  id: external_exports.string(),
+  blockedBy: external_exports.array(external_exports.string())
+}).strict();
+var EpicSchema = external_exports.object({
+  id: external_exports.string(),
+  title: external_exports.string(),
+  description: external_exports.string(),
+  children: external_exports.array(EpicChildSchema)
+}).strict();
+
+// src/storage.ts
+function writeStory(projectRoot, story) {
+  const validated = StorySchema.parse(story);
+  const { storyDir, storyJson } = createStoryPaths(projectRoot, validated.id);
+  if (!existsSync(storyDir)) {
+    mkdirSync(storyDir, { recursive: true });
+  }
+  writeFileSync(storyJson, `${JSON.stringify(validated, null, 2)}
+`, "utf-8");
 }
-function getTaskListDir(taskListId, baseDir) {
-  const base = baseDir ?? join(homedir(), ".claude", "tasks");
-  return join(base, taskListId);
+function writeTask(projectRoot, storyId, task) {
+  const validated = TaskSchema.parse(task);
+  const { storyDir } = createStoryPaths(projectRoot, storyId);
+  if (!existsSync(storyDir)) {
+    mkdirSync(storyDir, { recursive: true });
+  }
+  const taskPath = join(storyDir, `${validated.id}.json`);
+  writeFileSync(taskPath, `${JSON.stringify(validated, null, 2)}
+`, "utf-8");
 }
 
-// src/scripts/hydrate/service.ts
-function readStory(storyJsonPath) {
-  if (!existsSync(storyJsonPath)) {
-    throw new Error(`story.json not found: ${storyJsonPath}`);
+// src/scripts/create-story/service.ts
+function runGitCommand(args, cwd) {
+  try {
+    const output = execFileSync("git", args, {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    return { success: true, output: output.trim() };
+  } catch (error) {
+    const execError = error;
+    const stderr = execError.stderr?.toString().trim() || execError.message || String(error);
+    return { success: false, output: stderr };
+  }
+}
+function branchExists(branchName, cwd) {
+  const result = runGitCommand(["rev-parse", "--verify", branchName], cwd);
+  return result.success;
+}
+function getMainBranch(cwd) {
+  const result = runGitCommand(["symbolic-ref", "refs/remotes/origin/HEAD"], cwd);
+  if (result.success) {
+    return result.output.replace("refs/remotes/origin/", "");
+  }
+  return "main";
+}
+function detectPackageManager(worktreePath) {
+  if (existsSync2(`${worktreePath}/pnpm-lock.yaml`)) {
+    return "pnpm";
+  }
+  if (existsSync2(`${worktreePath}/yarn.lock`)) {
+    return "yarn";
+  }
+  if (existsSync2(`${worktreePath}/bun.lockb`) || existsSync2(`${worktreePath}/bun.lock`)) {
+    return "bun";
+  }
+  if (existsSync2(`${worktreePath}/package-lock.json`)) {
+    return "npm";
+  }
+  if (existsSync2(`${worktreePath}/package.json`)) {
+    return "npm";
+  }
+  return null;
+}
+function fail(error) {
+  return { success: false, error };
+}
+function stepCreateWorktree(projectDir, storyId, branchName) {
+  const worktreePaths = createWorktreePaths(projectDir, storyId);
+  if (branchExists(branchName, projectDir)) {
+    return fail(`Branch already exists: ${branchName}`);
+  }
+  if (existsSync2(worktreePaths.worktreeDir)) {
+    return fail(`Worktree directory already exists: ${worktreePaths.worktreeDir}`);
+  }
+  const mainBranch = getMainBranch(projectDir);
+  runGitCommand(["fetch", "origin", mainBranch], projectDir);
+  const createBranch = runGitCommand(["branch", branchName, `origin/${mainBranch}`], projectDir);
+  if (!createBranch.success) {
+    return fail(`Failed to create branch: ${createBranch.output}`);
+  }
+  mkdirSync2(dirname(worktreePaths.worktreeDir), { recursive: true });
+  const createWt = runGitCommand(
+    ["worktree", "add", worktreePaths.worktreeDir, branchName],
+    projectDir
+  );
+  if (!createWt.success) {
+    return fail(`Failed to create worktree: ${createWt.output}`);
+  }
+  return { worktreeDir: worktreePaths.worktreeDir };
+}
+function stepInstallDeps(worktreeDir) {
+  const pm = detectPackageManager(worktreeDir);
+  if (!pm) {
+    return null;
   }
   try {
-    const raw = readFileSync(storyJsonPath, "utf-8");
-    return StorySchema.parse(JSON.parse(raw));
+    execFileSync(pm, ["install"], {
+      cwd: worktreeDir,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    return null;
   } catch (error) {
-    throw new Error(
-      `Failed to parse story.json: ${error instanceof Error ? error.message : String(error)}`
-    );
+    const execError = error;
+    const stderr = execError.stderr?.toString().trim() || execError.message || String(error);
+    return fail(`Failed to install dependencies: ${stderr}`);
   }
 }
-function readTasks(storyDir) {
-  const files = readdirSync(storyDir).filter((f) => f.endsWith(".json") && f !== "story.json");
-  const tasks = [];
-  for (const file of files) {
-    const filePath = join2(storyDir, file);
-    try {
-      const raw = readFileSync(filePath, "utf-8");
-      tasks.push(TaskSchema.parse(JSON.parse(raw)));
-    } catch (error) {
-      throw new Error(
-        `Failed to parse task file ${file}: ${error instanceof Error ? error.message : String(error)}`
-      );
+function stepCommitAndPush(worktreeDir, storyId, branchName) {
+  const storyDir = `.saga/stories/${storyId}/`;
+  runGitCommand(["add", storyDir], worktreeDir);
+  const commitResult = runGitCommand(
+    ["commit", "-m", `docs(${storyId}): add story definition`],
+    worktreeDir
+  );
+  if (!commitResult.success) {
+    return fail(`Failed to commit: ${commitResult.output}`);
+  }
+  const pushResult = runGitCommand(["push", "-u", "origin", branchName], worktreeDir);
+  if (!pushResult.success) {
+    return fail(`Failed to push: ${pushResult.output}`);
+  }
+  return null;
+}
+function stepCreatePr(worktreeDir, storyId, branchName, enrichedStory) {
+  try {
+    const prBody = `## Story: ${enrichedStory.title}
+
+**ID**: \`${storyId}\`
+
+To execute this story, run:
+\`\`\`
+/execute-story ${storyId}
+\`\`\``;
+    const prOutput = execFileSync(
+      "gh",
+      [
+        "pr",
+        "create",
+        "--draft",
+        "--title",
+        `Story: ${storyId}`,
+        "--body",
+        prBody,
+        "--head",
+        branchName
+      ],
+      { cwd: worktreeDir, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }
+    );
+    const prUrl = prOutput.trim();
+    const storyDir = `.saga/stories/${storyId}/`;
+    writeStory(worktreeDir, { ...enrichedStory, pr: prUrl });
+    runGitCommand(["add", storyDir], worktreeDir);
+    runGitCommand(["commit", "--amend", "--no-edit"], worktreeDir);
+    runGitCommand(["push", "--force-with-lease"], worktreeDir);
+    return prUrl;
+  } catch {
+    return null;
+  }
+}
+function createStory(options) {
+  const { projectDir, story, tasks, skipInstall = false, skipPr = false } = options;
+  const storyId = story.id;
+  const branchName = `story/${storyId}`;
+  const sagaPaths = createSagaPaths(projectDir);
+  if (!existsSync2(sagaPaths.saga)) {
+    return fail(`No .saga/ directory found at: ${projectDir}`);
+  }
+  const wtResult = stepCreateWorktree(projectDir, storyId, branchName);
+  if ("success" in wtResult) {
+    return wtResult;
+  }
+  const { worktreeDir } = wtResult;
+  if (!skipInstall) {
+    const installErr = stepInstallDeps(worktreeDir);
+    if (installErr) {
+      return installErr;
     }
   }
-  return tasks;
-}
-function writeTasks(claudeTasks, taskListDir) {
-  try {
-    mkdirSync(taskListDir, { recursive: true });
-  } catch (error) {
-    throw new Error(
-      `Failed to create task list directory ${taskListDir}: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
-  for (const claudeTask of claudeTasks) {
-    const taskPath = join2(taskListDir, `${claudeTask.id}.json`);
-    writeFileSync(taskPath, JSON.stringify(claudeTask, null, 2));
-  }
-}
-function extractStoryMeta(story) {
-  return {
-    title: story.title,
-    description: story.description,
-    ...story.guidance !== void 0 && { guidance: story.guidance },
-    ...story.doneWhen !== void 0 && { doneWhen: story.doneWhen },
-    ...story.avoid !== void 0 && { avoid: story.avoid }
+  const enrichedStory = {
+    ...story,
+    branch: branchName,
+    worktree: `.saga/worktrees/${storyId}/`
   };
-}
-function hydrate(storyId, sessionTimestamp, projectDir, claudeTasksBase) {
-  const { storyDir, storyJson } = createStoryPaths(projectDir, storyId);
-  if (!existsSync(storyDir)) {
-    throw new Error(`Story directory not found: ${storyDir}`);
+  writeStory(worktreeDir, enrichedStory);
+  for (const task of tasks) {
+    writeTask(worktreeDir, storyId, task);
   }
-  const story = readStory(storyJson);
-  const tasks = readTasks(storyDir);
-  const claudeTasks = convertTasks(tasks);
-  const taskListId = generateTaskListId(storyId, sessionTimestamp);
-  const taskListDir = getTaskListDir(taskListId, claudeTasksBase);
-  writeTasks(claudeTasks, taskListDir);
+  const commitErr = stepCommitAndPush(worktreeDir, storyId, branchName);
+  if (commitErr) {
+    return commitErr;
+  }
+  const prUrl = skipPr ? null : stepCreatePr(worktreeDir, storyId, branchName, enrichedStory);
   return {
-    taskListId,
-    taskCount: claudeTasks.length,
-    storyMeta: extractStoryMeta(story)
+    success: true,
+    storyId,
+    storyTitle: enrichedStory.title,
+    branch: branchName,
+    worktreePath: worktreeDir,
+    prUrl
   };
 }
 
@@ -4281,54 +4350,76 @@ function getProjectDir() {
   return projectDir;
 }
 
-// src/scripts/hydrate.ts
+// src/scripts/create-story.ts
 function printHelp() {
-  console.log(`Usage: hydrate <story-id> [session-timestamp]
+  console.log(`Usage: create-story [options]
 
-Hydrate SAGA tasks into Claude Code format.
+Create git infrastructure for a SAGA story.
 
-Arguments:
-  story-id            The story identifier
-  session-timestamp   Optional session timestamp (default: Date.now())
+Input (JSON with "story" and "tasks" fields):
+  --input <path>   Read JSON from a file (recommended)
+  <stdin>          Read JSON from stdin (fallback)
 
 Options:
-  --help       Show this help message
+  --skip-install   Skip dependency installation in worktree
+  --skip-pr        Skip draft PR creation
+  --help           Show this help message
 
 Environment (required):
-  SAGA_PROJECT_DIR        Project root directory
-  SAGA_CLAUDE_TASKS_BASE  Override base tasks directory (optional, for testing)
+  SAGA_PROJECT_DIR   Project root directory
 
 Output (JSON):
-  { "success": true, "taskListId": "saga__...", "taskCount": N, "storyMeta": {...} }
+  { "success": true, "storyId": "...", "storyTitle": "...", "branch": "...", "worktreePath": "...", "prUrl": "..." }
   { "success": false, "error": "..." }
-
-Examples:
-  hydrate my-story
-  hydrate my-story 1700000000000
 `);
 }
 function parseArgs(args) {
   const result = {
-    help: false
+    help: false,
+    skipInstall: false,
+    skipPr: false,
+    input: null
   };
-  const positional = [];
-  for (const arg of args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     if (arg === "--help" || arg === "-h") {
       result.help = true;
-    } else if (!arg.startsWith("-")) {
-      positional.push(arg);
-    }
-  }
-  if (positional.length > 0) {
-    result.storyId = positional[0];
-  }
-  if (positional.length >= 2) {
-    const ts = Number(positional[1]);
-    if (!Number.isNaN(ts)) {
-      result.sessionTimestamp = ts;
+    } else if (arg === "--skip-install") {
+      result.skipInstall = true;
+    } else if (arg === "--skip-pr") {
+      result.skipPr = true;
+    } else if (arg === "--input" && i + 1 < args.length) {
+      result.input = args[++i];
     }
   }
   return result;
+}
+function outputError(error) {
+  console.log(JSON.stringify({ success: false, error }, null, 2));
+}
+function readAndParseInput(inputPath) {
+  let rawInput;
+  try {
+    rawInput = inputPath ? readFileSync2(inputPath, "utf-8") : readFileSync2(0, "utf-8");
+  } catch {
+    outputError(
+      inputPath ? `Failed to read input file: ${inputPath}` : "Failed to read from stdin"
+    );
+    return null;
+  }
+  let input;
+  try {
+    input = JSON.parse(rawInput);
+  } catch {
+    outputError(inputPath ? `Invalid JSON in file: ${inputPath}` : "Invalid JSON on stdin");
+    return null;
+  }
+  const inputObj = input;
+  if (!(inputObj.story && inputObj.tasks)) {
+    outputError('Input must have "story" and "tasks" fields');
+    return null;
+  }
+  return { story: inputObj.story, tasks: inputObj.tasks };
 }
 function main() {
   const args = parseArgs(process2.argv.slice(2));
@@ -4336,39 +4427,41 @@ function main() {
     printHelp();
     process2.exit(0);
   }
-  if (!args.storyId) {
-    console.error("Error: story-id is required.\n");
-    printHelp();
+  const input = readAndParseInput(args.input);
+  if (!input) {
+    process2.exit(1);
+  }
+  let story;
+  try {
+    story = StorySchema.parse(input.story);
+  } catch (error) {
+    outputError(`Invalid story: ${error instanceof Error ? error.message : String(error)}`);
+    process2.exit(1);
+  }
+  let tasks;
+  try {
+    const tasksArray = Array.isArray(input.tasks) ? input.tasks : [];
+    tasks = tasksArray.map((t) => TaskSchema.parse(t));
+  } catch (error) {
+    outputError(`Invalid task: ${error instanceof Error ? error.message : String(error)}`);
     process2.exit(1);
   }
   let projectDir;
   try {
     projectDir = getProjectDir();
   } catch (error) {
-    const result = {
-      success: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-    console.log(JSON.stringify(result, null, 2));
+    outputError(error instanceof Error ? error.message : String(error));
     process2.exit(1);
   }
-  const sessionTimestamp = args.sessionTimestamp ?? Date.now();
-  const claudeTasksBase = process2.env.SAGA_CLAUDE_TASKS_BASE || void 0;
-  try {
-    const hydrationResult = hydrate(args.storyId, sessionTimestamp, projectDir, claudeTasksBase);
-    const result = {
-      success: true,
-      taskListId: hydrationResult.taskListId,
-      taskCount: hydrationResult.taskCount,
-      storyMeta: hydrationResult.storyMeta
-    };
-    console.log(JSON.stringify(result, null, 2));
-  } catch (error) {
-    const result = {
-      success: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-    console.log(JSON.stringify(result, null, 2));
+  const result = createStory({
+    projectDir,
+    story,
+    tasks,
+    skipInstall: args.skipInstall,
+    skipPr: args.skipPr
+  });
+  console.log(JSON.stringify(result, null, 2));
+  if (!result.success) {
     process2.exit(1);
   }
 }

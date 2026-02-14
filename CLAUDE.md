@@ -11,6 +11,7 @@ Guidance for Claude Code when working with this repository.
 ```
 saga/
 ├── plugin/                  # Plugin source (skills, agents, hooks)
+├── packages/saga-utils/     # @saga-ai/utils - schemas, storage, plugin scripts
 ├── packages/dashboard/      # @saga-ai/dashboard npm package
 ├── .claude/skills/          # Dev skills for this repo (publish, pr-review, task-pattern)
 └── CHANGELOG.md             # Version history (plugin + CLI combined)
@@ -23,23 +24,19 @@ saga/
 | [`README.md`](README.md) | User-facing: installation, workflow, skills reference |
 | [`plugin/docs/ENVIRONMENT.md`](plugin/docs/ENVIRONMENT.md) | Environment variables reference |
 | [`packages/dashboard/CLAUDE.md`](packages/dashboard/CLAUDE.md) | Dashboard package development guide |
+| [`packages/saga-utils/`](packages/saga-utils/) | Schemas, storage, and plugin scripts |
 
 ## Plugin Skills
 
 | Skill | Entry Point |
 |-------|-------------|
 | `/init` | [`plugin/skills/init/SKILL.md`](plugin/skills/init/SKILL.md) |
-| `/create-epic` | [`plugin/skills/create-epic/SKILL.md`](plugin/skills/create-epic/SKILL.md) |
-| `/generate-stories` | [`plugin/skills/generate-stories/SKILL.md`](plugin/skills/generate-stories/SKILL.md) |
+| `/plan` | [`plugin/skills/plan/SKILL.md`](plugin/skills/plan/SKILL.md) |
 | `/execute-story` | [`plugin/skills/execute-story/SKILL.md`](plugin/skills/execute-story/SKILL.md) |
 | `/resolve-blocker` | [`plugin/skills/resolve-blocker/SKILL.md`](plugin/skills/resolve-blocker/SKILL.md) |
 | `/list-sessions` | [`plugin/skills/list-sessions/SKILL.md`](plugin/skills/list-sessions/SKILL.md) |
-
-## Agents
-
-| Agent | Location |
-|-------|----------|
-| `generate-story` | [`plugin/agents/generate-story.md`](plugin/agents/generate-story.md) |
+| `/create-epic` (deprecated) | [`plugin/skills/create-epic/SKILL.md`](plugin/skills/create-epic/SKILL.md) |
+| `/generate-stories` (deprecated) | [`plugin/skills/generate-stories/SKILL.md`](plugin/skills/generate-stories/SKILL.md) |
 
 ## Quick Reference
 
@@ -48,7 +45,7 @@ saga/
 Always use `${SAGA_PLUGIN_ROOT}` for plugin-relative paths:
 
 ```markdown
-${SAGA_PLUGIN_ROOT}/skills/create-epic/templates/epic-template.md
+${SAGA_PLUGIN_ROOT}/scripts/schemas.js story
 ```
 
 ### Environment Variables

@@ -1,7 +1,7 @@
 /**
  * File System Parsing Module
  *
- * Parses .saga/ directory structure using JSON-based storage from @saga-ai/types.
+ * Parses .saga/ directory structure using JSON-based storage from @saga-ai/utils.
  * Stories and epics are read from .saga/stories/ and .saga/epics/ as JSON files.
  * Status is derived at read time from task/story statuses.
  * Journal parsing remains unchanged (journal.md is still markdown).
@@ -17,7 +17,7 @@ import {
   readStory,
   type Task as SagaTask,
   type TaskStatus,
-} from '@saga-ai/types';
+} from '@saga-ai/utils';
 import {
   type ScannedEpic,
   type ScannedStory,

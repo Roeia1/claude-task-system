@@ -2,12 +2,14 @@
 name: generate-stories
 description: Generate stories from an epic
 argument-hint: "[epic-id]"
-user-invocable: true
+user-invocable: false
 disable-model-invocation: true
 allowed-tools: Bash(node:*), Bash(git:*), Bash(gh:*), Bash(ls:*), Read, Write, AskUserQuestion, Task, TaskCreate, TaskUpdate, TaskList, TaskGet
 ---
 
 # Generate Stories Skill
+
+> **Deprecated**: Use `/plan` instead. This skill is retained for backward compatibility but is no longer user-invocable.
 
 !`node $SAGA_PLUGIN_ROOT/scripts/find.js "$0" --type epic`
 
