@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.2] - 2026-02-14
+
+### Fixed
+
+- **worker**: Remove dead standalone mode from scope-validator that caused worker crash on startup when bundled into worker.js (isDirectExecution guard incorrectly matched)
+- **execute-story**: Add `${VAR:?}` bash guard for env vars in tmux command to fail fast instead of silently launching broken sessions
+
 ## [4.2.1] - 2026-02-14
 
 ### Changed
