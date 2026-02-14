@@ -1,0 +1,11 @@
+{
+  "id": "implement-calculate",
+  "subject": "Implement calculate function",
+  "description": "Add a `calculate(a, b, operator)` function to `dummy/index.js`:\n\n1. Support operators: `add`, `subtract`, `multiply`\n2. Throw an `Error` for unknown operators\n3. Export as a named export",
+  "activeForm": "Implementing calculate function",
+  "status": "pending",
+  "blockedBy": [
+    "write-feature-tests"
+  ],
+  "doneWhen": "All calculate tests pass."
+}
