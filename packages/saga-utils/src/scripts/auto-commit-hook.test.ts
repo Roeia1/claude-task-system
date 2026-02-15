@@ -84,7 +84,73 @@ describe('createAutoCommitHook', () => {
     expect(mockExecFileSync).not.toHaveBeenCalled();
   });
 
-  it('should handle git failures gracefully', async () => {
+  it('should return additionalContext when git commit fails', async () => {
+    const lintError = 'error: lint check failed\nhook aborted';
+    mockExecFileSync.mockImplementation((_cmd: unknown, args: unknown) => {
+      const gitArgs = args as string[];
+      if (gitArgs[0] === 'commit') {
+        const err = new Error('Command failed') as Error & { stderr: Buffer };
+        err.stderr = Buffer.from(lintError);
+        throw err;
+      }
+      return '';
+    });
+
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    const hook = createAutoCommitHook(WORKTREE_PATH, STORY_ID);
+    const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
+    const result = await hook(input, 'tu-1', hookOptions);
+
+    expect(result).toEqual({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: 'PostToolUse',
+        additionalContext: expect.stringContaining(lintError),
+      },
+    });
+    expect(
+      (result as { hookSpecificOutput: { additionalContext: string } }).hookSpecificOutput
+        .additionalContext,
+    ).toContain('commit');
+
+    stderrSpy.mockRestore();
+  });
+
+  it('should return additionalContext when git push fails', async () => {
+    const pushError = 'fatal: failed to push some refs';
+    mockExecFileSync.mockImplementation((_cmd: unknown, args: unknown) => {
+      const gitArgs = args as string[];
+      if (gitArgs[0] === 'push') {
+        const err = new Error('Command failed') as Error & { stderr: Buffer };
+        err.stderr = Buffer.from(pushError);
+        throw err;
+      }
+      return '';
+    });
+
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    const hook = createAutoCommitHook(WORKTREE_PATH, STORY_ID);
+    const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
+    const result = await hook(input, 'tu-1', hookOptions);
+
+    expect(result).toEqual({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: 'PostToolUse',
+        additionalContext: expect.stringContaining(pushError),
+      },
+    });
+    expect(
+      (result as { hookSpecificOutput: { additionalContext: string } }).hookSpecificOutput
+        .additionalContext,
+    ).toContain('push');
+
+    stderrSpy.mockRestore();
+  });
+
+  it('should handle git failures gracefully (no crash)', async () => {
     mockExecFileSync.mockImplementation(() => {
       throw new Error('git failed');
     });
@@ -96,8 +162,8 @@ describe('createAutoCommitHook', () => {
     const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
-    // Should not crash
-    expect(result).toEqual({ continue: true });
+    // Should not crash, should still return continue: true
+    expect(result.continue).toBe(true);
 
     stderrSpy.mockRestore();
   });

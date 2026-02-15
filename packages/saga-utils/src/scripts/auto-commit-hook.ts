@@ -4,7 +4,8 @@
  * PostToolUse hook callback that fires on TaskUpdate. When a task is marked
  * as completed, it auto-commits and pushes all changes.
  *
- * Git failures are logged to stderr but never crash the agent.
+ * Git failures are logged to stderr and surfaced to the agent via
+ * additionalContext so it can fix issues and retry manually.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -37,8 +38,9 @@ function runGit(args: string[], cwd: string): { success: boolean; output: string
  * Create a PostToolUse hook callback that auto-commits and pushes on task
  * completion.
  *
- * Returns `{ continue: true }` always. Git failures are logged but never
- * crash the agent.
+ * Returns `{ continue: true }` on success. On git commit/push failure,
+ * returns `{ continue: true, hookSpecificOutput }` with additionalContext
+ * describing the error so the agent can fix and retry.
  */
 function createAutoCommitHook(worktreePath: string, storyId: string): HookCallback {
   return (_input, _toolUseID, _options): Promise<HookJSONOutput> => {
@@ -58,8 +60,30 @@ function createAutoCommitHook(worktreePath: string, storyId: string): HookCallba
     // Auto-commit + push (failures logged but never crash)
     try {
       runGit(['add', '.'], worktreePath);
-      runGit(['commit', '-m', commitMessage], worktreePath);
-      runGit(['push'], worktreePath);
+
+      const commitResult = runGit(['commit', '-m', commitMessage], worktreePath);
+      if (!commitResult.success) {
+        process.stderr.write(`[worker] Auto-commit failed at commit: ${commitResult.output}\n`);
+        return Promise.resolve({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: 'PostToolUse' as const,
+            additionalContext: `Auto-commit failed at \`git commit\`. Error output:\n${commitResult.output}\n\nPlease fix the issues and run \`git add . && git commit && git push\` manually.`,
+          },
+        });
+      }
+
+      const pushResult = runGit(['push'], worktreePath);
+      if (!pushResult.success) {
+        process.stderr.write(`[worker] Auto-commit failed at push: ${pushResult.output}\n`);
+        return Promise.resolve({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: 'PostToolUse' as const,
+            additionalContext: `Auto-commit succeeded but \`git push\` failed. Error output:\n${pushResult.output}\n\nPlease fix the issues and run \`git push\` manually.`,
+          },
+        });
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       process.stderr.write(`[worker] Auto-commit git error: ${errorMessage}\n`);
