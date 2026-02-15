@@ -14,6 +14,7 @@ import type {
   HookJSONOutput,
   PreToolUseHookInput,
 } from '@anthropic-ai/claude-agent-sdk';
+import { createStoryPaths } from '../directory.ts';
 
 /**
  * Create a PreToolUse hook callback that blocks task completion unless
@@ -24,7 +25,7 @@ import type {
  * Returns a deny decision when journal.md has no uncommitted changes.
  */
 function createJournalGateHook(worktreePath: string, storyId: string): HookCallback {
-  const journalRelPath = `.saga/stories/${storyId}/journal.md`;
+  const { journalMd } = createStoryPaths(worktreePath, storyId);
 
   return (_input, _toolUseID, _options): Promise<HookJSONOutput> => {
     const hookInput = _input as PreToolUseHookInput;
@@ -38,7 +39,7 @@ function createJournalGateHook(worktreePath: string, storyId: string): HookCallb
     }
 
     try {
-      const output = execFileSync('git', ['status', '--porcelain', '--', journalRelPath], {
+      const output = execFileSync('git', ['status', '--porcelain', '--', journalMd], {
         cwd: worktreePath,
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -54,7 +55,7 @@ function createJournalGateHook(worktreePath: string, storyId: string): HookCallb
         hookSpecificOutput: {
           hookEventName: 'PreToolUse' as const,
           permissionDecision: 'deny' as const,
-          permissionDecisionReason: `Write a journal entry to ${journalRelPath} before marking the task as completed.`,
+          permissionDecisionReason: `Write a journal entry to ${journalMd} before marking the task as completed.`,
         },
       });
     } catch {

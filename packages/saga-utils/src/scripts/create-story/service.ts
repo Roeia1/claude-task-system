@@ -12,7 +12,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { createSagaPaths, createWorktreePaths } from '../../directory.ts';
+import { createSagaPaths, createStoryPaths, createWorktreePaths } from '../../directory.ts';
 import type { Story } from '../../schemas/story.ts';
 import type { Task } from '../../schemas/task.ts';
 import { writeStory, writeTask } from '../../storage.ts';
@@ -167,7 +167,7 @@ function stepCommitAndPush(
   storyId: string,
   branchName: string,
 ): CreateStoryFailure | null {
-  const storyDir = `.saga/stories/${storyId}/`;
+  const { storyDir } = createStoryPaths(worktreeDir, storyId);
   runGitCommand(['add', storyDir], worktreeDir);
 
   const commitResult = runGitCommand(
@@ -211,7 +211,7 @@ function stepCreatePr(
     const prUrl = prOutput.trim();
 
     // Update story.json with PR URL and amend+force-push
-    const storyDir = `.saga/stories/${storyId}/`;
+    const { storyDir } = createStoryPaths(worktreeDir, storyId);
     writeStory(worktreeDir, { ...enrichedStory, pr: prUrl });
     runGitCommand(['add', storyDir], worktreeDir);
     runGitCommand(['commit', '--amend', '--no-edit'], worktreeDir);

@@ -24,7 +24,7 @@ const mockExecFileSync = vi.mocked(execFileSync);
 
 const WORKTREE_PATH = '/project/.saga/worktrees/auth-setup';
 const STORY_ID = 'auth-setup';
-const JOURNAL_PATH = `.saga/stories/${STORY_ID}/journal.md`;
+const JOURNAL_PATH = `${WORKTREE_PATH}/.saga/stories/${STORY_ID}/journal.md`;
 
 function makeHookInput(toolInput: Record<string, unknown>): PreToolUseHookInput {
   return {
