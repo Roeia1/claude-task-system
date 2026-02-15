@@ -59,3 +59,13 @@
 **Key decisions and deviations:** None. Straightforward implementation matching test expectations.
 
 **Next steps:** Write integration tests (task #write-integration-tests), then verify all tests pass end-to-end.
+
+## Session: 2026-02-15T09:25:00Z
+
+### Task: write-integration-tests
+
+**What was done:** Created `dummy/__tests__/integration.test.js` with 3 integration tests: `greet(formatName('alice'))` returns a greeting containing 'Alice', config can be spread into a new object without errors (verifying it's a plain object), and all exports from `index.js` are defined with correct types. All 3 integration tests pass.
+
+**Key decisions and deviations:** Since all modules were already implemented, these tests passed immediately — no TDD red phase was needed. The tests verify cross-module behavior (combining greet + formatName) and structural integrity of exports.
+
+**Next steps:** Verify all tests pass end-to-end (task #verify-all-passing).

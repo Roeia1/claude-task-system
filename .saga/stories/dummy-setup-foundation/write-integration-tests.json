@@ -3,7 +3,7 @@
   "subject": "Write integration tests",
   "description": "Create `dummy/__tests__/integration.test.js` testing modules together:\n\n- `greet(formatName('alice'))` returns greeting with 'Alice'\n- Config can be spread into a new object without errors\n- All exports from index.js are defined and the correct type",
   "activeForm": "Writing integration tests",
-  "status": "pending",
+  "status": "completed",
   "blockedBy": [
     "implement-utils"
   ],
