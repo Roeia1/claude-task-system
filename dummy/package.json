@@ -1,0 +1,9 @@
+{
+  "name": "dummy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest"
+  }
+}

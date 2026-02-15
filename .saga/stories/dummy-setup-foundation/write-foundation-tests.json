@@ -3,7 +3,7 @@
   "subject": "Write foundation module tests",
   "description": "Create a test file `dummy/__tests__/index.test.js` with tests for:\n\n- The `greet` function exists and is a function\n- `greet('World')` returns a string containing 'World'\n- `greet()` with no args returns a default greeting\n\nUse Jest for testing.",
   "activeForm": "Writing foundation module tests",
-  "status": "pending",
+  "status": "completed",
   "blockedBy": [],
   "doneWhen": "Tests are written and fail with 'not implemented' errors (TDD red phase)."
 }
