@@ -1,0 +1,11 @@
+{
+  "id": "write-utils-tests",
+  "subject": "Write utility functions tests",
+  "description": "Create tests in `dummy/__tests__/utils.test.js` for utility functions:\n\n- `formatName(name)` capitalizes the first letter\n- `formatName('')` returns 'Unknown'\n- `isValidName(name)` returns true for non-empty strings\n- `isValidName('')` returns false",
+  "activeForm": "Writing utility functions tests",
+  "status": "pending",
+  "blockedBy": [
+    "implement-config"
+  ],
+  "doneWhen": "Utility tests are written and fail (TDD red phase)."
+}

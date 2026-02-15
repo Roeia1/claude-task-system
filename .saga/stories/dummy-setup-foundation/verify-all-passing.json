@@ -1,0 +1,11 @@
+{
+  "id": "verify-all-passing",
+  "subject": "Verify all tests pass end-to-end",
+  "description": "Run the full test suite for the dummy module and verify:\n\n1. All unit tests in `index.test.js` pass\n2. All utility tests in `utils.test.js` pass\n3. All integration tests in `integration.test.js` pass\n4. No warnings or errors in test output",
+  "activeForm": "Verifying all tests pass",
+  "status": "pending",
+  "blockedBy": [
+    "write-integration-tests"
+  ],
+  "doneWhen": "Full test suite runs green with zero failures."
+}

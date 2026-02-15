@@ -1,0 +1,11 @@
+{
+  "id": "implement-utils",
+  "subject": "Implement utility functions",
+  "description": "Create `dummy/utils.js` with:\n\n1. `formatName(name)` - capitalizes first letter, returns 'Unknown' for empty input\n2. `isValidName(name)` - returns true for non-empty strings\n3. Export both functions as named exports",
+  "activeForm": "Implementing utility functions",
+  "status": "pending",
+  "blockedBy": [
+    "write-utils-tests"
+  ],
+  "doneWhen": "All utility tests pass."
+}

@@ -1,0 +1,11 @@
+{
+  "id": "write-config-tests",
+  "subject": "Write config object tests",
+  "description": "Add tests to `dummy/__tests__/index.test.js` for the config object:\n\n- `config` is exported and is an object\n- `config.name` equals 'dummy-project'\n- `config.version` is a string matching semver format\n- `config.debug` is a boolean defaulting to false",
+  "activeForm": "Writing config object tests",
+  "status": "pending",
+  "blockedBy": [
+    "implement-foundation"
+  ],
+  "doneWhen": "Config tests are written and fail (TDD red phase)."
+}
