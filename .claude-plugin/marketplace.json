@@ -8,7 +8,7 @@
     {
       "name": "saga-core",
       "description": "SAGA - Structured Autonomous Goal Achievement: epic/story workflow with autonomous execution",
-      "version": "4.2.3",
+      "version": "4.3.0",
       "source": "./plugin",
       "author": {
         "name": "Roei Avrahami",

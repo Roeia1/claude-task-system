@@ -13246,6 +13246,73 @@ function Qx({ prompt: X, options: Q }) {
   return K7;
 }
 
+// src/scripts/auto-commit-hook.ts
+import { execFileSync as execFileSync3 } from "node:child_process";
+import process6 from "node:process";
+function runGit(args, cwd) {
+  try {
+    const output = execFileSync3("git", args, {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    return { success: true, output: output.trim() };
+  } catch (error) {
+    const execError = error;
+    const stderr = execError.stderr?.toString().trim() || execError.message || String(error);
+    return { success: false, output: stderr };
+  }
+}
+function createAutoCommitHook(worktreePath, storyId) {
+  return (_input, _toolUseID, _options) => {
+    const hookInput = _input;
+    const toolInput = hookInput.tool_input ?? {};
+    const taskId = toolInput.taskId;
+    const status = toolInput.status;
+    if (!(taskId && status) || status !== "completed") {
+      return Promise.resolve({ continue: true });
+    }
+    const commitMessage = `feat(${storyId}): complete ${taskId}`;
+    try {
+      runGit(["add", "."], worktreePath);
+      runGit(["commit", "-m", commitMessage], worktreePath);
+      runGit(["push"], worktreePath);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      process6.stderr.write(`[worker] Auto-commit git error: ${errorMessage}
+`);
+    }
+    return Promise.resolve({ continue: true });
+  };
+}
+
+// src/scripts/prompts/worker-instructions.ts
+function buildWorkerInstructions(storyId, projectDir) {
+  const journalPath = `${projectDir}/.saga/stories/${storyId}/journal.md`;
+  return `# Worker Instructions
+
+## Session Startup
+1. Run TaskList to see available tasks and their status.
+2. Run \`git log -5 --oneline && git status\` to understand the current state of the branch.
+3. Read the last entries of the journal at \`${journalPath}\` to understand what was done in previous sessions.
+4. Run existing tests to establish a baseline before making changes.
+
+## TDD Workflow
+- Write failing tests FIRST, then implement until they pass.
+- After implementation, run the full test suite to verify no regressions.
+
+## Context Management
+- Target 40-70% context utilization per session.
+- After completing a task, assess the next task's complexity against remaining context to decide whether to continue or exit.
+- If you are above the context utilization window, commit current work and exit. It is better to exit cleanly and resume in a new session than to run out of context mid-task.
+
+## Scope Rules
+- Only read and write files within the worktree (your current working directory).
+- Only modify SAGA files in \`${projectDir}/.saga/stories/${storyId}/\` (journal, task files).
+- Do not access files outside your worktree or other stories' directories.
+`;
+}
+
 // src/scripts/scope-validator.ts
 import { relative, resolve } from "node:path";
 var WRITE_TOOLS = /* @__PURE__ */ new Set(["Write", "Edit"]);
@@ -13383,40 +13450,38 @@ function createSyncHook(worktreePath, storyId) {
   };
 }
 
-// src/scripts/task-completion-hook.ts
-import { execFileSync as execFileSync3 } from "node:child_process";
-import process6 from "node:process";
-function runGit(args, cwd) {
-  try {
-    const output = execFileSync3("git", args, {
-      cwd,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"]
-    });
-    return { success: true, output: output.trim() };
-  } catch (error) {
-    const execError = error;
-    const stderr = execError.stderr?.toString().trim() || execError.message || String(error);
-    return { success: false, output: stderr };
-  }
-}
-function buildAdditionalContext(storyId, taskId) {
-  return [
+// src/scripts/prompts/task-completion-context.ts
+function buildAdditionalContext(projectDir, storyId, taskId, maxTasksReached) {
+  const journalPath = `${projectDir}/.saga/stories/${storyId}/journal.md`;
+  const lines = [
     `Task "${taskId}" completed. Changes committed and pushed.`,
     "",
-    `REQUIRED: Write a journal entry to .saga/stories/${storyId}/journal.md:`,
+    `REQUIRED: Write a journal entry to ${journalPath}:`,
     `## Session: ${(/* @__PURE__ */ new Date()).toISOString()}`,
     `### Task: ${taskId}`,
     "**What was done:** ...",
-    "**Decisions:** ...",
-    "**Next steps:** ...",
-    "",
-    "CONTEXT CHECK: Target 40-70% context utilization per session.",
-    "- If you have capacity, pick up the next unblocked task from TaskList.",
-    "- If context is getting heavy, commit any remaining work and exit."
-  ].join("\n");
+    "**Decisions and deviations:** ...",
+    "**Next steps:** ..."
+  ];
+  if (maxTasksReached) {
+    lines.push(
+      "",
+      "You have completed the maximum number of tasks for this session. Finish the session after writing the journal entry."
+    );
+  } else {
+    lines.push(
+      "",
+      "CONTEXT CHECK: Target 40-70% context utilization per session.",
+      "- Assess the next task and decide whether to implement it based on remaining context. Aim to stay within the utilization window.",
+      "- If you are above the context utilization window, commit, push, and finish the session."
+    );
+  }
+  return lines.join("\n");
 }
-function createTaskCompletionHook(worktreePath, storyId) {
+
+// src/scripts/task-pacing-hook.ts
+function createTaskPacingHook(worktreePath, storyId, maxTasksPerSession) {
+  let completedCount = 0;
   return (_input, _toolUseID, _options) => {
     const hookInput = _input;
     const toolInput = hookInput.tool_input ?? {};
@@ -13425,17 +13490,14 @@ function createTaskCompletionHook(worktreePath, storyId) {
     if (!(taskId && status) || status !== "completed") {
       return Promise.resolve({ continue: true });
     }
-    const commitMessage = `feat(${storyId}): complete ${taskId}`;
-    try {
-      runGit(["add", "."], worktreePath);
-      runGit(["commit", "-m", commitMessage], worktreePath);
-      runGit(["push"], worktreePath);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      process6.stderr.write(`[worker] Task completion git error: ${errorMessage}
-`);
-    }
-    const additionalContext = buildAdditionalContext(storyId, taskId);
+    completedCount++;
+    const maxTasksReached = completedCount >= maxTasksPerSession;
+    const additionalContext = buildAdditionalContext(
+      worktreePath,
+      storyId,
+      taskId,
+      maxTasksReached
+    );
     return Promise.resolve({
       continue: true,
       hookSpecificOutput: {
@@ -13449,6 +13511,7 @@ function createTaskCompletionHook(worktreePath, storyId) {
 // src/scripts/worker/run-headless-loop.ts
 var DEFAULT_MAX_CYCLES = 10;
 var DEFAULT_MAX_TIME_MINUTES = 60;
+var DEFAULT_MAX_TASKS_PER_SESSION = 3;
 var DEFAULT_MODEL = "opus";
 var MS_PER_MINUTE = 6e4;
 var ENV_PROJECT_DIR = "SAGA_PROJECT_DIR";
@@ -13468,43 +13531,10 @@ var SCOPE_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep"];
 var SCOPE_TOOL_MATCHER = SCOPE_TOOLS.join("|");
 var PRE_TOOL_USE = "PreToolUse";
 var POST_TOOL_USE = "PostToolUse";
-var SYNC_TOOL_MATCHER = "TaskUpdate";
-function buildWorkerInstructions(storyId) {
-  return `# Worker Instructions
-
-## Session Startup
-1. Run TaskList to see available tasks and their status.
-2. Run \`git log -5 --oneline && git status\` to understand the current state of the branch.
-3. Run existing tests to establish a baseline before making changes.
-
-## TDD Workflow
-- Write failing tests FIRST, then implement until they pass.
-- After implementation, run the full test suite to verify no regressions.
-- Do not modify existing tests without explicit approval.
-
-## Task Pacing
-- Complete 1-3 tasks per session, targeting 40-70% context usage.
-- After completing a task, assess context usage and next task complexity to decide whether to continue or exit.
-- If approaching context limits, commit all work and exit gracefully.
-
-## Commit Discipline
-- Commit after completing each task. Use the format: \`feat|test|fix|refactor(${storyId}): <description>\`
-- Always push after committing: \`git push\`
-- Never amend commits. Always create new commits.
-
-## Scope Rules
-- Only read and write files within the worktree (your current working directory).
-- Only modify SAGA files in \`.saga/stories/${storyId}/\` (journal, task files).
-- Do not access files outside your worktree or other stories' directories.
-
-## Context Awareness
-- If context is getting heavy (many tool calls, large file reads), commit current work and exit.
-- It is better to exit cleanly and resume in a new session than to run out of context mid-task.
-`;
-}
-function buildPrompt(meta, storyId) {
+var TASK_UPDATE_MATCHER = "TaskUpdate";
+function buildPrompt(meta, storyId, worktreePath) {
   const lines = [];
-  lines.push(buildWorkerInstructions(storyId));
+  lines.push(buildWorkerInstructions(storyId, worktreePath));
   lines.push(`# Story: ${meta.title}`);
   lines.push("");
   lines.push(meta.description);
@@ -13542,7 +13572,7 @@ function checkAllTasksCompleted(storyDir) {
   }
   return true;
 }
-async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath, messagesWriter) {
+async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath, maxTasksPerSession, messagesWriter) {
   try {
     let exitCode = 0;
     for await (const message of Qx({
@@ -13576,10 +13606,11 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
           ],
           [POST_TOOL_USE]: [
             {
-              matcher: SYNC_TOOL_MATCHER,
+              matcher: TASK_UPDATE_MATCHER,
               hooks: [
                 createSyncHook(worktreePath, storyId),
-                createTaskCompletionHook(worktreePath, storyId)
+                createAutoCommitHook(worktreePath, storyId),
+                createTaskPacingHook(worktreePath, storyId, maxTasksPerSession)
               ]
             }
           ]
@@ -13622,6 +13653,7 @@ function executeCycle(config, state) {
     config.taskListId,
     config.storyId,
     config.worktreePath,
+    config.maxTasksPerSession,
     config.messagesWriter
   ).then(({ exitCode }) => {
     state.cycles++;
@@ -13666,10 +13698,11 @@ async function runSequentialCycles(config, state) {
 }
 async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, options) {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
+  const maxTasksPerSession = options.maxTasksPerSession ?? DEFAULT_MAX_TASKS_PER_SESSION;
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
-  const prompt = buildPrompt(storyMeta, storyId);
+  const prompt = buildPrompt(storyMeta, storyId, worktreePath);
   const startTime = Date.now();
   const { storyDir } = createStoryPaths(worktreePath, storyId);
   const taskFiles = getTaskFiles(storyDir);
@@ -13686,6 +13719,7 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
     worktreePath,
     storyDir,
     maxCycles,
+    maxTasksPerSession,
     maxTimeMs,
     startTime,
     messagesWriter

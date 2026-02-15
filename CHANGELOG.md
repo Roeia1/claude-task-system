@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-02-15
+
+### Added
+
+- **worker**: Worker prompt instructions — structured system prompt for headless worker sessions with task context, rules, and guidelines
+- **worker**: Task completion hook — runs after each task completion to provide pacing context and auto-commit guidance
+
+### Changed
+
+- **worker**: Extract hardcoded prompts into separate TypeScript modules for maintainability
+- **worker**: Remove disk read from task completion hook for improved performance
+
 ## [4.2.3] - 2026-02-14
 
 ### Fixed
