@@ -49,3 +49,13 @@
 **Key decisions and deviations:** None. Tests follow the same ESM import pattern as the existing test file.
 
 **Next steps:** Implement utility functions in `dummy/utils.js` (task #implement-utils).
+
+## Session: 2026-02-15T09:20:00Z
+
+### Task: implement-utils
+
+**What was done:** Created `dummy/utils.js` with `formatName(name)` (capitalizes first letter, returns 'Unknown' for empty input) and `isValidName(name)` (returns true for non-empty strings). All 11 tests pass (7 index + 4 utils), no regressions.
+
+**Key decisions and deviations:** None. Straightforward implementation matching test expectations.
+
+**Next steps:** Write integration tests (task #write-integration-tests), then verify all tests pass end-to-end.
