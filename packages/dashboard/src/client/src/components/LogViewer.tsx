@@ -64,25 +64,32 @@ function truncate(str: string, maxLen: number = TRUNCATE_LENGTH): string {
 /** Format a tool_use block into a concise summary */
 function formatToolUseBlock(block: { name: string; input: Record<string, unknown> }): string {
   const input = block.input;
+  const s = (v: unknown): string => String(v ?? '');
   switch (block.name) {
     case 'Bash':
-      return `[Tool: Bash] ${truncate(String(input.command ?? ''))}`;
+      return `[Tool: Bash] ${truncate(s(input.command))}`;
     case 'Read':
-      return `[Tool: Read] ${input.file_path ?? ''}`;
+      return `[Tool: Read] ${s(input.file_path)}`;
     case 'Write':
-      return `[Tool: Write] ${input.file_path ?? ''}`;
+      return `[Tool: Write] ${s(input.file_path)}`;
     case 'Edit':
-      return `[Tool: Edit] ${input.file_path ?? ''}`;
+      return `[Tool: Edit] ${s(input.file_path)}`;
     case 'Glob':
-      return `[Tool: Glob] ${input.pattern ?? ''}`;
+      return `[Tool: Glob] ${s(input.pattern)}`;
     case 'Grep':
-      return `[Tool: Grep] ${input.pattern ?? ''}`;
+      return `[Tool: Grep] ${s(input.pattern)}`;
+    case 'WebSearch':
+      return `[Tool: WebSearch] ${truncate(s(input.query))}`;
+    case 'WebFetch':
+      return `[Tool: WebFetch] ${truncate(s(input.url))}`;
+    case 'Task':
+      return `[Tool: Task] ${truncate(s(input.description))}`;
     case 'TaskCreate':
-      return `[Tool: TaskCreate] ${input.subject ?? ''}`;
+      return `[Tool: TaskCreate] ${s(input.subject)}`;
     case 'TaskUpdate':
-      return `[Tool: TaskUpdate] ${input.taskId ?? ''}`;
+      return `[Tool: TaskUpdate] ${s(input.taskId)}`;
     case 'TaskGet':
-      return `[Tool: TaskGet] ${input.taskId ?? ''}`;
+      return `[Tool: TaskGet] ${s(input.taskId)}`;
     case 'TaskList':
       return '[Tool: TaskList]';
     default:
@@ -126,18 +133,19 @@ function formatUserMessage(msg: { message?: { content?: unknown } }): string | n
   }
 
   const parts: string[] = [];
-  for (const block of content) {
+  for (const block of content as Record<string, unknown>[]) {
     if (block.type === 'tool_result') {
       let text = '';
       if (typeof block.content === 'string') {
         text = block.content;
       } else if (Array.isArray(block.content)) {
-        text = block.content
-          .map((c: { text?: string }) => c.text ?? '')
+        text = (block.content as { text?: string }[])
+          .map((c) => c.text ?? '')
           .filter(Boolean)
           .join(' ');
       }
-      const prefix = block.is_error ? '[Error]' : '[Result]';
+      const isError = block.is_error === true;
+      const prefix = isError ? '[Error]' : '[Result]';
       parts.push(`${prefix} ${truncate(text)}`);
     }
   }
