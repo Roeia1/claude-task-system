@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.0] - 2026-02-15
+
+### Added
+
+- **dashboard**: Display readable messages in LogViewer instead of raw JSON
+- **dashboard**: WebSearch, WebFetch, and Task tool formatting in LogViewer
+
+### Changed
+
+- **worker**: Journal gate converted from deny enforcement to soft reminder
+
+### Fixed
+
+- **dashboard**: Consistent String() coercion in LogViewer message formatting
+
 ## [4.5.0] - 2026-02-15
 
 ### Added

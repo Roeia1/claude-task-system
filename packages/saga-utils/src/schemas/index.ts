@@ -4,6 +4,7 @@
  * Re-exports all Zod schemas and inferred types.
  */
 
+export type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 // Claude Code task types
 export {
   type ClaudeCodeTask,
@@ -34,4 +35,4 @@ export {
   TaskStatusSchema,
 } from './task.ts';
 // Worker message types
-export type { SagaWorkerMessage } from './worker-message.ts';
+export type { SagaWorkerMessage, WorkerMessage } from './worker-message.ts';

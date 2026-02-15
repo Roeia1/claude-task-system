@@ -1,3 +1,4 @@
+import type { SagaWorkerMessage } from '@saga-ai/utils';
 import type { VirtualItem, Virtualizer } from '@tanstack/react-virtual';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { AlertCircle, CheckCircle, Loader2, Lock, Unlock } from 'lucide-react';
@@ -7,7 +8,7 @@ import {
   subscribeToLogData,
   unsubscribeFromLogData,
 } from '@/machines/dashboardMachine';
-import type { AssistantMessage, SagaWorkerMessage, WorkerMessage } from '@/types/dashboard';
+import type { LogMessage } from '@/types/dashboard';
 
 interface LogViewerProps {
   /** The name of the session to display logs for */
@@ -49,17 +50,120 @@ function formatWorkerMessage(msg: SagaWorkerMessage): string {
   }
 }
 
+/** Maximum length for truncated display strings */
+const TRUNCATE_LENGTH = 120;
+
+/** Truncate a string to a maximum length */
+function truncate(str: string, maxLen: number = TRUNCATE_LENGTH): string {
+  if (str.length <= maxLen) {
+    return str;
+  }
+  return `${str.slice(0, maxLen)}...`;
+}
+
+/** Format a tool_use block into a concise summary */
+function formatToolUseBlock(block: { name: string; input: Record<string, unknown> }): string {
+  const input = block.input;
+  const s = (v: unknown): string => String(v ?? '');
+  switch (block.name) {
+    case 'Bash':
+      return `[Tool: Bash] ${truncate(s(input.command))}`;
+    case 'Read':
+      return `[Tool: Read] ${s(input.file_path)}`;
+    case 'Write':
+      return `[Tool: Write] ${s(input.file_path)}`;
+    case 'Edit':
+      return `[Tool: Edit] ${s(input.file_path)}`;
+    case 'Glob':
+      return `[Tool: Glob] ${s(input.pattern)}`;
+    case 'Grep':
+      return `[Tool: Grep] ${s(input.pattern)}`;
+    case 'WebSearch':
+      return `[Tool: WebSearch] ${truncate(s(input.query))}`;
+    case 'WebFetch':
+      return `[Tool: WebFetch] ${truncate(s(input.url))}`;
+    case 'Task':
+      return `[Tool: Task] ${truncate(s(input.description))}`;
+    case 'TaskCreate':
+      return `[Tool: TaskCreate] ${s(input.subject)}`;
+    case 'TaskUpdate':
+      return `[Tool: TaskUpdate] ${s(input.taskId)}`;
+    case 'TaskGet':
+      return `[Tool: TaskGet] ${s(input.taskId)}`;
+    case 'TaskList':
+      return '[Tool: TaskList]';
+    default:
+      return `[Tool: ${block.name}]`;
+  }
+}
+
 /** Format an assistant SDK message for display */
-function formatAssistantMessage(msg: AssistantMessage): string | null {
-  const content =
-    typeof msg.message === 'object' && msg.message !== null ? msg.message.content : msg.content;
-  return typeof content === 'string' ? content : null;
+function formatAssistantMessage(msg: {
+  message?: { content?: unknown };
+  content?: unknown;
+}): string | null {
+  const content = msg.message?.content ?? msg.content;
+
+  // Handle string content (backward compatibility)
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  // Handle array content blocks
+  if (Array.isArray(content)) {
+    const parts: string[] = [];
+    for (const block of content) {
+      if (block.type === 'text' && typeof block.text === 'string') {
+        parts.push(block.text);
+      } else if (block.type === 'tool_use' && block.name) {
+        parts.push(formatToolUseBlock(block));
+      }
+    }
+    return parts.length > 0 ? parts.join('\n') : null;
+  }
+
+  return null;
+}
+
+/** Format a user message (typically tool results) for display */
+function formatUserMessage(msg: { message?: { content?: unknown } }): string | null {
+  const content = msg.message?.content;
+  if (!Array.isArray(content)) {
+    return null;
+  }
+
+  const parts: string[] = [];
+  for (const block of content as Record<string, unknown>[]) {
+    if (block.type === 'tool_result') {
+      let text = '';
+      if (typeof block.content === 'string') {
+        text = block.content;
+      } else if (Array.isArray(block.content)) {
+        text = (block.content as { text?: string }[])
+          .map((c) => c.text ?? '')
+          .filter(Boolean)
+          .join(' ');
+      }
+      const isError = block.is_error === true;
+      const prefix = isError ? '[Error]' : '[Result]';
+      parts.push(`${prefix} ${truncate(text)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join('\n') : null;
+}
+
+/** Format a system message for display */
+function formatSystemMessage(msg: { subtype?: string }): string {
+  if (msg.subtype === 'init') {
+    return '[System] Session initialized';
+  }
+  return `[System] ${msg.subtype ?? 'event'}`;
 }
 
 /**
- * Format a WorkerMessage for display
+ * Format a LogMessage for display
  */
-function formatMessage(msg: WorkerMessage): string {
+function formatMessage(msg: LogMessage): string {
   if (msg.type === 'text') {
     return (msg.content as string) || '';
   }
@@ -69,25 +173,55 @@ function formatMessage(msg: WorkerMessage): string {
   }
 
   if (msg.type === 'assistant') {
-    return formatAssistantMessage(msg) ?? JSON.stringify(msg);
+    return formatAssistantMessage(msg) ?? truncate(JSON.stringify(msg));
   }
 
   if (msg.type === 'result' && typeof msg.result === 'string') {
     return `[Result] ${msg.result}`;
   }
 
-  return JSON.stringify(msg);
+  if (msg.type === 'user') {
+    return formatUserMessage(msg) ?? truncate(JSON.stringify(msg));
+  }
+
+  if (msg.type === 'system') {
+    return formatSystemMessage(msg);
+  }
+
+  return truncate(JSON.stringify(msg));
+}
+
+/**
+ * Check if an assistant message contains only tool_use blocks (no text)
+ */
+function isToolOnlyAssistantMessage(msg: {
+  message?: { content?: unknown };
+  content?: unknown;
+}): boolean {
+  const content = msg.message?.content ?? msg.content;
+  if (!Array.isArray(content)) {
+    return false;
+  }
+  return (
+    content.length > 0 && content.every((block: { type: string }) => block.type === 'tool_use')
+  );
 }
 
 /**
  * Get CSS class for a message based on its type
  */
-function getMessageClass(msg: WorkerMessage): string {
+function getMessageClass(msg: LogMessage): string {
   if (msg.type === 'saga_worker') {
     if (msg.subtype === 'pipeline_end') {
       return msg.status === 'completed' ? 'text-success' : 'text-danger';
     }
     return 'text-primary';
+  }
+  if (msg.type === 'assistant' && isToolOnlyAssistantMessage(msg)) {
+    return 'text-text-muted';
+  }
+  if (msg.type === 'user' || msg.type === 'system') {
+    return 'text-text-muted';
   }
   return 'text-text';
 }
@@ -181,7 +315,7 @@ function VirtualizedLogContent({
 }: {
   virtualizer: Virtualizer<HTMLDivElement, Element>;
   virtualItems: VirtualItem[];
-  messages: WorkerMessage[];
+  messages: LogMessage[];
 }) {
   return (
     <div
@@ -245,10 +379,10 @@ function LogViewerError({ error }: { error: string }) {
 /**
  * Custom hook for managing WebSocket log subscription
  * Subscribes to logs on mount, unsubscribes on unmount or sessionName change.
- * Accumulates WorkerMessage[] arrays from the server.
+ * Accumulates LogMessage[] arrays from the server.
  */
 function useLogSubscription(sessionName: string, outputAvailable: boolean) {
-  const [messages, setMessages] = useState<WorkerMessage[]>([]);
+  const [messages, setMessages] = useState<LogMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [streamComplete, setStreamComplete] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -267,7 +401,7 @@ function useLogSubscription(sessionName: string, outputAvailable: boolean) {
 
     subscribeToLogData(
       sessionName,
-      (newMessages: WorkerMessage[], isInitial: boolean, isComplete: boolean) => {
+      (newMessages: LogMessage[], isInitial: boolean, isComplete: boolean) => {
         if (isInitial) {
           setMessages(newMessages);
           setIsLoading(false);
@@ -355,15 +489,15 @@ function useAutoScroll(
 }
 
 /**
- * Parse initial content string into WorkerMessage array.
+ * Parse initial content string into LogMessage array.
  * Supports both JSONL content (each line is valid JSON) and plain text (each line becomes a text message).
  */
-function parseInitialContent(initialContent: string): WorkerMessage[] {
+function parseInitialContent(initialContent: string): LogMessage[] {
   if (!initialContent) {
     return [];
   }
   const lines = initialContent.split('\n');
-  const messages: WorkerMessage[] = [];
+  const messages: LogMessage[] = [];
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) {

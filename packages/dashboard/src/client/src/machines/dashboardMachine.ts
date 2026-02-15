@@ -1,5 +1,5 @@
 import { assign, fromCallback, sendTo, setup } from 'xstate';
-import type { Epic, EpicSummary, SessionInfo, StoryDetail, WorkerMessage } from '@/types/dashboard';
+import type { Epic, EpicSummary, LogMessage, SessionInfo, StoryDetail } from '@/types/dashboard';
 
 /** Maximum number of reconnection attempts */
 const MAX_RETRIES = 5;
@@ -75,7 +75,7 @@ type DashboardEvent =
 type WebSocketSendFn = (message: object) => void;
 
 /** Callback type for log data handlers */
-type LogDataCallback = (messages: WorkerMessage[], isInitial: boolean, isComplete: boolean) => void;
+type LogDataCallback = (messages: LogMessage[], isInitial: boolean, isComplete: boolean) => void;
 
 /** Callback type for log error handlers */
 type LogErrorCallback = (error: string) => void;
@@ -117,7 +117,7 @@ function handleLogMessage(
   messageType: string,
   data: {
     sessionName: string;
-    messages?: WorkerMessage[];
+    messages?: LogMessage[];
     isInitial?: boolean;
     isComplete?: boolean;
     error?: string;
@@ -624,7 +624,7 @@ const dashboardMachine = setup({
 type DashboardMachine = typeof dashboardMachine;
 
 export { dashboardMachine, getWebSocketSend, subscribeToLogData, unsubscribeFromLogData };
-export type { WorkerMessage } from '@/types/dashboard';
+export type { LogMessage } from '@/types/dashboard';
 export type {
   StorySubscription,
   DashboardContext,

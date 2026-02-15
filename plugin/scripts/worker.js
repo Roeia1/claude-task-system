@@ -4423,7 +4423,7 @@ function createNoopMessageWriter() {
 }
 
 // src/scripts/worker/run-headless-loop.ts
-import { execFileSync as execFileSync5 } from "node:child_process";
+import { execFileSync as execFileSync4 } from "node:child_process";
 import { readdirSync as readdirSync3, readFileSync as readFileSync4 } from "node:fs";
 import { join as join4 } from "node:path";
 import process7 from "node:process";
@@ -13327,35 +13327,23 @@ function createAutoCommitHook(worktreePath, storyId) {
 }
 
 // src/scripts/journal-gate-hook.ts
-import { execFileSync as execFileSync4 } from "node:child_process";
 function createJournalGateHook(worktreePath, storyId) {
   const { journalMd } = createStoryPaths(worktreePath, storyId);
   return (_input, _toolUseID, _options) => {
     const hookInput = _input;
     const toolInput = hookInput.tool_input ?? {};
     const status = toolInput.status;
+    const taskId = toolInput.taskId;
     if (status !== "completed") {
       return Promise.resolve({ continue: true });
     }
-    try {
-      const output = execFileSync4("git", ["status", "--porcelain", "--", journalMd], {
-        cwd: worktreePath,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"]
-      });
-      if (output.trim().length > 0) {
-        return Promise.resolve({ continue: true });
+    return Promise.resolve({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        additionalContext: `Reminder: if you haven't already, write a journal entry to ${journalMd} with the structure instructed earlier for the "${taskId}" completed task.`
       }
-      return Promise.resolve({
-        hookSpecificOutput: {
-          hookEventName: "PreToolUse",
-          permissionDecision: "deny",
-          permissionDecisionReason: `Write a journal entry to ${journalMd} before marking the task as completed.`
-        }
-      });
-    } catch {
-      return Promise.resolve({ continue: true });
-    }
+    });
   };
 }
 
@@ -13380,9 +13368,8 @@ function buildWorkerInstructions(storyId, projectDir) {
   - \`## Session: <ISO timestamp>\`
   - \`### Task: <taskId>\`
   - \`**What was done:**\` summary of implementation
-  - \`**Decisions and deviations:**\` any notable choices
+  - \`**Key decisions and deviations:**\` any notable choices or deviations from the plan
   - \`**Next steps:**\` what should happen next
-- The TaskUpdate to \`status: "completed"\` will be blocked if journal.md has no uncommitted changes.
 
 ## Context Management
 - Target 40-70% context utilization per session.
@@ -13584,7 +13571,7 @@ var ENV_STORY_TASK_LIST_ID = "SAGA_STORY_TASK_LIST_ID";
 var ENV_CLAUDECODE = "CLAUDECODE";
 function resolveClaudeBinary() {
   try {
-    return execFileSync5("which", ["claude"], { encoding: "utf-8" }).trim();
+    return execFileSync4("which", ["claude"], { encoding: "utf-8" }).trim();
   } catch {
     throw new Error("Could not find `claude` binary. Ensure Claude Code is installed and on PATH.");
   }
@@ -13803,13 +13790,13 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
 }
 
 // src/scripts/worker/setup-worktree.ts
-import { execFileSync as execFileSync6 } from "node:child_process";
+import { execFileSync as execFileSync5 } from "node:child_process";
 import { existsSync as existsSync4, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
 import { dirname as dirname2 } from "node:path";
 import process8 from "node:process";
 function runGit2(args, cwd) {
   try {
-    const output = execFileSync6("git", args, {
+    const output = execFileSync5("git", args, {
       cwd,
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"]

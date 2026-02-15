@@ -25,9 +25,8 @@ function buildWorkerInstructions(storyId: string, projectDir: string): string {
   - \`## Session: <ISO timestamp>\`
   - \`### Task: <taskId>\`
   - \`**What was done:**\` summary of implementation
-  - \`**Decisions and deviations:**\` any notable choices
+  - \`**Key decisions and deviations:**\` any notable choices or deviations from the plan
   - \`**Next steps:**\` what should happen next
-- The TaskUpdate to \`status: "completed"\` will be blocked if journal.md has no uncommitted changes.
 
 ## Context Management
 - Target 40-70% context utilization per session.

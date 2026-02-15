@@ -8,7 +8,7 @@ import { LogViewer } from './LogViewer.tsx';
 // ============================================================================
 
 /** Preset types for LogViewer states */
-type LogPreset = 'empty' | 'short' | 'long' | 'streaming' | 'complete' | 'unavailable';
+type LogPreset = 'empty' | 'short' | 'long' | 'streaming' | 'complete' | 'unavailable' | 'jsonl';
 
 // ============================================================================
 // Constants
@@ -92,6 +92,27 @@ Worktree: /Users/dev/saga/worktrees/user-auth
 [2026-01-30 10:00:07] ✓ All tests passing
 [2026-01-30 10:00:08] Implementing auth service...`;
 
+/** Sample JSONL content with realistic structured messages (raw strings to preserve API wire format) */
+const jsonlLogContent = `{"type":"saga_worker","subtype":"pipeline_start","timestamp":"2026-01-30T10:00:00Z","storyId":"add-user-auth"}
+{"type":"saga_worker","subtype":"cycle_start","timestamp":"2026-01-30T10:00:01Z","cycle":1,"maxCycles":5}
+{"type":"assistant","message":{"content":[{"type":"text","text":"I'll start by reading the existing authentication module to understand the current setup."}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"tool_1","name":"Read","input":{"file_path":"/src/auth/index.ts"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"tool_1","content":"export function login() { /* ... */ }"}]}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Now let me write the tests first, following TDD."},{"type":"tool_use","id":"tool_2","name":"Write","input":{"file_path":"/src/auth/auth.test.ts"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"tool_2","content":"File written successfully"}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"tool_3","name":"Bash","input":{"command":"cd /src && pnpm test auth.test.ts"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"tool_3","content":"FAIL src/auth/auth.test.ts\\n  ✕ should authenticate user (3ms)\\n  ✕ should reject invalid credentials (1ms)\\n\\nTests: 2 failed, 2 total"}]}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Tests are failing as expected. Now I'll implement the authentication logic."}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"tool_4","name":"Edit","input":{"file_path":"/src/auth/index.ts"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"tool_4","content":"File edited successfully"}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"tool_5","name":"Bash","input":{"command":"cd /src && pnpm test auth.test.ts"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"tool_5","content":"PASS src/auth/auth.test.ts\\n  ✓ should authenticate user (2ms)\\n  ✓ should reject invalid credentials (1ms)\\n\\nTests: 2 passed, 2 total"}]}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"All tests passing. Let me commit the changes."}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"tool_6","name":"Bash","input":{"command":"git add -A && git commit -m \\"feat(add-user-auth): implement authentication\\""}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"tool_6","content":"[add-user-auth abc1234] feat(add-user-auth): implement authentication\\n 2 files changed, 45 insertions(+)"}]}}
+{"type":"saga_worker","subtype":"cycle_end","timestamp":"2026-01-30T10:05:00Z","cycle":1,"exitCode":0}
+{"type":"saga_worker","subtype":"pipeline_end","timestamp":"2026-01-30T10:05:01Z","storyId":"add-user-auth","status":"completed","exitCode":0,"cycles":1,"elapsedMinutes":5}`;
+
 /** Generate large log content for performance testing */
 function generateLargeLog(lineCount: number): string {
   const lines: string[] = [];
@@ -120,6 +141,8 @@ function getLogContentForPreset(preset: LogPreset): string {
       return mediumLogContent;
     case 'unavailable':
       return '';
+    case 'jsonl':
+      return jsonlLogContent;
     default: {
       const _exhaustive: never = preset;
       return _exhaustive;
@@ -137,6 +160,7 @@ function getStatusForPreset(preset: LogPreset): 'running' | 'completed' {
     case 'short':
     case 'long':
     case 'complete':
+    case 'jsonl':
       return 'completed';
     default: {
       const _exhaustive: never = preset;
@@ -165,6 +189,8 @@ function presetToLabel(preset: LogPreset): string {
       return 'Complete';
     case 'unavailable':
       return 'Output Unavailable';
+    case 'jsonl':
+      return 'JSONL (Structured Messages)';
     default: {
       const _exhaustive: never = preset;
       return _exhaustive;
@@ -255,6 +281,28 @@ function StatusIndicatorsSection(): React.JSX.Element {
   );
 }
 
+/** JSONL structured messages section component */
+function JsonlMessagesSection(): React.JSX.Element {
+  return (
+    <section aria-label="JSONL Messages">
+      <h3 className="text-sm font-semibold text-text-muted mb-3">JSONL Structured Messages</h3>
+      <div>
+        <p className="text-xs text-text-muted mb-2">
+          Realistic session with worker events, assistant text, tool calls, and results
+        </p>
+        <div className="h-72">
+          <LogViewer
+            sessionName="jsonl-session"
+            status="completed"
+            outputAvailable={true}
+            initialContent={jsonlLogContent}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /** Edge cases section component */
 function EdgeCasesSection(): React.JSX.Element {
   return (
@@ -300,6 +348,7 @@ const meta: Meta<{ preset: LogPreset; customContent: string }> = {
         'streaming',
         'complete',
         'unavailable',
+        'jsonl',
       ] satisfies LogPreset[],
       description: 'Select a log preset to display',
     },
@@ -330,6 +379,7 @@ export const Showcase: Story = {
   render: () => (
     <div className="space-y-8 p-4">
       <LogStatesSection />
+      <JsonlMessagesSection />
       <StatusIndicatorsSection />
       <EdgeCasesSection />
     </div>
@@ -339,6 +389,7 @@ export const Showcase: Story = {
 
     // Verify section headers
     await expect(canvas.getByRole('region', { name: 'Log States' })).toBeInTheDocument();
+    await expect(canvas.getByRole('region', { name: 'JSONL Messages' })).toBeInTheDocument();
     await expect(canvas.getByRole('region', { name: 'Status Indicators' })).toBeInTheDocument();
     await expect(canvas.getByRole('region', { name: 'Edge Cases' })).toBeInTheDocument();
 
