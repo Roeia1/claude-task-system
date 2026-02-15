@@ -4,6 +4,9 @@
  * PostToolUse hook callback that fires on TaskUpdate. When a task is marked
  * as completed, it auto-commits and pushes changes, then returns
  * additionalContext with a journal reminder and context usage guidance.
+ *
+ * Tracks completed task count and signals session end when
+ * maxTasksPerSession is reached.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -37,13 +40,23 @@ function runGit(args: string[], cwd: string): { success: boolean; output: string
  * Create a PostToolUse hook callback that auto-commits and pushes on task
  * completion, and returns additionalContext with a journal reminder.
  *
+ * Tracks how many tasks have been completed in the session. When the count
+ * reaches maxTasksPerSession, the additionalContext instructs the agent to
+ * finish the session after writing the journal entry.
+ *
  * Returns `{ continue: true }` when status is not 'completed'.
  * Returns `{ continue: true, hookSpecificOutput }` with additionalContext
  * when status is 'completed'.
  *
  * Git failures are logged to stderr but never crash the agent.
  */
-function createTaskCompletionHook(worktreePath: string, storyId: string): HookCallback {
+function createTaskCompletionHook(
+  worktreePath: string,
+  storyId: string,
+  maxTasksPerSession: number,
+): HookCallback {
+  let completedCount = 0;
+
   return (_input, _toolUseID, _options): Promise<HookJSONOutput> => {
     const hookInput = _input as PostToolUseHookInput;
     const toolInput = (hookInput.tool_input ?? {}) as Record<string, unknown>;
@@ -55,6 +68,8 @@ function createTaskCompletionHook(worktreePath: string, storyId: string): HookCa
     if (!(taskId && status) || status !== 'completed') {
       return Promise.resolve({ continue: true });
     }
+
+    completedCount++;
 
     const commitMessage = `feat(${storyId}): complete ${taskId}`;
 
@@ -68,8 +83,15 @@ function createTaskCompletionHook(worktreePath: string, storyId: string): HookCa
       process.stderr.write(`[worker] Task completion git error: ${errorMessage}\n`);
     }
 
+    const maxTasksReached = completedCount >= maxTasksPerSession;
+
     // Return additionalContext regardless of git success/failure
-    const additionalContext = buildAdditionalContext(storyId, taskId);
+    const additionalContext = buildAdditionalContext(
+      worktreePath,
+      storyId,
+      taskId,
+      maxTasksReached,
+    );
 
     return Promise.resolve({
       continue: true,

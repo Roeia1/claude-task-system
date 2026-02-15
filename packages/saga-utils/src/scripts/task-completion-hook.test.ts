@@ -26,6 +26,7 @@ const WORKTREE_PATH = '/project/.saga/worktrees/auth-setup';
 const STORY_ID = 'auth-setup';
 const TASK_ID = 't1';
 const GIT_COMMAND_COUNT = 3; // git add, git commit, git push
+const MAX_TASKS_PER_SESSION = 3;
 
 function makeHookInput(toolInput: Record<string, unknown>): PostToolUseHookInput {
   return {
@@ -53,7 +54,7 @@ describe('createTaskCompletionHook', () => {
   });
 
   it('should return { continue: true } with no hookSpecificOutput when status is not completed', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID);
+    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'in_progress' });
     const result = await hook(input, 'tu-1', hookOptions);
 
@@ -64,7 +65,7 @@ describe('createTaskCompletionHook', () => {
   it('should return additionalContext when status is completed', async () => {
     mockExecFileSync.mockReturnValue('');
 
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID);
+    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
@@ -82,36 +83,36 @@ describe('createTaskCompletionHook', () => {
   it('should include journal reminder template in additionalContext', async () => {
     mockExecFileSync.mockReturnValue('');
 
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID);
+    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
     const output = result as { hookSpecificOutput: { additionalContext: string } };
     const ctx = output.hookSpecificOutput.additionalContext;
-    expect(ctx).toContain(`.saga/stories/${STORY_ID}/journal.md`);
+    expect(ctx).toContain(`${WORKTREE_PATH}/.saga/stories/${STORY_ID}/journal.md`);
     expect(ctx).toContain('**What was done:**');
-    expect(ctx).toContain('**Decisions:**');
+    expect(ctx).toContain('**Decisions and deviations:**');
     expect(ctx).toContain('**Next steps:**');
   });
 
   it('should include context check guidance in additionalContext', async () => {
     mockExecFileSync.mockReturnValue('');
 
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID);
+    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
     const output = result as { hookSpecificOutput: { additionalContext: string } };
     const ctx = output.hookSpecificOutput.additionalContext;
     expect(ctx).toContain('40-70%');
-    expect(ctx).toContain('next unblocked task');
-    expect(ctx).toContain('commit any remaining work and exit');
+    expect(ctx).toContain('Assess the next task');
+    expect(ctx).toContain('above the context utilization window');
   });
 
   it('should run git add, commit, and push when status is completed', async () => {
     mockExecFileSync.mockReturnValue('');
 
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID);
+    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
     await hook(input, 'tu-1', hookOptions);
 
@@ -123,7 +124,7 @@ describe('createTaskCompletionHook', () => {
   });
 
   it('should not run git when status is not completed', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID);
+    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'in_progress' });
     await hook(input, 'tu-1', hookOptions);
 
@@ -138,7 +139,7 @@ describe('createTaskCompletionHook', () => {
     // Suppress stderr output during test
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID);
+    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
@@ -151,7 +152,7 @@ describe('createTaskCompletionHook', () => {
   });
 
   it('should skip when taskId is missing', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID);
+    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
@@ -160,7 +161,7 @@ describe('createTaskCompletionHook', () => {
   });
 
   it('should skip when status is missing', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID);
+    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID });
     const result = await hook(input, 'tu-1', hookOptions);
 
@@ -169,7 +170,7 @@ describe('createTaskCompletionHook', () => {
   });
 
   it('should skip when status is pending', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID);
+    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'pending' });
     const result = await hook(input, 'tu-1', hookOptions);
 
@@ -178,7 +179,7 @@ describe('createTaskCompletionHook', () => {
   });
 
   it('should handle missing tool_input gracefully', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID);
+    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = {
       session_id: 'test-session',
       transcript_path: '/tmp/transcript',

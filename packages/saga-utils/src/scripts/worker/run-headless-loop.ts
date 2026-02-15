@@ -26,6 +26,7 @@ import { createNoopMessageWriter } from './message-writer.ts';
 
 const DEFAULT_MAX_CYCLES = 10;
 const DEFAULT_MAX_TIME_MINUTES = 60;
+const DEFAULT_MAX_TASKS_PER_SESSION = 3;
 const DEFAULT_MODEL = 'opus';
 const MS_PER_MINUTE = 60_000;
 
@@ -67,6 +68,7 @@ const SYNC_TOOL_MATCHER = 'TaskUpdate';
 interface RunLoopOptions {
   maxCycles?: number;
   maxTime?: number;
+  maxTasksPerSession?: number;
   model?: string;
   messagesWriter?: MessageWriter;
 }
@@ -86,11 +88,11 @@ interface RunLoopResult {
  * Prepends worker instructions, then includes story-specific content.
  * Only includes non-empty metadata fields.
  */
-function buildPrompt(meta: StoryMeta, storyId: string): string {
+function buildPrompt(meta: StoryMeta, storyId: string, worktreePath: string): string {
   const lines: string[] = [];
 
   // Worker instructions first
-  lines.push(buildWorkerInstructions(storyId));
+  lines.push(buildWorkerInstructions(storyId, worktreePath));
 
   // Story metadata
   lines.push(`# Story: ${meta.title}`);
@@ -166,6 +168,7 @@ async function spawnHeadlessRun(
   taskListId: string,
   storyId: string,
   worktreePath: string,
+  maxTasksPerSession: number,
   messagesWriter: MessageWriter,
 ): Promise<{ exitCode: number | null }> {
   try {
@@ -205,7 +208,7 @@ async function spawnHeadlessRun(
               matcher: SYNC_TOOL_MATCHER,
               hooks: [
                 createSyncHook(worktreePath, storyId),
-                createTaskCompletionHook(worktreePath, storyId),
+                createTaskCompletionHook(worktreePath, storyId, maxTasksPerSession),
               ],
             },
           ],
@@ -238,6 +241,7 @@ interface LoopConfig {
   worktreePath: string;
   storyDir: string;
   maxCycles: number;
+  maxTasksPerSession: number;
   maxTimeMs: number;
   startTime: number;
   messagesWriter: MessageWriter;
@@ -281,6 +285,7 @@ function executeCycle(config: LoopConfig, state: LoopState): Promise<{ shouldCon
     config.taskListId,
     config.storyId,
     config.worktreePath,
+    config.maxTasksPerSession,
     config.messagesWriter,
   ).then(({ exitCode }) => {
     state.cycles++;
@@ -348,11 +353,12 @@ async function runHeadlessLoop(
   options: RunLoopOptions,
 ): Promise<RunLoopResult> {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
+  const maxTasksPerSession = options.maxTasksPerSession ?? DEFAULT_MAX_TASKS_PER_SESSION;
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
 
-  const prompt = buildPrompt(storyMeta, storyId);
+  const prompt = buildPrompt(storyMeta, storyId, worktreePath);
   const startTime = Date.now();
   const { storyDir } = createStoryPaths(worktreePath, storyId);
 
@@ -373,6 +379,7 @@ async function runHeadlessLoop(
     worktreePath,
     storyDir,
     maxCycles,
+    maxTasksPerSession,
     maxTimeMs,
     startTime,
     messagesWriter,

@@ -139,6 +139,7 @@ function createMockQueryWithAssistant(): ReturnType<typeof query> {
 
 describe('buildPrompt', () => {
   const testStoryId = 'auth-setup-db';
+  const testWorktreePath = '/project/.saga/worktrees/auth-setup-db';
 
   it('should include all non-empty story metadata fields', () => {
     const meta: StoryMeta = {
@@ -149,7 +150,7 @@ describe('buildPrompt', () => {
       avoid: 'Do not use sessions',
     };
 
-    const prompt = buildPrompt(meta, testStoryId);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
     expect(prompt).toContain('Auth Setup');
     expect(prompt).toContain('Set up authentication');
@@ -164,7 +165,7 @@ describe('buildPrompt', () => {
       description: 'Set up authentication',
     };
 
-    const prompt = buildPrompt(meta, testStoryId);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
     expect(prompt).toContain('Auth Setup');
     expect(prompt).toContain('Set up authentication');
@@ -179,7 +180,7 @@ describe('buildPrompt', () => {
       description: 'Set up authentication',
     };
 
-    const prompt = buildPrompt(meta, testStoryId);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
     expect(prompt).toContain('TaskList');
     expect(prompt).toContain('TaskGet');
@@ -195,7 +196,7 @@ describe('buildPrompt', () => {
       avoid: undefined,
     };
 
-    const prompt = buildPrompt(meta, testStoryId);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
     expect(prompt).toContain('Done when: Tests pass');
     expect(prompt).not.toContain('Guidance:');
@@ -208,7 +209,7 @@ describe('buildPrompt', () => {
       description: 'Set up authentication',
     };
 
-    const prompt = buildPrompt(meta, testStoryId);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
     expect(prompt).toContain('Session Startup');
     expect(prompt).toContain('TaskList');
@@ -222,36 +223,35 @@ describe('buildPrompt', () => {
       description: 'Set up authentication',
     };
 
-    const prompt = buildPrompt(meta, testStoryId);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
     expect(prompt).toContain('TDD');
     expect(prompt).toContain('failing tests FIRST');
   });
 
-  it('should include commit discipline with storyId', () => {
+  it('should include context management instructions', () => {
     const meta: StoryMeta = {
       title: 'Auth Setup',
       description: 'Set up authentication',
     };
 
-    const prompt = buildPrompt(meta, testStoryId);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
-    expect(prompt).toContain('Commit Discipline');
-    expect(prompt).toContain(`feat|test|fix|refactor(${testStoryId})`);
-    expect(prompt).toContain('git push');
+    expect(prompt).toContain('Context Management');
+    expect(prompt).toContain('40-70%');
+    expect(prompt).toContain('exit cleanly and resume');
   });
 
-  it('should include task pacing instructions', () => {
+  it('should include journal reading step with full path', () => {
     const meta: StoryMeta = {
       title: 'Auth Setup',
       description: 'Set up authentication',
     };
 
-    const prompt = buildPrompt(meta, testStoryId);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
-    expect(prompt).toContain('Task Pacing');
-    expect(prompt).toContain('1-3 tasks per session');
-    expect(prompt).toContain('40-70%');
+    expect(prompt).toContain(`${testWorktreePath}/.saga/stories/${testStoryId}/journal.md`);
+    expect(prompt).toContain('journal');
   });
 });
 
