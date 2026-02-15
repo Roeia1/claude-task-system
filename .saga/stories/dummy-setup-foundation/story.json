@@ -1,0 +1,12 @@
+{
+  "id": "dummy-setup-foundation",
+  "title": "Set Up Dummy Foundation",
+  "description": "## Scope\nCreate the foundational dummy files and configuration needed for subsequent dummy work.\n\n## Technical Details\n- Create a placeholder module at `dummy/index.js` with a basic export\n- Add a simple configuration object with project name and version\n- Export a `greet` function that returns a greeting string\n\n## Acceptance Criteria\n- `dummy/index.js` exists and exports a `greet` function\n- The function returns a string containing the project name\n- Module can be imported without errors",
+  "epic": "dummy-test-epic",
+  "guidance": "This is a dummy story for testing. Keep the implementation minimal.",
+  "doneWhen": "The dummy module exists, exports correctly, and tests pass.",
+  "avoid": "Do not add any real functionality or dependencies.",
+  "branch": "story/dummy-setup-foundation",
+  "pr": "https://github.com/Roeia1/SAGA/pull/69",
+  "worktree": ".saga/worktrees/dummy-setup-foundation/"
+}
