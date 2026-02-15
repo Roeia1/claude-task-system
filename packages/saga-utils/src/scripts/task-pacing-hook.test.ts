@@ -1,8 +1,8 @@
 /**
- * Tests for task-pacing-hook.ts - PostToolUse hook for task pacing and journal reminders
+ * Tests for task-pacing-hook.ts - PostToolUse hook for task pacing
  *
  * Tests the createTaskPacingHook factory which:
- *   - Returns additionalContext with journal reminder and context check guidance
+ *   - Returns additionalContext with context check guidance
  *   - Tracks completed task count and signals max tasks reached
  *   - Skips when taskId or status is missing or status is not 'completed'
  */

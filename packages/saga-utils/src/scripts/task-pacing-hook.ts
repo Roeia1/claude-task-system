@@ -2,11 +2,11 @@
  * In-process task pacing hook for the Agent SDK.
  *
  * PostToolUse hook callback that fires on TaskUpdate. When a task is marked
- * as completed, it tracks the count and returns additionalContext with a
- * journal reminder and context usage guidance.
+ * as completed, it tracks the count and returns additionalContext with
+ * context usage guidance.
  *
  * When the completed count reaches maxTasksPerSession, the additionalContext
- * instructs the agent to finish the session after writing the journal entry.
+ * instructs the agent to finish the session.
  */
 
 import type {
@@ -14,19 +14,19 @@ import type {
   HookJSONOutput,
   PostToolUseHookInput,
 } from '@anthropic-ai/claude-agent-sdk';
-import { buildAdditionalContext } from './prompts/task-completion-context.ts';
+import { buildTaskPacingContext } from './prompts/task-pacing-context.ts';
 
 /**
  * Create a PostToolUse hook callback that tracks completed task count and
- * returns additionalContext with journal reminder and context guidance.
+ * returns additionalContext with context guidance.
  *
  * Returns `{ continue: true }` when status is not 'completed'.
  * Returns `{ continue: true, hookSpecificOutput }` with additionalContext
  * when status is 'completed'.
  */
 function createTaskPacingHook(
-  worktreePath: string,
-  storyId: string,
+  _worktreePath: string,
+  _storyId: string,
   maxTasksPerSession: number,
 ): HookCallback {
   let completedCount = 0;
@@ -47,12 +47,7 @@ function createTaskPacingHook(
 
     const maxTasksReached = completedCount >= maxTasksPerSession;
 
-    const additionalContext = buildAdditionalContext(
-      worktreePath,
-      storyId,
-      taskId,
-      maxTasksReached,
-    );
+    const additionalContext = buildTaskPacingContext(taskId, maxTasksReached);
 
     return Promise.resolve({
       continue: true,

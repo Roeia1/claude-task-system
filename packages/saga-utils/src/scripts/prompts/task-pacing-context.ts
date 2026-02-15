@@ -2,13 +2,8 @@
  * Additional context returned to the agent after a task is marked completed.
  * Includes context usage guidance and max-tasks signaling.
  */
-function buildAdditionalContext(
-  _projectDir: string,
-  _storyId: string,
-  taskId: string,
-  maxTasksReached: boolean,
-): string {
-  const lines = [`Task "${taskId}" completed. Changes committed and pushed.`];
+function buildTaskPacingContext(taskId: string, maxTasksReached: boolean): string {
+  const lines = [`Task "${taskId}" marked as completed.`];
 
   if (maxTasksReached) {
     lines.push(
@@ -27,4 +22,4 @@ function buildAdditionalContext(
   return lines.join('\n');
 }
 
-export { buildAdditionalContext };
+export { buildTaskPacingContext };
