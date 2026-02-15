@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.5.0] - 2026-02-15
+
+### Added
+
+- **worker**: Journal gate PreToolUse hook to enforce journal entries before task completion
+
+### Changed
+
+- **worker**: Renamed task-completion-context to task-pacing-context and cleaned up internals
+- **worker**: Moved commit confirmation to auto-commit hook, simplified task pacing context
+- **worker**: Use `createStoryPaths` utility instead of manual path construction
+
 ## [4.4.0] - 2026-02-15
 
 ### Added

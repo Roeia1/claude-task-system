@@ -4244,7 +4244,7 @@ function stepInstallDeps(worktreeDir) {
   }
 }
 function stepCommitAndPush(worktreeDir, storyId, branchName) {
-  const storyDir = `.saga/stories/${storyId}/`;
+  const { storyDir } = createStoryPaths(worktreeDir, storyId);
   runGitCommand(["add", storyDir], worktreeDir);
   const commitResult = runGitCommand(
     ["commit", "-m", `docs(${storyId}): add story definition`],
@@ -4285,7 +4285,7 @@ To execute this story, run:
       { cwd: worktreeDir, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }
     );
     const prUrl = prOutput.trim();
-    const storyDir = `.saga/stories/${storyId}/`;
+    const { storyDir } = createStoryPaths(worktreeDir, storyId);
     writeStory(worktreeDir, { ...enrichedStory, pr: prUrl });
     runGitCommand(["add", storyDir], worktreeDir);
     runGitCommand(["commit", "--amend", "--no-edit"], worktreeDir);

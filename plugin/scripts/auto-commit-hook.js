@@ -64,12 +64,19 @@ function createAutoCommitHook(worktreePath, storyId) {
           }
         });
       }
+      return Promise.resolve({
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: "PostToolUse",
+          additionalContext: "Changes committed and pushed."
+        }
+      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       process.stderr.write(`[worker] Auto-commit git error: ${errorMessage}
 `);
+      return Promise.resolve({ continue: true });
     }
-    return Promise.resolve({ continue: true });
   };
 }
 export {
