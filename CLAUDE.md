@@ -73,5 +73,5 @@ git commit -m "fix(story-slug): resolve [issue]"
 
 1. **TDD** - Tests before implementation
 2. **No Test Modification** - Tests locked after creation without user approval
-3. **Journaling** - Document decisions in journal.md during execution
+3. **Journaling** - Document key decisions and deviations in journal.md during execution
 4. **Commit Discipline** - Commit and push at logical milestones

@@ -1,26 +1,15 @@
 /**
- * Tests for journal-gate-hook.ts - PreToolUse hook that blocks task completion
- * without a journal entry.
+ * Tests for journal-gate-hook.ts - PreToolUse hook that reminds the agent
+ * to write a journal entry on task completion.
  *
  * Tests the createJournalGateHook factory which:
- *   - Allows TaskUpdate when status is not 'completed'
- *   - Allows TaskUpdate when journal.md has uncommitted changes
- *   - Denies TaskUpdate when journal.md has no uncommitted changes
- *   - Fails open when git errors occur
+ *   - Allows silently when status is not 'completed'
+ *   - Allows with a journal reminder when status is 'completed'
  */
 
 import type { PreToolUseHookInput } from '@anthropic-ai/claude-agent-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createJournalGateHook } from './journal-gate-hook.ts';
-
-// Mock child_process for git commands
-vi.mock('node:child_process', () => ({
-  execFileSync: vi.fn(),
-}));
-
-import { execFileSync } from 'node:child_process';
-
-const mockExecFileSync = vi.mocked(execFileSync);
 
 const WORKTREE_PATH = '/project/.saga/worktrees/auth-setup';
 const STORY_ID = 'auth-setup';
@@ -50,34 +39,31 @@ describe('createJournalGateHook', () => {
     vi.restoreAllMocks();
   });
 
-  it('should allow when status is not completed (in_progress)', async () => {
+  it('should allow without reminder when status is in_progress', async () => {
     const hook = createJournalGateHook(WORKTREE_PATH, STORY_ID);
     const input = makeHookInput({ taskId: 't1', status: 'in_progress' });
     const result = await hook(input, 'tu-1', hookOptions);
 
     expect(result).toEqual({ continue: true });
-    expect(mockExecFileSync).not.toHaveBeenCalled();
   });
 
-  it('should allow when status is not completed (pending)', async () => {
+  it('should allow without reminder when status is pending', async () => {
     const hook = createJournalGateHook(WORKTREE_PATH, STORY_ID);
     const input = makeHookInput({ taskId: 't1', status: 'pending' });
     const result = await hook(input, 'tu-1', hookOptions);
 
     expect(result).toEqual({ continue: true });
-    expect(mockExecFileSync).not.toHaveBeenCalled();
   });
 
-  it('should allow when status is missing', async () => {
+  it('should allow without reminder when status is missing', async () => {
     const hook = createJournalGateHook(WORKTREE_PATH, STORY_ID);
     const input = makeHookInput({ taskId: 't1' });
     const result = await hook(input, 'tu-1', hookOptions);
 
     expect(result).toEqual({ continue: true });
-    expect(mockExecFileSync).not.toHaveBeenCalled();
   });
 
-  it('should allow when tool_input is missing', async () => {
+  it('should allow without reminder when tool_input is missing', async () => {
     const hook = createJournalGateHook(WORKTREE_PATH, STORY_ID);
     const input = {
       session_id: 'test-session',
@@ -90,86 +76,32 @@ describe('createJournalGateHook', () => {
     const result = await hook(input, 'tu-1', hookOptions);
 
     expect(result).toEqual({ continue: true });
-    expect(mockExecFileSync).not.toHaveBeenCalled();
   });
 
-  it('should allow when journal.md has unstaged changes', async () => {
-    // ' M' prefix = unstaged modification
-    mockExecFileSync.mockReturnValue(` M ${JOURNAL_PATH}\n`);
-
-    const hook = createJournalGateHook(WORKTREE_PATH, STORY_ID);
-    const input = makeHookInput({ taskId: 't1', status: 'completed' });
-    const result = await hook(input, 'tu-1', hookOptions);
-
-    expect(result).toEqual({ continue: true });
-    expect(mockExecFileSync).toHaveBeenCalledWith(
-      'git',
-      ['status', '--porcelain', '--', JOURNAL_PATH],
-      expect.objectContaining({ cwd: WORKTREE_PATH }),
-    );
-  });
-
-  it('should allow when journal.md has staged changes', async () => {
-    // 'M ' prefix = staged modification
-    mockExecFileSync.mockReturnValue(`M  ${JOURNAL_PATH}\n`);
-
-    const hook = createJournalGateHook(WORKTREE_PATH, STORY_ID);
-    const input = makeHookInput({ taskId: 't1', status: 'completed' });
-    const result = await hook(input, 'tu-1', hookOptions);
-
-    expect(result).toEqual({ continue: true });
-  });
-
-  it('should allow when journal.md is untracked (new file)', async () => {
-    // '??' prefix = untracked
-    mockExecFileSync.mockReturnValue(`?? ${JOURNAL_PATH}\n`);
-
-    const hook = createJournalGateHook(WORKTREE_PATH, STORY_ID);
-    const input = makeHookInput({ taskId: 't1', status: 'completed' });
-    const result = await hook(input, 'tu-1', hookOptions);
-
-    expect(result).toEqual({ continue: true });
-  });
-
-  it('should deny when journal.md has no uncommitted changes', async () => {
-    // Empty output = no changes
-    mockExecFileSync.mockReturnValue('');
-
+  it('should return reminder when status is completed', async () => {
     const hook = createJournalGateHook(WORKTREE_PATH, STORY_ID);
     const input = makeHookInput({ taskId: 't1', status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
     expect(result).toEqual({
+      continue: true,
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason: expect.stringContaining(JOURNAL_PATH),
+        additionalContext: expect.stringContaining(JOURNAL_PATH),
       },
     });
   });
 
-  it('should include actionable reason in deny output', async () => {
-    mockExecFileSync.mockReturnValue('');
-
+  it('should include actionable reminder text', async () => {
     const hook = createJournalGateHook(WORKTREE_PATH, STORY_ID);
     const input = makeHookInput({ taskId: 't1', status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
     const output = result as {
-      hookSpecificOutput: { permissionDecisionReason: string };
+      continue: boolean;
+      hookSpecificOutput: { additionalContext: string };
     };
-    expect(output.hookSpecificOutput.permissionDecisionReason).toContain('journal');
-  });
-
-  it('should fail open when execFileSync throws', async () => {
-    mockExecFileSync.mockImplementation(() => {
-      throw new Error('git not found');
-    });
-
-    const hook = createJournalGateHook(WORKTREE_PATH, STORY_ID);
-    const input = makeHookInput({ taskId: 't1', status: 'completed' });
-    const result = await hook(input, 'tu-1', hookOptions);
-
-    expect(result).toEqual({ continue: true });
+    expect(output.continue).toBe(true);
+    expect(output.hookSpecificOutput.additionalContext).toContain('completed task');
   });
 });
