@@ -29,3 +29,13 @@
 **Key decisions and deviations:** Extracted semver regex to a top-level `SEMVER_REGEX` constant to satisfy biome's `useTopLevelRegex` rule. Sorted imports alphabetically per biome's `organizeImports` rule.
 
 **Next steps:** Implement config object in `dummy/index.js` (task #implement-config).
+
+## Session: 2026-02-15T09:10:00Z
+
+### Task: implement-config
+
+**What was done:** Added the `config` object export to `dummy/index.js` with `name: 'dummy-project'`, `version: '1.0.0'`, and `debug: false`. All 7 tests pass (3 greet + 4 config).
+
+**Key decisions and deviations:** None. Straightforward implementation matching the test expectations. Had to use `NODE_OPTIONS='--experimental-vm-modules'` when running Jest to support ESM (previous session set up the package.json script but running Jest directly requires the flag).
+
+**Next steps:** Write utility function tests (task #write-utils-tests), then implement utilities.
