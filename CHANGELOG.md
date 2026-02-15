@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-02-15
+
+### Added
+
+- **worker**: Surface git add/commit/push failures to agent via additionalContext for better error recovery
+- **worker**: Surface auto-commit failures to agent via additionalContext
+
+### Fixed
+
+- **plugin**: Use relative path in scope validator to handle nested .saga worktrees
+- **dashboard**: Prevent log viewer text overlap by disabling line wrapping
+
 ## [4.3.0] - 2026-02-15
 
 ### Added

@@ -17,6 +17,20 @@ function runGit(args, cwd) {
     return { success: false, output: stderr };
   }
 }
+function runGitPipeline(steps, cwd) {
+  for (const step of steps) {
+    const result = runGit(step.args, cwd);
+    if (!result.success) {
+      process.stderr.write(`[worker] Auto-commit failed at ${step.name}: ${result.output}
+`);
+      return `Auto-commit failed at \`git ${step.name}\`. Error output:
+${result.output}
+
+${step.recoveryHint}`;
+    }
+  }
+  return void 0;
+}
 function createAutoCommitHook(worktreePath, storyId) {
   return (_input, _toolUseID, _options) => {
     const hookInput = _input;
@@ -27,10 +41,29 @@ function createAutoCommitHook(worktreePath, storyId) {
       return Promise.resolve({ continue: true });
     }
     const commitMessage = `feat(${storyId}): complete ${taskId}`;
+    const fullCommitHint = "Please fix the issues and run `git add . && git commit && git push` manually.";
     try {
-      runGit(["add", "."], worktreePath);
-      runGit(["commit", "-m", commitMessage], worktreePath);
-      runGit(["push"], worktreePath);
+      const error = runGitPipeline(
+        [
+          { name: "add", args: ["add", "."], recoveryHint: fullCommitHint },
+          { name: "commit", args: ["commit", "-m", commitMessage], recoveryHint: fullCommitHint },
+          {
+            name: "push",
+            args: ["push"],
+            recoveryHint: "Please fix the issues and run `git push` manually."
+          }
+        ],
+        worktreePath
+      );
+      if (error) {
+        return Promise.resolve({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "PostToolUse",
+            additionalContext: error
+          }
+        });
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       process.stderr.write(`[worker] Auto-commit git error: ${errorMessage}
