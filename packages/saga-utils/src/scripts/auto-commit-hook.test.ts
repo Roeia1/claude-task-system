@@ -84,6 +84,39 @@ describe('createAutoCommitHook', () => {
     expect(mockExecFileSync).not.toHaveBeenCalled();
   });
 
+  it('should return additionalContext when git add fails', async () => {
+    const addError = 'fatal: not a git repository';
+    mockExecFileSync.mockImplementation((_cmd: unknown, args: unknown) => {
+      const gitArgs = args as string[];
+      if (gitArgs[0] === 'add') {
+        const err = new Error('Command failed') as Error & { stderr: Buffer };
+        err.stderr = Buffer.from(addError);
+        throw err;
+      }
+      return '';
+    });
+
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    const hook = createAutoCommitHook(WORKTREE_PATH, STORY_ID);
+    const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
+    const result = await hook(input, 'tu-1', hookOptions);
+
+    expect(result).toEqual({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: 'PostToolUse',
+        additionalContext: expect.stringContaining(addError),
+      },
+    });
+    expect(
+      (result as { hookSpecificOutput: { additionalContext: string } }).hookSpecificOutput
+        .additionalContext,
+    ).toContain('add');
+
+    stderrSpy.mockRestore();
+  });
+
   it('should return additionalContext when git commit fails', async () => {
     const lintError = 'error: lint check failed\nhook aborted';
     mockExecFileSync.mockImplementation((_cmd: unknown, args: unknown) => {
