@@ -44,6 +44,7 @@ const MINUTES_5_MS = 300_000;
 const MAX_CYCLES_HIGH = 100;
 const DEFAULT_MAX_TIME = 60;
 const DEFAULT_MAX_CYCLES = 10;
+const POST_TOOL_USE_HOOK_COUNT = 3; // sync, auto-commit, task-pacing
 
 /**
  * Create a mock async generator that yields SDK messages.
@@ -138,6 +139,9 @@ function createMockQueryWithAssistant(): ReturnType<typeof query> {
 }
 
 describe('buildPrompt', () => {
+  const testStoryId = 'auth-setup-db';
+  const testWorktreePath = '/project/.saga/worktrees/auth-setup-db';
+
   it('should include all non-empty story metadata fields', () => {
     const meta: StoryMeta = {
       title: 'Auth Setup',
@@ -147,9 +151,9 @@ describe('buildPrompt', () => {
       avoid: 'Do not use sessions',
     };
 
-    const prompt = buildPrompt(meta);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
-    expect(prompt).toContain('You are working on: Auth Setup');
+    expect(prompt).toContain('Auth Setup');
     expect(prompt).toContain('Set up authentication');
     expect(prompt).toContain('Guidance: Use JWT tokens');
     expect(prompt).toContain('Done when: All auth tests pass');
@@ -162,9 +166,9 @@ describe('buildPrompt', () => {
       description: 'Set up authentication',
     };
 
-    const prompt = buildPrompt(meta);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
-    expect(prompt).toContain('You are working on: Auth Setup');
+    expect(prompt).toContain('Auth Setup');
     expect(prompt).toContain('Set up authentication');
     expect(prompt).not.toContain('Guidance:');
     expect(prompt).not.toContain('Done when:');
@@ -177,7 +181,7 @@ describe('buildPrompt', () => {
       description: 'Set up authentication',
     };
 
-    const prompt = buildPrompt(meta);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
     expect(prompt).toContain('TaskList');
     expect(prompt).toContain('TaskGet');
@@ -193,11 +197,62 @@ describe('buildPrompt', () => {
       avoid: undefined,
     };
 
-    const prompt = buildPrompt(meta);
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
 
     expect(prompt).toContain('Done when: Tests pass');
     expect(prompt).not.toContain('Guidance:');
     expect(prompt).not.toContain('Avoid:');
+  });
+
+  it('should include session startup instructions', () => {
+    const meta: StoryMeta = {
+      title: 'Auth Setup',
+      description: 'Set up authentication',
+    };
+
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
+
+    expect(prompt).toContain('Session Startup');
+    expect(prompt).toContain('TaskList');
+    expect(prompt).toContain('git log');
+    expect(prompt).toContain('git status');
+  });
+
+  it('should include TDD workflow instructions', () => {
+    const meta: StoryMeta = {
+      title: 'Auth Setup',
+      description: 'Set up authentication',
+    };
+
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
+
+    expect(prompt).toContain('TDD');
+    expect(prompt).toContain('failing tests FIRST');
+  });
+
+  it('should include context management instructions', () => {
+    const meta: StoryMeta = {
+      title: 'Auth Setup',
+      description: 'Set up authentication',
+    };
+
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
+
+    expect(prompt).toContain('Context Management');
+    expect(prompt).toContain('40-70%');
+    expect(prompt).toContain('exit cleanly and resume');
+  });
+
+  it('should include journal reading step with full path', () => {
+    const meta: StoryMeta = {
+      title: 'Auth Setup',
+      description: 'Set up authentication',
+    };
+
+    const prompt = buildPrompt(meta, testStoryId, testWorktreePath);
+
+    expect(prompt).toContain(`${testWorktreePath}/.saga/stories/${testStoryId}/journal.md`);
+    expect(prompt).toContain('journal');
   });
 });
 
@@ -572,8 +627,10 @@ describe('runHeadlessLoop', () => {
     expect(hooks?.PostToolUse).toBeDefined();
     expect(hooks?.PostToolUse).toHaveLength(1);
     expect(hooks?.PostToolUse?.[0].matcher).toBe('TaskUpdate');
-    expect(hooks?.PostToolUse?.[0].hooks).toHaveLength(1);
+    expect(hooks?.PostToolUse?.[0].hooks).toHaveLength(POST_TOOL_USE_HOOK_COUNT);
     expect(typeof hooks?.PostToolUse?.[0].hooks[0]).toBe('function');
+    expect(typeof hooks?.PostToolUse?.[0].hooks[1]).toBe('function');
+    expect(typeof hooks?.PostToolUse?.[0].hooks[2]).toBe('function');
   });
 
   it('should set SAGA_PROJECT_DIR to worktreePath in query() env', async () => {
