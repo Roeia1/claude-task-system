@@ -178,7 +178,8 @@ function validatePath(
     return 'Access to archive folder blocked\nReason: The archive folder contains completed stories and is read-only during execution.';
   }
 
-  if (!checkStoryAccessById(normPath, scope.storyId)) {
+  const relPath = relative(resolve(worktreePath), resolve(normPath));
+  if (!checkStoryAccessById(relPath, scope.storyId)) {
     return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
   }
 
