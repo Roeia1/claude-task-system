@@ -6,6 +6,8 @@
  * The `subtype` field discriminates between different worker events.
  */
 
+import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
+
 export type SagaWorkerMessage =
   | {
       type: 'saga_worker';
@@ -44,3 +46,6 @@ export type SagaWorkerMessage =
       cycle: number;
       exitCode: number | null;
     };
+
+/** Combined message type for all JSONL worker output (SAGA events + SDK messages) */
+export type WorkerMessage = SagaWorkerMessage | SDKMessage;

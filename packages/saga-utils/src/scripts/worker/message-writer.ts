@@ -7,10 +7,7 @@
 
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
-import type { SagaWorkerMessage } from '../../schemas/index.ts';
-
-export type WorkerMessage = SagaWorkerMessage | SDKMessage;
+import type { WorkerMessage } from '../../schemas/index.ts';
 
 export interface MessageWriter {
   write(message: WorkerMessage): void;

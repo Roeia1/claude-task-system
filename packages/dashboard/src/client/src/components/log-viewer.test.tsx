@@ -664,6 +664,226 @@ Line 3`;
     });
   });
 
+  describe('structured message formatting', () => {
+    it('formats assistant messages with text content blocks', () => {
+      const jsonl = JSON.stringify({
+        type: 'assistant',
+        message: {
+          content: [{ type: 'text', text: 'Hello from the assistant' }],
+        },
+      });
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent={jsonl}
+        />,
+      );
+
+      expect(screen.getByText('Hello from the assistant')).toBeInTheDocument();
+    });
+
+    it('formats assistant messages with tool_use blocks as concise summaries', () => {
+      const jsonl = JSON.stringify({
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              id: 'tool_1',
+              name: 'Bash',
+              input: { command: 'git status' },
+            },
+          ],
+        },
+      });
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent={jsonl}
+        />,
+      );
+
+      expect(screen.getByText('[Tool: Bash] git status')).toBeInTheDocument();
+    });
+
+    it('formats assistant messages with Read tool showing file path', () => {
+      const jsonl = JSON.stringify({
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              id: 'tool_2',
+              name: 'Read',
+              input: { file_path: '/src/index.ts' },
+            },
+          ],
+        },
+      });
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent={jsonl}
+        />,
+      );
+
+      expect(screen.getByText('[Tool: Read] /src/index.ts')).toBeInTheDocument();
+    });
+
+    it('formats user messages with tool_result blocks', () => {
+      const jsonl = JSON.stringify({
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool_1',
+              content: 'On branch main',
+            },
+          ],
+        },
+      });
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent={jsonl}
+        />,
+      );
+
+      expect(screen.getByText('[Result] On branch main')).toBeInTheDocument();
+    });
+
+    it('formats user messages with error tool_result blocks', () => {
+      const jsonl = JSON.stringify({
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool_1',
+              content: 'command not found',
+              is_error: true,
+            },
+          ],
+        },
+      });
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent={jsonl}
+        />,
+      );
+
+      expect(screen.getByText('[Error] command not found')).toBeInTheDocument();
+    });
+
+    it('formats system messages', () => {
+      const jsonl = JSON.stringify({
+        type: 'system',
+        subtype: 'init',
+      });
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent={jsonl}
+        />,
+      );
+
+      expect(screen.getByText('[System] Session initialized')).toBeInTheDocument();
+    });
+
+    it('preserves backward compatibility with string content assistant messages', () => {
+      const jsonl = JSON.stringify({
+        type: 'assistant',
+        content: 'Simple string content',
+      });
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent={jsonl}
+        />,
+      );
+
+      expect(screen.getByText('Simple string content')).toBeInTheDocument();
+    });
+
+    it('applies muted styling to tool-only assistant messages', () => {
+      const jsonl = JSON.stringify({
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              id: 'tool_1',
+              name: 'Bash',
+              input: { command: 'ls' },
+            },
+          ],
+        },
+      });
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent={jsonl}
+        />,
+      );
+
+      const logLine = screen.getByTestId('log-line');
+      expect(logLine).toHaveClass('text-text-muted');
+    });
+
+    it('applies muted styling to user messages', () => {
+      const jsonl = JSON.stringify({
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool_1',
+              content: 'result data',
+            },
+          ],
+        },
+      });
+
+      render(
+        <LogViewer
+          sessionName="test-session"
+          status="completed"
+          outputAvailable={true}
+          initialContent={jsonl}
+        />,
+      );
+
+      const logLine = screen.getByTestId('log-line');
+      expect(logLine).toHaveClass('text-text-muted');
+    });
+  });
+
   describe('edge cases', () => {
     it('handles unmount when WebSocket becomes unavailable', () => {
       const mockSend = vi.fn();
