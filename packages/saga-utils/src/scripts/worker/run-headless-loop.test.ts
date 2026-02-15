@@ -44,6 +44,7 @@ const MINUTES_5_MS = 300_000;
 const MAX_CYCLES_HIGH = 100;
 const DEFAULT_MAX_TIME = 60;
 const DEFAULT_MAX_CYCLES = 10;
+const POST_TOOL_USE_HOOK_COUNT = 3; // sync, auto-commit, task-pacing
 
 /**
  * Create a mock async generator that yields SDK messages.
@@ -626,9 +627,10 @@ describe('runHeadlessLoop', () => {
     expect(hooks?.PostToolUse).toBeDefined();
     expect(hooks?.PostToolUse).toHaveLength(1);
     expect(hooks?.PostToolUse?.[0].matcher).toBe('TaskUpdate');
-    expect(hooks?.PostToolUse?.[0].hooks).toHaveLength(2);
+    expect(hooks?.PostToolUse?.[0].hooks).toHaveLength(POST_TOOL_USE_HOOK_COUNT);
     expect(typeof hooks?.PostToolUse?.[0].hooks[0]).toBe('function');
     expect(typeof hooks?.PostToolUse?.[0].hooks[1]).toBe('function');
+    expect(typeof hooks?.PostToolUse?.[0].hooks[2]).toBe('function');
   });
 
   it('should set SAGA_PROJECT_DIR to worktreePath in query() env', async () => {

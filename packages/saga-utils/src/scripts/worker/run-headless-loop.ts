@@ -12,11 +12,12 @@ import { join } from 'node:path';
 import process from 'node:process';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { createStoryPaths } from '../../directory.ts';
+import { createAutoCommitHook } from '../auto-commit-hook.ts';
 import type { StoryMeta } from '../hydrate/service.ts';
 import { buildWorkerInstructions } from '../prompts/worker-instructions.ts';
 import { createScopeValidatorHook } from '../scope-validator-hook.ts';
 import { createSyncHook } from '../sync-hook.ts';
-import { createTaskCompletionHook } from '../task-completion-hook.ts';
+import { createTaskPacingHook } from '../task-pacing-hook.ts';
 import type { MessageWriter } from './message-writer.ts';
 import { createNoopMessageWriter } from './message-writer.ts';
 
@@ -58,8 +59,8 @@ const SCOPE_TOOL_MATCHER = SCOPE_TOOLS.join('|');
 const PRE_TOOL_USE = 'PreToolUse' as const;
 const POST_TOOL_USE = 'PostToolUse' as const;
 
-// Tools to sync (task status changes)
-const SYNC_TOOL_MATCHER = 'TaskUpdate';
+// PostToolUse matcher for TaskUpdate hooks (sync, auto-commit, task pacing)
+const TASK_UPDATE_MATCHER = 'TaskUpdate';
 
 // ============================================================================
 // Types
@@ -205,10 +206,11 @@ async function spawnHeadlessRun(
           ],
           [POST_TOOL_USE]: [
             {
-              matcher: SYNC_TOOL_MATCHER,
+              matcher: TASK_UPDATE_MATCHER,
               hooks: [
                 createSyncHook(worktreePath, storyId),
-                createTaskCompletionHook(worktreePath, storyId, maxTasksPerSession),
+                createAutoCommitHook(worktreePath, storyId),
+                createTaskPacingHook(worktreePath, storyId, maxTasksPerSession),
               ],
             },
           ],

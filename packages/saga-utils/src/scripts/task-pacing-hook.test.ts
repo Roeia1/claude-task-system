@@ -1,31 +1,19 @@
 /**
- * Tests for task-completion-hook.ts - PostToolUse hook for auto-commit on task completion
+ * Tests for task-pacing-hook.ts - PostToolUse hook for task pacing and journal reminders
  *
- * Tests the createTaskCompletionHook factory which:
- *   - Auto-commits and pushes when a task is marked as completed
+ * Tests the createTaskPacingHook factory which:
  *   - Returns additionalContext with journal reminder and context check guidance
- *   - Handles git failures gracefully
+ *   - Tracks completed task count and signals max tasks reached
  *   - Skips when taskId or status is missing or status is not 'completed'
  */
 
 import type { PostToolUseHookInput } from '@anthropic-ai/claude-agent-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createTaskCompletionHook } from './task-completion-hook.ts';
-
-// Mock child_process for git commands
-vi.mock('node:child_process', () => ({
-  execFileSync: vi.fn(),
-}));
-
-import { execFileSync } from 'node:child_process';
-import process from 'node:process';
-
-const mockExecFileSync = vi.mocked(execFileSync);
+import { createTaskPacingHook } from './task-pacing-hook.ts';
 
 const WORKTREE_PATH = '/project/.saga/worktrees/auth-setup';
 const STORY_ID = 'auth-setup';
 const TASK_ID = 't1';
-const GIT_COMMAND_COUNT = 3; // git add, git commit, git push
 const MAX_TASKS_PER_SESSION = 3;
 
 function makeHookInput(toolInput: Record<string, unknown>): PostToolUseHookInput {
@@ -44,7 +32,7 @@ function makeHookInput(toolInput: Record<string, unknown>): PostToolUseHookInput
 const abortController = new AbortController();
 const hookOptions = { signal: abortController.signal };
 
-describe('createTaskCompletionHook', () => {
+describe('createTaskPacingHook', () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
@@ -54,7 +42,7 @@ describe('createTaskCompletionHook', () => {
   });
 
   it('should return { continue: true } with no hookSpecificOutput when status is not completed', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
+    const hook = createTaskPacingHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'in_progress' });
     const result = await hook(input, 'tu-1', hookOptions);
 
@@ -63,9 +51,7 @@ describe('createTaskCompletionHook', () => {
   });
 
   it('should return additionalContext when status is completed', async () => {
-    mockExecFileSync.mockReturnValue('');
-
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
+    const hook = createTaskPacingHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
@@ -81,9 +67,7 @@ describe('createTaskCompletionHook', () => {
   });
 
   it('should include journal reminder template in additionalContext', async () => {
-    mockExecFileSync.mockReturnValue('');
-
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
+    const hook = createTaskPacingHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
@@ -96,9 +80,7 @@ describe('createTaskCompletionHook', () => {
   });
 
   it('should include context check guidance in additionalContext', async () => {
-    mockExecFileSync.mockReturnValue('');
-
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
+    const hook = createTaskPacingHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
@@ -109,77 +91,49 @@ describe('createTaskCompletionHook', () => {
     expect(ctx).toContain('above the context utilization window');
   });
 
-  it('should run git add, commit, and push when status is completed', async () => {
-    mockExecFileSync.mockReturnValue('');
-
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
+  it('should signal max tasks reached after completing maxTasksPerSession tasks', async () => {
+    const hook = createTaskPacingHook(WORKTREE_PATH, STORY_ID, 2);
     const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
-    await hook(input, 'tu-1', hookOptions);
 
-    const gitCalls = mockExecFileSync.mock.calls.filter((call) => call[0] === 'git');
-    expect(gitCalls).toHaveLength(GIT_COMMAND_COUNT);
-    expect(gitCalls[0][1]).toEqual(['add', '.']);
-    expect(gitCalls[1][1]).toEqual(['commit', '-m', `feat(${STORY_ID}): complete ${TASK_ID}`]);
-    expect(gitCalls[2][1]).toEqual(['push']);
-  });
+    // First completion - not at max
+    const result1 = await hook(input, 'tu-1', hookOptions);
+    const output1 = result1 as { hookSpecificOutput: { additionalContext: string } };
+    expect(output1.hookSpecificOutput.additionalContext).toContain('CONTEXT CHECK');
+    expect(output1.hookSpecificOutput.additionalContext).not.toContain('maximum number of tasks');
 
-  it('should not run git when status is not completed', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
-    const input = makeHookInput({ taskId: TASK_ID, status: 'in_progress' });
-    await hook(input, 'tu-1', hookOptions);
-
-    expect(mockExecFileSync).not.toHaveBeenCalled();
-  });
-
-  it('should handle git failures gracefully and return additionalContext regardless', async () => {
-    mockExecFileSync.mockImplementation(() => {
-      throw new Error('git failed');
-    });
-
-    // Suppress stderr output during test
-    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
-    const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
-    const result = await hook(input, 'tu-1', hookOptions);
-
-    // Should not crash
-    expect(result).toHaveProperty('continue', true);
-    // Should still return additionalContext
-    expect(result).toHaveProperty('hookSpecificOutput.additionalContext');
-
-    stderrSpy.mockRestore();
+    // Second completion - at max
+    const result2 = await hook(input, 'tu-2', hookOptions);
+    const output2 = result2 as { hookSpecificOutput: { additionalContext: string } };
+    expect(output2.hookSpecificOutput.additionalContext).toContain('maximum number of tasks');
+    expect(output2.hookSpecificOutput.additionalContext).not.toContain('CONTEXT CHECK');
   });
 
   it('should skip when taskId is missing', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
+    const hook = createTaskPacingHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
     expect(result).toEqual({ continue: true });
-    expect(mockExecFileSync).not.toHaveBeenCalled();
   });
 
   it('should skip when status is missing', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
+    const hook = createTaskPacingHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID });
     const result = await hook(input, 'tu-1', hookOptions);
 
     expect(result).toEqual({ continue: true });
-    expect(mockExecFileSync).not.toHaveBeenCalled();
   });
 
   it('should skip when status is pending', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
+    const hook = createTaskPacingHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = makeHookInput({ taskId: TASK_ID, status: 'pending' });
     const result = await hook(input, 'tu-1', hookOptions);
 
     expect(result).toEqual({ continue: true });
-    expect(mockExecFileSync).not.toHaveBeenCalled();
   });
 
   it('should handle missing tool_input gracefully', async () => {
-    const hook = createTaskCompletionHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
+    const hook = createTaskPacingHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
     const input = {
       session_id: 'test-session',
       transcript_path: '/tmp/transcript',

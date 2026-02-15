@@ -20,8 +20,7 @@ function buildWorkerInstructions(storyId: string, projectDir: string): string {
 ## Context Management
 - Target 40-70% context utilization per session.
 - After completing a task, assess the next task's complexity against remaining context to decide whether to continue or exit.
-- If context is getting heavy (many tool calls, large file reads), commit current work and exit.
-- It is better to exit cleanly and resume in a new session than to run out of context mid-task.
+- If you are above the context utilization window, commit current work and exit. It is better to exit cleanly and resume in a new session than to run out of context mid-task.
 
 ## Scope Rules
 - Only read and write files within the worktree (your current working directory).

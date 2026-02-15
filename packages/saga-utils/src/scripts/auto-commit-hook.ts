@@ -1,12 +1,10 @@
 /**
- * In-process task completion hook for the Agent SDK.
+ * In-process auto-commit hook for the Agent SDK.
  *
  * PostToolUse hook callback that fires on TaskUpdate. When a task is marked
- * as completed, it auto-commits and pushes changes, then returns
- * additionalContext with a journal reminder and context usage guidance.
+ * as completed, it auto-commits and pushes all changes.
  *
- * Tracks completed task count and signals session end when
- * maxTasksPerSession is reached.
+ * Git failures are logged to stderr but never crash the agent.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -16,7 +14,6 @@ import type {
   HookJSONOutput,
   PostToolUseHookInput,
 } from '@anthropic-ai/claude-agent-sdk';
-import { buildAdditionalContext } from './prompts/task-completion-context.ts';
 
 /**
  * Run a git command in the given cwd. Returns success/failure without throwing.
@@ -38,25 +35,12 @@ function runGit(args: string[], cwd: string): { success: boolean; output: string
 
 /**
  * Create a PostToolUse hook callback that auto-commits and pushes on task
- * completion, and returns additionalContext with a journal reminder.
+ * completion.
  *
- * Tracks how many tasks have been completed in the session. When the count
- * reaches maxTasksPerSession, the additionalContext instructs the agent to
- * finish the session after writing the journal entry.
- *
- * Returns `{ continue: true }` when status is not 'completed'.
- * Returns `{ continue: true, hookSpecificOutput }` with additionalContext
- * when status is 'completed'.
- *
- * Git failures are logged to stderr but never crash the agent.
+ * Returns `{ continue: true }` always. Git failures are logged but never
+ * crash the agent.
  */
-function createTaskCompletionHook(
-  worktreePath: string,
-  storyId: string,
-  maxTasksPerSession: number,
-): HookCallback {
-  let completedCount = 0;
-
+function createAutoCommitHook(worktreePath: string, storyId: string): HookCallback {
   return (_input, _toolUseID, _options): Promise<HookJSONOutput> => {
     const hookInput = _input as PostToolUseHookInput;
     const toolInput = (hookInput.tool_input ?? {}) as Record<string, unknown>;
@@ -69,8 +53,6 @@ function createTaskCompletionHook(
       return Promise.resolve({ continue: true });
     }
 
-    completedCount++;
-
     const commitMessage = `feat(${storyId}): complete ${taskId}`;
 
     // Auto-commit + push (failures logged but never crash)
@@ -80,27 +62,11 @@ function createTaskCompletionHook(
       runGit(['push'], worktreePath);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`[worker] Task completion git error: ${errorMessage}\n`);
+      process.stderr.write(`[worker] Auto-commit git error: ${errorMessage}\n`);
     }
 
-    const maxTasksReached = completedCount >= maxTasksPerSession;
-
-    // Return additionalContext regardless of git success/failure
-    const additionalContext = buildAdditionalContext(
-      worktreePath,
-      storyId,
-      taskId,
-      maxTasksReached,
-    );
-
-    return Promise.resolve({
-      continue: true,
-      hookSpecificOutput: {
-        hookEventName: 'PostToolUse' as const,
-        additionalContext,
-      },
-    });
+    return Promise.resolve({ continue: true });
   };
 }
 
-export { createTaskCompletionHook };
+export { createAutoCommitHook };
