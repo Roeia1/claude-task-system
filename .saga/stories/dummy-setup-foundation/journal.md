@@ -9,3 +9,13 @@
 **Key decisions and deviations:** Used Jest from `packages/statusline/node_modules/.bin/jest` since npm/pnpm registry access is blocked and Jest is already available in the monorepo. Created a local jest.config.js for the dummy module.
 
 **Next steps:** Implement `dummy/index.js` with the `greet` function to make tests pass (task #implement-foundation).
+
+## Session: 2026-02-15T09:00:00Z
+
+### Task: implement-foundation
+
+**What was done:** Created `dummy/index.js` with the `greet(name)` function that returns `Hello, ${name || 'Dummy'}!`. Used ESM export syntax to match project conventions. All 3 foundation tests pass.
+
+**Key decisions and deviations:** Kept implementation minimal as instructed. The config object (also mentioned in the task description) will be added in the #implement-config task. Converted test file and jest config from CommonJS to ESM (`.mjs`) to satisfy biome's `noCommonJs` lint rule. Added `dummy/package.json` with `"type": "module"` for ESM support.
+
+**Next steps:** Write config object tests (task #write-config-tests), then implement config object.

@@ -3,7 +3,7 @@
   "subject": "Implement foundation module",
   "description": "Create `dummy/index.js` with:\n\n1. A `greet(name)` function that returns `Hello, ${name || 'Dummy'}!`\n2. Export the function as a named export\n3. Add a `config` object with `name` and `version` fields",
   "activeForm": "Implementing foundation module",
-  "status": "pending",
+  "status": "completed",
   "blockedBy": [
     "write-foundation-tests"
   ],
