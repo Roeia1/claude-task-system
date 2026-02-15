@@ -3,7 +3,7 @@
  * These match the API responses from the backend server
  */
 
-import type { SagaWorkerMessage } from '@saga-ai/utils';
+import type { WorkerMessage as SdkWorkerMessage } from '@saga-ai/utils';
 
 /** Session status values */
 export type SessionStatus = 'running' | 'completed';
@@ -98,25 +98,14 @@ export interface Epic extends EpicSummary {
 /** Re-export SagaWorkerMessage from @saga-ai/utils */
 export type { SagaWorkerMessage } from '@saga-ai/utils';
 
-/** Text message (from raw non-JSON log lines) */
+/** Text message (from raw non-JSON log lines parsed by the dashboard) */
 export interface TextMessage {
   type: 'text';
   content: string;
 }
 
-/** SDK assistant message (simplified for display) */
-export interface AssistantMessage {
-  type: 'assistant';
-  message?: { content?: unknown; [key: string]: unknown };
-  content?: string;
-}
-
-/** SDK result message (simplified for display) */
-export interface ResultMessage {
-  type: 'result';
-  subtype?: string;
-  result?: string;
-}
-
-/** Worker message from JSONL log output */
-export type WorkerMessage = TextMessage | SagaWorkerMessage | AssistantMessage | ResultMessage;
+/**
+ * Log message displayed in the LogViewer.
+ * Combines SDK worker messages (from JSONL) with dashboard-specific text messages.
+ */
+export type LogMessage = TextMessage | SdkWorkerMessage;

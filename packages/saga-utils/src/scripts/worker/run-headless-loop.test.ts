@@ -15,8 +15,9 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { WorkerMessage } from '../../schemas/index.ts';
 import type { StoryMeta } from '../hydrate/service.ts';
-import type { MessageWriter, WorkerMessage } from './message-writer.ts';
+import type { MessageWriter } from './message-writer.ts';
 import { buildPrompt, checkAllTasksCompleted, runHeadlessLoop } from './run-headless-loop.ts';
 
 // Mock Agent SDK

@@ -29,6 +29,7 @@ export {
   EpicChildSchema,
   EpicSchema,
   type SagaWorkerMessage,
+  type SDKMessage,
   type Session,
   SessionSchema,
   type SessionStatus,
@@ -40,6 +41,7 @@ export {
   TaskSchema,
   type TaskStatus,
   TaskStatusSchema,
+  type WorkerMessage,
 } from './schemas/index.ts';
 
 // Storage utilities
