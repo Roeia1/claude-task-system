@@ -1,8 +1,8 @@
 /**
- * Tests for task-pacing-hook.ts - PostToolUse hook for task pacing and journal reminders
+ * Tests for task-pacing-hook.ts - PostToolUse hook for task pacing
  *
  * Tests the createTaskPacingHook factory which:
- *   - Returns additionalContext with journal reminder and context check guidance
+ *   - Returns additionalContext with context check guidance
  *   - Tracks completed task count and signals max tasks reached
  *   - Skips when taskId or status is missing or status is not 'completed'
  */
@@ -61,22 +61,7 @@ describe('createTaskPacingHook', () => {
 
     const output = result as { hookSpecificOutput: { additionalContext: string } };
     const ctx = output.hookSpecificOutput.additionalContext;
-    expect(ctx).toContain('completed');
-    expect(ctx).toContain('journal');
     expect(ctx).toContain('CONTEXT CHECK');
-  });
-
-  it('should include journal reminder template in additionalContext', async () => {
-    const hook = createTaskPacingHook(WORKTREE_PATH, STORY_ID, MAX_TASKS_PER_SESSION);
-    const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
-    const result = await hook(input, 'tu-1', hookOptions);
-
-    const output = result as { hookSpecificOutput: { additionalContext: string } };
-    const ctx = output.hookSpecificOutput.additionalContext;
-    expect(ctx).toContain(`${WORKTREE_PATH}/.saga/stories/${STORY_ID}/journal.md`);
-    expect(ctx).toContain('**What was done:**');
-    expect(ctx).toContain('**Decisions and deviations:**');
-    expect(ctx).toContain('**Next steps:**');
   });
 
   it('should include context check guidance in additionalContext', async () => {

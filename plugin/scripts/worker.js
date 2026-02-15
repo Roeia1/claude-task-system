@@ -4423,7 +4423,7 @@ function createNoopMessageWriter() {
 }
 
 // src/scripts/worker/run-headless-loop.ts
-import { execFileSync as execFileSync4 } from "node:child_process";
+import { execFileSync as execFileSync5 } from "node:child_process";
 import { readdirSync as readdirSync3, readFileSync as readFileSync4 } from "node:fs";
 import { join as join4 } from "node:path";
 import process7 from "node:process";
@@ -13263,6 +13263,20 @@ function runGit(args, cwd) {
     return { success: false, output: stderr };
   }
 }
+function runGitPipeline(steps, cwd) {
+  for (const step of steps) {
+    const result = runGit(step.args, cwd);
+    if (!result.success) {
+      process6.stderr.write(`[worker] Auto-commit failed at ${step.name}: ${result.output}
+`);
+      return `Auto-commit failed at \`git ${step.name}\`. Error output:
+${result.output}
+
+${step.recoveryHint}`;
+    }
+  }
+  return void 0;
+}
 function createAutoCommitHook(worktreePath, storyId) {
   return (_input, _toolUseID, _options) => {
     const hookInput = _input;
@@ -13273,33 +13287,102 @@ function createAutoCommitHook(worktreePath, storyId) {
       return Promise.resolve({ continue: true });
     }
     const commitMessage = `feat(${storyId}): complete ${taskId}`;
+    const fullCommitHint = "Please fix the issues and run `git add . && git commit && git push` manually.";
     try {
-      runGit(["add", "."], worktreePath);
-      runGit(["commit", "-m", commitMessage], worktreePath);
-      runGit(["push"], worktreePath);
+      const error = runGitPipeline(
+        [
+          { name: "add", args: ["add", "."], recoveryHint: fullCommitHint },
+          { name: "commit", args: ["commit", "-m", commitMessage], recoveryHint: fullCommitHint },
+          {
+            name: "push",
+            args: ["push"],
+            recoveryHint: "Please fix the issues and run `git push` manually."
+          }
+        ],
+        worktreePath
+      );
+      if (error) {
+        return Promise.resolve({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "PostToolUse",
+            additionalContext: error
+          }
+        });
+      }
+      return Promise.resolve({
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: "PostToolUse",
+          additionalContext: "Changes committed and pushed."
+        }
+      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       process6.stderr.write(`[worker] Auto-commit git error: ${errorMessage}
 `);
+      return Promise.resolve({ continue: true });
     }
-    return Promise.resolve({ continue: true });
+  };
+}
+
+// src/scripts/journal-gate-hook.ts
+import { execFileSync as execFileSync4 } from "node:child_process";
+function createJournalGateHook(worktreePath, storyId) {
+  const { journalMd } = createStoryPaths(worktreePath, storyId);
+  return (_input, _toolUseID, _options) => {
+    const hookInput = _input;
+    const toolInput = hookInput.tool_input ?? {};
+    const status = toolInput.status;
+    if (status !== "completed") {
+      return Promise.resolve({ continue: true });
+    }
+    try {
+      const output = execFileSync4("git", ["status", "--porcelain", "--", journalMd], {
+        cwd: worktreePath,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"]
+      });
+      if (output.trim().length > 0) {
+        return Promise.resolve({ continue: true });
+      }
+      return Promise.resolve({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: `Write a journal entry to ${journalMd} before marking the task as completed.`
+        }
+      });
+    } catch {
+      return Promise.resolve({ continue: true });
+    }
   };
 }
 
 // src/scripts/prompts/worker-instructions.ts
 function buildWorkerInstructions(storyId, projectDir) {
-  const journalPath = `${projectDir}/.saga/stories/${storyId}/journal.md`;
+  const { journalMd, storyDir } = createStoryPaths(projectDir, storyId);
   return `# Worker Instructions
 
 ## Session Startup
 1. Run TaskList to see available tasks and their status.
 2. Run \`git log -5 --oneline && git status\` to understand the current state of the branch.
-3. Read the last entries of the journal at \`${journalPath}\` to understand what was done in previous sessions.
+3. Read the last entries of the journal at \`${journalMd}\` to understand what was done in previous sessions.
 4. Run existing tests to establish a baseline before making changes.
 
 ## TDD Workflow
 - Write failing tests FIRST, then implement until they pass.
 - After implementation, run the full test suite to verify no regressions.
+
+## Journal Writing
+- After completing each task's implementation and before marking the task as completed, write a journal entry to \`${journalMd}\`.
+- Each entry must include:
+  - \`## Session: <ISO timestamp>\`
+  - \`### Task: <taskId>\`
+  - \`**What was done:**\` summary of implementation
+  - \`**Decisions and deviations:**\` any notable choices
+  - \`**Next steps:**\` what should happen next
+- The TaskUpdate to \`status: "completed"\` will be blocked if journal.md has no uncommitted changes.
 
 ## Context Management
 - Target 40-70% context utilization per session.
@@ -13308,7 +13391,7 @@ function buildWorkerInstructions(storyId, projectDir) {
 
 ## Scope Rules
 - Only read and write files within the worktree (your current working directory).
-- Only modify SAGA files in \`${projectDir}/.saga/stories/${storyId}/\` (journal, task files).
+- Only modify SAGA files in \`${storyDir}/\` (journal, task files).
 - Do not access files outside your worktree or other stories' directories.
 `;
 }
@@ -13393,7 +13476,8 @@ function validatePath(filePath, worktreePath, scope, toolName) {
   if (isArchiveAccess(normPath)) {
     return "Access to archive folder blocked\nReason: The archive folder contains completed stories and is read-only during execution.";
   }
-  if (!checkStoryAccessById(normPath, scope.storyId)) {
+  const relPath = relative(resolve(worktreePath), resolve(normPath));
+  if (!checkStoryAccessById(relPath, scope.storyId)) {
     return "Access to other story blocked\nReason: Workers can only access their assigned story's files.";
   }
   if (toolName && WRITE_TOOLS.has(toolName) && isSagaPath(normPath, worktreePath) && !isJournalPath(normPath, worktreePath, scope.storyId)) {
@@ -13450,37 +13534,20 @@ function createSyncHook(worktreePath, storyId) {
   };
 }
 
-// src/scripts/prompts/task-completion-context.ts
-function buildAdditionalContext(projectDir, storyId, taskId, maxTasksReached) {
-  const journalPath = `${projectDir}/.saga/stories/${storyId}/journal.md`;
-  const lines = [
-    `Task "${taskId}" completed. Changes committed and pushed.`,
-    "",
-    `REQUIRED: Write a journal entry to ${journalPath}:`,
-    `## Session: ${(/* @__PURE__ */ new Date()).toISOString()}`,
-    `### Task: ${taskId}`,
-    "**What was done:** ...",
-    "**Decisions and deviations:** ...",
-    "**Next steps:** ..."
-  ];
+// src/scripts/prompts/task-pacing-context.ts
+function buildTaskPacingContext(maxTasksReached) {
   if (maxTasksReached) {
-    lines.push(
-      "",
-      "You have completed the maximum number of tasks for this session. Finish the session after writing the journal entry."
-    );
-  } else {
-    lines.push(
-      "",
-      "CONTEXT CHECK: Target 40-70% context utilization per session.",
-      "- Assess the next task and decide whether to implement it based on remaining context. Aim to stay within the utilization window.",
-      "- If you are above the context utilization window, commit, push, and finish the session."
-    );
+    return "You have completed the maximum number of tasks for this session. Finish the session.";
   }
-  return lines.join("\n");
+  return [
+    "CONTEXT CHECK: Target 40-70% context utilization per session.",
+    "- Assess the next task and decide whether to implement it based on remaining context. Aim to stay within the utilization window.",
+    "- If you are above the context utilization window, commit, push, and finish the session."
+  ].join("\n");
 }
 
 // src/scripts/task-pacing-hook.ts
-function createTaskPacingHook(worktreePath, storyId, maxTasksPerSession) {
+function createTaskPacingHook(_worktreePath, _storyId, maxTasksPerSession) {
   let completedCount = 0;
   return (_input, _toolUseID, _options) => {
     const hookInput = _input;
@@ -13492,12 +13559,7 @@ function createTaskPacingHook(worktreePath, storyId, maxTasksPerSession) {
     }
     completedCount++;
     const maxTasksReached = completedCount >= maxTasksPerSession;
-    const additionalContext = buildAdditionalContext(
-      worktreePath,
-      storyId,
-      taskId,
-      maxTasksReached
-    );
+    const additionalContext = buildTaskPacingContext(maxTasksReached);
     return Promise.resolve({
       continue: true,
       hookSpecificOutput: {
@@ -13522,7 +13584,7 @@ var ENV_STORY_TASK_LIST_ID = "SAGA_STORY_TASK_LIST_ID";
 var ENV_CLAUDECODE = "CLAUDECODE";
 function resolveClaudeBinary() {
   try {
-    return execFileSync4("which", ["claude"], { encoding: "utf-8" }).trim();
+    return execFileSync5("which", ["claude"], { encoding: "utf-8" }).trim();
   } catch {
     throw new Error("Could not find `claude` binary. Ensure Claude Code is installed and on PATH.");
   }
@@ -13602,6 +13664,10 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
             {
               matcher: SCOPE_TOOL_MATCHER,
               hooks: [createScopeValidatorHook(worktreePath, storyId)]
+            },
+            {
+              matcher: TASK_UPDATE_MATCHER,
+              hooks: [createJournalGateHook(worktreePath, storyId)]
             }
           ],
           [POST_TOOL_USE]: [
@@ -13737,13 +13803,13 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
 }
 
 // src/scripts/worker/setup-worktree.ts
-import { execFileSync as execFileSync5 } from "node:child_process";
+import { execFileSync as execFileSync6 } from "node:child_process";
 import { existsSync as existsSync4, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
 import { dirname as dirname2 } from "node:path";
 import process8 from "node:process";
 function runGit2(args, cwd) {
   try {
-    const output = execFileSync5("git", args, {
+    const output = execFileSync6("git", args, {
       cwd,
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"]

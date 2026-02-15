@@ -4,7 +4,8 @@
  * PostToolUse hook callback that fires on TaskUpdate. When a task is marked
  * as completed, it auto-commits and pushes all changes.
  *
- * Git failures are logged to stderr but never crash the agent.
+ * Git failures are logged to stderr and surfaced to the agent via
+ * additionalContext so it can fix issues and retry manually.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -33,12 +34,35 @@ function runGit(args: string[], cwd: string): { success: boolean; output: string
   }
 }
 
+interface GitStep {
+  name: string;
+  args: string[];
+  recoveryHint: string;
+}
+
+/**
+ * Run the add/commit/push pipeline. Returns an additionalContext string on
+ * failure, or undefined on success.
+ */
+function runGitPipeline(steps: GitStep[], cwd: string): string | undefined {
+  for (const step of steps) {
+    const result = runGit(step.args, cwd);
+    if (!result.success) {
+      process.stderr.write(`[worker] Auto-commit failed at ${step.name}: ${result.output}\n`);
+      return `Auto-commit failed at \`git ${step.name}\`. Error output:\n${result.output}\n\n${step.recoveryHint}`;
+    }
+  }
+  return undefined;
+}
+
 /**
  * Create a PostToolUse hook callback that auto-commits and pushes on task
  * completion.
  *
- * Returns `{ continue: true }` always. Git failures are logged but never
- * crash the agent.
+ * On success, returns `{ continue: true, hookSpecificOutput }` with
+ * additionalContext confirming the commit and push.
+ * On failure, returns `{ continue: true, hookSpecificOutput }` with
+ * additionalContext describing the error so the agent can fix and retry.
  */
 function createAutoCommitHook(worktreePath: string, storyId: string): HookCallback {
   return (_input, _toolUseID, _options): Promise<HookJSONOutput> => {
@@ -54,18 +78,45 @@ function createAutoCommitHook(worktreePath: string, storyId: string): HookCallba
     }
 
     const commitMessage = `feat(${storyId}): complete ${taskId}`;
+    const fullCommitHint =
+      'Please fix the issues and run `git add . && git commit && git push` manually.';
 
-    // Auto-commit + push (failures logged but never crash)
     try {
-      runGit(['add', '.'], worktreePath);
-      runGit(['commit', '-m', commitMessage], worktreePath);
-      runGit(['push'], worktreePath);
+      const error = runGitPipeline(
+        [
+          { name: 'add', args: ['add', '.'], recoveryHint: fullCommitHint },
+          { name: 'commit', args: ['commit', '-m', commitMessage], recoveryHint: fullCommitHint },
+          {
+            name: 'push',
+            args: ['push'],
+            recoveryHint: 'Please fix the issues and run `git push` manually.',
+          },
+        ],
+        worktreePath,
+      );
+
+      if (error) {
+        return Promise.resolve({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: 'PostToolUse' as const,
+            additionalContext: error,
+          },
+        });
+      }
+      // Success
+      return Promise.resolve({
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: 'PostToolUse' as const,
+          additionalContext: 'Changes committed and pushed.',
+        },
+      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       process.stderr.write(`[worker] Auto-commit git error: ${errorMessage}\n`);
+      return Promise.resolve({ continue: true });
     }
-
-    return Promise.resolve({ continue: true });
   };
 }
 

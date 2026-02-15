@@ -3,7 +3,7 @@ pre-commit:
   jobs:
     - name: biome
       glob: "*.{ts,tsx,js,jsx,json}"
-      run: npx biome check --no-errors-on-unmatched {staged_files}
+      run: npx biome check --write --no-errors-on-unmatched {staged_files} && git add {staged_files} && npx biome check --no-errors-on-unmatched {staged_files}
 
     - name: no-biome-ignore
       glob: "*.{ts,tsx,js,jsx}"

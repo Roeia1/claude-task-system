@@ -342,6 +342,29 @@ describe('scope-validator', () => {
         expect(result).toContain('.saga write blocked');
       });
 
+      it('should allow journal write when worktree path contains .saga segment', () => {
+        // Bug fix: worktree at /project/.saga/worktrees/my-story means the absolute
+        // path has two .saga segments. checkStoryAccessById must use the relative path.
+        expect(
+          validatePath(
+            '/project/.saga/worktrees/my-story/.saga/stories/my-story/journal.md',
+            '/project/.saga/worktrees/my-story',
+            { storyId: 'my-story' },
+            'Write',
+          ),
+        ).toBeNull();
+      });
+
+      it('should block other story access when worktree path contains .saga segment', () => {
+        const result = validatePath(
+          '/project/.saga/worktrees/my-story/.saga/stories/other-story/journal.md',
+          '/project/.saga/worktrees/my-story',
+          { storyId: 'my-story' },
+          'Write',
+        );
+        expect(result).toContain('Access to other story blocked');
+      });
+
       it('should still work without toolName (backward compat)', () => {
         expect(
           validatePath(
