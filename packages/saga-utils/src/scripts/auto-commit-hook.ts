@@ -59,9 +59,10 @@ function runGitPipeline(steps: GitStep[], cwd: string): string | undefined {
  * Create a PostToolUse hook callback that auto-commits and pushes on task
  * completion.
  *
- * Returns `{ continue: true }` on success. On git add/commit/push failure,
- * returns `{ continue: true, hookSpecificOutput }` with additionalContext
- * describing the error so the agent can fix and retry.
+ * On success, returns `{ continue: true, hookSpecificOutput }` with
+ * additionalContext confirming the commit and push.
+ * On failure, returns `{ continue: true, hookSpecificOutput }` with
+ * additionalContext describing the error so the agent can fix and retry.
  */
 function createAutoCommitHook(worktreePath: string, storyId: string): HookCallback {
   return (_input, _toolUseID, _options): Promise<HookJSONOutput> => {
@@ -103,12 +104,19 @@ function createAutoCommitHook(worktreePath: string, storyId: string): HookCallba
           },
         });
       }
+      // Success
+      return Promise.resolve({
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: 'PostToolUse' as const,
+          additionalContext: 'Changes committed and pushed.',
+        },
+      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       process.stderr.write(`[worker] Auto-commit git error: ${errorMessage}\n`);
+      return Promise.resolve({ continue: true });
     }
-
-    return Promise.resolve({ continue: true });
   };
 }
 

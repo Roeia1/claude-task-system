@@ -47,7 +47,7 @@ function createTaskPacingHook(
 
     const maxTasksReached = completedCount >= maxTasksPerSession;
 
-    const additionalContext = buildTaskPacingContext(taskId, maxTasksReached);
+    const additionalContext = buildTaskPacingContext(maxTasksReached);
 
     return Promise.resolve({
       continue: true,

@@ -61,7 +61,6 @@ describe('createTaskPacingHook', () => {
 
     const output = result as { hookSpecificOutput: { additionalContext: string } };
     const ctx = output.hookSpecificOutput.additionalContext;
-    expect(ctx).toContain('completed');
     expect(ctx).toContain('CONTEXT CHECK');
   });
 

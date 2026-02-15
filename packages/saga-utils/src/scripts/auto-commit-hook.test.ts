@@ -65,15 +65,20 @@ describe('createAutoCommitHook', () => {
     expect(gitCalls[2][1]).toEqual(['push']);
   });
 
-  it('should return { continue: true } with no hookSpecificOutput', async () => {
+  it('should return additionalContext confirming commit on success', async () => {
     mockExecFileSync.mockReturnValue('');
 
     const hook = createAutoCommitHook(WORKTREE_PATH, STORY_ID);
     const input = makeHookInput({ taskId: TASK_ID, status: 'completed' });
     const result = await hook(input, 'tu-1', hookOptions);
 
-    expect(result).toEqual({ continue: true });
-    expect(result).not.toHaveProperty('hookSpecificOutput');
+    expect(result).toEqual({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: 'PostToolUse',
+        additionalContext: 'Changes committed and pushed.',
+      },
+    });
   });
 
   it('should not run git when status is not completed', async () => {
