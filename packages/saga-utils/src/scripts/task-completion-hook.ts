@@ -13,6 +13,7 @@ import type {
   HookJSONOutput,
   PostToolUseHookInput,
 } from '@anthropic-ai/claude-agent-sdk';
+import { buildAdditionalContext } from './prompts/task-completion-context.ts';
 
 /**
  * Run a git command in the given cwd. Returns success/failure without throwing.
@@ -30,26 +31,6 @@ function runGit(args: string[], cwd: string): { success: boolean; output: string
     const stderr = execError.stderr?.toString().trim() || execError.message || String(error);
     return { success: false, output: stderr };
   }
-}
-
-/**
- * Build the additionalContext string returned after a task is completed.
- */
-function buildAdditionalContext(storyId: string, taskId: string): string {
-  return [
-    `Task "${taskId}" completed. Changes committed and pushed.`,
-    '',
-    `REQUIRED: Write a journal entry to .saga/stories/${storyId}/journal.md:`,
-    `## Session: ${new Date().toISOString()}`,
-    `### Task: ${taskId}`,
-    '**What was done:** ...',
-    '**Decisions:** ...',
-    '**Next steps:** ...',
-    '',
-    'CONTEXT CHECK: Target 40-70% context utilization per session.',
-    '- If you have capacity, pick up the next unblocked task from TaskList.',
-    '- If context is getting heavy, commit any remaining work and exit.',
-  ].join('\n');
 }
 
 /**
