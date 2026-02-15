@@ -1,29 +1,19 @@
 /**
  * Additional context returned to the agent after a task is marked completed.
- * Includes journal reminder and context usage guidance.
+ * Includes context usage guidance and max-tasks signaling.
  */
 function buildAdditionalContext(
-  projectDir: string,
-  storyId: string,
+  _projectDir: string,
+  _storyId: string,
   taskId: string,
   maxTasksReached: boolean,
 ): string {
-  const journalPath = `${projectDir}/.saga/stories/${storyId}/journal.md`;
-  const lines = [
-    `Task "${taskId}" completed. Changes committed and pushed.`,
-    '',
-    `REQUIRED: Write a journal entry to ${journalPath}:`,
-    `## Session: ${new Date().toISOString()}`,
-    `### Task: ${taskId}`,
-    '**What was done:** ...',
-    '**Decisions and deviations:** ...',
-    '**Next steps:** ...',
-  ];
+  const lines = [`Task "${taskId}" completed. Changes committed and pushed.`];
 
   if (maxTasksReached) {
     lines.push(
       '',
-      'You have completed the maximum number of tasks for this session. Finish the session after writing the journal entry.',
+      'You have completed the maximum number of tasks for this session. Finish the session.',
     );
   } else {
     lines.push(

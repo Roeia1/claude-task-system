@@ -606,12 +606,27 @@ describe('runHeadlessLoop', () => {
     const hooks = queryArgs.options?.hooks;
     expect(hooks).toBeDefined();
     expect(hooks?.PreToolUse).toBeDefined();
-    expect(hooks?.PreToolUse).toHaveLength(1);
+    expect(hooks?.PreToolUse).toHaveLength(2);
     expect(hooks?.PreToolUse?.[0].matcher).toBe(
       ['Read', 'Write', 'Edit', 'Glob', 'Grep'].join('|'),
     );
     expect(hooks?.PreToolUse?.[0].hooks).toHaveLength(1);
     expect(typeof hooks?.PreToolUse?.[0].hooks[0]).toBe('function');
+  });
+
+  it('should wire journal gate hook into PreToolUse for TaskUpdate', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
+
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
+
+    const queryArgs = mockQuery.mock.calls[0][0];
+    const hooks = queryArgs.options?.hooks;
+    expect(hooks?.PreToolUse?.[1].matcher).toBe('TaskUpdate');
+    expect(hooks?.PreToolUse?.[1].hooks).toHaveLength(1);
+    expect(typeof hooks?.PreToolUse?.[1].hooks[0]).toBe('function');
   });
 
   it('should wire sync hook into PostToolUse for TaskUpdate', async () => {

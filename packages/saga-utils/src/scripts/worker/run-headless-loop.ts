@@ -14,6 +14,7 @@ import { query } from '@anthropic-ai/claude-agent-sdk';
 import { createStoryPaths } from '../../directory.ts';
 import { createAutoCommitHook } from '../auto-commit-hook.ts';
 import type { StoryMeta } from '../hydrate/service.ts';
+import { createJournalGateHook } from '../journal-gate-hook.ts';
 import { buildWorkerInstructions } from '../prompts/worker-instructions.ts';
 import { createScopeValidatorHook } from '../scope-validator-hook.ts';
 import { createSyncHook } from '../sync-hook.ts';
@@ -202,6 +203,10 @@ async function spawnHeadlessRun(
             {
               matcher: SCOPE_TOOL_MATCHER,
               hooks: [createScopeValidatorHook(worktreePath, storyId)],
+            },
+            {
+              matcher: TASK_UPDATE_MATCHER,
+              hooks: [createJournalGateHook(worktreePath, storyId)],
             },
           ],
           [POST_TOOL_USE]: [

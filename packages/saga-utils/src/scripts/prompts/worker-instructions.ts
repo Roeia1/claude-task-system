@@ -17,6 +17,16 @@ function buildWorkerInstructions(storyId: string, projectDir: string): string {
 - Write failing tests FIRST, then implement until they pass.
 - After implementation, run the full test suite to verify no regressions.
 
+## Journal Writing
+- After completing each task's implementation and before marking the task as completed, write a journal entry to \`${journalPath}\`.
+- Each entry must include:
+  - \`## Session: <ISO timestamp>\`
+  - \`### Task: <taskId>\`
+  - \`**What was done:**\` summary of implementation
+  - \`**Decisions and deviations:**\` any notable choices
+  - \`**Next steps:**\` what should happen next
+- The TaskUpdate to \`status: "completed"\` will be blocked if journal.md has no uncommitted changes.
+
 ## Context Management
 - Target 40-70% context utilization per session.
 - After completing a task, assess the next task's complexity against remaining context to decide whether to continue or exit.
