@@ -1,4 +1,6 @@
-import { greet } from '../index.js';
+import { config, greet } from '../index.js';
+
+const SEMVER_REGEX = /^\d+\.\d+\.\d+$/;
 
 describe('greet', () => {
   test('greet is a function', () => {
@@ -15,5 +17,26 @@ describe('greet', () => {
     const result = greet();
     expect(typeof result).toBe('string');
     expect(result.length).toBeGreaterThan(0);
+  });
+});
+
+describe('config', () => {
+  test('config is exported and is an object', () => {
+    expect(config).toBeDefined();
+    expect(typeof config).toBe('object');
+  });
+
+  test('config.name equals "dummy-project"', () => {
+    expect(config.name).toBe('dummy-project');
+  });
+
+  test('config.version is a string matching semver format', () => {
+    expect(typeof config.version).toBe('string');
+    expect(config.version).toMatch(SEMVER_REGEX);
+  });
+
+  test('config.debug is a boolean defaulting to false', () => {
+    expect(typeof config.debug).toBe('boolean');
+    expect(config.debug).toBe(false);
   });
 });
