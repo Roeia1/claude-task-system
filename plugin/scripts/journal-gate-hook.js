@@ -1,8 +1,5 @@
 #!/usr/bin/env node
 
-// src/scripts/journal-gate-hook.ts
-import { execFileSync } from "node:child_process";
-
 // src/directory.ts
 function normalizeRoot(projectRoot) {
   return projectRoot.endsWith("/") ? projectRoot.slice(0, -1) : projectRoot;
@@ -37,28 +34,17 @@ function createJournalGateHook(worktreePath, storyId) {
     const hookInput = _input;
     const toolInput = hookInput.tool_input ?? {};
     const status = toolInput.status;
+    const taskId = toolInput.taskId;
     if (status !== "completed") {
       return Promise.resolve({ continue: true });
     }
-    try {
-      const output = execFileSync("git", ["status", "--porcelain", "--", journalMd], {
-        cwd: worktreePath,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"]
-      });
-      if (output.trim().length > 0) {
-        return Promise.resolve({ continue: true });
+    return Promise.resolve({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        additionalContext: `Reminder: if you haven't already, write a journal entry to ${journalMd} with the structure instructed earlier for the "${taskId}" completed task.`
       }
-      return Promise.resolve({
-        hookSpecificOutput: {
-          hookEventName: "PreToolUse",
-          permissionDecision: "deny",
-          permissionDecisionReason: `Write a journal entry to ${journalMd} before marking the task as completed.`
-        }
-      });
-    } catch {
-      return Promise.resolve({ continue: true });
-    }
+    });
   };
 }
 export {
