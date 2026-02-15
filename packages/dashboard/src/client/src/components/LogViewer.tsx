@@ -200,7 +200,7 @@ function VirtualizedLogContent({
               key={virtualItem.key}
               data-testid="log-line"
               data-index={virtualItem.index}
-              className={`leading-relaxed ${msg ? getMessageClass(msg) : 'text-text'}`}
+              className={`leading-relaxed whitespace-nowrap ${msg ? getMessageClass(msg) : 'text-text'}`}
               style={{ height: `${ESTIMATED_LINE_HEIGHT}px` }}
             >
               {msg ? formatMessage(msg) : '\u00A0'}
