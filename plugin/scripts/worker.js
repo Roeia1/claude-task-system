@@ -4423,6 +4423,7 @@ function createNoopMessageWriter() {
 }
 
 // src/scripts/worker/run-headless-loop.ts
+import { execFileSync as execFileSync4 } from "node:child_process";
 import { readdirSync as readdirSync3, readFileSync as readFileSync4 } from "node:fs";
 import { join as join4 } from "node:path";
 import process7 from "node:process";
@@ -13245,32 +13246,76 @@ function Qx({ prompt: X, options: Q }) {
   return K7;
 }
 
+// src/scripts/auto-commit-hook.ts
+import { execFileSync as execFileSync3 } from "node:child_process";
+import process6 from "node:process";
+function runGit(args, cwd) {
+  try {
+    const output = execFileSync3("git", args, {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    return { success: true, output: output.trim() };
+  } catch (error) {
+    const execError = error;
+    const stderr = execError.stderr?.toString().trim() || execError.message || String(error);
+    return { success: false, output: stderr };
+  }
+}
+function createAutoCommitHook(worktreePath, storyId) {
+  return (_input, _toolUseID, _options) => {
+    const hookInput = _input;
+    const toolInput = hookInput.tool_input ?? {};
+    const taskId = toolInput.taskId;
+    const status = toolInput.status;
+    if (!(taskId && status) || status !== "completed") {
+      return Promise.resolve({ continue: true });
+    }
+    const commitMessage = `feat(${storyId}): complete ${taskId}`;
+    try {
+      runGit(["add", "."], worktreePath);
+      runGit(["commit", "-m", commitMessage], worktreePath);
+      runGit(["push"], worktreePath);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      process6.stderr.write(`[worker] Auto-commit git error: ${errorMessage}
+`);
+    }
+    return Promise.resolve({ continue: true });
+  };
+}
+
+// src/scripts/prompts/worker-instructions.ts
+function buildWorkerInstructions(storyId, projectDir) {
+  const journalPath = `${projectDir}/.saga/stories/${storyId}/journal.md`;
+  return `# Worker Instructions
+
+## Session Startup
+1. Run TaskList to see available tasks and their status.
+2. Run \`git log -5 --oneline && git status\` to understand the current state of the branch.
+3. Read the last entries of the journal at \`${journalPath}\` to understand what was done in previous sessions.
+4. Run existing tests to establish a baseline before making changes.
+
+## TDD Workflow
+- Write failing tests FIRST, then implement until they pass.
+- After implementation, run the full test suite to verify no regressions.
+
+## Context Management
+- Target 40-70% context utilization per session.
+- After completing a task, assess the next task's complexity against remaining context to decide whether to continue or exit.
+- If you are above the context utilization window, commit current work and exit. It is better to exit cleanly and resume in a new session than to run out of context mid-task.
+
+## Scope Rules
+- Only read and write files within the worktree (your current working directory).
+- Only modify SAGA files in \`${projectDir}/.saga/stories/${storyId}/\` (journal, task files).
+- Do not access files outside your worktree or other stories' directories.
+`;
+}
+
 // src/scripts/scope-validator.ts
 import { relative, resolve } from "node:path";
-import process6 from "node:process";
-var EXIT_ALLOWED = 0;
-var EXIT_BLOCKED = 2;
-var FILE_PATH_WIDTH = 50;
-var SCOPE_VALUE_WIDTH = 43;
-var REASON_WIDTH = 56;
 var WRITE_TOOLS = /* @__PURE__ */ new Set(["Write", "Edit"]);
-function getFilePathFromInput(hookInput) {
-  try {
-    const data = JSON.parse(hookInput);
-    const toolInput = data.tool_input || {};
-    return toolInput.file_path || toolInput.path || null;
-  } catch {
-    return null;
-  }
-}
-function getToolNameFromInput(hookInput) {
-  try {
-    const data = JSON.parse(hookInput);
-    return data.tool_name || null;
-  } catch {
-    return null;
-  }
-}
 function normalizePath(path) {
   if (path.startsWith("./")) {
     return path.slice(2);
@@ -13340,51 +13385,6 @@ function checkStoryAccessById(path, allowedStoryId) {
   }
   return true;
 }
-function printScopeViolation(filePath, scope, worktreePath, reason) {
-  const scopeLines = [
-    `\u2502    Story:    ${scope.storyId.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`,
-    `\u2502    Worktree: ${worktreePath.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`
-  ];
-  const message = [
-    "",
-    "\u256D\u2500 Scope Violation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E",
-    "\u2502                                                           \u2502",
-    `\u2502  File: ${filePath.slice(0, FILE_PATH_WIDTH).padEnd(FILE_PATH_WIDTH)}\u2502`,
-    "\u2502                                                           \u2502",
-    `\u2502  ${reason.split("\n")[0].padEnd(REASON_WIDTH)}\u2502`,
-    "\u2502                                                           \u2502",
-    "\u2502  Current scope:                                           \u2502",
-    ...scopeLines,
-    "\u2502                                                           \u2502",
-    "\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F",
-    ""
-  ].join("\n");
-  process6.stderr.write(message);
-}
-async function readStdinInput() {
-  const chunks = [];
-  for await (const chunk of process6.stdin) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks).toString("utf-8");
-}
-function getScopeEnvironment() {
-  const worktreePath = process6.env.SAGA_PROJECT_DIR || "";
-  if (!worktreePath) {
-    process6.stderr.write(
-      'scope-validator: Missing required environment variable: SAGA_PROJECT_DIR\n\nThe scope validator cannot verify file access without this variable.\nThis is a configuration error - the orchestrator should set this variable.\n\nYou MUST exit with status BLOCKED and set blocker to:\n"Scope validator misconfigured: missing SAGA_PROJECT_DIR"\n'
-    );
-    return null;
-  }
-  const storyId = process6.env.SAGA_STORY_ID || "";
-  if (!storyId) {
-    process6.stderr.write(
-      'scope-validator: Missing required environment variable: SAGA_STORY_ID\n\nThe scope validator cannot verify file access without this variable.\nThis is a configuration error - the worker should set SAGA_STORY_ID.\n\nYou MUST exit with status BLOCKED and set blocker to:\n"Scope validator misconfigured: missing SAGA_STORY_ID"\n'
-    );
-    return null;
-  }
-  return { storyId, worktreePath };
-}
 function validatePath(filePath, worktreePath, scope, toolName) {
   const normPath = normalizePath(filePath);
   if (!isWithinWorktree(normPath, worktreePath)) {
@@ -13400,29 +13400,6 @@ function validatePath(filePath, worktreePath, scope, toolName) {
     return ".saga write blocked\nReason: Only journal.md is writable inside the .saga directory. All other .saga files are immutable during execution.";
   }
   return null;
-}
-async function main() {
-  const env = getScopeEnvironment();
-  if (!env) {
-    process6.exit(EXIT_BLOCKED);
-  }
-  const toolInput = await readStdinInput();
-  const filePath = getFilePathFromInput(toolInput);
-  if (!filePath) {
-    process6.exit(EXIT_ALLOWED);
-  }
-  const toolName = getToolNameFromInput(toolInput);
-  const { worktreePath, ...scope } = env;
-  const violation = validatePath(filePath, worktreePath, scope, toolName ?? void 0);
-  if (violation) {
-    printScopeViolation(filePath, scope, worktreePath, violation);
-    process6.exit(EXIT_BLOCKED);
-  }
-  process6.exit(EXIT_ALLOWED);
-}
-var isDirectExecution = process6.argv[1] && import.meta.url.endsWith(process6.argv[1].replace(/\\/g, "/"));
-if (isDirectExecution) {
-  main();
 }
 
 // src/scripts/scope-validator-hook.ts
@@ -13473,9 +13450,68 @@ function createSyncHook(worktreePath, storyId) {
   };
 }
 
+// src/scripts/prompts/task-completion-context.ts
+function buildAdditionalContext(projectDir, storyId, taskId, maxTasksReached) {
+  const journalPath = `${projectDir}/.saga/stories/${storyId}/journal.md`;
+  const lines = [
+    `Task "${taskId}" completed. Changes committed and pushed.`,
+    "",
+    `REQUIRED: Write a journal entry to ${journalPath}:`,
+    `## Session: ${(/* @__PURE__ */ new Date()).toISOString()}`,
+    `### Task: ${taskId}`,
+    "**What was done:** ...",
+    "**Decisions and deviations:** ...",
+    "**Next steps:** ..."
+  ];
+  if (maxTasksReached) {
+    lines.push(
+      "",
+      "You have completed the maximum number of tasks for this session. Finish the session after writing the journal entry."
+    );
+  } else {
+    lines.push(
+      "",
+      "CONTEXT CHECK: Target 40-70% context utilization per session.",
+      "- Assess the next task and decide whether to implement it based on remaining context. Aim to stay within the utilization window.",
+      "- If you are above the context utilization window, commit, push, and finish the session."
+    );
+  }
+  return lines.join("\n");
+}
+
+// src/scripts/task-pacing-hook.ts
+function createTaskPacingHook(worktreePath, storyId, maxTasksPerSession) {
+  let completedCount = 0;
+  return (_input, _toolUseID, _options) => {
+    const hookInput = _input;
+    const toolInput = hookInput.tool_input ?? {};
+    const taskId = toolInput.taskId;
+    const status = toolInput.status;
+    if (!(taskId && status) || status !== "completed") {
+      return Promise.resolve({ continue: true });
+    }
+    completedCount++;
+    const maxTasksReached = completedCount >= maxTasksPerSession;
+    const additionalContext = buildAdditionalContext(
+      worktreePath,
+      storyId,
+      taskId,
+      maxTasksReached
+    );
+    return Promise.resolve({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext
+      }
+    });
+  };
+}
+
 // src/scripts/worker/run-headless-loop.ts
 var DEFAULT_MAX_CYCLES = 10;
 var DEFAULT_MAX_TIME_MINUTES = 60;
+var DEFAULT_MAX_TASKS_PER_SESSION = 3;
 var DEFAULT_MODEL = "opus";
 var MS_PER_MINUTE = 6e4;
 var ENV_PROJECT_DIR = "SAGA_PROJECT_DIR";
@@ -13483,14 +13519,23 @@ var ENV_ENABLE_TASKS = "CLAUDE_CODE_ENABLE_TASKS";
 var ENV_TASK_LIST_ID = "CLAUDE_CODE_TASK_LIST_ID";
 var ENV_STORY_ID = "SAGA_STORY_ID";
 var ENV_STORY_TASK_LIST_ID = "SAGA_STORY_TASK_LIST_ID";
+var ENV_CLAUDECODE = "CLAUDECODE";
+function resolveClaudeBinary() {
+  try {
+    return execFileSync4("which", ["claude"], { encoding: "utf-8" }).trim();
+  } catch {
+    throw new Error("Could not find `claude` binary. Ensure Claude Code is installed and on PATH.");
+  }
+}
 var SCOPE_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep"];
 var SCOPE_TOOL_MATCHER = SCOPE_TOOLS.join("|");
 var PRE_TOOL_USE = "PreToolUse";
 var POST_TOOL_USE = "PostToolUse";
-var SYNC_TOOL_MATCHER = "TaskUpdate";
-function buildPrompt(meta) {
+var TASK_UPDATE_MATCHER = "TaskUpdate";
+function buildPrompt(meta, storyId, worktreePath) {
   const lines = [];
-  lines.push(`You are working on: ${meta.title}`);
+  lines.push(buildWorkerInstructions(storyId, worktreePath));
+  lines.push(`# Story: ${meta.title}`);
   lines.push("");
   lines.push(meta.description);
   if (meta.guidance) {
@@ -13527,16 +13572,18 @@ function checkAllTasksCompleted(storyDir) {
   }
   return true;
 }
-async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath, messagesWriter) {
+async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath, maxTasksPerSession, messagesWriter) {
   try {
     let exitCode = 0;
     for await (const message of Qx({
       prompt,
       options: {
+        pathToClaudeCodeExecutable: resolveClaudeBinary(),
         model,
         cwd: worktreePath,
         env: {
           ...process7.env,
+          [ENV_CLAUDECODE]: void 0,
           [ENV_PROJECT_DIR]: worktreePath,
           [ENV_ENABLE_TASKS]: "true",
           [ENV_TASK_LIST_ID]: taskListId,
@@ -13559,8 +13606,12 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
           ],
           [POST_TOOL_USE]: [
             {
-              matcher: SYNC_TOOL_MATCHER,
-              hooks: [createSyncHook(worktreePath, storyId)]
+              matcher: TASK_UPDATE_MATCHER,
+              hooks: [
+                createSyncHook(worktreePath, storyId),
+                createAutoCommitHook(worktreePath, storyId),
+                createTaskPacingHook(worktreePath, storyId, maxTasksPerSession)
+              ]
             }
           ]
         }
@@ -13602,6 +13653,7 @@ function executeCycle(config, state) {
     config.taskListId,
     config.storyId,
     config.worktreePath,
+    config.maxTasksPerSession,
     config.messagesWriter
   ).then(({ exitCode }) => {
     state.cycles++;
@@ -13646,10 +13698,11 @@ async function runSequentialCycles(config, state) {
 }
 async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, options) {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
+  const maxTasksPerSession = options.maxTasksPerSession ?? DEFAULT_MAX_TASKS_PER_SESSION;
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
-  const prompt = buildPrompt(storyMeta);
+  const prompt = buildPrompt(storyMeta, storyId, worktreePath);
   const startTime = Date.now();
   const { storyDir } = createStoryPaths(worktreePath, storyId);
   const taskFiles = getTaskFiles(storyDir);
@@ -13666,6 +13719,7 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
     worktreePath,
     storyDir,
     maxCycles,
+    maxTasksPerSession,
     maxTimeMs,
     startTime,
     messagesWriter
@@ -13683,13 +13737,13 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
 }
 
 // src/scripts/worker/setup-worktree.ts
-import { execFileSync as execFileSync3 } from "node:child_process";
+import { execFileSync as execFileSync5 } from "node:child_process";
 import { existsSync as existsSync4, mkdirSync as mkdirSync4, rmSync as rmSync2 } from "node:fs";
 import { dirname as dirname2 } from "node:path";
 import process8 from "node:process";
-function runGit(args, cwd) {
+function runGit2(args, cwd) {
   try {
-    const output = execFileSync3("git", args, {
+    const output = execFileSync5("git", args, {
       cwd,
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"]
@@ -13702,10 +13756,10 @@ function runGit(args, cwd) {
   }
 }
 function branchExists(branchName, cwd) {
-  return runGit(["rev-parse", "--verify", branchName], cwd).success;
+  return runGit2(["rev-parse", "--verify", branchName], cwd).success;
 }
 function getMainBranch(cwd) {
-  const result = runGit(["symbolic-ref", "refs/remotes/origin/HEAD"], cwd);
+  const result = runGit2(["symbolic-ref", "refs/remotes/origin/HEAD"], cwd);
   if (result.success) {
     return result.output.replace("refs/remotes/origin/", "");
   }
@@ -13715,7 +13769,7 @@ function setupWorktree(storyId, projectDir) {
   const branch = `story/${storyId}`;
   const { worktreeDir } = createWorktreePaths(projectDir, storyId);
   if (existsSync4(worktreeDir)) {
-    const valid = runGit(["rev-parse", "--git-dir"], worktreeDir);
+    const valid = runGit2(["rev-parse", "--git-dir"], worktreeDir);
     if (valid.success) {
       process8.stdout.write(`[worker] Worktree already exists: ${worktreeDir}
 `);
@@ -13723,21 +13777,21 @@ function setupWorktree(storyId, projectDir) {
     }
     process8.stdout.write(`[worker] Removing broken worktree: ${worktreeDir}
 `);
-    runGit(["worktree", "remove", "--force", worktreeDir], projectDir);
+    runGit2(["worktree", "remove", "--force", worktreeDir], projectDir);
     rmSync2(worktreeDir, { recursive: true, force: true });
   }
   const mainBranch = getMainBranch(projectDir);
-  runGit(["fetch", "origin", mainBranch], projectDir);
+  runGit2(["fetch", "origin", mainBranch], projectDir);
   mkdirSync4(dirname2(worktreeDir), { recursive: true });
   if (branchExists(branch, projectDir)) {
     process8.stdout.write(`[worker] Branch ${branch} exists, re-creating worktree
 `);
-    const result = runGit(["worktree", "add", worktreeDir, branch], projectDir);
+    const result = runGit2(["worktree", "add", worktreeDir, branch], projectDir);
     if (!result.success) {
       throw new Error(`Failed to create worktree from existing branch: ${result.output}`);
     }
   } else {
-    const result = runGit(
+    const result = runGit2(
       ["worktree", "add", "-b", branch, worktreeDir, `origin/${mainBranch}`],
       projectDir
     );
@@ -13957,7 +14011,7 @@ async function runPipeline(storyId, options) {
   writePipelineEnd(writer, storyId, summary);
   return summary;
 }
-async function main2() {
+async function main() {
   const parsed = parseArgs(process9.argv.slice(2));
   if (!parsed) {
     process9.exit(1);
@@ -13972,7 +14026,7 @@ async function main2() {
   );
   process9.exit(summary.exitCode);
 }
-main2().catch((error) => {
+main().catch((error) => {
   process9.stderr.write(`Error: ${error instanceof Error ? error.message : String(error)}
 `);
   process9.exit(1);

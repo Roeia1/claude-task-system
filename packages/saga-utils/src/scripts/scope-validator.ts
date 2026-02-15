@@ -1,33 +1,15 @@
 /**
- * saga scope-validator script - Validate story scope for file operations
+ * Scope validation logic for story file access.
  *
- * This script is invoked as a PreToolUse hook by the Claude CLI to enforce
- * story scope during autonomous execution. It blocks access to:
+ * Enforces story scope during autonomous execution by blocking access to:
  * - Files outside the worktree directory
  * - .saga/archive/ (completed stories)
- * - Other stories' files in .saga/stories/ (when SAGA_STORY_ID is set)
+ * - Other stories' files in .saga/stories/
  *
- * Environment variables (set by SessionStart hook via CLAUDE_ENV_FILE):
- * - SAGA_PROJECT_DIR: Absolute path to the project/worktree directory (always required)
- * - SAGA_STORY_ID: The current story identifier (required)
- *
- * Input: Tool input JSON is read from stdin
- * Exit codes:
- *   0 = allowed (operation can proceed)
- *   2 = blocked (scope violation or configuration error, with error message to stderr)
+ * Used by the in-process SDK hook (scope-validator-hook.ts) via validatePath().
  */
 
 import { relative, resolve } from 'node:path';
-import process from 'node:process';
-
-// Exit codes per Claude Code hooks specification
-const EXIT_ALLOWED = 0;
-const EXIT_BLOCKED = 2;
-
-// Box formatting constants for scope violation message
-const FILE_PATH_WIDTH = 50;
-const SCOPE_VALUE_WIDTH = 43;
-const REASON_WIDTH = 56;
 
 // Write tools that modify files (as opposed to read-only tools like Read, Glob, Grep)
 const WRITE_TOOLS = new Set(['Write', 'Edit']);
@@ -41,41 +23,8 @@ interface ScopeInfo {
 }
 
 // ============================================================================
-// Input Parsing
+// Path Helpers
 // ============================================================================
-
-/**
- * Extract file path from hook input JSON
- *
- * Hook input structure:
- * {
- *   "tool_name": "Read",
- *   "tool_input": { "file_path": "/path/to/file.txt" },
- *   ...
- * }
- */
-function getFilePathFromInput(hookInput: string): string | null {
-  try {
-    const data = JSON.parse(hookInput);
-    const toolInput = data.tool_input || {};
-    // Read, Write, Edit use file_path; Glob, Grep use path
-    return toolInput.file_path || toolInput.path || null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Extract tool name from hook input JSON
- */
-function getToolNameFromInput(hookInput: string): string | null {
-  try {
-    const data = JSON.parse(hookInput);
-    return data.tool_name || null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Normalize path by removing leading ./
@@ -86,10 +35,6 @@ function normalizePath(path: string): string {
   }
   return path;
 }
-
-// ============================================================================
-// Scope Validation
-// ============================================================================
 
 /**
  * Check if a path is inside the .saga/ directory (relative to worktree).
@@ -137,6 +82,10 @@ function isWithinWorktree(filePath: string, worktreePath: string): boolean {
 
   return true;
 }
+
+// ============================================================================
+// Scope Validation
+// ============================================================================
 
 /**
  * Check if a .saga/stories/ path matches the allowed story ID.
@@ -206,99 +155,6 @@ function checkStoryAccessById(path: string, allowedStoryId: string): boolean {
   return true;
 }
 
-// ============================================================================
-// Output Formatting
-// ============================================================================
-
-/**
- * Print scope violation error message to stderr
- */
-function printScopeViolation(
-  filePath: string,
-  scope: ScopeInfo,
-  worktreePath: string,
-  reason: string,
-): void {
-  const scopeLines = [
-    `│    Story:    ${scope.storyId.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}│`,
-    `│    Worktree: ${worktreePath.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}│`,
-  ];
-
-  const message = [
-    '',
-    '╭─ Scope Violation ─────────────────────────────────────────╮',
-    '│                                                           │',
-    `│  File: ${filePath.slice(0, FILE_PATH_WIDTH).padEnd(FILE_PATH_WIDTH)}│`,
-    '│                                                           │',
-    `│  ${reason.split('\n')[0].padEnd(REASON_WIDTH)}│`,
-    '│                                                           │',
-    '│  Current scope:                                           │',
-    ...scopeLines,
-    '│                                                           │',
-    '╰───────────────────────────────────────────────────────────╯',
-    '',
-  ].join('\n');
-
-  process.stderr.write(message);
-}
-
-// ============================================================================
-// Stdin Reading
-// ============================================================================
-
-/**
- * Read tool input from stdin
- */
-async function readStdinInput(): Promise<string> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks).toString('utf-8');
-}
-
-// ============================================================================
-// Environment
-// ============================================================================
-
-/**
- * Get required environment variables for scope validation.
- * Requires SAGA_STORY_ID to be set.
- * Returns null if required variables are missing, with error output to stderr.
- */
-function getScopeEnvironment(): (ScopeInfo & { worktreePath: string }) | null {
-  const worktreePath = process.env.SAGA_PROJECT_DIR || '';
-
-  if (!worktreePath) {
-    process.stderr.write(
-      'scope-validator: Missing required environment variable: SAGA_PROJECT_DIR\n\n' +
-        'The scope validator cannot verify file access without this variable.\n' +
-        'This is a configuration error - the orchestrator should set this variable.\n\n' +
-        'You MUST exit with status BLOCKED and set blocker to:\n' +
-        '"Scope validator misconfigured: missing SAGA_PROJECT_DIR"\n',
-    );
-    return null;
-  }
-
-  const storyId = process.env.SAGA_STORY_ID || '';
-  if (!storyId) {
-    process.stderr.write(
-      'scope-validator: Missing required environment variable: SAGA_STORY_ID\n\n' +
-        'The scope validator cannot verify file access without this variable.\n' +
-        'This is a configuration error - the worker should set SAGA_STORY_ID.\n\n' +
-        'You MUST exit with status BLOCKED and set blocker to:\n' +
-        '"Scope validator misconfigured: missing SAGA_STORY_ID"\n',
-    );
-    return null;
-  }
-
-  return { storyId, worktreePath };
-}
-
-// ============================================================================
-// Path Validation
-// ============================================================================
-
 /**
  * Validate a file path against scope rules.
  * Returns the violation reason if blocked, null if allowed.
@@ -340,55 +196,11 @@ function validatePath(
 }
 
 // ============================================================================
-// Main Entry Point
-// ============================================================================
-
-/**
- * Execute the scope-validator command
- * Reads tool input from stdin and validates file path against story scope
- */
-async function main(): Promise<void> {
-  const env = getScopeEnvironment();
-  if (!env) {
-    // Missing required environment variables - block operation and instruct worker to fail
-    process.exit(EXIT_BLOCKED);
-  }
-
-  const toolInput = await readStdinInput();
-  const filePath = getFilePathFromInput(toolInput);
-
-  // If no path found, allow the operation (not a file operation)
-  if (!filePath) {
-    process.exit(EXIT_ALLOWED);
-  }
-
-  const toolName = getToolNameFromInput(toolInput);
-  const { worktreePath, ...scope } = env;
-  const violation = validatePath(filePath, worktreePath, scope, toolName ?? undefined);
-  if (violation) {
-    printScopeViolation(filePath, scope, worktreePath, violation);
-    process.exit(EXIT_BLOCKED);
-  }
-
-  process.exit(EXIT_ALLOWED);
-}
-
-// Run main only when executed directly (not when imported for testing)
-const isDirectExecution =
-  process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
-if (isDirectExecution) {
-  main();
-}
-
-// ============================================================================
 // Exports
 // ============================================================================
 
 export {
   checkStoryAccessById,
-  getFilePathFromInput,
-  getScopeEnvironment,
-  getToolNameFromInput,
   isArchiveAccess,
   isJournalPath,
   isSagaPath,

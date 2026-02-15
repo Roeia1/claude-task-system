@@ -6,14 +6,18 @@
  * environment variables, and loops until all tasks are completed or limits are reached.
  */
 
+import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { createStoryPaths } from '../../directory.ts';
+import { createAutoCommitHook } from '../auto-commit-hook.ts';
 import type { StoryMeta } from '../hydrate/service.ts';
+import { buildWorkerInstructions } from '../prompts/worker-instructions.ts';
 import { createScopeValidatorHook } from '../scope-validator-hook.ts';
 import { createSyncHook } from '../sync-hook.ts';
+import { createTaskPacingHook } from '../task-pacing-hook.ts';
 import type { MessageWriter } from './message-writer.ts';
 import { createNoopMessageWriter } from './message-writer.ts';
 
@@ -23,6 +27,7 @@ import { createNoopMessageWriter } from './message-writer.ts';
 
 const DEFAULT_MAX_CYCLES = 10;
 const DEFAULT_MAX_TIME_MINUTES = 60;
+const DEFAULT_MAX_TASKS_PER_SESSION = 3;
 const DEFAULT_MODEL = 'opus';
 const MS_PER_MINUTE = 60_000;
 
@@ -32,6 +37,19 @@ const ENV_ENABLE_TASKS = 'CLAUDE_CODE_ENABLE_TASKS';
 const ENV_TASK_LIST_ID = 'CLAUDE_CODE_TASK_LIST_ID';
 const ENV_STORY_ID = 'SAGA_STORY_ID';
 const ENV_STORY_TASK_LIST_ID = 'SAGA_STORY_TASK_LIST_ID';
+const ENV_CLAUDECODE = 'CLAUDECODE';
+
+/**
+ * Resolve the path to the `claude` CLI binary using `which`.
+ * Throws if the binary cannot be found.
+ */
+function resolveClaudeBinary(): string {
+  try {
+    return execFileSync('which', ['claude'], { encoding: 'utf-8' }).trim();
+  } catch {
+    throw new Error('Could not find `claude` binary. Ensure Claude Code is installed and on PATH.');
+  }
+}
 
 // Tools to scope-validate (file-accessing tools)
 const SCOPE_TOOLS = ['Read', 'Write', 'Edit', 'Glob', 'Grep'];
@@ -41,8 +59,8 @@ const SCOPE_TOOL_MATCHER = SCOPE_TOOLS.join('|');
 const PRE_TOOL_USE = 'PreToolUse' as const;
 const POST_TOOL_USE = 'PostToolUse' as const;
 
-// Tools to sync (task status changes)
-const SYNC_TOOL_MATCHER = 'TaskUpdate';
+// PostToolUse matcher for TaskUpdate hooks (sync, auto-commit, task pacing)
+const TASK_UPDATE_MATCHER = 'TaskUpdate';
 
 // ============================================================================
 // Types
@@ -51,6 +69,7 @@ const SYNC_TOOL_MATCHER = 'TaskUpdate';
 interface RunLoopOptions {
   maxCycles?: number;
   maxTime?: number;
+  maxTasksPerSession?: number;
   model?: string;
   messagesWriter?: MessageWriter;
 }
@@ -67,12 +86,17 @@ interface RunLoopResult {
 
 /**
  * Build the headless run prompt from story metadata.
- * Only includes non-empty fields.
+ * Prepends worker instructions, then includes story-specific content.
+ * Only includes non-empty metadata fields.
  */
-function buildPrompt(meta: StoryMeta): string {
+function buildPrompt(meta: StoryMeta, storyId: string, worktreePath: string): string {
   const lines: string[] = [];
 
-  lines.push(`You are working on: ${meta.title}`);
+  // Worker instructions first
+  lines.push(buildWorkerInstructions(storyId, worktreePath));
+
+  // Story metadata
+  lines.push(`# Story: ${meta.title}`);
   lines.push('');
   lines.push(meta.description);
 
@@ -145,6 +169,7 @@ async function spawnHeadlessRun(
   taskListId: string,
   storyId: string,
   worktreePath: string,
+  maxTasksPerSession: number,
   messagesWriter: MessageWriter,
 ): Promise<{ exitCode: number | null }> {
   try {
@@ -153,10 +178,12 @@ async function spawnHeadlessRun(
     for await (const message of query({
       prompt,
       options: {
+        pathToClaudeCodeExecutable: resolveClaudeBinary(),
         model,
         cwd: worktreePath,
         env: {
           ...process.env,
+          [ENV_CLAUDECODE]: undefined,
           [ENV_PROJECT_DIR]: worktreePath,
           [ENV_ENABLE_TASKS]: 'true',
           [ENV_TASK_LIST_ID]: taskListId,
@@ -179,8 +206,12 @@ async function spawnHeadlessRun(
           ],
           [POST_TOOL_USE]: [
             {
-              matcher: SYNC_TOOL_MATCHER,
-              hooks: [createSyncHook(worktreePath, storyId)],
+              matcher: TASK_UPDATE_MATCHER,
+              hooks: [
+                createSyncHook(worktreePath, storyId),
+                createAutoCommitHook(worktreePath, storyId),
+                createTaskPacingHook(worktreePath, storyId, maxTasksPerSession),
+              ],
             },
           ],
         },
@@ -212,6 +243,7 @@ interface LoopConfig {
   worktreePath: string;
   storyDir: string;
   maxCycles: number;
+  maxTasksPerSession: number;
   maxTimeMs: number;
   startTime: number;
   messagesWriter: MessageWriter;
@@ -255,6 +287,7 @@ function executeCycle(config: LoopConfig, state: LoopState): Promise<{ shouldCon
     config.taskListId,
     config.storyId,
     config.worktreePath,
+    config.maxTasksPerSession,
     config.messagesWriter,
   ).then(({ exitCode }) => {
     state.cycles++;
@@ -322,11 +355,12 @@ async function runHeadlessLoop(
   options: RunLoopOptions,
 ): Promise<RunLoopResult> {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
+  const maxTasksPerSession = options.maxTasksPerSession ?? DEFAULT_MAX_TASKS_PER_SESSION;
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
 
-  const prompt = buildPrompt(storyMeta);
+  const prompt = buildPrompt(storyMeta, storyId, worktreePath);
   const startTime = Date.now();
   const { storyDir } = createStoryPaths(worktreePath, storyId);
 
@@ -347,6 +381,7 @@ async function runHeadlessLoop(
     worktreePath,
     storyDir,
     maxCycles,
+    maxTasksPerSession,
     maxTimeMs,
     startTime,
     messagesWriter,

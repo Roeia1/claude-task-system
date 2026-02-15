@@ -11,8 +11,12 @@ import { readdirSync } from 'node:fs';
 import Fuse, { type FuseResult } from 'fuse.js';
 import { createSagaPaths } from '../../directory.ts';
 import type { TaskStatus } from '../../schemas/index.ts';
-import type { ScannedStory } from './saga-scanner.ts';
-import { epicsDirectoryExists, scanStories, storiesDirectoryExists } from './saga-scanner.ts';
+import {
+  epicsDirectoryExists,
+  type ScannedStory,
+  scanStories,
+  storiesDirectoryExists,
+} from '../../storage.ts';
 
 /** Regex pattern for stripping .json extension from file names */
 const JSON_EXT_PATTERN = /\.json$/;
@@ -82,7 +86,7 @@ function toStoryInfo(story: ScannedStory): StoryInfo {
     title: story.title,
     status: story.status,
     description: story.description,
-    epicId: story.epicId,
+    epicId: story.epic || '',
     storyPath: story.storyPath,
     worktreePath: story.worktreePath || '',
   };
@@ -247,12 +251,12 @@ function fuzzySearchStories(allStories: StoryInfo[], query: string): FindResult<
 /**
  * Load and filter stories based on options
  */
-async function loadAndFilterStories(
+function loadAndFilterStories(
   projectPath: string,
   query: string,
   options: FindStoryOptions,
-): Promise<FindResult<StoryInfo> | StoryInfo[]> {
-  const scannedStories = await scanStories(projectPath);
+): FindResult<StoryInfo> | StoryInfo[] {
+  const scannedStories = scanStories(projectPath);
 
   if (scannedStories.length === 0) {
     return { found: false, error: `No story found matching '${query}'` };
@@ -291,13 +295,13 @@ async function loadAndFilterStories(
  * @param projectPath - Path to the project root
  * @param query - The identifier to resolve
  * @param options - Optional filters (status)
- * @returns Promise resolving to FindResult with story info or matches/error
+ * @returns FindResult with story info or matches/error
  */
-async function findStory(
+function findStory(
   projectPath: string,
   query: string,
   options: FindStoryOptions = {},
-): Promise<FindResult<StoryInfo>> {
+): FindResult<StoryInfo> {
   if (!storiesDirectoryExists(projectPath)) {
     return {
       found: false,
@@ -305,7 +309,7 @@ async function findStory(
     };
   }
 
-  const storiesOrError = await loadAndFilterStories(projectPath, query, options);
+  const storiesOrError = loadAndFilterStories(projectPath, query, options);
 
   // If it's a FindResult (error), return it
   if (!Array.isArray(storiesOrError)) {
@@ -333,4 +337,4 @@ async function findStory(
 
 export { findEpic, findStory };
 export type { EpicInfo, FindResult, FindStoryOptions, StoryInfo };
-export type { ScannedEpic, ScannedStory } from './saga-scanner.ts';
+export type { ScannedStory } from '../../storage.ts';

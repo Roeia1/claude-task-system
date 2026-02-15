@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-02-15
+
+### Added
+
+- **worker**: Worker prompt instructions — structured system prompt for headless worker sessions with task context, rules, and guidelines
+- **worker**: Task completion hook — runs after each task completion to provide pacing context and auto-commit guidance
+
+### Changed
+
+- **worker**: Extract hardcoded prompts into separate TypeScript modules for maintainability
+- **worker**: Remove disk read from task completion hook for improved performance
+
+## [4.2.3] - 2026-02-14
+
+### Fixed
+
+- **worker**: Resolve claude binary path for headless SDK runs — the Agent SDK's `query()` couldn't find the CLI because it defaults to looking for `cli.js` next to the bundled worker script; now explicitly passes `pathToClaudeCodeExecutable`
+- **build**: Switch prebuild/build lint steps to `biome check --write` for safe auto-fixing
+
+## [4.2.2] - 2026-02-14
+
+### Fixed
+
+- **worker**: Remove dead standalone mode from scope-validator that caused worker crash on startup when bundled into worker.js (isDirectExecution guard incorrectly matched)
+- **execute-story**: Add `${VAR:?}` bash guard for env vars in tmux command to fail fast instead of silently launching broken sessions
+
+## [4.2.1] - 2026-02-14
+
+### Changed
+
+- **storage**: Consolidate story scanning into shared `scanStories()` in `storage.ts`, replacing duplicate scanners in `saga-utils/find` and `dashboard`
+- **storage**: `ScannedStory` now extends `Story` interface for better field coupling
+
+### Fixed
+
+- **biome**: Exclude `.saga/` directory from biome linting and formatting checks
+
 ## [4.2.0] - 2026-02-14
 
 ### Added

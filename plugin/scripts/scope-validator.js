@@ -2,30 +2,7 @@
 
 // src/scripts/scope-validator.ts
 import { relative, resolve } from "node:path";
-import process from "node:process";
-var EXIT_ALLOWED = 0;
-var EXIT_BLOCKED = 2;
-var FILE_PATH_WIDTH = 50;
-var SCOPE_VALUE_WIDTH = 43;
-var REASON_WIDTH = 56;
 var WRITE_TOOLS = /* @__PURE__ */ new Set(["Write", "Edit"]);
-function getFilePathFromInput(hookInput) {
-  try {
-    const data = JSON.parse(hookInput);
-    const toolInput = data.tool_input || {};
-    return toolInput.file_path || toolInput.path || null;
-  } catch {
-    return null;
-  }
-}
-function getToolNameFromInput(hookInput) {
-  try {
-    const data = JSON.parse(hookInput);
-    return data.tool_name || null;
-  } catch {
-    return null;
-  }
-}
 function normalizePath(path) {
   if (path.startsWith("./")) {
     return path.slice(2);
@@ -95,51 +72,6 @@ function checkStoryAccessById(path, allowedStoryId) {
   }
   return true;
 }
-function printScopeViolation(filePath, scope, worktreePath, reason) {
-  const scopeLines = [
-    `\u2502    Story:    ${scope.storyId.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`,
-    `\u2502    Worktree: ${worktreePath.slice(0, SCOPE_VALUE_WIDTH).padEnd(SCOPE_VALUE_WIDTH)}\u2502`
-  ];
-  const message = [
-    "",
-    "\u256D\u2500 Scope Violation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256E",
-    "\u2502                                                           \u2502",
-    `\u2502  File: ${filePath.slice(0, FILE_PATH_WIDTH).padEnd(FILE_PATH_WIDTH)}\u2502`,
-    "\u2502                                                           \u2502",
-    `\u2502  ${reason.split("\n")[0].padEnd(REASON_WIDTH)}\u2502`,
-    "\u2502                                                           \u2502",
-    "\u2502  Current scope:                                           \u2502",
-    ...scopeLines,
-    "\u2502                                                           \u2502",
-    "\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256F",
-    ""
-  ].join("\n");
-  process.stderr.write(message);
-}
-async function readStdinInput() {
-  const chunks = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks).toString("utf-8");
-}
-function getScopeEnvironment() {
-  const worktreePath = process.env.SAGA_PROJECT_DIR || "";
-  if (!worktreePath) {
-    process.stderr.write(
-      'scope-validator: Missing required environment variable: SAGA_PROJECT_DIR\n\nThe scope validator cannot verify file access without this variable.\nThis is a configuration error - the orchestrator should set this variable.\n\nYou MUST exit with status BLOCKED and set blocker to:\n"Scope validator misconfigured: missing SAGA_PROJECT_DIR"\n'
-    );
-    return null;
-  }
-  const storyId = process.env.SAGA_STORY_ID || "";
-  if (!storyId) {
-    process.stderr.write(
-      'scope-validator: Missing required environment variable: SAGA_STORY_ID\n\nThe scope validator cannot verify file access without this variable.\nThis is a configuration error - the worker should set SAGA_STORY_ID.\n\nYou MUST exit with status BLOCKED and set blocker to:\n"Scope validator misconfigured: missing SAGA_STORY_ID"\n'
-    );
-    return null;
-  }
-  return { storyId, worktreePath };
-}
 function validatePath(filePath, worktreePath, scope, toolName) {
   const normPath = normalizePath(filePath);
   if (!isWithinWorktree(normPath, worktreePath)) {
@@ -156,34 +88,8 @@ function validatePath(filePath, worktreePath, scope, toolName) {
   }
   return null;
 }
-async function main() {
-  const env = getScopeEnvironment();
-  if (!env) {
-    process.exit(EXIT_BLOCKED);
-  }
-  const toolInput = await readStdinInput();
-  const filePath = getFilePathFromInput(toolInput);
-  if (!filePath) {
-    process.exit(EXIT_ALLOWED);
-  }
-  const toolName = getToolNameFromInput(toolInput);
-  const { worktreePath, ...scope } = env;
-  const violation = validatePath(filePath, worktreePath, scope, toolName ?? void 0);
-  if (violation) {
-    printScopeViolation(filePath, scope, worktreePath, violation);
-    process.exit(EXIT_BLOCKED);
-  }
-  process.exit(EXIT_ALLOWED);
-}
-var isDirectExecution = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/"));
-if (isDirectExecution) {
-  main();
-}
 export {
   checkStoryAccessById,
-  getFilePathFromInput,
-  getScopeEnvironment,
-  getToolNameFromInput,
   isArchiveAccess,
   isJournalPath,
   isSagaPath,
