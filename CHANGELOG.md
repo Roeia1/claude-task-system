@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.1] - 2026-02-27
+
+### Added
+
+- **dev**: Playwright CLI skill for browser automation testing
+- **dev**: pnpm enforcement hook to block npm/npx and suggest pnpm alternatives
+
+### Fixed
+
+- **worker**: Allow network access in worker sandbox configuration for npm registry and local ports
+- **dev**: Correct pnpm enforcement hook input/output format
+
 ## [4.6.0] - 2026-02-15
 
 ### Added
