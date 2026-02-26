@@ -34,7 +34,7 @@ const resolveSnapshotPath = (testPath: string, snapExtension: string) => {
 const browserConfig = {
   enabled: true,
   headless: true,
-  provider: playwright(),
+  provider: playwright({ launchOptions: { chromiumSandbox: false } }),
   instances: [{ browser: 'chromium' as const }],
   // Visual snapshot testing configuration
   screenshotDirectory: pixelSnapshotsDir,

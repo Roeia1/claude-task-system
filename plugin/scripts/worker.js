@@ -13557,10 +13557,27 @@ function createTaskPacingHook(_worktreePath, _storyId, maxTasksPerSession) {
   };
 }
 
+// src/scripts/token-limit-hook.ts
+function createTokenLimitHook(tracker, maxTokens) {
+  return (_input, _toolUseID, _options) => {
+    if (tracker.inputTokens < maxTokens) {
+      return Promise.resolve({ continue: true });
+    }
+    return Promise.resolve({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: "[TOKEN LIMIT] You have reached the session token limit. Wrap up your current work immediately: commit progress, update task status, write a journal entry, and exit cleanly. Do NOT start any new tasks."
+      }
+    });
+  };
+}
+
 // src/scripts/worker/run-headless-loop.ts
 var DEFAULT_MAX_CYCLES = 10;
 var DEFAULT_MAX_TIME_MINUTES = 60;
 var DEFAULT_MAX_TASKS_PER_SESSION = 3;
+var DEFAULT_MAX_TOKENS_PER_SESSION = 12e4;
 var DEFAULT_MODEL = "opus";
 var MS_PER_MINUTE = 6e4;
 var ENV_PROJECT_DIR = "SAGA_PROJECT_DIR";
@@ -13621,59 +13638,88 @@ function checkAllTasksCompleted(storyDir) {
   }
   return true;
 }
-async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath, maxTasksPerSession, messagesWriter) {
+var INPUT_TOKENS_KEY = "input_tokens";
+function extractInputTokens(message) {
+  if (message.type !== "assistant") {
+    return void 0;
+  }
+  const msg = message;
+  const tokens = msg.message?.usage?.[INPUT_TOKENS_KEY];
+  return typeof tokens === "number" ? tokens : void 0;
+}
+function buildQueryOptions(model, worktreePath, taskListId, storyId, maxTasksPerSession, maxTokensPerSession, tracker) {
+  return {
+    pathToClaudeCodeExecutable: resolveClaudeBinary(),
+    model,
+    cwd: worktreePath,
+    env: {
+      ...process7.env,
+      [ENV_CLAUDECODE]: void 0,
+      [ENV_PROJECT_DIR]: worktreePath,
+      [ENV_ENABLE_TASKS]: "true",
+      [ENV_TASK_LIST_ID]: taskListId,
+      [ENV_STORY_ID]: storyId,
+      [ENV_STORY_TASK_LIST_ID]: taskListId
+    },
+    permissionMode: "bypassPermissions",
+    allowDangerouslySkipPermissions: true,
+    sandbox: {
+      enabled: true,
+      autoAllowBashIfSandboxed: true,
+      allowUnsandboxedCommands: false,
+      network: {
+        allowManagedDomainsOnly: false,
+        allowLocalBinding: true
+      },
+      filesystem: {
+        allowWrite: ["/tmp", "/private/tmp"]
+      }
+    },
+    hooks: {
+      [PRE_TOOL_USE]: [
+        {
+          matcher: SCOPE_TOOL_MATCHER,
+          hooks: [createScopeValidatorHook(worktreePath, storyId)]
+        },
+        {
+          matcher: TASK_UPDATE_MATCHER,
+          hooks: [createJournalGateHook(worktreePath, storyId)]
+        }
+      ],
+      [POST_TOOL_USE]: [
+        {
+          matcher: TASK_UPDATE_MATCHER,
+          hooks: [
+            createSyncHook(worktreePath, storyId),
+            createAutoCommitHook(worktreePath, storyId),
+            createTaskPacingHook(worktreePath, storyId, maxTasksPerSession)
+          ]
+        },
+        {
+          hooks: [createTokenLimitHook(tracker, maxTokensPerSession)]
+        }
+      ]
+    }
+  };
+}
+async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath, maxTasksPerSession, maxTokensPerSession, messagesWriter) {
   try {
     let exitCode = 0;
-    for await (const message of Qx({
-      prompt,
-      options: {
-        pathToClaudeCodeExecutable: resolveClaudeBinary(),
-        model,
-        cwd: worktreePath,
-        env: {
-          ...process7.env,
-          [ENV_CLAUDECODE]: void 0,
-          [ENV_PROJECT_DIR]: worktreePath,
-          [ENV_ENABLE_TASKS]: "true",
-          [ENV_TASK_LIST_ID]: taskListId,
-          [ENV_STORY_ID]: storyId,
-          [ENV_STORY_TASK_LIST_ID]: taskListId
-        },
-        permissionMode: "bypassPermissions",
-        allowDangerouslySkipPermissions: true,
-        sandbox: {
-          enabled: true,
-          autoAllowBashIfSandboxed: true,
-          allowUnsandboxedCommands: false,
-          network: {
-            allowManagedDomainsOnly: false,
-            allowLocalBinding: true
-          }
-        },
-        hooks: {
-          [PRE_TOOL_USE]: [
-            {
-              matcher: SCOPE_TOOL_MATCHER,
-              hooks: [createScopeValidatorHook(worktreePath, storyId)]
-            },
-            {
-              matcher: TASK_UPDATE_MATCHER,
-              hooks: [createJournalGateHook(worktreePath, storyId)]
-            }
-          ],
-          [POST_TOOL_USE]: [
-            {
-              matcher: TASK_UPDATE_MATCHER,
-              hooks: [
-                createSyncHook(worktreePath, storyId),
-                createAutoCommitHook(worktreePath, storyId),
-                createTaskPacingHook(worktreePath, storyId, maxTasksPerSession)
-              ]
-            }
-          ]
-        }
+    const tracker = { inputTokens: 0 };
+    const options = buildQueryOptions(
+      model,
+      worktreePath,
+      taskListId,
+      storyId,
+      maxTasksPerSession,
+      maxTokensPerSession,
+      tracker
+    );
+    for await (const message of Qx({ prompt, options })) {
+      const tokens = extractInputTokens(message);
+      if (tokens !== void 0) {
+        tracker.inputTokens = tokens;
       }
-    })) {
       messagesWriter.write(message);
       if (message.type === "result") {
         exitCode = message.subtype === "success" ? 0 : 1;
@@ -13711,6 +13757,7 @@ function executeCycle(config, state) {
     config.storyId,
     config.worktreePath,
     config.maxTasksPerSession,
+    config.maxTokensPerSession,
     config.messagesWriter
   ).then(({ exitCode }) => {
     state.cycles++;
@@ -13756,6 +13803,7 @@ async function runSequentialCycles(config, state) {
 async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, options) {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTasksPerSession = options.maxTasksPerSession ?? DEFAULT_MAX_TASKS_PER_SESSION;
+  const maxTokensPerSession = options.maxTokensPerSession ?? DEFAULT_MAX_TOKENS_PER_SESSION;
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
@@ -13777,6 +13825,7 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
     storyDir,
     maxCycles,
     maxTasksPerSession,
+    maxTokensPerSession,
     maxTimeMs,
     startTime,
     messagesWriter

@@ -215,6 +215,9 @@ function buildQueryOptions(
         allowManagedDomainsOnly: false,
         allowLocalBinding: true,
       },
+      filesystem: {
+        allowWrite: ['/tmp', '/private/tmp'],
+      },
     },
     hooks: {
       [PRE_TOOL_USE]: [
