@@ -197,6 +197,10 @@ async function spawnHeadlessRun(
           enabled: true,
           autoAllowBashIfSandboxed: true,
           allowUnsandboxedCommands: false,
+          network: {
+            allowManagedDomainsOnly: false,
+            allowLocalBinding: true,
+          },
         },
         hooks: {
           [PRE_TOOL_USE]: [

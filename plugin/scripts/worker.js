@@ -13644,7 +13644,11 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
         sandbox: {
           enabled: true,
           autoAllowBashIfSandboxed: true,
-          allowUnsandboxedCommands: false
+          allowUnsandboxedCommands: false,
+          network: {
+            allowManagedDomainsOnly: false,
+            allowLocalBinding: true
+          }
         },
         hooks: {
           [PRE_TOOL_USE]: [
