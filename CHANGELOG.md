@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.7.0] - 2026-02-27
+
+### Added
+
+- **worker**: Token-based session limiting via PostToolUse hook
+
+### Fixed
+
+- **worker**: Resolve sandbox issues for Chromium and /tmp permissions
+
 ## [4.6.1] - 2026-02-27
 
 ### Added
