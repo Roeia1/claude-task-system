@@ -10,8 +10,8 @@ import { Breadcrumb } from './Breadcrumb.tsx';
 // Route Presets
 // ============================================================================
 
-/** Regex pattern for matching "Epics" link text (case insensitive) */
-const EPICS_LINK_PATTERN = /epics/i;
+/** Regex pattern for matching "Board" link text (case insensitive) */
+const EPICS_LINK_PATTERN = /board/i;
 
 /** Available route presets for Playground */
 const routePresets = ['root', 'epicDetail', 'storyDetail', 'longEpicSlug', 'longStoryId'] as const;
@@ -162,7 +162,7 @@ const Showcase: Story = {
     await expect(canvas.getByText('Edge Cases (Long IDs)')).toBeInTheDocument();
 
     // Verify root breadcrumb - contains "Epics" text and home icon
-    const epicsTexts = canvas.getAllByText('Epics');
+    const epicsTexts = canvas.getAllByText('Board');
     await expect(epicsTexts.length).toBeGreaterThan(0);
     const homeIcons = canvas.getAllByTestId('breadcrumb-home-icon');
     await expect(homeIcons.length).toBeGreaterThan(0);
@@ -224,7 +224,7 @@ const Playground: Story = {
     // For root preset, verify home icon and Epics text
     if (args.preset === 'root' && !args.customRoute) {
       await expect(canvas.getByTestId('breadcrumb-home-icon')).toBeInTheDocument();
-      await expect(canvas.getByText('Epics')).toBeInTheDocument();
+      await expect(canvas.getByText('Board')).toBeInTheDocument();
       // Root has no separators
       const separators = canvas.queryAllByTestId('breadcrumb-separator');
       await expect(separators.length).toBe(0);

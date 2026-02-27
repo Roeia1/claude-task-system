@@ -26,7 +26,7 @@ function buildBreadcrumbItems(
   params: { epicId?: string; storyId?: string },
   currentStory: StoryDetail | null,
 ): BreadcrumbItem[] {
-  const items: BreadcrumbItem[] = [{ label: 'Epics', href: '/' }];
+  const items: BreadcrumbItem[] = [{ label: 'Board', href: '/' }];
 
   if (params.epicId) {
     items.push({ label: params.epicId });

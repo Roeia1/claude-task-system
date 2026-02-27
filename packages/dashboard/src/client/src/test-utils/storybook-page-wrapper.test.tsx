@@ -30,8 +30,8 @@ describe('PageWrapper', () => {
       </PageWrapper>,
     );
 
-    // Verify breadcrumb shows "Epics" for root
-    expect(screen.getByText('Epics')).toBeInTheDocument();
+    // Verify breadcrumb shows "Board" for root
+    expect(screen.getByText('Board')).toBeInTheDocument();
   });
 
   it('shows correct breadcrumb for epic detail route', () => {
@@ -42,7 +42,7 @@ describe('PageWrapper', () => {
     );
 
     // Verify breadcrumb shows epic slug
-    expect(screen.getByText('Epics')).toBeInTheDocument();
+    expect(screen.getByText('Board')).toBeInTheDocument();
     expect(screen.getByText('my-test-epic')).toBeInTheDocument();
   });
 
@@ -54,7 +54,7 @@ describe('PageWrapper', () => {
     );
 
     // Verify breadcrumb trail
-    expect(screen.getByText('Epics')).toBeInTheDocument();
+    expect(screen.getByText('Board')).toBeInTheDocument();
     expect(screen.getByText('my-story')).toBeInTheDocument();
   });
 
