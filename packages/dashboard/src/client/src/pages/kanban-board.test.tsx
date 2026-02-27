@@ -1,7 +1,7 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DashboardProvider } from '@/context/dashboard-context';
+import { DashboardProvider, useDashboardActorRef } from '@/context/dashboard-context';
 import type { SessionInfo, StoryDetail } from '@/types/dashboard';
 import { KanbanBoard } from './KanbanBoard.tsx';
 
@@ -498,6 +498,112 @@ describe('KanbanBoard', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('kanban-error')).toBeInTheDocument();
+      });
+    });
+  });
+
+  // ==========================================================================
+  // REAL-TIME UPDATES (via dashboard context)
+  // ==========================================================================
+  describe('real-time updates', () => {
+    it('updates board when story data changes in context', async () => {
+      // Initial load with one pending story
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [pendingStory],
+      });
+
+      // Capture actor ref via test helper component
+      let actorRef: ReturnType<typeof useDashboardActorRef>;
+      function TestController() {
+        actorRef = useDashboardActorRef();
+        return null;
+      }
+
+      render(
+        <DashboardProvider>
+          <MemoryRouter>
+            <TestController />
+            <KanbanBoard />
+          </MemoryRouter>
+        </DashboardProvider>,
+      );
+
+      // Wait for initial render
+      await waitFor(() => {
+        expect(screen.getByText('Pending Story')).toBeInTheDocument();
+      });
+
+      // Simulate context update (as if from WebSocket stories:updated)
+      const updatedStories: StoryDetail[] = [
+        {
+          ...pendingStory,
+          status: 'completed',
+          tasks: [
+            { ...pendingStory.tasks[0], status: 'completed' },
+            { ...pendingStory.tasks[1], status: 'completed' },
+          ],
+        },
+        inProgressStory,
+      ];
+
+      act(() => {
+        actorRef?.send({ type: 'ALL_STORIES_LOADED', stories: updatedStories });
+      });
+
+      // Board should update: pendingStory moved to Completed column
+      await waitFor(() => {
+        const completedCol = screen.getByTestId('column-completed');
+        expect(completedCol).toHaveTextContent('Pending Story');
+
+        const inProgressCol = screen.getByTestId('column-inProgress');
+        expect(inProgressCol).toHaveTextContent('In Progress Story');
+      });
+    });
+
+    it('updates session indicators when session data changes in context', async () => {
+      // Initial load with stories but no running sessions
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => allStories,
+      });
+
+      let actorRef: ReturnType<typeof useDashboardActorRef>;
+      function TestController() {
+        actorRef = useDashboardActorRef();
+        return null;
+      }
+
+      render(
+        <DashboardProvider>
+          <MemoryRouter>
+            <TestController />
+            <KanbanBoard />
+          </MemoryRouter>
+        </DashboardProvider>,
+      );
+
+      // Wait for initial render
+      await waitFor(() => {
+        expect(screen.getByText('In Progress Story')).toBeInTheDocument();
+      });
+
+      // Initially no running indicators
+      const card = screen.getByTestId('story-card-story-in-progress');
+      expect(card.querySelector('[data-testid="running-indicator"]')).not.toBeInTheDocument();
+
+      // Simulate session data update (as if from WebSocket sessions:updated)
+      act(() => {
+        actorRef?.send({
+          type: 'SESSIONS_LOADED',
+          sessions: [runningSession],
+        });
+      });
+
+      // Running indicator should appear
+      await waitFor(() => {
+        const updatedCard = screen.getByTestId('story-card-story-in-progress');
+        expect(updatedCard.querySelector('[data-testid="running-indicator"]')).toBeInTheDocument();
       });
     });
   });

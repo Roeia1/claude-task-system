@@ -12,7 +12,8 @@ import { StoryCard } from '@/components/StoryCard.tsx';
 import { ScrollArea } from '@/components/ui/scroll-area.tsx';
 import { Separator } from '@/components/ui/separator.tsx';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
-import type { SessionInfo, StoryDetail } from '@/types/dashboard';
+import { useDashboard } from '@/context/dashboard-context.tsx';
+import type { StoryDetail } from '@/types/dashboard';
 
 /** Column configuration */
 const COLUMNS = [
@@ -130,11 +131,11 @@ function KanbanColumn({
 }
 
 /**
- * Custom hook for fetching all stories and sessions
+ * Custom hook for fetching all stories and sessions.
+ * Uses dashboard context for state so WebSocket updates are reflected in real-time.
  */
 function useKanbanData() {
-  const [stories, setStories] = useState<StoryDetail[]>([]);
-  const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const { allStories, sessions, setAllStories, setSessions } = useDashboard();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -148,7 +149,7 @@ function useKanbanData() {
           return;
         }
         const data = await res.json();
-        setStories(data);
+        setAllStories(data);
         setIsLoading(false);
       } catch {
         setHasError(true);
@@ -156,7 +157,7 @@ function useKanbanData() {
       }
     }
     fetchStories();
-  }, []);
+  }, [setAllStories]);
 
   useEffect(() => {
     async function fetchSessions() {
@@ -171,9 +172,9 @@ function useKanbanData() {
       }
     }
     fetchSessions();
-  }, []);
+  }, [setSessions]);
 
-  return { stories, sessions, isLoading, hasError };
+  return { stories: allStories, sessions, isLoading, hasError };
 }
 
 function KanbanBoardContent() {

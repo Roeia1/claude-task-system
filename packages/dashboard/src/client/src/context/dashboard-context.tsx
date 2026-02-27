@@ -47,6 +47,10 @@ function useDataActions(actorRef: DashboardActorRef) {
     (epics: EpicSummary[]) => actorRef.send({ type: 'EPICS_LOADED', epics }),
     [actorRef],
   );
+  const setAllStories = useCallback(
+    (stories: StoryDetail[]) => actorRef.send({ type: 'ALL_STORIES_LOADED', stories }),
+    [actorRef],
+  );
   const setCurrentEpic = useCallback(
     (epic: Epic) => actorRef.send({ type: 'EPIC_LOADED', epic }),
     [actorRef],
@@ -63,6 +67,7 @@ function useDataActions(actorRef: DashboardActorRef) {
   const clearCurrentStory = useCallback(() => actorRef.send({ type: 'CLEAR_STORY' }), [actorRef]);
   return {
     setEpics,
+    setAllStories,
     setCurrentEpic,
     setCurrentStory,
     setSessions,
@@ -130,6 +135,7 @@ function useDashboard() {
       isReconnecting,
       isError,
       epics: context.epics,
+      allStories: context.allStories,
       currentEpic: context.currentEpic,
       currentStory: context.currentStory,
       sessions: context.sessions,
