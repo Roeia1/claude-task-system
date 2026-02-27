@@ -4422,9 +4422,26 @@ function createNoopMessageWriter() {
   };
 }
 
+// src/scripts/worker/resolve-mcp-servers.ts
+import { readFileSync as readFileSync2 } from "node:fs";
+function resolveMcpServers(projectDir) {
+  const { saga } = createSagaPaths(projectDir);
+  const configPath = `${saga}/config.json`;
+  try {
+    const raw = readFileSync2(configPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    if (parsed.mcpServers && typeof parsed.mcpServers === "object") {
+      return parsed.mcpServers;
+    }
+    return void 0;
+  } catch {
+    return void 0;
+  }
+}
+
 // src/scripts/worker/run-headless-loop.ts
 import { execFileSync as execFileSync4 } from "node:child_process";
-import { readdirSync as readdirSync3, readFileSync as readFileSync4 } from "node:fs";
+import { readdirSync as readdirSync3, readFileSync as readFileSync5 } from "node:fs";
 import { join as join4 } from "node:path";
 import process7 from "node:process";
 
@@ -13499,7 +13516,7 @@ function createScopeValidatorHook(worktreePath, storyId) {
 }
 
 // src/scripts/sync-hook.ts
-import { existsSync as existsSync3, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "node:fs";
+import { existsSync as existsSync3, readFileSync as readFileSync4, writeFileSync as writeFileSync2 } from "node:fs";
 function createSyncHook(worktreePath, storyId) {
   return (_input, _toolUseID, _options) => {
     const hookInput = _input;
@@ -13510,7 +13527,7 @@ function createSyncHook(worktreePath, storyId) {
       try {
         const taskPath = createTaskPath(worktreePath, storyId, taskId);
         if (existsSync3(taskPath)) {
-          const taskData = JSON.parse(readFileSync3(taskPath, "utf-8"));
+          const taskData = JSON.parse(readFileSync4(taskPath, "utf-8"));
           taskData.status = status;
           writeFileSync2(taskPath, JSON.stringify(taskData, null, 2));
         }
@@ -13557,10 +13574,27 @@ function createTaskPacingHook(_worktreePath, _storyId, maxTasksPerSession) {
   };
 }
 
+// src/scripts/token-limit-hook.ts
+function createTokenLimitHook(tracker, maxTokens) {
+  return (_input, _toolUseID, _options) => {
+    if (tracker.inputTokens < maxTokens) {
+      return Promise.resolve({ continue: true });
+    }
+    return Promise.resolve({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: "[TOKEN LIMIT] You have reached the session token limit. Wrap up your current work immediately: commit progress, update task status, write a journal entry, and exit cleanly. Do NOT start any new tasks."
+      }
+    });
+  };
+}
+
 // src/scripts/worker/run-headless-loop.ts
 var DEFAULT_MAX_CYCLES = 10;
 var DEFAULT_MAX_TIME_MINUTES = 60;
 var DEFAULT_MAX_TASKS_PER_SESSION = 3;
+var DEFAULT_MAX_TOKENS_PER_SESSION = 12e4;
 var DEFAULT_MODEL = "opus";
 var MS_PER_MINUTE = 6e4;
 var ENV_PROJECT_DIR = "SAGA_PROJECT_DIR";
@@ -13613,7 +13647,7 @@ function checkAllTasksCompleted(storyDir) {
   }
   for (const file of files) {
     const filePath = join4(storyDir, file);
-    const raw = readFileSync4(filePath, "utf-8");
+    const raw = readFileSync5(filePath, "utf-8");
     const task = JSON.parse(raw);
     if (task.status !== "completed") {
       return false;
@@ -13621,55 +13655,82 @@ function checkAllTasksCompleted(storyDir) {
   }
   return true;
 }
-async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath, maxTasksPerSession, messagesWriter) {
+var INPUT_TOKENS_KEY = "input_tokens";
+function extractInputTokens(message) {
+  if (message.type !== "assistant") {
+    return void 0;
+  }
+  const msg = message;
+  const tokens = msg.message?.usage?.[INPUT_TOKENS_KEY];
+  return typeof tokens === "number" ? tokens : void 0;
+}
+function buildQueryOptions(model, worktreePath, taskListId, storyId, maxTasksPerSession, maxTokensPerSession, tracker, mcpServers) {
+  const options = {
+    pathToClaudeCodeExecutable: resolveClaudeBinary(),
+    model,
+    cwd: worktreePath,
+    settingSources: ["user", "project", "local"],
+    env: {
+      ...process7.env,
+      [ENV_CLAUDECODE]: void 0,
+      [ENV_PROJECT_DIR]: worktreePath,
+      [ENV_ENABLE_TASKS]: "true",
+      [ENV_TASK_LIST_ID]: taskListId,
+      [ENV_STORY_ID]: storyId,
+      [ENV_STORY_TASK_LIST_ID]: taskListId
+    },
+    permissionMode: "bypassPermissions",
+    allowDangerouslySkipPermissions: true,
+    hooks: {
+      [PRE_TOOL_USE]: [
+        {
+          matcher: SCOPE_TOOL_MATCHER,
+          hooks: [createScopeValidatorHook(worktreePath, storyId)]
+        },
+        {
+          matcher: TASK_UPDATE_MATCHER,
+          hooks: [createJournalGateHook(worktreePath, storyId)]
+        }
+      ],
+      [POST_TOOL_USE]: [
+        {
+          matcher: TASK_UPDATE_MATCHER,
+          hooks: [
+            createSyncHook(worktreePath, storyId),
+            createAutoCommitHook(worktreePath, storyId),
+            createTaskPacingHook(worktreePath, storyId, maxTasksPerSession)
+          ]
+        },
+        {
+          hooks: [createTokenLimitHook(tracker, maxTokensPerSession)]
+        }
+      ]
+    }
+  };
+  if (mcpServers !== void 0) {
+    options.mcpServers = mcpServers;
+  }
+  return options;
+}
+async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath, maxTasksPerSession, maxTokensPerSession, messagesWriter, mcpServers) {
   try {
     let exitCode = 0;
-    for await (const message of Qx({
-      prompt,
-      options: {
-        pathToClaudeCodeExecutable: resolveClaudeBinary(),
-        model,
-        cwd: worktreePath,
-        env: {
-          ...process7.env,
-          [ENV_CLAUDECODE]: void 0,
-          [ENV_PROJECT_DIR]: worktreePath,
-          [ENV_ENABLE_TASKS]: "true",
-          [ENV_TASK_LIST_ID]: taskListId,
-          [ENV_STORY_ID]: storyId,
-          [ENV_STORY_TASK_LIST_ID]: taskListId
-        },
-        permissionMode: "bypassPermissions",
-        allowDangerouslySkipPermissions: true,
-        sandbox: {
-          enabled: true,
-          autoAllowBashIfSandboxed: true,
-          allowUnsandboxedCommands: false
-        },
-        hooks: {
-          [PRE_TOOL_USE]: [
-            {
-              matcher: SCOPE_TOOL_MATCHER,
-              hooks: [createScopeValidatorHook(worktreePath, storyId)]
-            },
-            {
-              matcher: TASK_UPDATE_MATCHER,
-              hooks: [createJournalGateHook(worktreePath, storyId)]
-            }
-          ],
-          [POST_TOOL_USE]: [
-            {
-              matcher: TASK_UPDATE_MATCHER,
-              hooks: [
-                createSyncHook(worktreePath, storyId),
-                createAutoCommitHook(worktreePath, storyId),
-                createTaskPacingHook(worktreePath, storyId, maxTasksPerSession)
-              ]
-            }
-          ]
-        }
+    const tracker = { inputTokens: 0 };
+    const options = buildQueryOptions(
+      model,
+      worktreePath,
+      taskListId,
+      storyId,
+      maxTasksPerSession,
+      maxTokensPerSession,
+      tracker,
+      mcpServers
+    );
+    for await (const message of Qx({ prompt, options })) {
+      const tokens = extractInputTokens(message);
+      if (tokens !== void 0) {
+        tracker.inputTokens = tokens;
       }
-    })) {
       messagesWriter.write(message);
       if (message.type === "result") {
         exitCode = message.subtype === "success" ? 0 : 1;
@@ -13707,7 +13768,9 @@ function executeCycle(config, state) {
     config.storyId,
     config.worktreePath,
     config.maxTasksPerSession,
-    config.messagesWriter
+    config.maxTokensPerSession,
+    config.messagesWriter,
+    config.mcpServers
   ).then(({ exitCode }) => {
     state.cycles++;
     config.messagesWriter.write({
@@ -13752,9 +13815,11 @@ async function runSequentialCycles(config, state) {
 async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, options) {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTasksPerSession = options.maxTasksPerSession ?? DEFAULT_MAX_TASKS_PER_SESSION;
+  const maxTokensPerSession = options.maxTokensPerSession ?? DEFAULT_MAX_TOKENS_PER_SESSION;
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
+  const { mcpServers } = options;
   const prompt = buildPrompt(storyMeta, storyId, worktreePath);
   const startTime = Date.now();
   const { storyDir } = createStoryPaths(worktreePath, storyId);
@@ -13773,9 +13838,11 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
     storyDir,
     maxCycles,
     maxTasksPerSession,
+    maxTokensPerSession,
     maxTimeMs,
     startTime,
-    messagesWriter
+    messagesWriter,
+    mcpServers
   };
   const state = {
     cycles: 0,
@@ -14027,15 +14094,18 @@ function writePipelineEnd(writer, storyId, summary) {
     elapsedMinutes: summary.elapsedMinutes
   });
 }
-async function runPipeline(storyId, options) {
-  const projectDir = getProjectDir();
-  const writer = createWriter(options.messagesFile);
+function writePipelineStart(writer, storyId) {
   writer.write({
     type: "saga_worker",
     subtype: "pipeline_start",
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
     storyId
   });
+}
+async function runPipeline(storyId, options) {
+  const projectDir = getProjectDir();
+  const writer = createWriter(options.messagesFile);
+  writePipelineStart(writer, storyId);
   const worktreeResult = setupWorktree(storyId, projectDir);
   writeStep(
     writer,
@@ -14049,6 +14119,7 @@ async function runPipeline(storyId, options) {
     prResult.alreadyExisted ? `PR exists: ${prResult.prUrl}` : `Created draft PR: ${prResult.prUrl}`
   );
   const { taskListId, storyMeta } = hydrateTasks(storyId, worktreeResult.worktreePath);
+  const mcpServers = resolveMcpServers(projectDir);
   const result = await runHeadlessLoop(
     storyId,
     taskListId,
@@ -14056,7 +14127,8 @@ async function runPipeline(storyId, options) {
     storyMeta,
     {
       ...options,
-      messagesWriter: writer
+      messagesWriter: writer,
+      mcpServers
     }
   );
   markPrReady(storyId, worktreeResult.worktreePath, result.allCompleted);

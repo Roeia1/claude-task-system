@@ -45,7 +45,8 @@ const MINUTES_5_MS = 300_000;
 const MAX_CYCLES_HIGH = 100;
 const DEFAULT_MAX_TIME = 60;
 const DEFAULT_MAX_CYCLES = 10;
-const POST_TOOL_USE_HOOK_COUNT = 3; // sync, auto-commit, task-pacing
+const TASK_UPDATE_HOOK_COUNT = 3; // sync, auto-commit, task-pacing
+const POST_TOOL_USE_ENTRY_COUNT = 2; // TaskUpdate hooks + token-limit hook
 
 /**
  * Create a mock async generator that yields SDK messages.
@@ -116,7 +117,11 @@ function createMockQueryWithAssistant(): ReturnType<typeof query> {
     await Promise.resolve();
     yield {
       type: 'assistant' as const,
-      message: { role: 'assistant', content: 'Working on it' },
+      message: {
+        role: 'assistant',
+        content: 'Working on it',
+        usage: { ...MOCK_USAGE, input_tokens: 500 },
+      },
       session_id: 'test-session',
     };
     yield {
@@ -641,12 +646,17 @@ describe('runHeadlessLoop', () => {
     const queryArgs = mockQuery.mock.calls[0][0];
     const hooks = queryArgs.options?.hooks;
     expect(hooks?.PostToolUse).toBeDefined();
-    expect(hooks?.PostToolUse).toHaveLength(1);
+    expect(hooks?.PostToolUse).toHaveLength(POST_TOOL_USE_ENTRY_COUNT);
+    // First entry: TaskUpdate hooks (sync, auto-commit, task-pacing)
     expect(hooks?.PostToolUse?.[0].matcher).toBe('TaskUpdate');
-    expect(hooks?.PostToolUse?.[0].hooks).toHaveLength(POST_TOOL_USE_HOOK_COUNT);
+    expect(hooks?.PostToolUse?.[0].hooks).toHaveLength(TASK_UPDATE_HOOK_COUNT);
     expect(typeof hooks?.PostToolUse?.[0].hooks[0]).toBe('function');
     expect(typeof hooks?.PostToolUse?.[0].hooks[1]).toBe('function');
     expect(typeof hooks?.PostToolUse?.[0].hooks[2]).toBe('function');
+    // Second entry: token-limit hook (no matcher = all tools)
+    expect(hooks?.PostToolUse?.[1].matcher).toBeUndefined();
+    expect(hooks?.PostToolUse?.[1].hooks).toHaveLength(1);
+    expect(typeof hooks?.PostToolUse?.[1].hooks[0]).toBe('function');
   });
 
   it('should set SAGA_PROJECT_DIR to worktreePath in query() env', async () => {
@@ -666,6 +676,58 @@ describe('runHeadlessLoop', () => {
         }),
       }),
     );
+  });
+
+  it('should include settingSources with all sources', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
+
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          settingSources: ['user', 'project', 'local'],
+        }),
+      }),
+    );
+  });
+
+  it('should pass mcpServers to query() when provided in options', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
+
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+    const mcpServers = {
+      shadcn: { command: 'npx', args: ['-y', '@anthropic-ai/shadcn-mcp'] },
+    };
+
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {
+      mcpServers,
+    });
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          mcpServers,
+        }),
+      }),
+    );
+  });
+
+  it('should not include mcpServers in query() when not provided', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
+
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
+
+    const queryArgs = mockQuery.mock.calls[0][0];
+    expect(queryArgs.options).not.toHaveProperty('mcpServers');
   });
 
   it('should return exitCode 1 when query() yields error result', async () => {

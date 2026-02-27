@@ -19,6 +19,8 @@ import { buildWorkerInstructions } from '../prompts/worker-instructions.ts';
 import { createScopeValidatorHook } from '../scope-validator-hook.ts';
 import { createSyncHook } from '../sync-hook.ts';
 import { createTaskPacingHook } from '../task-pacing-hook.ts';
+import type { TokenTracker } from '../token-limit-hook.ts';
+import { createTokenLimitHook } from '../token-limit-hook.ts';
 import type { MessageWriter } from './message-writer.ts';
 import { createNoopMessageWriter } from './message-writer.ts';
 
@@ -29,6 +31,7 @@ import { createNoopMessageWriter } from './message-writer.ts';
 const DEFAULT_MAX_CYCLES = 10;
 const DEFAULT_MAX_TIME_MINUTES = 60;
 const DEFAULT_MAX_TASKS_PER_SESSION = 3;
+const DEFAULT_MAX_TOKENS_PER_SESSION = 120_000;
 const DEFAULT_MODEL = 'opus';
 const MS_PER_MINUTE = 60_000;
 
@@ -71,8 +74,10 @@ interface RunLoopOptions {
   maxCycles?: number;
   maxTime?: number;
   maxTasksPerSession?: number;
+  maxTokensPerSession?: number;
   model?: string;
   messagesWriter?: MessageWriter;
+  mcpServers?: Record<string, unknown>;
 }
 
 interface RunLoopResult {
@@ -162,6 +167,84 @@ function checkAllTasksCompleted(storyDir: string): boolean {
 // ============================================================================
 
 /**
+ * Extract input token count from an SDK assistant message, if present.
+ * Returns undefined when the message is not an assistant message or has no usage.
+ */
+const INPUT_TOKENS_KEY = 'input_tokens';
+
+function extractInputTokens(message: { type: string }): number | undefined {
+  if (message.type !== 'assistant') {
+    return undefined;
+  }
+  const msg = message as { message?: { usage?: Record<string, unknown> } };
+  const tokens = msg.message?.usage?.[INPUT_TOKENS_KEY];
+  return typeof tokens === 'number' ? tokens : undefined;
+}
+
+/**
+ * Build the query options for a headless Agent SDK run.
+ */
+function buildQueryOptions(
+  model: string,
+  worktreePath: string,
+  taskListId: string,
+  storyId: string,
+  maxTasksPerSession: number,
+  maxTokensPerSession: number,
+  tracker: TokenTracker,
+  mcpServers?: Record<string, unknown>,
+) {
+  const options: Record<string, unknown> = {
+    pathToClaudeCodeExecutable: resolveClaudeBinary(),
+    model,
+    cwd: worktreePath,
+    settingSources: ['user', 'project', 'local'],
+    env: {
+      ...process.env,
+      [ENV_CLAUDECODE]: undefined,
+      [ENV_PROJECT_DIR]: worktreePath,
+      [ENV_ENABLE_TASKS]: 'true',
+      [ENV_TASK_LIST_ID]: taskListId,
+      [ENV_STORY_ID]: storyId,
+      [ENV_STORY_TASK_LIST_ID]: taskListId,
+    },
+    permissionMode: 'bypassPermissions' as const,
+    allowDangerouslySkipPermissions: true,
+    hooks: {
+      [PRE_TOOL_USE]: [
+        {
+          matcher: SCOPE_TOOL_MATCHER,
+          hooks: [createScopeValidatorHook(worktreePath, storyId)],
+        },
+        {
+          matcher: TASK_UPDATE_MATCHER,
+          hooks: [createJournalGateHook(worktreePath, storyId)],
+        },
+      ],
+      [POST_TOOL_USE]: [
+        {
+          matcher: TASK_UPDATE_MATCHER,
+          hooks: [
+            createSyncHook(worktreePath, storyId),
+            createAutoCommitHook(worktreePath, storyId),
+            createTaskPacingHook(worktreePath, storyId, maxTasksPerSession),
+          ],
+        },
+        {
+          hooks: [createTokenLimitHook(tracker, maxTokensPerSession)],
+        },
+      ],
+    },
+  };
+
+  if (mcpServers !== undefined) {
+    options.mcpServers = mcpServers;
+  }
+
+  return options;
+}
+
+/**
  * Run a single headless Claude session via the Agent SDK and wait for it to complete.
  */
 async function spawnHeadlessRun(
@@ -171,57 +254,30 @@ async function spawnHeadlessRun(
   storyId: string,
   worktreePath: string,
   maxTasksPerSession: number,
+  maxTokensPerSession: number,
   messagesWriter: MessageWriter,
+  mcpServers?: Record<string, unknown>,
 ): Promise<{ exitCode: number | null }> {
   try {
     let exitCode: number | null = 0;
+    const tracker: TokenTracker = { inputTokens: 0 };
+    const options = buildQueryOptions(
+      model,
+      worktreePath,
+      taskListId,
+      storyId,
+      maxTasksPerSession,
+      maxTokensPerSession,
+      tracker,
+      mcpServers,
+    );
 
-    for await (const message of query({
-      prompt,
-      options: {
-        pathToClaudeCodeExecutable: resolveClaudeBinary(),
-        model,
-        cwd: worktreePath,
-        env: {
-          ...process.env,
-          [ENV_CLAUDECODE]: undefined,
-          [ENV_PROJECT_DIR]: worktreePath,
-          [ENV_ENABLE_TASKS]: 'true',
-          [ENV_TASK_LIST_ID]: taskListId,
-          [ENV_STORY_ID]: storyId,
-          [ENV_STORY_TASK_LIST_ID]: taskListId,
-        },
-        permissionMode: 'bypassPermissions',
-        allowDangerouslySkipPermissions: true,
-        sandbox: {
-          enabled: true,
-          autoAllowBashIfSandboxed: true,
-          allowUnsandboxedCommands: false,
-        },
-        hooks: {
-          [PRE_TOOL_USE]: [
-            {
-              matcher: SCOPE_TOOL_MATCHER,
-              hooks: [createScopeValidatorHook(worktreePath, storyId)],
-            },
-            {
-              matcher: TASK_UPDATE_MATCHER,
-              hooks: [createJournalGateHook(worktreePath, storyId)],
-            },
-          ],
-          [POST_TOOL_USE]: [
-            {
-              matcher: TASK_UPDATE_MATCHER,
-              hooks: [
-                createSyncHook(worktreePath, storyId),
-                createAutoCommitHook(worktreePath, storyId),
-                createTaskPacingHook(worktreePath, storyId, maxTasksPerSession),
-              ],
-            },
-          ],
-        },
-      },
-    })) {
+    for await (const message of query({ prompt, options })) {
+      const tokens = extractInputTokens(message);
+      if (tokens !== undefined) {
+        tracker.inputTokens = tokens;
+      }
+
       messagesWriter.write(message);
       if (message.type === 'result') {
         exitCode = message.subtype === 'success' ? 0 : 1;
@@ -249,9 +305,11 @@ interface LoopConfig {
   storyDir: string;
   maxCycles: number;
   maxTasksPerSession: number;
+  maxTokensPerSession: number;
   maxTimeMs: number;
   startTime: number;
   messagesWriter: MessageWriter;
+  mcpServers?: Record<string, unknown>;
 }
 
 interface LoopState {
@@ -293,7 +351,9 @@ function executeCycle(config: LoopConfig, state: LoopState): Promise<{ shouldCon
     config.storyId,
     config.worktreePath,
     config.maxTasksPerSession,
+    config.maxTokensPerSession,
     config.messagesWriter,
+    config.mcpServers,
   ).then(({ exitCode }) => {
     state.cycles++;
 
@@ -361,9 +421,11 @@ async function runHeadlessLoop(
 ): Promise<RunLoopResult> {
   const maxCycles = options.maxCycles ?? DEFAULT_MAX_CYCLES;
   const maxTasksPerSession = options.maxTasksPerSession ?? DEFAULT_MAX_TASKS_PER_SESSION;
+  const maxTokensPerSession = options.maxTokensPerSession ?? DEFAULT_MAX_TOKENS_PER_SESSION;
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
+  const { mcpServers } = options;
 
   const prompt = buildPrompt(storyMeta, storyId, worktreePath);
   const startTime = Date.now();
@@ -387,9 +449,11 @@ async function runHeadlessLoop(
     storyDir,
     maxCycles,
     maxTasksPerSession,
+    maxTokensPerSession,
     maxTimeMs,
     startTime,
     messagesWriter,
+    mcpServers,
   };
 
   const state: LoopState = {

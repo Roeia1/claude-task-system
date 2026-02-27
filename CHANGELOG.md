@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.8.0] - 2026-02-27
+
+### Added
+
+- **worker**: MCP server support — workers now load filesystem settings (CLAUDE.md, permissions, MCP servers) via settingSources and support explicit MCP overrides from `.saga/config.json`
+
+## [4.7.1] - 2026-02-27
+
+### Fixed
+
+- **worker**: Remove worker sandbox to resolve macOS EPERM and Chromium failures
+
+## [4.7.0] - 2026-02-27
+
+### Added
+
+- **worker**: Token-based session limiting via PostToolUse hook
+
+### Fixed
+
+- **worker**: Resolve sandbox issues for Chromium and /tmp permissions
+
+## [4.6.1] - 2026-02-27
+
+### Added
+
+- **dev**: Playwright CLI skill for browser automation testing
+- **dev**: pnpm enforcement hook to block npm/npx and suggest pnpm alternatives
+
+### Fixed
+
+- **worker**: Allow network access in worker sandbox configuration for npm registry and local ports
+- **dev**: Correct pnpm enforcement hook input/output format
+
 ## [4.6.0] - 2026-02-15
 
 ### Added
