@@ -42,3 +42,25 @@
 **Next steps:**
 - Proceed to `#implement-story-card` (now unblocked)
 - Then `#implement-kanban-board`
+
+### Task: implement-story-card
+
+**What was done:**
+- Created `StoryCard.tsx` component with collapsible card using shadcn Card + Collapsible
+- Collapsed state: chevron, title, epic Badge, compact Progress bar, task count, pulsing running indicator with Tooltip
+- Expanded state: full markdown description (ReactMarkdown + remarkGfm), task list with status icons (✓/●/○), blocked-by info, progress bar, session indicator, "Open story →" link
+- Created `KanbanBoard.tsx` page with 3-column layout (Pending/In Progress/Completed), loading Skeleton, error state, session integration via `/api/sessions?status=running`
+- Installed 4 new shadcn components: Tooltip, Skeleton, ScrollArea, Separator (with radix-ui deps)
+- Extracted `KanbanColumn` and `useKanbanData` to keep functions under biome's 50-line limit
+- All 19 kanban board tests pass, all 38 full suite tests pass
+
+**Key decisions and deviations:**
+- Used pure re-export pattern for tooltip.tsx (same as collapsible.tsx) to avoid biome `useComponentExportOnlyModules` lint error
+- Split KanbanBoard into `KanbanBoardContent`, `KanbanColumn`, `useKanbanData` to comply with biome's `noExcessiveLinesPerFunction` rule
+- Used string keys for skeleton cards instead of array indices to comply with `noArrayIndexKey` rule
+- Removed `export type { StoryCardProps }` to satisfy biome component-only export rule
+- Task also implements the KanbanBoard page component (combined with story card implementation since they're tightly coupled)
+
+**Next steps:**
+- Mark `#implement-kanban-board` as completed (already implemented)
+- Proceed to `#add-websocket-broadcast` and `#update-router-and-integrate`
