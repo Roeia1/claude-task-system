@@ -85,3 +85,24 @@
 **Next steps:**
 - Proceed to `#integrate-realtime-updates` — wire up client-side XState machine to handle `stories:updated` events
 - Then `#update-router-and-integrate` — swap router home route to KanbanBoard
+
+## Session: 2026-02-27T03:25:00Z
+
+### Task: integrate-realtime-updates
+
+**What was done:**
+- Added `allStories: StoryDetail[]` to dashboard machine context with `ALL_STORIES_LOADED` (from REST) and `STORIES_UPDATED` (from WebSocket) event types
+- Added `setAllStories` and `updateAllStories` actions to the machine
+- Updated `handleStateMessage` to route `stories:updated` WebSocket events to `STORIES_UPDATED` machine event
+- Exposed `allStories` and `setAllStories` from `useDashboard()` context hook
+- Refactored `useKanbanData` in KanbanBoard to use dashboard context instead of local state — stories and sessions are now read from the XState machine context, enabling real-time updates via WebSocket
+- Added 2 new tests: board updates when story data changes in context, session indicators update when session data changes in context
+- All 609 tests pass (607 + 2 new)
+
+**Key decisions and deviations:**
+- Used `ALL_STORIES_LOADED` and `SESSIONS_LOADED` events in tests (not `STORIES_UPDATED`/`SESSIONS_UPDATED`) because the machine is in `idle` state in tests (no WebSocket). The `*_UPDATED` events are only handled in the `active` state. This is architecturally correct — WebSocket events only arrive when connected.
+- Kept REST fetch on mount (component dispatches to machine after fetch) rather than moving fetch logic into the machine — simpler and matches existing patterns in other pages
+- Used `useDashboard()` hook for consistency with the codebase (vs direct `useDashboardSelector` for optimized re-renders)
+
+**Next steps:**
+- Proceed to `#update-router-and-integrate` — swap router home route from EpicList to KanbanBoard
