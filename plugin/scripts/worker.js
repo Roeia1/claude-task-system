@@ -13663,18 +13663,6 @@ function buildQueryOptions(model, worktreePath, taskListId, storyId, maxTasksPer
     },
     permissionMode: "bypassPermissions",
     allowDangerouslySkipPermissions: true,
-    sandbox: {
-      enabled: true,
-      autoAllowBashIfSandboxed: true,
-      allowUnsandboxedCommands: false,
-      network: {
-        allowManagedDomainsOnly: false,
-        allowLocalBinding: true
-      },
-      filesystem: {
-        allowWrite: ["/tmp", "/private/tmp"]
-      }
-    },
     hooks: {
       [PRE_TOOL_USE]: [
         {

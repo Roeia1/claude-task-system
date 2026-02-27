@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.7.1] - 2026-02-27
+
+### Fixed
+
+- **worker**: Remove worker sandbox to resolve macOS EPERM and Chromium failures
+
 ## [4.7.0] - 2026-02-27
 
 ### Added
