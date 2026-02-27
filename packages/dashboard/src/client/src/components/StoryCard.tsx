@@ -6,9 +6,7 @@
  * - Expanded: full description (markdown), task list, session info, "Open story" link
  */
 import { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router';
-import remarkGfm from 'remark-gfm';
 import { Badge } from '@/components/ui/badge.tsx';
 import { Card } from '@/components/ui/card.tsx';
 import {
@@ -23,10 +21,35 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip.tsx';
-import type { StoryDetail } from '@/types/dashboard';
+import type { StoryDetail, Task } from '@/types/dashboard';
 
 /** Full percentage for progress calculation */
 const FULL_PERCENTAGE = 100;
+
+function topoSort(tasks: Task[]): Task[] {
+  const taskMap = new Map(tasks.map((t) => [t.id, t]));
+  const visited = new Set<string>();
+  const result: Task[] = [];
+
+  function visit(task: Task) {
+    if (visited.has(task.id)) {
+      return;
+    }
+    visited.add(task.id);
+    for (const depId of task.blockedBy) {
+      const dep = taskMap.get(depId);
+      if (dep) {
+        visit(dep);
+      }
+    }
+    result.push(task);
+  }
+
+  for (const task of tasks) {
+    visit(task);
+  }
+  return result;
+}
 
 interface StoryCardProps {
   story: StoryDetail;
@@ -112,36 +135,38 @@ function StoryCard({ story, isSessionRunning, sessionInfo }: StoryCardProps) {
 
         <CollapsibleContent data-testid={`story-card-content-${story.id}`}>
           <div className="border-t border-text-muted/20 px-3 pb-3 pt-2">
-            {/* Full description */}
-            {story.description && (
-              <div className="prose prose-sm prose-invert max-w-none mb-3">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{story.description}</ReactMarkdown>
-              </div>
-            )}
-
             {/* Task list */}
             {story.tasks.length > 0 && (
-              <div className="mb-3 space-y-1">
-                <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">
-                  Tasks
-                </h4>
-                {story.tasks.map((task) => (
-                  <div key={task.id} className="flex items-start gap-2 text-sm">
-                    <TaskStatusIcon status={task.status} />
-                    <span
-                      className={
-                        task.status === 'completed' ? 'text-text-muted line-through' : 'text-text'
-                      }
-                    >
-                      {task.subject}
-                    </span>
-                    {task.blockedBy.length > 0 && (
-                      <span className="text-xs text-danger">
-                        (blocked by {task.blockedBy.join(', ')})
-                      </span>
-                    )}
-                  </div>
-                ))}
+              <div className="mb-3">
+                <div className="mb-1 flex items-center text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  <span className="flex-1">Tasks</span>
+                  {story.tasks.some((t) => t.blockedBy.length > 0) && (
+                    <span className="shrink-0">Deps</span>
+                  )}
+                </div>
+                {(() => {
+                  const sorted = topoSort(story.tasks);
+                  const indexMap = new Map(sorted.map((t, i) => [t.id, i + 1]));
+                  return sorted.map((task, index) => {
+                    const deps = task.blockedBy.map((id) => indexMap.get(id)).filter(Boolean);
+                    return (
+                      <div key={task.id} className="flex items-start gap-2 text-sm">
+                        <TaskStatusIcon status={task.status} />
+                        <span className="shrink-0 w-4 text-text-muted">{index + 1}.</span>
+                        <span
+                          className={`flex-1 ${task.status === 'completed' ? 'text-text-muted' : 'text-text'}`}
+                        >
+                          {task.subject}
+                        </span>
+                        {deps.length > 0 && (
+                          <span className="shrink-0 text-xs text-text-muted">
+                            {deps.join(', ')}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             )}
 
