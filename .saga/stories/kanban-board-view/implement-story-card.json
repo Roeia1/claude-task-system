@@ -1,0 +1,12 @@
+{
+  "id": "implement-story-card",
+  "subject": "Implement StoryCard component with expand/collapse",
+  "description": "## Goal\nCreate `StoryCard.tsx` component in `src/client/src/components/` using shadcn/ui components.\n\n## Component API\n```tsx\ninterface StoryCardProps {\n  story: StoryDetail & { epicName?: string };\n  isSessionRunning: boolean;\n}\n```\n\n## Collapsed State\n- Card container using shadcn `Card` component\n- Left: chevron icon (ChevronRight when collapsed, ChevronDown when expanded)\n- Story title (truncated if too long)\n- Epic name as shadcn `Badge` (only if `epicName` exists)\n- Compact meta line: shadcn `Progress` bar + \"X/Y tasks\" text\n- When `isSessionRunning`: pulsing green dot next to title wrapped in shadcn `Tooltip` (showing session info on hover) + glowing card border via CSS animation\n\n## Expanded State\n- Uses shadcn `Collapsible` for smooth animation\n- Full markdown description (reuse existing markdown rendering from the project)\n- Task list with status icons:\n  - Completed: `✓` with success color\n  - In progress: `●` with warning color\n  - Pending: `○` with muted color\n  - Show `(blocked by <id>)` for tasks with blockedBy\n- Progress bar (full width) with \"X/Y tasks done\" label\n- Session running indicator (green dot + text)\n- \"Open story →\" link (React Router `Link` to `/story/:storyId`)\n\n## Styling\n- Use existing theme CSS variables\n- Add CSS `@keyframes pulse` animation for the running dot\n- Add CSS `@keyframes glow` animation for the card border\n- These can be in a scoped CSS module or inline Tailwind utilities\n\n## Notes\nUse the shadcn MCP server to check Card, Badge, Collapsible, and Progress component APIs and get usage examples.",
+  "activeForm": "Implementing StoryCard component",
+  "status": "completed",
+  "blockedBy": [
+    "write-kanban-board-tests"
+  ],
+  "guidance": "Use shadcn MCP to view Card, Badge, Collapsible, Progress, and Tooltip components. Install Tooltip via `pnpm dlx shadcn@latest add tooltip` from `packages/dashboard/src/client`. Check how EpicDetail.tsx renders markdown for the description. Use Tailwind animate utilities or custom keyframes for the pulse/glow animations.",
+  "doneWhen": "StoryCard component renders correctly in both collapsed and expanded states. Uses shadcn components and existing theme."
+}

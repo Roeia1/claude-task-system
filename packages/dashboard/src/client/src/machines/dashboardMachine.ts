@@ -38,6 +38,7 @@ interface StorySubscription {
 /** Dashboard machine context */
 interface DashboardContext {
   epics: EpicSummary[];
+  allStories: StoryDetail[];
   currentEpic: Epic | null;
   currentStory: StoryDetail | null;
   sessions: SessionInfo[];
@@ -60,8 +61,10 @@ type DashboardEvent =
   | { type: 'WS_ERROR'; error: string }
   | { type: 'RETRY' }
   | { type: 'EPICS_UPDATED'; epics: EpicSummary[] }
+  | { type: 'STORIES_UPDATED'; stories: StoryDetail[] }
   | { type: 'STORY_UPDATED'; story: StoryDetail }
   | { type: 'SESSIONS_UPDATED'; sessions: SessionInfo[] }
+  | { type: 'ALL_STORIES_LOADED'; stories: StoryDetail[] }
   | { type: 'LOAD_EPICS' }
   | { type: 'LOAD_EPIC'; epicId: string }
   | { type: 'LOAD_STORY'; storyId: string }
@@ -144,6 +147,8 @@ function handleStateMessage(
 ): void {
   if (messageType === 'epics:updated') {
     sendBack({ type: 'EPICS_UPDATED', epics: data as EpicSummary[] });
+  } else if (messageType === 'stories:updated') {
+    sendBack({ type: 'STORIES_UPDATED', stories: data as StoryDetail[] });
   } else if (messageType === 'story:updated') {
     sendBack({ type: 'STORY_UPDATED', story: data as StoryDetail });
   } else if (messageType === 'sessions:updated') {
@@ -312,6 +317,16 @@ const dataEventHandlers = {
       },
     ],
   },
+  ALL_STORIES_LOADED: {
+    actions: [
+      {
+        type: 'setAllStories' as const,
+        params: ({ event }: { event: { stories: StoryDetail[] } }) => ({
+          stories: event.stories,
+        }),
+      },
+    ],
+  },
   EPIC_LOADED: {
     actions: [
       {
@@ -372,6 +387,12 @@ const dashboardMachine = setup({
     setSessions: assign({
       sessions: (_, params: { sessions: SessionInfo[] }) => params.sessions,
     }),
+    setAllStories: assign({
+      allStories: (_, params: { stories: StoryDetail[] }) => params.stories,
+    }),
+    updateAllStories: assign({
+      allStories: (_, params: { stories: StoryDetail[] }) => params.stories,
+    }),
     updateSessions: assign({
       sessions: (_, params: { sessions: SessionInfo[] }) => params.sessions,
     }),
@@ -431,6 +452,7 @@ const dashboardMachine = setup({
   initial: 'idle',
   context: {
     epics: [],
+    allStories: [],
     currentEpic: null,
     currentStory: null,
     sessions: [],
@@ -476,6 +498,14 @@ const dashboardMachine = setup({
             {
               type: 'updateEpics',
               params: ({ event }) => ({ epics: event.epics }),
+            },
+          ],
+        },
+        STORIES_UPDATED: {
+          actions: [
+            {
+              type: 'updateAllStories',
+              params: ({ event }) => ({ stories: event.stories }),
             },
           ],
         },

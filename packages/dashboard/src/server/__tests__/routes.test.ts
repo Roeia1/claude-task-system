@@ -28,6 +28,7 @@ const PORT_RANGE = 20_000;
 const EXPECTED_EPIC_COUNT = 2;
 const EXPECTED_EPIC_ONE_STORY_COUNT = 2; // story-alpha + story-beta
 const EXPECTED_JOURNAL_ENTRIES = 3; // 1 session + 1 blocker + 1 resolution
+const EXPECTED_ALL_STORIES_COUNT = 4; // story-alpha + story-beta + story-gamma + story-standalone
 
 // Regex patterns for content type validation
 const JSON_CONTENT_TYPE_PATTERN = /application\/json/;
@@ -439,6 +440,94 @@ Got confirmation, proceeding with REST endpoints.
 
       const epicStory = res.body.find((s: StoryDetail) => s.id === 'story-alpha');
       expect(epicStory).toBeUndefined();
+    });
+  });
+
+  describe('GET /api/stories?all=true', () => {
+    it('should return all stories including epic-owned ones', async () => {
+      const res = await request(server.app).get('/api/stories?all=true');
+
+      expect(res.status).toBe(HTTP_OK);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBe(EXPECTED_ALL_STORIES_COUNT);
+    });
+
+    it('should include both standalone and epic-owned stories', async () => {
+      const res = await request(server.app).get('/api/stories?all=true');
+
+      const standalone = res.body.find((s: StoryDetail) => s.id === 'story-standalone');
+      expect(standalone).toBeDefined();
+
+      const epicStory = res.body.find((s: StoryDetail) => s.id === 'story-alpha');
+      expect(epicStory).toBeDefined();
+    });
+
+    it('should populate epicName for stories belonging to an epic', async () => {
+      const res = await request(server.app).get('/api/stories?all=true');
+
+      const alpha = res.body.find((s: StoryDetail) => s.id === 'story-alpha');
+      expect(alpha.epicName).toBe('First Epic');
+
+      const beta = res.body.find((s: StoryDetail) => s.id === 'story-beta');
+      expect(beta.epicName).toBe('First Epic');
+
+      const gamma = res.body.find((s: StoryDetail) => s.id === 'story-gamma');
+      expect(gamma.epicName).toBe('Second Epic');
+    });
+
+    it('should not have epicName for standalone stories', async () => {
+      const res = await request(server.app).get('/api/stories?all=true');
+
+      const standalone = res.body.find((s: StoryDetail) => s.id === 'story-standalone');
+      expect(standalone.epicName).toBeUndefined();
+    });
+
+    it('should include correct status for each story', async () => {
+      const res = await request(server.app).get('/api/stories?all=true');
+
+      const alpha = res.body.find((s: StoryDetail) => s.id === 'story-alpha');
+      expect(alpha.status).toBe('pending');
+
+      const beta = res.body.find((s: StoryDetail) => s.id === 'story-beta');
+      expect(beta.status).toBe('inProgress');
+
+      const gamma = res.body.find((s: StoryDetail) => s.id === 'story-gamma');
+      expect(gamma.status).toBe('completed');
+    });
+
+    it('should handle missing epic gracefully', async () => {
+      // Create a story referencing a non-existent epic
+      const storiesDir = join(testDir, '.saga', 'stories', 'story-orphan');
+      mkdirSync(storiesDir, { recursive: true });
+      writeFileSync(
+        join(storiesDir, 'story.json'),
+        JSON.stringify({
+          id: 'story-orphan',
+          title: 'Orphan Story',
+          description: 'Story referencing missing epic.',
+          epic: 'epic-nonexistent',
+        }),
+      );
+      writeFileSync(
+        join(storiesDir, 't1.json'),
+        JSON.stringify({
+          id: 't1',
+          subject: 'Orphan Task',
+          description: 'Task in orphan story',
+          status: 'pending',
+          blockedBy: [],
+        }),
+      );
+
+      const res = await request(server.app).get('/api/stories?all=true');
+
+      const orphan = res.body.find((s: StoryDetail) => s.id === 'story-orphan');
+      expect(orphan).toBeDefined();
+      expect(orphan.epic).toBe('epic-nonexistent');
+      expect(orphan.epicName).toBeUndefined();
+
+      // Clean up
+      rmSync(storiesDir, { recursive: true, force: true });
     });
   });
 

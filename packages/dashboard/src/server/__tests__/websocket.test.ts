@@ -148,6 +148,35 @@ function waitForMessage(
   });
 }
 
+// Helper to wait for a specific event type (ignores other messages)
+function waitForSpecificMessage(
+  ws: WebSocket,
+  eventName: string,
+  timeoutMs = DEFAULT_MESSAGE_TIMEOUT_MS,
+): Promise<{ event: string; data: unknown }> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      ws.removeListener('message', handler);
+      reject(new Error(`Timeout waiting for ${eventName}`));
+    }, timeoutMs);
+
+    const handler = (data: Buffer) => {
+      try {
+        const parsed = JSON.parse(data.toString());
+        if (parsed.event === eventName) {
+          clearTimeout(timeout);
+          ws.removeListener('message', handler);
+          resolve(parsed);
+        }
+      } catch {
+        // Keep listening
+      }
+    };
+
+    ws.on('message', handler);
+  });
+}
+
 // Helper to send a message over WebSocket
 function sendMessage(ws: WebSocket, event: string, data: unknown): void {
   ws.send(JSON.stringify({ event, data }));
@@ -424,6 +453,120 @@ describe('websocket', () => {
       expect(msg.data).toHaveProperty('status');
       expect(msg.data).toHaveProperty('tasks');
       expect(Array.isArray((msg.data as { tasks: unknown[] }).tasks)).toBe(true);
+
+      ws.close();
+    });
+  });
+
+  describe('stories:updated broadcast', () => {
+    it('should broadcast stories:updated to all clients when a story changes', async () => {
+      const ws1 = await createWsClient(port);
+      const ws2 = await createWsClient(port);
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
+
+      // Modify a story file
+      await writeFile(
+        join(tempDir, '.saga', 'stories', 'test-story', 'story.json'),
+        JSON.stringify({
+          id: 'test-story',
+          title: 'Changed For Broadcast',
+          description: 'Changed.',
+          epic: 'test-epic',
+        }),
+      );
+
+      // Both clients should receive stories:updated (even without subscribing)
+      const [msg1, msg2] = await Promise.all([
+        waitForSpecificMessage(ws1, 'stories:updated', MESSAGE_TIMEOUT_MS),
+        waitForSpecificMessage(ws2, 'stories:updated', MESSAGE_TIMEOUT_MS),
+      ]);
+
+      expect(msg1.event).toBe('stories:updated');
+      expect(msg2.event).toBe('stories:updated');
+      expect(Array.isArray(msg1.data)).toBe(true);
+      expect(Array.isArray(msg2.data)).toBe(true);
+
+      ws1.close();
+      ws2.close();
+    });
+
+    it('should include epicName in stories:updated payload for epic-owned stories', async () => {
+      const ws = await createWsClient(port);
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
+
+      // Modify the story (belongs to 'test-epic' with title 'Test Epic')
+      await writeFile(
+        join(tempDir, '.saga', 'stories', 'test-story', 'story.json'),
+        JSON.stringify({
+          id: 'test-story',
+          title: 'Story With Epic Name',
+          description: 'Should include epicName.',
+          epic: 'test-epic',
+        }),
+      );
+
+      const msg = await waitForSpecificMessage(ws, 'stories:updated', MESSAGE_TIMEOUT_MS);
+      expect(msg.event).toBe('stories:updated');
+
+      const stories = msg.data as Array<{ id: string; epicName?: string }>;
+      const testStory = stories.find((s) => s.id === 'test-story');
+      expect(testStory).toBeDefined();
+      expect(testStory?.epicName).toBe('Test Epic');
+
+      ws.close();
+    });
+
+    it('should broadcast stories:updated when a new story is added', async () => {
+      const ws = await createWsClient(port);
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
+
+      // Create a new story directory and files
+      await mkdir(join(tempDir, '.saga', 'stories', 'new-story'), {
+        recursive: true,
+      });
+      await writeFile(
+        join(tempDir, '.saga', 'stories', 'new-story', 'story.json'),
+        JSON.stringify({
+          id: 'new-story',
+          title: 'Brand New Story',
+          description: 'A new story.',
+        }),
+      );
+
+      const msg = await waitForSpecificMessage(ws, 'stories:updated', MESSAGE_TIMEOUT_MS);
+      expect(msg.event).toBe('stories:updated');
+
+      const stories = msg.data as Array<{ id: string }>;
+      const newStory = stories.find((s) => s.id === 'new-story');
+      expect(newStory).toBeDefined();
+
+      ws.close();
+    });
+
+    it('should include epicName in story:updated payload for subscribed clients', async () => {
+      const ws = await createWsClient(port);
+
+      // Subscribe to test-story
+      sendMessage(ws, 'subscribe:story', { storyId: 'test-story' });
+      await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
+
+      // Modify the story (belongs to 'test-epic' with title 'Test Epic')
+      await writeFile(
+        join(tempDir, '.saga', 'stories', 'test-story', 'story.json'),
+        JSON.stringify({
+          id: 'test-story',
+          title: 'Subscribed Story Update',
+          description: 'Should include epicName.',
+          epic: 'test-epic',
+        }),
+      );
+
+      const msg = await waitForSpecificMessage(ws, 'story:updated', MESSAGE_TIMEOUT_MS);
+      expect(msg.event).toBe('story:updated');
+
+      const story = msg.data as { id: string; epicName?: string };
+      expect(story.id).toBe('test-story');
+      expect(story.epicName).toBe('Test Epic');
 
       ws.close();
     });

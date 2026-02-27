@@ -1,0 +1,13 @@
+{
+  "id": "implement-kanban-board",
+  "subject": "Implement KanbanBoard page component",
+  "description": "## Goal\nCreate `KanbanBoard.tsx` page in `src/client/src/pages/` that displays all stories in a 3-column Kanban layout.\n\n## Implementation\n\n### Data Fetching\n- On mount, fetch stories from `GET /api/stories?all=true`\n- Store in local state or via `useDashboard()` context (prefer context if there's a `setStories` action, otherwise local state)\n- Use `useDashboard()` to access `sessions` for running session detection\n\n### Layout\n- 3-column flex layout taking full viewport height (below header)\n- Each column: fixed header (status name + count) + scrollable body\n- Columns: Pending | In Progress | Completed\n- Use Tailwind: `flex`, `flex-1`, `h-full` — delegate scrolling to shadcn `ScrollArea` instead of raw `overflow-y-auto`\n\n### Column Component\nEach column renders:\n- Header with status name and count badge\n- shadcn `Separator` between header and card list\n- shadcn `ScrollArea` wrapping the card list for styled, independently scrollable columns\n- shadcn `Skeleton` card placeholders shown while data is loading\n- Empty state when no stories in that status\n\n### Story Grouping\n- Group stories by their `status` field: `pending`, `inProgress`, `completed`\n- Map each group to the corresponding column\n\n### Session Matching\n- For each story, check if there's a running session in `sessions` where `session.storyId === story.id && session.status === 'running'`\n- Pass `isSessionRunning` prop to each `StoryCard`\n\n## Styling\n- Dark theme backgrounds using `--bg-dark` for columns, `--bg` for cards\n- Column headers use `--text` with `--text-muted` for counts\n- Subtle column separators or gaps between columns\n- Loading state: 2-3 Skeleton card placeholders per column while initial fetch is in progress",
+  "activeForm": "Implementing KanbanBoard page",
+  "status": "completed",
+  "blockedBy": [
+    "add-all-stories-endpoint",
+    "implement-story-card"
+  ],
+  "guidance": "Look at how EpicList.tsx fetches data on mount for the pattern. Use useDashboard() for sessions. The page should fill available height — check the Layout component to understand the header height. Install ScrollArea, Separator, and Skeleton via `pnpm dlx shadcn@latest add scroll-area separator skeleton` from `packages/dashboard/src/client`.",
+  "doneWhen": "KanbanBoard page renders all stories in 3 columns, grouped by status, with independently scrollable columns and session indicators."
+}

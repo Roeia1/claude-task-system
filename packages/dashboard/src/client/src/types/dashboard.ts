@@ -78,6 +78,7 @@ export interface StoryDetail {
   title: string;
   description: string;
   epic?: string;
+  epicName?: string;
   status: StoryStatus;
   tasks: Task[];
   journal?: JournalEntry[];

@@ -1,7 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { Layout } from '@/components/Layout';
 import { EpicDetail } from '@/pages/EpicDetail';
-import { EpicList } from '@/pages/EpicList';
+import { KanbanBoard } from '@/pages/KanbanBoard';
 import { StoryDetail } from '@/pages/StoryDetail';
 
 const routes = [
@@ -9,7 +9,7 @@ const routes = [
     path: '/',
     element: <Layout />,
     children: [
-      { path: '/', element: <EpicList /> },
+      { path: '/', element: <KanbanBoard /> },
       {
         path: 'epic/:epicId',
         element: <EpicDetail />,
