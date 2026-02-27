@@ -1,6 +1,6 @@
 {
   "name": "@saga-ai/dashboard",
-  "version": "4.7.1",
+  "version": "4.8.0",
   "packageManager": "pnpm@9.15.0",
   "description": "Dashboard and session monitoring for SAGA - Structured Autonomous Goal Achievement",
   "type": "module",

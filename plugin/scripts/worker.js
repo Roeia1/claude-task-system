@@ -4422,9 +4422,26 @@ function createNoopMessageWriter() {
   };
 }
 
+// src/scripts/worker/resolve-mcp-servers.ts
+import { readFileSync as readFileSync2 } from "node:fs";
+function resolveMcpServers(projectDir) {
+  const { saga } = createSagaPaths(projectDir);
+  const configPath = `${saga}/config.json`;
+  try {
+    const raw = readFileSync2(configPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    if (parsed.mcpServers && typeof parsed.mcpServers === "object") {
+      return parsed.mcpServers;
+    }
+    return void 0;
+  } catch {
+    return void 0;
+  }
+}
+
 // src/scripts/worker/run-headless-loop.ts
 import { execFileSync as execFileSync4 } from "node:child_process";
-import { readdirSync as readdirSync3, readFileSync as readFileSync4 } from "node:fs";
+import { readdirSync as readdirSync3, readFileSync as readFileSync5 } from "node:fs";
 import { join as join4 } from "node:path";
 import process7 from "node:process";
 
@@ -13499,7 +13516,7 @@ function createScopeValidatorHook(worktreePath, storyId) {
 }
 
 // src/scripts/sync-hook.ts
-import { existsSync as existsSync3, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "node:fs";
+import { existsSync as existsSync3, readFileSync as readFileSync4, writeFileSync as writeFileSync2 } from "node:fs";
 function createSyncHook(worktreePath, storyId) {
   return (_input, _toolUseID, _options) => {
     const hookInput = _input;
@@ -13510,7 +13527,7 @@ function createSyncHook(worktreePath, storyId) {
       try {
         const taskPath = createTaskPath(worktreePath, storyId, taskId);
         if (existsSync3(taskPath)) {
-          const taskData = JSON.parse(readFileSync3(taskPath, "utf-8"));
+          const taskData = JSON.parse(readFileSync4(taskPath, "utf-8"));
           taskData.status = status;
           writeFileSync2(taskPath, JSON.stringify(taskData, null, 2));
         }
@@ -13630,7 +13647,7 @@ function checkAllTasksCompleted(storyDir) {
   }
   for (const file of files) {
     const filePath = join4(storyDir, file);
-    const raw = readFileSync4(filePath, "utf-8");
+    const raw = readFileSync5(filePath, "utf-8");
     const task = JSON.parse(raw);
     if (task.status !== "completed") {
       return false;
@@ -13647,11 +13664,12 @@ function extractInputTokens(message) {
   const tokens = msg.message?.usage?.[INPUT_TOKENS_KEY];
   return typeof tokens === "number" ? tokens : void 0;
 }
-function buildQueryOptions(model, worktreePath, taskListId, storyId, maxTasksPerSession, maxTokensPerSession, tracker) {
-  return {
+function buildQueryOptions(model, worktreePath, taskListId, storyId, maxTasksPerSession, maxTokensPerSession, tracker, mcpServers) {
+  const options = {
     pathToClaudeCodeExecutable: resolveClaudeBinary(),
     model,
     cwd: worktreePath,
+    settingSources: ["user", "project", "local"],
     env: {
       ...process7.env,
       [ENV_CLAUDECODE]: void 0,
@@ -13689,8 +13707,12 @@ function buildQueryOptions(model, worktreePath, taskListId, storyId, maxTasksPer
       ]
     }
   };
+  if (mcpServers !== void 0) {
+    options.mcpServers = mcpServers;
+  }
+  return options;
 }
-async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath, maxTasksPerSession, maxTokensPerSession, messagesWriter) {
+async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath, maxTasksPerSession, maxTokensPerSession, messagesWriter, mcpServers) {
   try {
     let exitCode = 0;
     const tracker = { inputTokens: 0 };
@@ -13701,7 +13723,8 @@ async function spawnHeadlessRun(prompt, model, taskListId, storyId, worktreePath
       storyId,
       maxTasksPerSession,
       maxTokensPerSession,
-      tracker
+      tracker,
+      mcpServers
     );
     for await (const message of Qx({ prompt, options })) {
       const tokens = extractInputTokens(message);
@@ -13746,7 +13769,8 @@ function executeCycle(config, state) {
     config.worktreePath,
     config.maxTasksPerSession,
     config.maxTokensPerSession,
-    config.messagesWriter
+    config.messagesWriter,
+    config.mcpServers
   ).then(({ exitCode }) => {
     state.cycles++;
     config.messagesWriter.write({
@@ -13795,6 +13819,7 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
+  const { mcpServers } = options;
   const prompt = buildPrompt(storyMeta, storyId, worktreePath);
   const startTime = Date.now();
   const { storyDir } = createStoryPaths(worktreePath, storyId);
@@ -13816,7 +13841,8 @@ async function runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, opt
     maxTokensPerSession,
     maxTimeMs,
     startTime,
-    messagesWriter
+    messagesWriter,
+    mcpServers
   };
   const state = {
     cycles: 0,
@@ -14068,15 +14094,18 @@ function writePipelineEnd(writer, storyId, summary) {
     elapsedMinutes: summary.elapsedMinutes
   });
 }
-async function runPipeline(storyId, options) {
-  const projectDir = getProjectDir();
-  const writer = createWriter(options.messagesFile);
+function writePipelineStart(writer, storyId) {
   writer.write({
     type: "saga_worker",
     subtype: "pipeline_start",
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
     storyId
   });
+}
+async function runPipeline(storyId, options) {
+  const projectDir = getProjectDir();
+  const writer = createWriter(options.messagesFile);
+  writePipelineStart(writer, storyId);
   const worktreeResult = setupWorktree(storyId, projectDir);
   writeStep(
     writer,
@@ -14090,6 +14119,7 @@ async function runPipeline(storyId, options) {
     prResult.alreadyExisted ? `PR exists: ${prResult.prUrl}` : `Created draft PR: ${prResult.prUrl}`
   );
   const { taskListId, storyMeta } = hydrateTasks(storyId, worktreeResult.worktreePath);
+  const mcpServers = resolveMcpServers(projectDir);
   const result = await runHeadlessLoop(
     storyId,
     taskListId,
@@ -14097,7 +14127,8 @@ async function runPipeline(storyId, options) {
     storyMeta,
     {
       ...options,
-      messagesWriter: writer
+      messagesWriter: writer,
+      mcpServers
     }
   );
   markPrReady(storyId, worktreeResult.worktreePath, result.allCompleted);

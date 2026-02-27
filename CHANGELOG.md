@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.8.0] - 2026-02-27
+
+### Added
+
+- **worker**: MCP server support — workers now load filesystem settings (CLAUDE.md, permissions, MCP servers) via settingSources and support explicit MCP overrides from `.saga/config.json`
+
 ## [4.7.1] - 2026-02-27
 
 ### Fixed
