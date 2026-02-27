@@ -138,35 +138,24 @@ function StoryCard({ story, isSessionRunning, sessionInfo }: StoryCardProps) {
             {/* Task list */}
             {story.tasks.length > 0 && (
               <div className="mb-3">
-                <div className="mb-1 flex items-center text-xs font-semibold uppercase tracking-wide text-text-muted">
-                  <span className="flex-1">Tasks</span>
-                  {story.tasks.some((t) => t.blockedBy.length > 0) && (
-                    <span className="shrink-0">Deps</span>
-                  )}
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  Tasks
                 </div>
-                {(() => {
-                  const sorted = topoSort(story.tasks);
-                  const indexMap = new Map(sorted.map((t, i) => [t.id, i + 1]));
-                  return sorted.map((task, index) => {
-                    const deps = task.blockedBy.map((id) => indexMap.get(id)).filter(Boolean);
-                    return (
-                      <div key={task.id} className="flex items-start gap-2 text-sm">
-                        <TaskStatusIcon status={task.status} />
-                        <span className="shrink-0 w-4 text-text-muted">{index + 1}.</span>
-                        <span
-                          className={`flex-1 ${task.status === 'completed' ? 'text-text-muted' : 'text-text'}`}
-                        >
-                          {task.subject}
-                        </span>
-                        {deps.length > 0 && (
-                          <span className="shrink-0 text-xs text-text-muted">
-                            {deps.join(', ')}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
+                {topoSort(story.tasks).map((task) => (
+                  <div key={task.id} className="flex items-start gap-2 text-sm">
+                    <TaskStatusIcon status={task.status} />
+                    <span
+                      className={`flex-1 ${task.status === 'completed' ? 'text-text-muted' : 'text-text'}`}
+                    >
+                      {task.subject}
+                    </span>
+                    {task.blockedBy.length > 0 && (
+                      <span className="shrink-0 text-xs text-text-muted">
+                        (blocked by {task.blockedBy.join(', ')})
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
 
