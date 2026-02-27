@@ -5,12 +5,14 @@
  * - GET /api/epics - returns EpicSummary[]
  * - GET /api/epics/:epicId - returns ParsedEpic with full story list and dependencies
  * - GET /api/stories - returns standalone stories (not belonging to any epic)
+ * - GET /api/stories?all=true - returns all stories (standalone + epic-owned) with epicName resolved
  * - GET /api/stories/:storyId - returns StoryDetail with parsed journal
  */
 
 import { type Request, type Response, Router } from 'express';
 import {
   type EpicSummary,
+  getAllStoriesWithEpicNames,
   type ParsedEpic,
   parseJournal,
   parseStory,
@@ -90,9 +92,15 @@ function registerStoriesRoutes(router: Router, sagaRoot: string): void {
   /**
    * GET /api/stories
    * Returns standalone stories (those not belonging to any epic)
+   * With ?all=true, returns all stories (standalone + epic-owned) with epicName resolved
    */
-  router.get('/stories', (_req: Request, res: Response) => {
+  router.get('/stories', (req: Request, res: Response) => {
     try {
+      if (req.query.all === 'true') {
+        const allStories = getAllStoriesWithEpicNames(sagaRoot);
+        res.json(allStories);
+        return;
+      }
       const { standaloneStories } = getScanResult(sagaRoot);
       res.json(standaloneStories);
     } catch (_error) {
