@@ -156,9 +156,15 @@ describe('KanbanBoard', () => {
       renderWithProviders(<KanbanBoard />);
 
       await waitFor(() => {
-        expect(screen.getByText(PENDING_COLUMN_PATTERN)).toBeInTheDocument();
-        expect(screen.getByText(IN_PROGRESS_COLUMN_PATTERN)).toBeInTheDocument();
-        expect(screen.getByText(COMPLETED_COLUMN_PATTERN)).toBeInTheDocument();
+        // Use heading role to specifically target column headers
+        const pendingCol = screen.getByTestId('column-pending');
+        expect(pendingCol.querySelector('h2')).toHaveTextContent(PENDING_COLUMN_PATTERN);
+
+        const inProgressCol = screen.getByTestId('column-inProgress');
+        expect(inProgressCol.querySelector('h2')).toHaveTextContent(IN_PROGRESS_COLUMN_PATTERN);
+
+        const completedCol = screen.getByTestId('column-completed');
+        expect(completedCol.querySelector('h2')).toHaveTextContent(COMPLETED_COLUMN_PATTERN);
       });
     });
 
