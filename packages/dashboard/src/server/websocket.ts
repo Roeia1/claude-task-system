@@ -6,6 +6,7 @@
  *
  * Server → Client events:
  * - epics:updated: Broadcasts full epic list when any epic changes
+ * - stories:updated: Broadcasts all stories (with epicName) to all clients when any story changes
  * - story:updated: Broadcasts story detail to subscribed clients when a story changes
  *
  * Client → Server events:
@@ -28,8 +29,10 @@ import {
 } from '../lib/session-polling.ts';
 import {
   type EpicSummary,
+  getAllStoriesWithEpicNames,
   parseJournal,
   parseStory,
+  resolveEpicName,
   type StoryDetail,
   scanSagaDirectory,
 } from './parser.ts';
@@ -206,12 +209,17 @@ function hasSubscribers(clients: Map<WebSocket, ClientState>, storyId: string): 
 }
 
 /**
- * Parse and enrich story data with journal
+ * Parse and enrich story data with journal and epicName
  */
 async function parseAndEnrichStory(sagaRoot: string, storyId: string): Promise<StoryDetail | null> {
   const story = parseStory(sagaRoot, storyId);
   if (!story) {
     return null;
+  }
+
+  // Resolve epicName from epic title
+  if (story.epic) {
+    story.epicName = resolveEpicName(sagaRoot, story.epic);
   }
 
   // Parse journal if story has a journal path
@@ -360,8 +368,22 @@ function setupWatcherHandlers(
   watcher.on('epic:changed', handleEpicChange);
   watcher.on('epic:removed', handleEpicChange);
 
+  const handleAllStoriesChange = () => {
+    try {
+      const allStories = getAllStoriesWithEpicNames(sagaRoot);
+      broadcast({ event: 'stories:updated', data: allStories });
+    } catch {
+      // Silently ignore story scanning errors
+    }
+  };
+
   const handleStoryChange = (event: WatcherEvent) => {
-    handleStoryChangeEvent(event, sagaRoot, clients, broadcastToSubscribers, handleEpicChange);
+    handleStoryChangeEvent(event, sagaRoot, clients, broadcastToSubscribers, handleEpicChange)
+      .then(() => handleAllStoriesChange())
+      .catch(() => {
+        // Still broadcast all stories even if individual story enrichment fails
+        handleAllStoriesChange();
+      });
   };
 
   watcher.on('story:added', handleStoryChange);

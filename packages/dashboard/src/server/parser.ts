@@ -235,6 +235,23 @@ export function getAllStoriesWithEpicNames(sagaRoot: string): StoryDetail[] {
 }
 
 /**
+ * Resolve the epic title for a given epic ID.
+ *
+ * @param sagaRoot - Path to the project root containing .saga/ directory
+ * @param epicId - The epic ID to resolve the title for
+ * @returns The epic title or undefined if not found
+ */
+export function resolveEpicName(sagaRoot: string, epicId: string): string | undefined {
+  try {
+    const epics = listEpics(sagaRoot);
+    const epic = epics.find((e) => e.id === epicId);
+    return epic?.title;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Parse a single story by ID from the JSON storage
  *
  * Used by websocket for real-time updates when a specific story changes.
