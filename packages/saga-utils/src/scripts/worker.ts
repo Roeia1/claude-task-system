@@ -41,6 +41,7 @@ import type { StatusSummary } from './worker/mark-pr-ready.ts';
 import { buildStatusSummary, markPrReady } from './worker/mark-pr-ready.ts';
 import type { MessageWriter } from './worker/message-writer.ts';
 import { createFileMessageWriter, createNoopMessageWriter } from './worker/message-writer.ts';
+import { resolveMcpServers } from './worker/resolve-mcp-servers.ts';
 import { runHeadlessLoop } from './worker/run-headless-loop.ts';
 import { setupWorktree } from './worker/setup-worktree.ts';
 
@@ -255,16 +256,19 @@ function writePipelineEnd(writer: MessageWriter, storyId: string, summary: Statu
   });
 }
 
-async function runPipeline(storyId: string, options: WorkerOptions): Promise<StatusSummary> {
-  const projectDir = getProjectDir();
-  const writer = createWriter(options.messagesFile);
-
+function writePipelineStart(writer: MessageWriter, storyId: string): void {
   writer.write({
     type: 'saga_worker',
     subtype: 'pipeline_start',
     timestamp: new Date().toISOString(),
     storyId,
   });
+}
+
+async function runPipeline(storyId: string, options: WorkerOptions): Promise<StatusSummary> {
+  const projectDir = getProjectDir();
+  const writer = createWriter(options.messagesFile);
+  writePipelineStart(writer, storyId);
 
   // Step 1: Setup worktree and branch
   const worktreeResult = setupWorktree(storyId, projectDir);
@@ -289,6 +293,9 @@ async function runPipeline(storyId: string, options: WorkerOptions): Promise<Sta
   // Step 3 & 4: Read story.json and hydrate tasks (from worktree, not master)
   const { taskListId, storyMeta } = hydrateTasks(storyId, worktreeResult.worktreePath);
 
+  // Resolve MCP servers from .saga/config.json (if present)
+  const mcpServers = resolveMcpServers(projectDir);
+
   // Step 5: Headless run loop
   const result = await runHeadlessLoop(
     storyId,
@@ -298,6 +305,7 @@ async function runPipeline(storyId: string, options: WorkerOptions): Promise<Sta
     {
       ...options,
       messagesWriter: writer,
+      mcpServers,
     },
   );
 

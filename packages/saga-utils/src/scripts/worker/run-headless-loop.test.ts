@@ -678,6 +678,58 @@ describe('runHeadlessLoop', () => {
     );
   });
 
+  it('should include settingSources with all sources', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
+
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          settingSources: ['user', 'project', 'local'],
+        }),
+      }),
+    );
+  });
+
+  it('should pass mcpServers to query() when provided in options', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
+
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+    const mcpServers = {
+      shadcn: { command: 'npx', args: ['-y', '@anthropic-ai/shadcn-mcp'] },
+    };
+
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {
+      mcpServers,
+    });
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          mcpServers,
+        }),
+      }),
+    );
+  });
+
+  it('should not include mcpServers in query() when not provided', async () => {
+    mockQuery.mockReturnValue(createMockQuery('success'));
+
+    mockReaddirSync.mockReturnValue(['t1.json'] as unknown as ReturnType<typeof readdirSync>);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ status: 'completed' }));
+
+    await runHeadlessLoop(storyId, taskListId, worktreePath, storyMeta, {});
+
+    const queryArgs = mockQuery.mock.calls[0][0];
+    expect(queryArgs.options).not.toHaveProperty('mcpServers');
+  });
+
   it('should return exitCode 1 when query() yields error result', async () => {
     mockQuery.mockReturnValue(createMockQuery('error_during_execution'));
 

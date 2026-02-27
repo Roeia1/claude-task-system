@@ -77,6 +77,7 @@ interface RunLoopOptions {
   maxTokensPerSession?: number;
   model?: string;
   messagesWriter?: MessageWriter;
+  mcpServers?: Record<string, unknown>;
 }
 
 interface RunLoopResult {
@@ -191,11 +192,13 @@ function buildQueryOptions(
   maxTasksPerSession: number,
   maxTokensPerSession: number,
   tracker: TokenTracker,
+  mcpServers?: Record<string, unknown>,
 ) {
-  return {
+  const options: Record<string, unknown> = {
     pathToClaudeCodeExecutable: resolveClaudeBinary(),
     model,
     cwd: worktreePath,
+    settingSources: ['user', 'project', 'local'],
     env: {
       ...process.env,
       [ENV_CLAUDECODE]: undefined,
@@ -233,6 +236,12 @@ function buildQueryOptions(
       ],
     },
   };
+
+  if (mcpServers !== undefined) {
+    options.mcpServers = mcpServers;
+  }
+
+  return options;
 }
 
 /**
@@ -247,6 +256,7 @@ async function spawnHeadlessRun(
   maxTasksPerSession: number,
   maxTokensPerSession: number,
   messagesWriter: MessageWriter,
+  mcpServers?: Record<string, unknown>,
 ): Promise<{ exitCode: number | null }> {
   try {
     let exitCode: number | null = 0;
@@ -259,6 +269,7 @@ async function spawnHeadlessRun(
       maxTasksPerSession,
       maxTokensPerSession,
       tracker,
+      mcpServers,
     );
 
     for await (const message of query({ prompt, options })) {
@@ -298,6 +309,7 @@ interface LoopConfig {
   maxTimeMs: number;
   startTime: number;
   messagesWriter: MessageWriter;
+  mcpServers?: Record<string, unknown>;
 }
 
 interface LoopState {
@@ -341,6 +353,7 @@ function executeCycle(config: LoopConfig, state: LoopState): Promise<{ shouldCon
     config.maxTasksPerSession,
     config.maxTokensPerSession,
     config.messagesWriter,
+    config.mcpServers,
   ).then(({ exitCode }) => {
     state.cycles++;
 
@@ -412,6 +425,7 @@ async function runHeadlessLoop(
   const maxTimeMs = (options.maxTime ?? DEFAULT_MAX_TIME_MINUTES) * MS_PER_MINUTE;
   const model = options.model ?? DEFAULT_MODEL;
   const messagesWriter = options.messagesWriter ?? createNoopMessageWriter();
+  const { mcpServers } = options;
 
   const prompt = buildPrompt(storyMeta, storyId, worktreePath);
   const startTime = Date.now();
@@ -439,6 +453,7 @@ async function runHeadlessLoop(
     maxTimeMs,
     startTime,
     messagesWriter,
+    mcpServers,
   };
 
   const state: LoopState = {
