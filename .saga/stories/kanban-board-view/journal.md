@@ -127,3 +127,22 @@
 **Next steps:**
 - All tasks for the kanban-board-view story are now complete
 - The Playwright e2e integration tests need to be updated to test the new KanbanBoard home page
+
+## Session: 2026-02-27T20:57:00Z
+
+### Task: #1 (Fix StoryCard blocked-by display to show task IDs)
+
+**What was done:**
+- Fixed StoryCard component to show `(blocked by <task-id>)` format instead of numeric dependency indices
+- The component was rendering `indexMap` numbers (e.g., "1", "2") for blocked tasks instead of the actual task IDs (e.g., "t2")
+- Simplified the task list rendering by removing the IIFE, `indexMap`, and numeric index prefix
+- Removed the "Deps" column header that was associated with the old numeric approach
+- All 609 tests pass with no regressions
+
+**Key decisions and deviations:**
+- Simplified the rendering logic: removed `indexMap`, numeric task numbering, and "Deps" header
+- Used `task.blockedBy` directly instead of mapping through an index — matches the spec requirement of `(blocked by <task-id>)`
+
+**Next steps:**
+- All implementation tasks are complete
+- The Playwright e2e integration tests still need updating for the new KanbanBoard home page
