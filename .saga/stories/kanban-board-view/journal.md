@@ -64,3 +64,24 @@
 **Next steps:**
 - Mark `#implement-kanban-board` as completed (already implemented)
 - Proceed to `#add-websocket-broadcast` and `#update-router-and-integrate`
+
+## Session: 2026-02-27T03:15:00Z
+
+### Task: add-websocket-broadcast
+
+**What was done:**
+- Added `resolveEpicName()` helper function to `parser.ts` that looks up an epic title by ID
+- Modified `parseAndEnrichStory()` in `websocket.ts` to resolve and include `epicName` in `story:updated` events sent to subscribed clients
+- Added `stories:updated` broadcast to ALL clients when any story changes (story:added/changed/removed), using `getAllStoriesWithEpicNames()` for the payload — consistent with existing `epics:updated` pattern
+- Chained the broadcasts so `story:updated` goes to subscribers first, then `stories:updated` goes to all clients (preserving existing test compatibility)
+- Added 4 new tests: broadcast to all clients on story change, epicName in payload, broadcast on new story addition, epicName in subscriber story:updated
+- All 607 tests pass (603 original + 4 new)
+
+**Key decisions and deviations:**
+- Used `.then()` chaining to ensure `story:updated` (async, with journal parsing) is sent to subscribers before `stories:updated` (sync) is broadcast to all — this preserves ordering for existing tests that use `waitForMessage` to catch the first event
+- Added a `waitForSpecificMessage()` test helper that filters by event name, used for the new tests since multiple events may arrive for a single story change
+- Broadcast full story list (not individual story diffs) for `stories:updated` — consistent with how `epics:updated` works and simpler for client-side state management
+
+**Next steps:**
+- Proceed to `#integrate-realtime-updates` — wire up client-side XState machine to handle `stories:updated` events
+- Then `#update-router-and-integrate` — swap router home route to KanbanBoard
