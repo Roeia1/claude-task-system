@@ -1,0 +1,9 @@
+{
+  "id": "analyze-schema-system",
+  "subject": "Analyze and document the schema validation system",
+  "description": "Read all schema-related files in `packages/saga-utils/src/schemas/` and the `scripts/schemas.ts` script. Produce a document at `docs/schema-system.md` covering:\n\n1. All Zod schemas defined (story, task, epic, config, create-story-input)\n2. Field-by-field documentation with types, constraints, and defaults\n3. How schemas are used for validation vs. documentation generation\n4. The schemas.js CLI script and its output format\n5. How create-story-input combines story + tasks into one input\n6. Relationships between schemas (e.g., story references epic)\n\nInclude the actual schema definitions with annotations.",
+  "activeForm": "Analyzing schema system",
+  "status": "pending",
+  "blockedBy": [],
+  "doneWhen": "docs/schema-system.md exists with comprehensive coverage of all 6 sections."
+}

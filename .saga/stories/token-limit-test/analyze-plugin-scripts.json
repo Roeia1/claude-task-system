@@ -1,0 +1,9 @@
+{
+  "id": "analyze-plugin-scripts",
+  "subject": "Analyze and document all plugin scripts",
+  "description": "Read every script in `packages/saga-utils/src/scripts/` (worker.ts, create-story.ts, find.ts, schemas.ts, and any others). Produce a document at `docs/plugin-scripts.md` covering:\n\n1. Purpose and CLI interface of each script\n2. Input/output formats (arguments, stdin, stdout, exit codes)\n3. Dependencies between scripts\n4. How scripts interact with git, GitHub (gh CLI), and the filesystem\n5. Error handling patterns\n6. How scripts are bundled and distributed (check package.json build config)\n\nInclude usage examples for each script.",
+  "activeForm": "Analyzing plugin scripts",
+  "status": "pending",
+  "blockedBy": [],
+  "doneWhen": "docs/plugin-scripts.md exists with comprehensive coverage of all 6 sections."
+}
