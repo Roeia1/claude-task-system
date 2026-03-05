@@ -5,10 +5,11 @@
  *   node worker.js <storyId> [options]
  *
  * Options:
- *   --max-cycles <n>    Maximum worker cycles (default: 10)
- *   --max-time <n>      Maximum time in minutes (default: 60)
- *   --model <model>     Model to use (default: opus)
- *   --help, -h          Show help message
+ *   --messages-file <path>  Write JSONL message stream to file
+ *   --help, -h              Show help message
+ *
+ * Worker configuration (maxCycles, maxTime, model, etc.) is read from
+ * .saga/config.json, not CLI flags.
  */
 
 import { execSync } from 'node:child_process';
@@ -78,8 +79,6 @@ describe('worker CLI', () => {
 
   describe('argument parsing', () => {
     it('should accept a story ID as positional argument', () => {
-      // The worker will fail later (no real project) but arg parsing should succeed
-      // We verify by checking it does NOT print the "missing argument" error
       const result = runWorker(['auth-setup-db']);
       expect(result.stderr).not.toContain('Missing required argument');
     });
@@ -95,52 +94,20 @@ describe('worker CLI', () => {
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('Unexpected argument');
     });
-  });
 
-  describe('--max-cycles option', () => {
-    it('should require a value for --max-cycles', () => {
-      const result = runWorker(['my-story', '--max-cycles']);
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('--max-cycles requires a value');
-    });
-
-    it('should reject non-numeric --max-cycles', () => {
-      const result = runWorker(['my-story', '--max-cycles', 'abc']);
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('must be a positive integer');
-    });
-
-    it('should reject zero --max-cycles', () => {
-      const result = runWorker(['my-story', '--max-cycles', '0']);
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('must be a positive integer');
-    });
-
-    it('should reject negative --max-cycles', () => {
-      const result = runWorker(['my-story', '--max-cycles', '-5']);
-      expect(result.exitCode).toBe(1);
-    });
-  });
-
-  describe('--max-time option', () => {
-    it('should require a value for --max-time', () => {
-      const result = runWorker(['my-story', '--max-time']);
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('--max-time requires a value');
-    });
-
-    it('should reject non-numeric --max-time', () => {
-      const result = runWorker(['my-story', '--max-time', 'abc']);
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('must be a positive integer');
-    });
-  });
-
-  describe('--model option', () => {
-    it('should require a value for --model', () => {
-      const result = runWorker(['my-story', '--model']);
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('--model requires a value');
+    it('should reject removed CLI flags', () => {
+      const removedFlags = [
+        '--max-cycles',
+        '--max-time',
+        '--model',
+        '--max-tasks-per-session',
+        '--max-tokens-per-session',
+      ];
+      for (const flag of removedFlags) {
+        const result = runWorker(['my-story', flag, '5']);
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain('Unknown option');
+      }
     });
   });
 
@@ -156,26 +123,9 @@ describe('worker CLI', () => {
       expect(result.stderr).not.toContain('--messages-file requires a value');
       expect(result.stderr).not.toContain('Unknown option');
     });
-  });
 
-  describe('combined options', () => {
-    it('should accept all options together', () => {
-      const result = runWorker([
-        'my-story',
-        '--max-cycles',
-        '5',
-        '--max-time',
-        '30',
-        '--model',
-        'sonnet',
-      ]);
-      // Should not fail on argument parsing (may fail later on pipeline execution)
-      expect(result.stderr).not.toContain('Missing required argument');
-      expect(result.stderr).not.toContain('Unknown option');
-    });
-
-    it('should accept options before the positional argument', () => {
-      const result = runWorker(['--max-cycles', '5', 'my-story']);
+    it('should accept --messages-file before the positional argument', () => {
+      const result = runWorker(['--messages-file', '/tmp/out.jsonl', 'my-story']);
       expect(result.stderr).not.toContain('Missing required argument');
       expect(result.stderr).not.toContain('Unknown option');
     });
