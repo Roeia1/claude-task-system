@@ -4,10 +4,11 @@ import {
   createMockEpic,
   createMockEpicSummary,
   createMockStoryDetail,
+  mockAllStories,
   mockApiDelay,
   mockApiError,
   mockEpicDetail,
-  mockEpicList,
+  mockSessions,
   mockStoryDetail,
 } from '../utils/mock-api.ts';
 
@@ -64,23 +65,24 @@ test.describe('API Mocking Infrastructure', () => {
   });
 
   test.describe('API Route Mocking', () => {
-    test('mockEpicList mocks GET /api/epics', async ({ page }) => {
-      const epics = [
-        createMockEpicSummary({ id: 'epic-1', title: 'Epic One' }),
-        createMockEpicSummary({ id: 'epic-2', title: 'Epic Two' }),
+    test('mockAllStories mocks GET /api/stories', async ({ page }) => {
+      const stories = [
+        createMockStoryDetail({ id: 'story-1', title: 'Story One', status: 'pending' }),
+        createMockStoryDetail({ id: 'story-2', title: 'Story Two', status: 'inProgress' }),
       ];
 
-      await mockEpicList(page, epics);
+      await mockAllStories(page, stories);
+      await mockSessions(page, []);
 
       // Navigate and verify the API was mocked
       await page.goto('/');
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
+      await expect(page.getByTestId('kanban-board')).toBeVisible({
         timeout: LOADING_TIMEOUT_MS,
       });
 
-      // The page should render our mocked epics
-      await expect(page.getByText('Epic One')).toBeVisible();
-      await expect(page.getByText('Epic Two')).toBeVisible();
+      // The page should render our mocked stories
+      await expect(page.getByText('Story One')).toBeVisible();
+      await expect(page.getByText('Story Two')).toBeVisible();
     });
 
     test('mockEpicDetail mocks GET /api/epics/:id', async ({ page }) => {
@@ -89,10 +91,6 @@ test.describe('API Mocking Infrastructure', () => {
         title: 'Test Epic Detail',
       });
 
-      // Mock both the list (for initial load) and detail
-      await mockEpicList(page, [
-        createMockEpicSummary({ id: 'test-epic', title: 'Test Epic Detail' }),
-      ]);
       await mockEpicDetail(page, epic);
 
       await page.goto('/epic/test-epic');
@@ -124,29 +122,45 @@ test.describe('API Mocking Infrastructure', () => {
     });
 
     test('mockApiError mocks error responses', async ({ page }) => {
-      await mockApiError(page, '**/api/epics', HTTP_INTERNAL_SERVER_ERROR, 'Internal Server Error');
+      await mockApiError(
+        page,
+        (url) => url.pathname === '/api/stories' || url.pathname === '/api/stories/',
+        HTTP_INTERNAL_SERVER_ERROR,
+        'Internal Server Error',
+      );
+      await mockSessions(page, []);
 
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
 
-      // The page should show an error state or toast
-      // (The specific assertion depends on how the dashboard handles errors)
-      await expect(page.locator('body')).toBeVisible();
+      // The page should show the kanban error state
+      await expect(page.getByTestId('kanban-error')).toBeVisible({
+        timeout: LOADING_TIMEOUT_MS,
+      });
     });
 
     test('mockApiDelay adds delay to responses', async ({ page }) => {
-      const epics = [createMockEpicSummary({ id: 'delayed-epic' })];
+      const stories = [
+        createMockStoryDetail({ id: 'delayed-story', title: 'Delayed', status: 'pending' }),
+      ];
 
       // Add a 500ms delay to the response
-      await mockApiDelay(page, '**/api/epics', DELAY_MS, {
-        status: HTTP_OK,
-        contentType: 'application/json',
-        body: JSON.stringify(epics),
-      });
+      await mockApiDelay(
+        page,
+        (url) => url.pathname === '/api/stories' || url.pathname === '/api/stories/',
+        DELAY_MS,
+        {
+          status: HTTP_OK,
+          contentType: 'application/json',
+          body: JSON.stringify(stories),
+        },
+      );
+      await mockSessions(page, []);
 
       const start = Date.now();
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
+      await expect(page.getByTestId('kanban-board')).toBeVisible({
+        timeout: LOADING_TIMEOUT_MS,
+      });
       const elapsed = Date.now() - start;
 
       // The request should have been delayed by at least 500ms

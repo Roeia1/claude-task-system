@@ -1,5 +1,5 @@
 import { assign, fromCallback, sendTo, setup } from 'xstate';
-import type { Epic, EpicSummary, LogMessage, SessionInfo, StoryDetail } from '@/types/dashboard';
+import type { Epic, LogMessage, SessionInfo, StoryDetail } from '@/types/dashboard';
 
 /** Maximum number of reconnection attempts */
 const MAX_RETRIES = 5;
@@ -37,7 +37,6 @@ interface StorySubscription {
 
 /** Dashboard machine context */
 interface DashboardContext {
-  epics: EpicSummary[];
   allStories: StoryDetail[];
   currentEpic: Epic | null;
   currentStory: StoryDetail | null;
@@ -52,7 +51,6 @@ interface DashboardContext {
 type DashboardEvent =
   | { type: 'CONNECT' }
   | { type: 'DISCONNECT' }
-  | { type: 'EPICS_LOADED'; epics: EpicSummary[] }
   | { type: 'EPIC_LOADED'; epic: Epic }
   | { type: 'STORY_LOADED'; story: StoryDetail }
   | { type: 'SESSIONS_LOADED'; sessions: SessionInfo[] }
@@ -60,12 +58,10 @@ type DashboardEvent =
   | { type: 'WS_DISCONNECTED' }
   | { type: 'WS_ERROR'; error: string }
   | { type: 'RETRY' }
-  | { type: 'EPICS_UPDATED'; epics: EpicSummary[] }
   | { type: 'STORIES_UPDATED'; stories: StoryDetail[] }
   | { type: 'STORY_UPDATED'; story: StoryDetail }
   | { type: 'SESSIONS_UPDATED'; sessions: SessionInfo[] }
   | { type: 'ALL_STORIES_LOADED'; stories: StoryDetail[] }
-  | { type: 'LOAD_EPICS' }
   | { type: 'LOAD_EPIC'; epicId: string }
   | { type: 'LOAD_STORY'; storyId: string }
   | { type: 'CLEAR_EPIC' }
@@ -145,9 +141,7 @@ function handleStateMessage(
   data: unknown,
   sendBack: (event: DashboardEvent) => void,
 ): void {
-  if (messageType === 'epics:updated') {
-    sendBack({ type: 'EPICS_UPDATED', epics: data as EpicSummary[] });
-  } else if (messageType === 'stories:updated') {
+  if (messageType === 'stories:updated') {
     sendBack({ type: 'STORIES_UPDATED', stories: data as StoryDetail[] });
   } else if (messageType === 'story:updated') {
     sendBack({ type: 'STORY_UPDATED', story: data as StoryDetail });
@@ -307,16 +301,6 @@ const websocketActor = fromCallback<
 
 /** Common data event handlers used across multiple states */
 const dataEventHandlers = {
-  EPICS_LOADED: {
-    actions: [
-      {
-        type: 'setEpics' as const,
-        params: ({ event }: { event: { epics: EpicSummary[] } }) => ({
-          epics: event.epics,
-        }),
-      },
-    ],
-  },
   ALL_STORIES_LOADED: {
     actions: [
       {
@@ -375,9 +359,6 @@ const dashboardMachine = setup({
     websocket: websocketActor,
   },
   actions: {
-    setEpics: assign({
-      epics: (_, params: { epics: EpicSummary[] }) => params.epics,
-    }),
     setCurrentEpic: assign({
       currentEpic: (_, params: { epic: Epic }) => params.epic,
     }),
@@ -414,9 +395,6 @@ const dashboardMachine = setup({
     resetRetryCount: assign({
       retryCount: () => 0,
     }),
-    updateEpics: assign({
-      epics: (_, params: { epics: EpicSummary[] }) => params.epics,
-    }),
     updateStory: assign({
       currentStory: ({ context }, params: { story: StoryDetail }) => {
         if (context.currentStory && context.currentStory.id === params.story.id) {
@@ -451,7 +429,6 @@ const dashboardMachine = setup({
   id: 'dashboard',
   initial: 'idle',
   context: {
-    epics: [],
     allStories: [],
     currentEpic: null,
     currentStory: null,
@@ -493,14 +470,6 @@ const dashboardMachine = setup({
         // Handle data events in active state (available to all children)
         ...dataEventHandlers,
         // Handle real-time updates from WebSocket
-        EPICS_UPDATED: {
-          actions: [
-            {
-              type: 'updateEpics',
-              params: ({ event }) => ({ epics: event.epics }),
-            },
-          ],
-        },
         STORIES_UPDATED: {
           actions: [
             {

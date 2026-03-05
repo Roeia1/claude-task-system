@@ -283,8 +283,8 @@ describe('websocket', () => {
     });
   });
 
-  describe('epics:updated broadcast', () => {
-    it('should broadcast epics:updated to all connected clients', async () => {
+  describe('stories:updated broadcast on epic change', () => {
+    it('should broadcast stories:updated to all connected clients when epic changes', async () => {
       const ws1 = await createWsClient(port);
       const ws2 = await createWsClient(port);
 
@@ -302,14 +302,14 @@ describe('websocket', () => {
         }),
       );
 
-      // Both clients should receive epics:updated
+      // Both clients should receive stories:updated
       const [msg1, msg2] = await Promise.all([
         waitForMessage(ws1, MESSAGE_TIMEOUT_MS),
         waitForMessage(ws2, MESSAGE_TIMEOUT_MS),
       ]);
 
-      expect(msg1.event).toBe('epics:updated');
-      expect(msg2.event).toBe('epics:updated');
+      expect(msg1.event).toBe('stories:updated');
+      expect(msg2.event).toBe('stories:updated');
       expect(Array.isArray(msg1.data)).toBe(true);
       expect(Array.isArray(msg2.data)).toBe(true);
 
@@ -317,7 +317,7 @@ describe('websocket', () => {
       ws2.close();
     });
 
-    it('should broadcast epics:updated when a new epic is added', async () => {
+    it('should broadcast stories:updated when a new epic is added', async () => {
       const ws = await createWsClient(port);
       await new Promise((resolve) => setTimeout(resolve, MEDIUM_WAIT_MS));
 
@@ -333,7 +333,7 @@ describe('websocket', () => {
       );
 
       const msg = await waitForMessage(ws, MESSAGE_TIMEOUT_MS);
-      expect(msg.event).toBe('epics:updated');
+      expect(msg.event).toBe('stories:updated');
 
       ws.close();
     });

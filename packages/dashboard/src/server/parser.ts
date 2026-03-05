@@ -192,7 +192,6 @@ export interface ParsedEpic extends EpicSummary {
  */
 export interface ScanResult {
   epics: ParsedEpic[];
-  standaloneStories: StoryDetail[];
 }
 
 /**
@@ -395,15 +394,12 @@ export function scanSagaDirectory(sagaRoot: string): ScanResult {
 
   // Group stories by epic
   const storiesByEpic = new Map<string, StoryDetail[]>();
-  const standaloneStories: StoryDetail[] = [];
 
   for (const story of allStories) {
     if (story.epic) {
       const existing = storiesByEpic.get(story.epic) || [];
       existing.push(story);
       storiesByEpic.set(story.epic, existing);
-    } else {
-      standaloneStories.push(story);
     }
   }
 
@@ -413,5 +409,5 @@ export function scanSagaDirectory(sagaRoot: string): ScanResult {
     return buildEpic(scannedEpic, epicStories);
   });
 
-  return { epics, standaloneStories };
+  return { epics };
 }

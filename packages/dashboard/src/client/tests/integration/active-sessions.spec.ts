@@ -1,14 +1,14 @@
 import { expect } from '@playwright/test';
 import { test } from '../fixtures.ts';
 import {
-  createMockEpicSummary,
+  createMockStoryDetail,
   type MockSession,
-  mockEpicList,
+  mockAllStories,
   mockSessions,
 } from '../utils/mock-api.ts';
 
 /**
- * ActiveSessions integration tests for the home page.
+ * ActiveSessions integration tests for the home page (KanbanBoard).
  * Tests the active sessions section that appears when running sessions exist.
  */
 
@@ -40,39 +40,35 @@ const COMPLETED_SESSION: MockSession = {
   outputPreview: 'Build complete.',
 };
 
+// Sample stories for the kanban board
+const sampleStories = [
+  createMockStoryDetail({ id: 'story-alpha', title: 'Story Alpha', status: 'inProgress' }),
+  createMockStoryDetail({ id: 'story-beta', title: 'Story Beta', status: 'inProgress' }),
+  createMockStoryDetail({ id: 'story-gamma', title: 'Story Gamma', status: 'completed' }),
+];
+
 test.describe('ActiveSessions on Home Page', () => {
   test('should not show ActiveSessions section when no running sessions', async ({ page }) => {
-    const epics = [
-      createMockEpicSummary({ id: 'epic-one', title: 'Epic One' }),
-      createMockEpicSummary({ id: 'epic-two', title: 'Epic Two' }),
-    ];
-
-    await mockEpicList(page, epics);
+    await mockAllStories(page, sampleStories);
     await mockSessions(page, []);
 
     await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
     // Verify ActiveSessions section is not displayed
     await expect(page.getByTestId('active-sessions')).not.toBeVisible();
-    // But epic list is still visible
-    await expect(page.getByText('Epic One')).toBeVisible();
+    // But kanban board is still visible
+    await expect(page.getByText('Story Alpha')).toBeVisible();
   });
 
   test('should show ActiveSessions section heading when running sessions exist', async ({
     page,
   }) => {
-    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
-
-    await mockEpicList(page, epics);
+    await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1]);
 
     await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
     // Verify ActiveSessions section is displayed with heading
     await expect(page.getByTestId('active-sessions')).toBeVisible();
@@ -80,18 +76,11 @@ test.describe('ActiveSessions on Home Page', () => {
   });
 
   test('should display session cards with story ids', async ({ page }) => {
-    const epics = [
-      createMockEpicSummary({ id: 'epic-one', title: 'Epic One' }),
-      createMockEpicSummary({ id: 'epic-two', title: 'Epic Two' }),
-    ];
-
-    await mockEpicList(page, epics);
+    await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1, RUNNING_SESSION_2]);
 
     await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
     // Verify session cards show story ids
     await expect(page.getByTestId('active-sessions')).toBeVisible();
@@ -102,15 +91,11 @@ test.describe('ActiveSessions on Home Page', () => {
   test('should navigate to story detail with ?tab=sessions when clicking session card', async ({
     page,
   }) => {
-    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
-
-    await mockEpicList(page, epics);
+    await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1]);
 
     await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
     // Click on the session card (which is a link)
     await page.getByText('story-alpha').click();
@@ -120,37 +105,26 @@ test.describe('ActiveSessions on Home Page', () => {
   });
 
   test('should only show running sessions, not completed ones', async ({ page }) => {
-    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
-
-    await mockEpicList(page, epics);
-    // Note: The ActiveSessions component filters to only running sessions client-side
-    // but it also fetches with ?status=running, so the mock should respect that
+    await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1, COMPLETED_SESSION]);
 
     await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
     // Verify only running session is shown
     await expect(page.getByTestId('active-sessions')).toBeVisible();
     await expect(page.getByText('story-alpha')).toBeVisible();
     // Completed session (story-gamma) should not be visible in ActiveSessions
-    // (it may appear elsewhere in the UI, so we check specifically within the section)
     const activeSessionsSection = page.getByTestId('active-sessions');
     await expect(activeSessionsSection.getByText('story-gamma')).not.toBeVisible();
   });
 
   test('should show output preview on session cards', async ({ page }) => {
-    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
-
-    await mockEpicList(page, epics);
+    await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1]);
 
     await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
     // Verify output preview is displayed
     await expect(page.getByTestId('active-sessions')).toBeVisible();

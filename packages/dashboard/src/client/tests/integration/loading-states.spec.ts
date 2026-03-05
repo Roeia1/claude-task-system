@@ -2,12 +2,16 @@ import { expect } from '@playwright/test';
 import { test } from '../fixtures.ts';
 import {
   createMockEpic,
-  createMockEpicSummary,
   createMockStoryDetail,
+  mockAllStories,
   mockApiDelay,
   mockEpicDetail,
-  mockEpicList,
+  mockSessions,
+  mockStoryDetail,
 } from '../utils/mock-api.ts';
+
+// Regex patterns defined at module level for performance
+const OPEN_STORY_REGEX = /Open story/;
 
 // HTTP Status Codes
 const HTTP_OK = 200;
@@ -23,87 +27,98 @@ const DELAY_VERY_LONG_MS = 2000;
 const CONTENT_TIMEOUT_MS = 5000;
 const LOADING_TIMEOUT_MS = 10_000;
 
-// Expected counts
-const EXPECTED_SKELETON_CARDS = 3;
-
-// Regex patterns defined at module level for performance
-const EPIC_ONE_REGEX = /Epic One/i;
-const NAV_EPIC_1_REGEX = /Nav Epic 1/i;
-
 /**
  * Loading state tests for the dashboard.
  * These tests verify that skeleton loaders appear while waiting for API responses
  * and disappear after data loads.
  */
 test.describe('Loading States', () => {
-  test.describe('Epic List Page', () => {
-    test('should show skeleton loaders while loading epics', async ({ page }) => {
-      // Mock the API with a delay to observe loading state
-      const epics = [
-        createMockEpicSummary({ id: 'epic-1', title: 'Epic One' }),
-        createMockEpicSummary({ id: 'epic-2', title: 'Epic Two' }),
+  test.describe('Kanban Board (Home Page)', () => {
+    test('should show skeleton loaders while loading stories', async ({ page }) => {
+      const stories = [
+        createMockStoryDetail({ id: 'story-1', title: 'Story One', status: 'pending' }),
+        createMockStoryDetail({ id: 'story-2', title: 'Story Two', status: 'inProgress' }),
       ];
 
-      // Add 1 second delay to the response
-      await mockApiDelay(page, '**/api/epics', DELAY_MEDIUM_MS, {
-        status: HTTP_OK,
-        contentType: 'application/json',
-        body: JSON.stringify(epics),
-      });
+      // Add delay to the stories API response
+      await mockApiDelay(
+        page,
+        (url) =>
+          (url.pathname === '/api/stories' || url.pathname === '/api/stories/') &&
+          url.searchParams.get('all') === 'true',
+        DELAY_MEDIUM_MS,
+        {
+          status: HTTP_OK,
+          contentType: 'application/json',
+          body: JSON.stringify(stories),
+        },
+      );
+      await mockSessions(page, []);
 
-      // Navigate to the epic list page
       await page.goto('/');
 
-      // Verify skeleton loaders are visible using data-testid
-      const skeletons = page.locator('[data-testid="epic-card-skeleton"]');
-      await expect(skeletons.first()).toBeVisible();
+      // Verify kanban loading skeleton is visible
+      await expect(page.getByTestId('kanban-loading')).toBeVisible();
 
       // Wait for the data to load
-      await expect(page.getByText('Epic One')).toBeVisible({
+      await expect(page.getByTestId('kanban-board')).toBeVisible({
         timeout: CONTENT_TIMEOUT_MS,
       });
-      await expect(page.getByText('Epic Two')).toBeVisible();
-
-      // Skeleton loaders should no longer be visible (or at least not the main loading ones)
-      // After data loads, the page should show the actual epic cards
-      await expect(page.getByRole('link', { name: EPIC_ONE_REGEX })).toBeVisible();
+      await expect(page.getByText('Story One')).toBeVisible();
+      await expect(page.getByText('Story Two')).toBeVisible();
     });
 
-    test('should show multiple skeleton cards while loading', async ({ page }) => {
+    test('should show kanban loading skeleton while loading', async ({ page }) => {
       // Mock with delay
-      await mockApiDelay(page, '**/api/epics', DELAY_VERY_LONG_MS, {
-        status: HTTP_OK,
-        contentType: 'application/json',
-        body: JSON.stringify([]),
-      });
+      await mockApiDelay(
+        page,
+        (url) =>
+          (url.pathname === '/api/stories' || url.pathname === '/api/stories/') &&
+          url.searchParams.get('all') === 'true',
+        DELAY_VERY_LONG_MS,
+        {
+          status: HTTP_OK,
+          contentType: 'application/json',
+          body: JSON.stringify([]),
+        },
+      );
+      await mockSessions(page, []);
 
       await page.goto('/');
 
-      // The EpicList shows 3 skeleton cards during loading
-      const skeletons = page.locator('[data-testid="epic-card-skeleton"]');
-      await expect(skeletons).toHaveCount(EXPECTED_SKELETON_CARDS);
+      // The KanbanBoard shows a loading skeleton
+      await expect(page.getByTestId('kanban-loading')).toBeVisible();
     });
 
     test('should hide skeleton loaders after data arrives', async ({ page }) => {
-      const epics = [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })];
+      const stories = [
+        createMockStoryDetail({ id: 'test-story', title: 'Test Story', status: 'pending' }),
+      ];
 
       // Mock with a short delay
-      await mockApiDelay(page, '**/api/epics', DELAY_SHORT_MS, {
-        status: HTTP_OK,
-        contentType: 'application/json',
-        body: JSON.stringify(epics),
-      });
+      await mockApiDelay(
+        page,
+        (url) =>
+          (url.pathname === '/api/stories' || url.pathname === '/api/stories/') &&
+          url.searchParams.get('all') === 'true',
+        DELAY_SHORT_MS,
+        {
+          status: HTTP_OK,
+          contentType: 'application/json',
+          body: JSON.stringify(stories),
+        },
+      );
+      await mockSessions(page, []);
 
       await page.goto('/');
 
       // Wait for data to load
-      await expect(page.getByText('Test Epic')).toBeVisible({
+      await expect(page.getByText('Test Story')).toBeVisible({
         timeout: CONTENT_TIMEOUT_MS,
       });
 
-      // Skeleton loaders should be gone after data loads
-      // Check that the epic card skeletons are not present
-      await expect(page.locator('[data-testid="epic-card-skeleton"]')).toHaveCount(0);
+      // Loading skeleton should be gone
+      await expect(page.getByTestId('kanban-loading')).toHaveCount(0);
     });
   });
 
@@ -251,52 +266,57 @@ test.describe('Loading States', () => {
 
   test.describe('Fast Responses', () => {
     test('should handle immediate response without visible loading state', async ({ page }) => {
-      const epics = [createMockEpicSummary({ id: 'fast-epic', title: 'Fast Epic' })];
+      const stories = [
+        createMockStoryDetail({ id: 'fast-story', title: 'Fast Story', status: 'pending' }),
+      ];
 
       // Mock immediate response (no delay)
-      await mockEpicList(page, epics);
+      await mockAllStories(page, stories);
+      await mockSessions(page, []);
 
       await page.goto('/');
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
+      await expect(page.getByTestId('kanban-board')).toBeVisible({
         timeout: LOADING_TIMEOUT_MS,
       });
 
       // Data should appear quickly
-      await expect(page.getByText('Fast Epic')).toBeVisible();
-
-      // No skeleton should be visible after data loads
-      // (there might be a brief flash but it should resolve quickly)
+      await expect(page.getByText('Fast Story')).toBeVisible();
     });
 
     test('should handle quick sequence of navigations', async ({ page }) => {
-      const epics = [
-        createMockEpicSummary({ id: 'nav-epic-1', title: 'Nav Epic 1' }),
-        createMockEpicSummary({ id: 'nav-epic-2', title: 'Nav Epic 2' }),
-      ];
-
-      const epic1 = createMockEpic({
-        id: 'nav-epic-1',
-        title: 'Nav Epic 1 Detail',
-        stories: [],
+      const story = createMockStoryDetail({
+        id: 'nav-story',
+        title: 'Nav Story',
+        status: 'pending',
+        epic: 'nav-epic',
       });
 
-      await mockEpicList(page, epics);
-      await mockEpicDetail(page, epic1);
+      const epic = createMockEpic({
+        id: 'nav-epic',
+        title: 'Nav Epic Detail',
+        stories: [story],
+      });
+
+      await mockAllStories(page, [story]);
+      await mockSessions(page, []);
+      await mockEpicDetail(page, epic);
+      await mockStoryDetail(page, story);
 
       await page.goto('/');
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
+      await expect(page.getByTestId('kanban-board')).toBeVisible({
         timeout: LOADING_TIMEOUT_MS,
       });
-      await expect(page.getByText('Nav Epic 1')).toBeVisible();
+      await expect(page.getByText('Nav Story')).toBeVisible();
 
-      // Click to navigate to epic detail
-      await page.getByRole('link', { name: NAV_EPIC_1_REGEX }).click();
-      await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, {
+      // Expand card and navigate to story detail
+      await page.getByTestId('story-card-trigger-nav-story').click();
+      await page.getByRole('link', { name: OPEN_STORY_REGEX }).click();
+      await expect(page.getByTestId('story-header-skeleton')).toHaveCount(0, {
         timeout: LOADING_TIMEOUT_MS,
       });
 
-      // Should eventually show the epic detail
-      await expect(page.getByRole('heading', { name: 'Nav Epic 1 Detail' })).toBeVisible();
+      // Should eventually show the story detail
+      await expect(page.getByRole('heading', { name: 'Nav Story' })).toBeVisible();
     });
   });
 });

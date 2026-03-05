@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createActor, fromCallback, waitFor } from 'xstate';
 import { getShortestPaths, getSimplePaths } from 'xstate/graph';
-import type { Epic, EpicSummary, SessionInfo, StoryDetail } from '@/types/dashboard';
+import type { Epic, SessionInfo, StoryDetail } from '@/types/dashboard';
 import {
   type DashboardContext,
   type DashboardEvent,
@@ -43,7 +43,7 @@ interface SubscriptionMessage {
 
 // Default context for machine initialization
 const defaultMachineContext: DashboardContext = {
-  epics: [],
+  allStories: [],
   currentEpic: null,
   currentStory: null,
   sessions: [],
@@ -72,23 +72,6 @@ const sampleStoryCounts = {
   completed: 3,
   total: 6,
 };
-
-const sampleEpics: EpicSummary[] = [
-  {
-    id: 'epic-1',
-    title: 'Epic One',
-    description: 'First epic',
-    status: 'inProgress',
-    storyCounts: sampleStoryCounts,
-  },
-  {
-    id: 'epic-2',
-    title: 'Epic Two',
-    description: 'Second epic',
-    status: 'inProgress',
-    storyCounts: { ...sampleStoryCounts, total: 4 },
-  },
-];
 
 const sampleEpic: Epic = {
   id: 'epic-1',
@@ -370,7 +353,7 @@ describe('dashboardMachine', () => {
       for (const step of steps) {
         actor.send(step.event);
         const ctx = actor.getSnapshot().context;
-        expect(Array.isArray(ctx.epics)).toBe(true);
+        expect(Array.isArray(ctx.allStories)).toBe(true);
         expect(Array.isArray(ctx.sessions)).toBe(true);
         expect(Array.isArray(ctx.subscribedStories)).toBe(true);
       }
@@ -481,18 +464,6 @@ describe('dashboardMachine', () => {
 
   describe('data events', () => {
     describe('in idle state', () => {
-      it('EPICS_LOADED sets epics', () => {
-        const actor = createActor(createTestableMachine());
-        actor.start();
-
-        actor.send({ type: 'EPICS_LOADED', epics: sampleEpics });
-
-        expect(actor.getSnapshot().context.epics).toEqual(sampleEpics);
-        expect(actor.getSnapshot().value).toBe('idle');
-
-        actor.stop();
-      });
-
       it('EPIC_LOADED sets currentEpic', () => {
         const actor = createActor(createTestableMachine());
         actor.start();
@@ -562,9 +533,6 @@ describe('dashboardMachine', () => {
           timeout: 1000,
         });
 
-        actor.send({ type: 'EPICS_LOADED', epics: sampleEpics });
-        expect(actor.getSnapshot().context.epics).toEqual(sampleEpics);
-
         actor.send({ type: 'EPIC_LOADED', epic: sampleEpic });
         expect(actor.getSnapshot().context.currentEpic).toEqual(sampleEpic);
 
@@ -573,24 +541,6 @@ describe('dashboardMachine', () => {
 
         actor.send({ type: 'SESSIONS_LOADED', sessions: sampleSessions });
         expect(actor.getSnapshot().context.sessions).toEqual(sampleSessions);
-
-        actor.stop();
-      });
-
-      it('EPICS_UPDATED updates epics', async () => {
-        const machine = createTestableMachine({ connectBehavior: 'success' });
-        const actor = createActor(machine);
-        actor.start();
-
-        actor.send({ type: 'CONNECT' });
-        await waitFor(actor, (s) => s.matches({ active: 'connected' }), {
-          timeout: 1000,
-        });
-
-        const updatedEpics = [{ ...sampleEpics[0], title: 'Updated Epic' }];
-        actor.send({ type: 'EPICS_UPDATED', epics: updatedEpics });
-
-        expect(actor.getSnapshot().context.epics).toEqual(updatedEpics);
 
         actor.stop();
       });
@@ -957,7 +907,7 @@ describe('dashboardMachine', () => {
 
       const context = actor.getSnapshot().context;
 
-      expect(context.epics).toEqual([]);
+      expect(context.allStories).toEqual([]);
       expect(context.currentEpic).toBeNull();
       expect(context.currentStory).toBeNull();
       expect(context.sessions).toEqual([]);

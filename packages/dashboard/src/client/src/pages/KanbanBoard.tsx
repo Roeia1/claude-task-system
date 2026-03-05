@@ -4,7 +4,7 @@
  * Displays all stories in a 3-column Kanban board layout:
  * Pending | In Progress | Completed
  *
- * Fetches all stories via GET /api/stories?all=true and groups them
+ * Fetches all stories via GET /api/stories and groups them
  * by derived status into columns.
  */
 import { useEffect, useState } from 'react';
@@ -142,7 +142,7 @@ function useKanbanData() {
   useEffect(() => {
     async function fetchStories() {
       try {
-        const res = await fetch('/api/stories?all=true');
+        const res = await fetch('/api/stories');
         if (!res.ok) {
           setHasError(true);
           setIsLoading(false);
@@ -208,4 +208,4 @@ function KanbanBoardContent() {
   );
 }
 
-export { KanbanBoardContent as KanbanBoard };
+export { KanbanBoardContent as KanbanBoard, KanbanColumn, KanbanError, KanbanSkeleton };

@@ -2,10 +2,9 @@
  * Tests for REST API endpoints
  *
  * Tests the main endpoints:
- * - GET /api/epics - returns EpicSummary[]
  * - GET /api/epics/:epicId - returns ParsedEpic with full story list
+ * - GET /api/stories - returns all stories (standalone + epic-owned) with epicName resolved
  * - GET /api/stories/:storyId - returns StoryDetail with parsed journal
- * - GET /api/stories - returns standalone stories (no epic)
  */
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -14,7 +13,7 @@ import { join } from 'node:path';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type ServerInstance, startServer } from '../index.ts';
-import type { EpicSummary, StoryDetail } from '../parser.ts';
+import type { StoryDetail } from '../parser.ts';
 
 // HTTP status codes
 const HTTP_OK = 200;
@@ -25,7 +24,6 @@ const PORT_BASE = 30_000;
 const PORT_RANGE = 20_000;
 
 // Expected counts in test data
-const EXPECTED_EPIC_COUNT = 2;
 const EXPECTED_EPIC_ONE_STORY_COUNT = 2; // story-alpha + story-beta
 const EXPECTED_JOURNAL_ENTRIES = 3; // 1 session + 1 blocker + 1 resolution
 const EXPECTED_ALL_STORIES_COUNT = 4; // story-alpha + story-beta + story-gamma + story-standalone
@@ -222,69 +220,6 @@ Got confirmation, proceeding with REST endpoints.
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  describe('GET /api/epics', () => {
-    it('should return list of epic summaries', async () => {
-      const res = await request(server.app).get('/api/epics');
-
-      expect(res.status).toBe(HTTP_OK);
-      expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBe(EXPECTED_EPIC_COUNT);
-    });
-
-    it('should return epic summaries with correct structure', async () => {
-      const res = await request(server.app).get('/api/epics');
-
-      const epic1 = res.body.find((e: EpicSummary) => e.id === 'epic-one');
-      expect(epic1).toBeDefined();
-      expect(epic1.title).toBe('First Epic');
-      expect(epic1.description).toBe('This is the first epic.');
-      expect(epic1.status).toBeDefined();
-      expect(epic1.storyCounts).toBeDefined();
-      expect(epic1.storyCounts.total).toBe(EXPECTED_EPIC_ONE_STORY_COUNT);
-    });
-
-    it('should calculate story counts correctly with new statuses', async () => {
-      const res = await request(server.app).get('/api/epics');
-
-      const epic1 = res.body.find((e: EpicSummary) => e.id === 'epic-one');
-      // story-alpha has mixed tasks (pending + completed) → pending derived status
-      expect(epic1.storyCounts.pending).toBe(1);
-      // story-beta has in_progress task → inProgress
-      expect(epic1.storyCounts.inProgress).toBe(1);
-      expect(epic1.storyCounts.completed).toBe(0);
-      // No ready or blocked counts
-      expect(epic1.storyCounts).not.toHaveProperty('ready');
-      expect(epic1.storyCounts).not.toHaveProperty('blocked');
-    });
-
-    it('should not include full story list in epic summaries', async () => {
-      const res = await request(server.app).get('/api/epics');
-
-      const epic1 = res.body.find((e: EpicSummary) => e.id === 'epic-one');
-      expect(epic1).not.toHaveProperty('stories');
-      expect(epic1).not.toHaveProperty('children');
-    });
-
-    it('should return empty array when no epics exist', async () => {
-      const emptyDir = join(tmpdir(), `saga-routes-empty-${Date.now()}`);
-      mkdirSync(emptyDir, { recursive: true });
-
-      const emptyServer = await startServer({
-        sagaRoot: emptyDir,
-        port: getRandomPort(),
-      });
-
-      try {
-        const res = await request(emptyServer.app).get('/api/epics');
-        expect(res.status).toBe(HTTP_OK);
-        expect(res.body).toEqual([]);
-      } finally {
-        await emptyServer.close();
-        rmSync(emptyDir, { recursive: true, force: true });
-      }
-    });
-  });
-
   describe('GET /api/epics/:epicId', () => {
     it('should return epic detail with full story list', async () => {
       const res = await request(server.app).get('/api/epics/epic-one');
@@ -425,27 +360,8 @@ Got confirmation, proceeding with REST endpoints.
   });
 
   describe('GET /api/stories', () => {
-    it('should return standalone stories', async () => {
-      const res = await request(server.app).get('/api/stories');
-
-      expect(res.status).toBe(HTTP_OK);
-      expect(Array.isArray(res.body)).toBe(true);
-      const standalone = res.body.find((s: StoryDetail) => s.id === 'story-standalone');
-      expect(standalone).toBeDefined();
-      expect(standalone.title).toBe('Standalone Story');
-    });
-
-    it('should not include stories that belong to epics', async () => {
-      const res = await request(server.app).get('/api/stories');
-
-      const epicStory = res.body.find((s: StoryDetail) => s.id === 'story-alpha');
-      expect(epicStory).toBeUndefined();
-    });
-  });
-
-  describe('GET /api/stories?all=true', () => {
     it('should return all stories including epic-owned ones', async () => {
-      const res = await request(server.app).get('/api/stories?all=true');
+      const res = await request(server.app).get('/api/stories');
 
       expect(res.status).toBe(HTTP_OK);
       expect(Array.isArray(res.body)).toBe(true);
@@ -453,7 +369,7 @@ Got confirmation, proceeding with REST endpoints.
     });
 
     it('should include both standalone and epic-owned stories', async () => {
-      const res = await request(server.app).get('/api/stories?all=true');
+      const res = await request(server.app).get('/api/stories');
 
       const standalone = res.body.find((s: StoryDetail) => s.id === 'story-standalone');
       expect(standalone).toBeDefined();
@@ -463,7 +379,7 @@ Got confirmation, proceeding with REST endpoints.
     });
 
     it('should populate epicName for stories belonging to an epic', async () => {
-      const res = await request(server.app).get('/api/stories?all=true');
+      const res = await request(server.app).get('/api/stories');
 
       const alpha = res.body.find((s: StoryDetail) => s.id === 'story-alpha');
       expect(alpha.epicName).toBe('First Epic');
@@ -476,14 +392,14 @@ Got confirmation, proceeding with REST endpoints.
     });
 
     it('should not have epicName for standalone stories', async () => {
-      const res = await request(server.app).get('/api/stories?all=true');
+      const res = await request(server.app).get('/api/stories');
 
       const standalone = res.body.find((s: StoryDetail) => s.id === 'story-standalone');
       expect(standalone.epicName).toBeUndefined();
     });
 
     it('should include correct status for each story', async () => {
-      const res = await request(server.app).get('/api/stories?all=true');
+      const res = await request(server.app).get('/api/stories');
 
       const alpha = res.body.find((s: StoryDetail) => s.id === 'story-alpha');
       expect(alpha.status).toBe('pending');
@@ -519,7 +435,7 @@ Got confirmation, proceeding with REST endpoints.
         }),
       );
 
-      const res = await request(server.app).get('/api/stories?all=true');
+      const res = await request(server.app).get('/api/stories');
 
       const orphan = res.body.find((s: StoryDetail) => s.id === 'story-orphan');
       expect(orphan).toBeDefined();

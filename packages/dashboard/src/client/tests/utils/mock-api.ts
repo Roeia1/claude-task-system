@@ -133,7 +133,7 @@ function createMockEpic(overrides: Partial<Epic> = {}): Epic {
 // ============================================================================
 //
 // Pattern Strategy:
-// - Specialized mocks (mockEpicList, mockEpicDetail, mockStoryDetail) use
+// - Specialized mocks (mockAllStories, mockEpicDetail, mockStoryDetail) use
 //   function matchers for precise URL matching and to avoid conflicts.
 // - General-purpose mocks (mockApiError, mockApiDelay, mockNetworkFailure)
 //   accept glob patterns from the caller for flexibility.
@@ -142,18 +142,17 @@ function createMockEpic(overrides: Partial<Epic> = {}): Epic {
 type RoutePattern = string | RegExp | ((url: URL) => boolean);
 
 /**
- * Mocks the GET /api/epics endpoint to return a list of epic summaries.
- * Uses a function matcher to match exactly /api/epics (with optional trailing slash)
- * but NOT /api/epics/some-id.
+ * Mocks the GET /api/stories endpoint to return all stories.
+ * Used by the KanbanBoard home page.
  */
-async function mockEpicList(page: Page, epics: EpicSummary[]): Promise<void> {
+async function mockAllStories(page: Page, stories: StoryDetail[]): Promise<void> {
   await page.route(
-    (url) => url.pathname === '/api/epics' || url.pathname === '/api/epics/',
+    (url) => url.pathname === '/api/stories' || url.pathname === '/api/stories/',
     async (route: Route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(epics),
+        body: JSON.stringify(stories),
       });
     },
   );
@@ -305,36 +304,6 @@ async function mockNetworkFailure(page: Page, routePattern: RoutePattern): Promi
 // ============================================================================
 
 /**
- * Creates mock epic summaries for the dashboard.
- */
-function createMockEpicSummaries(): EpicSummary[] {
-  return [
-    createMockEpicSummary({
-      id: 'epic-one',
-      title: 'Epic One',
-      status: 'inProgress',
-      storyCounts: {
-        pending: 1,
-        inProgress: 1,
-        completed: 2,
-        total: 4,
-      },
-    }),
-    createMockEpicSummary({
-      id: 'epic-two',
-      title: 'Epic Two',
-      status: 'inProgress',
-      storyCounts: {
-        pending: 0,
-        inProgress: 1,
-        completed: 0,
-        total: 1,
-      },
-    }),
-  ];
-}
-
-/**
  * Creates mock epic one with its stories.
  */
 function createMockEpicOne(): Epic {
@@ -407,11 +376,9 @@ function createMockEpicTwo(): Epic {
  * Creates standard mock data for the dashboard.
  */
 function createMockDashboardData(): {
-  epics: EpicSummary[];
   epicDetails: Record<string, Epic>;
 } {
   return {
-    epics: createMockEpicSummaries(),
     epicDetails: {
       'epic-one': createMockEpicOne(),
       'epic-two': createMockEpicTwo(),
@@ -426,12 +393,13 @@ function createMockDashboardData(): {
  */
 async function setupApiMocks(
   page: Page,
-  epics: EpicSummary[],
   epicDetails: Record<string, Epic>,
   sessions: MockSession[] = [],
 ): Promise<void> {
-  await mockEpicList(page, epics);
   await mockSessions(page, sessions);
+
+  // Collect all stories from epic details for the kanban board
+  const allStories: StoryDetail[] = [];
 
   // Collect all mock promises
   const mockPromises: Promise<void>[] = [];
@@ -439,8 +407,12 @@ async function setupApiMocks(
     mockPromises.push(mockEpicDetail(page, epic));
     for (const story of epic.stories) {
       mockPromises.push(mockStoryDetail(page, story));
+      allStories.push(story);
     }
   }
+
+  // Mock the kanban board endpoint
+  mockPromises.push(mockAllStories(page, allStories));
 
   await Promise.all(mockPromises);
 }
@@ -450,12 +422,11 @@ async function setupApiMocks(
  * Useful for quick test setup when you need a working dashboard.
  */
 async function setupMockDashboard(page: Page): Promise<{
-  epics: EpicSummary[];
   epicDetails: Record<string, Epic>;
 }> {
-  const { epics, epicDetails } = createMockDashboardData();
-  await setupApiMocks(page, epics, epicDetails);
-  return { epics, epicDetails };
+  const { epicDetails } = createMockDashboardData();
+  await setupApiMocks(page, epicDetails);
+  return { epicDetails };
 }
 
 export {
@@ -465,7 +436,7 @@ export {
   createMockEpicSummary,
   createMockStoryDetail,
   createMockEpic,
-  mockEpicList,
+  mockAllStories,
   mockEpicDetail,
   mockStoryDetail,
   mockSessions,

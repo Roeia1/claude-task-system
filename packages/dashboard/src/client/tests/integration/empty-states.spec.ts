@@ -2,67 +2,48 @@ import { expect } from '@playwright/test';
 import { test } from '../fixtures.ts';
 import {
   createMockEpic,
-  createMockEpicSummary,
   createMockStoryDetail,
+  mockAllStories,
   mockEpicDetail,
-  mockEpicList,
+  mockSessions,
   mockStoryDetail,
 } from '../utils/mock-api.ts';
+
+/** Number of kanban board columns */
+const KANBAN_COLUMN_COUNT = 3;
 
 /**
  * Empty State Tests
  *
  * These tests verify that the dashboard displays appropriate messaging
- * when data is empty (no epics, no stories, no tasks, no journal entries).
+ * when data is empty (no stories, no tasks, no journal entries).
  */
 
 test.describe('Empty States', () => {
-  test.describe('Epic List Page', () => {
-    test('should show empty state message when no epics exist', async ({ page }) => {
-      // Mock empty epic list
-      await mockEpicList(page, []);
+  test.describe('Kanban Board (Home Page)', () => {
+    test('should show empty columns when no stories exist', async ({ page }) => {
+      await mockAllStories(page, []);
+      await mockSessions(page, []);
 
-      // Navigate to the epic list page
       await page.goto('/');
+      await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
-      // Wait for loading to complete
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-        timeout: 10_000,
-      });
-
-      // Verify empty state message is displayed
-      await expect(page.getByText('No epics found.')).toBeVisible();
-      await expect(page.getByText('/create-epic')).toBeVisible();
-      await expect(page.getByText('Run')).toBeVisible();
-      await expect(page.getByText('to get started.')).toBeVisible();
+      // Verify all 3 columns show "No stories"
+      const noStoriesTexts = page.getByText('No stories');
+      await expect(noStoriesTexts).toHaveCount(KANBAN_COLUMN_COUNT);
     });
   });
 
   test.describe('Epic Detail Page', () => {
     test('should show empty state when epic has no stories', async ({ page }) => {
-      // Create an epic with no stories
       const emptyEpic = createMockEpic({
         id: 'empty-epic',
         title: 'Empty Epic',
         stories: [],
       });
 
-      // Mock the API routes
-      await mockEpicList(page, [
-        createMockEpicSummary({
-          id: 'empty-epic',
-          title: 'Empty Epic',
-          storyCounts: {
-            pending: 0,
-            inProgress: 0,
-            completed: 0,
-            total: 0,
-          },
-        }),
-      ]);
       await mockEpicDetail(page, emptyEpic);
 
-      // Navigate to the epic detail page
       await page.goto('/epic/empty-epic');
 
       // Verify empty state message is displayed
@@ -72,22 +53,14 @@ test.describe('Empty States', () => {
     });
 
     test('should show epic header even when no stories exist', async ({ page }) => {
-      // Create an epic with no stories
       const emptyEpic = createMockEpic({
         id: 'empty-epic',
         title: 'Epic With No Stories',
         stories: [],
       });
 
-      await mockEpicList(page, [
-        createMockEpicSummary({
-          id: 'empty-epic',
-          title: 'Epic With No Stories',
-        }),
-      ]);
       await mockEpicDetail(page, emptyEpic);
 
-      // Navigate to the epic detail page
       await page.goto('/epic/empty-epic');
 
       // Verify the epic title is displayed
@@ -98,19 +71,14 @@ test.describe('Empty States', () => {
     });
 
     test('should show 0% progress when no stories exist', async ({ page }) => {
-      // Create an epic with no stories
       const emptyEpic = createMockEpic({
         id: 'no-stories',
         title: 'No Stories Epic',
         stories: [],
       });
 
-      await mockEpicList(page, [
-        createMockEpicSummary({ id: 'no-stories', title: 'No Stories Epic' }),
-      ]);
       await mockEpicDetail(page, emptyEpic);
 
-      // Navigate to the epic detail page
       await page.goto('/epic/no-stories');
 
       // Verify progress bar shows (value should be 0)
@@ -121,7 +89,6 @@ test.describe('Empty States', () => {
 
   test.describe('Story Detail Page', () => {
     test('should show empty state when story has no tasks', async ({ page }) => {
-      // Create a story with no tasks
       const storyNoTasks = createMockStoryDetail({
         id: 'no-tasks-story',
         title: 'Story Without Tasks',
@@ -130,17 +97,8 @@ test.describe('Empty States', () => {
         journal: [],
       });
 
-      const epicWithStory = createMockEpic({
-        id: 'test-epic',
-        title: 'Test Epic',
-        stories: [storyNoTasks],
-      });
-
-      await mockEpicList(page, [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })]);
-      await mockEpicDetail(page, epicWithStory);
       await mockStoryDetail(page, storyNoTasks);
 
-      // Navigate to the story detail page
       await page.goto('/story/no-tasks-story');
 
       // Verify tasks tab is active by default
@@ -154,7 +112,6 @@ test.describe('Empty States', () => {
     });
 
     test('should show empty state when story has no content', async ({ page }) => {
-      // Create a story with no content
       const storyNoContent = createMockStoryDetail({
         id: 'no-content-story',
         title: 'Story Without Content',
@@ -164,17 +121,8 @@ test.describe('Empty States', () => {
         description: '',
       });
 
-      const epicWithStory = createMockEpic({
-        id: 'test-epic',
-        title: 'Test Epic',
-        stories: [storyNoContent],
-      });
-
-      await mockEpicList(page, [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })]);
-      await mockEpicDetail(page, epicWithStory);
       await mockStoryDetail(page, storyNoContent);
 
-      // Navigate to the story detail page
       await page.goto('/story/no-content-story');
 
       // Click on the Story Content tab
@@ -185,7 +133,6 @@ test.describe('Empty States', () => {
     });
 
     test('should show empty state when story has no journal entries', async ({ page }) => {
-      // Create a story with no journal entries
       const storyNoJournal = createMockStoryDetail({
         id: 'no-journal-story',
         title: 'Story Without Journal',
@@ -194,17 +141,8 @@ test.describe('Empty States', () => {
         journal: [],
       });
 
-      const epicWithStory = createMockEpic({
-        id: 'test-epic',
-        title: 'Test Epic',
-        stories: [storyNoJournal],
-      });
-
-      await mockEpicList(page, [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })]);
-      await mockEpicDetail(page, epicWithStory);
       await mockStoryDetail(page, storyNoJournal);
 
-      // Navigate to the story detail page
       await page.goto('/story/no-journal-story');
 
       // Click on the Journal tab
@@ -215,7 +153,6 @@ test.describe('Empty States', () => {
     });
 
     test('should show 0/0 tasks completed for story with no tasks', async ({ page }) => {
-      // Create a story with no tasks
       const storyNoTasks = createMockStoryDetail({
         id: 'empty-story',
         title: 'Empty Story',
@@ -224,17 +161,8 @@ test.describe('Empty States', () => {
         journal: [],
       });
 
-      const epicWithStory = createMockEpic({
-        id: 'test-epic',
-        title: 'Test Epic',
-        stories: [storyNoTasks],
-      });
-
-      await mockEpicList(page, [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })]);
-      await mockEpicDetail(page, epicWithStory);
       await mockStoryDetail(page, storyNoTasks);
 
-      // Navigate to the story detail page
       await page.goto('/story/empty-story');
 
       // Verify 0/0 tasks completed is shown in the header
@@ -242,7 +170,6 @@ test.describe('Empty States', () => {
     });
 
     test('should display story header correctly even with all empty states', async ({ page }) => {
-      // Create a completely empty story
       const emptyStory = createMockStoryDetail({
         id: 'completely-empty',
         title: 'Completely Empty Story',
@@ -253,17 +180,8 @@ test.describe('Empty States', () => {
         description: undefined,
       });
 
-      const epicWithStory = createMockEpic({
-        id: 'test-epic',
-        title: 'Test Epic',
-        stories: [emptyStory],
-      });
-
-      await mockEpicList(page, [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })]);
-      await mockEpicDetail(page, epicWithStory);
       await mockStoryDetail(page, emptyStory);
 
-      // Navigate to the story detail page
       await page.goto('/story/completely-empty');
 
       // Verify header elements are displayed correctly
@@ -279,30 +197,15 @@ test.describe('Empty States', () => {
   });
 
   test.describe('Multiple Empty States Combined', () => {
-    test('should navigate from empty epic list to create epic guidance', async ({ page }) => {
-      // Mock empty epic list
-      await mockEpicList(page, []);
-
-      // Navigate to the epic list page
-      await page.goto('/');
-
-      // Verify guidance text is actionable
-      const createEpicCode = page.locator('code:has-text("/create-epic")');
-      await expect(createEpicCode).toBeVisible();
-    });
-
     test('should navigate from empty story list to generate stories guidance', async ({ page }) => {
-      // Create an epic with no stories
       const emptyEpic = createMockEpic({
         id: 'empty-epic',
         title: 'Empty Epic',
         stories: [],
       });
 
-      await mockEpicList(page, [createMockEpicSummary({ id: 'empty-epic', title: 'Empty Epic' })]);
       await mockEpicDetail(page, emptyEpic);
 
-      // Navigate to the epic detail page
       await page.goto('/epic/empty-epic');
 
       // Verify guidance text is actionable
@@ -331,28 +234,6 @@ test.describe('Empty States', () => {
         stories: [],
       });
 
-      await mockEpicList(page, [
-        createMockEpicSummary({
-          id: 'epic-with-stories',
-          title: 'Epic With Stories',
-          storyCounts: {
-            pending: 1,
-            inProgress: 0,
-            completed: 0,
-            total: 1,
-          },
-        }),
-        createMockEpicSummary({
-          id: 'empty-epic',
-          title: 'Empty Epic',
-          storyCounts: {
-            pending: 0,
-            inProgress: 0,
-            completed: 0,
-            total: 0,
-          },
-        }),
-      ]);
       await mockEpicDetail(page, epicWithStories);
       await mockEpicDetail(page, emptyEpic);
       await mockStoryDetail(

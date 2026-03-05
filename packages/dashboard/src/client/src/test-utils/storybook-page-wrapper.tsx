@@ -13,9 +13,9 @@ interface PageWrapperProps {
    * The initial route for the MemoryRouter.
    * This determines the breadcrumb context.
    * Examples:
-   * - "/" for EpicList page
+   * - "/" for KanbanBoard page
    * - "/epic/my-epic" for EpicDetail page
-   * - "/epic/my-epic/story/my-story" for StoryDetail page
+   * - "/story/my-story" for StoryDetail page
    * @default "/"
    */
   route?: string;
@@ -34,9 +34,9 @@ interface PageWrapperProps {
  *
  * @example
  * ```tsx
- * // Epic List page at root
+ * // Kanban Board page at root
  * <PageWrapper route="/">
- *   <EpicList />
+ *   <KanbanBoard />
  * </PageWrapper>
  *
  * // Epic Detail page
@@ -45,7 +45,7 @@ interface PageWrapperProps {
  * </PageWrapper>
  *
  * // Story Detail page
- * <PageWrapper route="/epic/my-epic/story/my-story">
+ * <PageWrapper route="/story/my-story">
  *   <StoryDetail />
  * </PageWrapper>
  * ```

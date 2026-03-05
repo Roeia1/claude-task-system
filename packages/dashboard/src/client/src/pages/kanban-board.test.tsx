@@ -416,8 +416,10 @@ describe('KanbanBoard', () => {
 
       await waitFor(() => {
         const content = screen.getByTestId('story-card-content-story-in-progress');
-        // t3 is blocked by t2
-        expect(content).toHaveTextContent('blocked by t2');
+        // t3 is blocked by t2 (topo-sorted index 2), and "Deps" header is shown
+        expect(content).toHaveTextContent('Deps');
+        // Task t3 ("Write docs") shows its dependency index
+        expect(content).toHaveTextContent('Write docs');
       });
     });
 
@@ -470,7 +472,7 @@ describe('KanbanBoard', () => {
   // API CALL
   // ==========================================================================
   describe('API call', () => {
-    it('fetches all stories from /api/stories?all=true on mount', async () => {
+    it('fetches all stories from /api/stories on mount', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => [],
@@ -479,7 +481,7 @@ describe('KanbanBoard', () => {
       renderWithProviders(<KanbanBoard />);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/stories?all=true');
+        expect(mockFetch).toHaveBeenCalledWith('/api/stories');
       });
     });
   });

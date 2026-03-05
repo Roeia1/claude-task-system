@@ -111,7 +111,7 @@ The dashboard follows a standard React SPA architecture:
 | Component | Purpose |
 |-----------|---------|
 | Layout | Main application shell |
-| EpicList | List all epics with status |
+| KanbanBoard | Kanban board with stories |
 | EpicDetail | Show epic with stories |
 | StoryDetail | Show story with tasks |
 

@@ -5,8 +5,7 @@
  * Attaches to the existing HTTP server to share the same port as Express.
  *
  * Server → Client events:
- * - epics:updated: Broadcasts full epic list when any epic changes
- * - stories:updated: Broadcasts all stories (with epicName) to all clients when any story changes
+ * - stories:updated: Broadcasts all stories (with epicName) to all clients when any story/epic changes
  * - story:updated: Broadcasts story detail to subscribed clients when a story changes
  *
  * Client → Server events:
@@ -28,13 +27,11 @@ import {
   stopSessionPolling,
 } from '../lib/session-polling.ts';
 import {
-  type EpicSummary,
   getAllStoriesWithEpicNames,
   parseJournal,
   parseStory,
   resolveEpicName,
   type StoryDetail,
-  scanSagaDirectory,
 } from './parser.ts';
 import { createSagaWatcher, type SagaWatcher, type WatcherEvent } from './watcher.ts';
 
@@ -62,8 +59,6 @@ interface ClientState {
  * WebSocket server instance
  */
 interface WebSocketInstance {
-  /** Broadcast epics:updated to all clients */
-  broadcastEpicsUpdated(epics: EpicSummary[]): void;
   /** Broadcast story:updated to subscribed clients */
   broadcastStoryUpdated(story: StoryDetail): void;
   /** Close the WebSocket server */
@@ -92,19 +87,6 @@ interface ServerMessage {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * Convert ParsedEpic to EpicSummary (remove stories)
- */
-function toEpicSummary(epic: EpicSummary): EpicSummary {
-  return {
-    id: epic.id,
-    title: epic.title,
-    description: epic.description,
-    status: epic.status,
-    storyCounts: epic.storyCounts,
-  };
-}
 
 /**
  * Send message to a single client
@@ -241,7 +223,6 @@ async function handleStoryChangeEvent(
   sagaRoot: string,
   clients: Map<WebSocket, ClientState>,
   broadcastToSubscribers: (storyId: string, message: ServerMessage) => void,
-  handleEpicChange: () => void,
 ): Promise<void> {
   const { storyId } = event;
   if (!storyId) {
@@ -249,7 +230,6 @@ async function handleStoryChangeEvent(
   }
 
   if (!hasSubscribers(clients, storyId)) {
-    handleEpicChange();
     return;
   }
 
@@ -259,8 +239,6 @@ async function handleStoryChangeEvent(
     if (story) {
       broadcastToSubscribers(storyId, { event: 'story:updated', data: story });
     }
-
-    handleEpicChange();
   } catch {
     // Silently ignore story parsing errors
   }
@@ -354,20 +332,6 @@ function setupWatcherHandlers(
   broadcast: (message: ServerMessage) => void,
   broadcastToSubscribers: (storyId: string, message: ServerMessage) => void,
 ): void {
-  const handleEpicChange = () => {
-    try {
-      const result = scanSagaDirectory(sagaRoot);
-      const summaries = result.epics.map(toEpicSummary);
-      broadcast({ event: 'epics:updated', data: summaries });
-    } catch {
-      // Silently ignore epic scanning errors
-    }
-  };
-
-  watcher.on('epic:added', handleEpicChange);
-  watcher.on('epic:changed', handleEpicChange);
-  watcher.on('epic:removed', handleEpicChange);
-
   const handleAllStoriesChange = () => {
     try {
       const allStories = getAllStoriesWithEpicNames(sagaRoot);
@@ -378,13 +342,17 @@ function setupWatcherHandlers(
   };
 
   const handleStoryChange = (event: WatcherEvent) => {
-    handleStoryChangeEvent(event, sagaRoot, clients, broadcastToSubscribers, handleEpicChange)
+    handleStoryChangeEvent(event, sagaRoot, clients, broadcastToSubscribers)
       .then(() => handleAllStoriesChange())
       .catch(() => {
         // Still broadcast all stories even if individual story enrichment fails
         handleAllStoriesChange();
       });
   };
+
+  watcher.on('epic:added', handleAllStoriesChange);
+  watcher.on('epic:changed', handleAllStoriesChange);
+  watcher.on('epic:removed', handleAllStoriesChange);
 
   watcher.on('story:added', handleStoryChange);
   watcher.on('story:changed', handleStoryChange);
@@ -466,21 +434,10 @@ interface WebSocketServerState {
  * Create WebSocket instance with broadcast and close methods
  */
 function createWebSocketInstance(state: WebSocketServerState): WebSocketInstance {
-  const {
-    wss,
-    clients,
-    watcher,
-    logStreamManager,
-    heartbeatInterval,
-    broadcast,
-    broadcastToSubscribers,
-  } = state;
+  const { wss, clients, watcher, logStreamManager, heartbeatInterval, broadcastToSubscribers } =
+    state;
 
   return {
-    broadcastEpicsUpdated(epics: EpicSummary[]): void {
-      broadcast({ event: 'epics:updated', data: epics });
-    },
-
     broadcastStoryUpdated(story: StoryDetail): void {
       broadcastToSubscribers(story.id, { event: 'story:updated', data: story });
     },
