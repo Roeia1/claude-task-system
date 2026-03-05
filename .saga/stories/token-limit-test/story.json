@@ -1,0 +1,9 @@
+{
+  "id": "token-limit-test",
+  "title": "Token limit test story",
+  "description": "A test story with deliberately token-heavy tasks to verify the worker's token limit enforcement. Each task requires reading multiple source files, analyzing patterns, and writing substantial output — designed to consume significant tokens per task so the 30k limit is hit before all tasks complete.",
+  "doneWhen": "All tasks are completed, or the worker correctly stops when the token limit is reached.",
+  "branch": "story/token-limit-test",
+  "pr": "https://github.com/Roeia1/SAGA/pull/77",
+  "worktree": ".saga/worktrees/token-limit-test/"
+}

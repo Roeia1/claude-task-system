@@ -1,0 +1,17 @@
+{
+  "id": "write-comprehensive-readme",
+  "subject": "Write a comprehensive internal developer README",
+  "description": "Read the existing README.md and all docs produced by previous tasks. Produce a new document at `docs/DEVELOPER.md` that serves as a comprehensive internal developer guide covering:\n\n1. Repository overview and architecture\n2. Getting started (clone, install, build, test)\n3. How to add a new skill\n4. How to add a new script\n5. How to modify schemas\n6. How the worker pipeline works\n7. How to debug common issues\n8. Release process\n9. Key design decisions and their rationale\n10. Glossary of SAGA-specific terms\n\nThis should synthesize information from all other analysis docs into one cohesive guide.",
+  "activeForm": "Writing developer README",
+  "status": "pending",
+  "blockedBy": [
+    "analyze-worker-architecture",
+    "analyze-storage-layer",
+    "analyze-schema-system",
+    "analyze-skill-system",
+    "analyze-plugin-scripts",
+    "analyze-test-suite",
+    "analyze-dashboard-package"
+  ],
+  "doneWhen": "docs/DEVELOPER.md exists with comprehensive coverage of all 10 sections."
+}

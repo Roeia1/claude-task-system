@@ -1,0 +1,9 @@
+{
+  "id": "analyze-test-suite",
+  "subject": "Analyze the test suite and write a testing guide",
+  "description": "Read all test files in `packages/saga-utils/src/` (find files matching `*.test.ts` or `__tests__/`). Produce a document at `docs/testing-guide.md` covering:\n\n1. Test framework and configuration (vitest, jest, etc.)\n2. Test file organization and naming conventions\n3. All test suites with descriptions of what they cover\n4. Mocking patterns used (filesystem, git commands, etc.)\n5. How to run tests (commands, watch mode, coverage)\n6. Test coverage gaps — areas that lack tests\n7. Fixture and helper utilities\n\nInclude example test patterns from the actual codebase.",
+  "activeForm": "Analyzing test suite",
+  "status": "completed",
+  "blockedBy": [],
+  "doneWhen": "docs/testing-guide.md exists with comprehensive coverage of all 7 sections."
+}

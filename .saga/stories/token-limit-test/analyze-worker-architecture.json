@@ -1,0 +1,9 @@
+{
+  "id": "analyze-worker-architecture",
+  "subject": "Analyze and document the worker script architecture",
+  "description": "Read the entire worker script at `packages/saga-utils/src/scripts/worker.ts` and all files it imports. Produce a detailed architectural document at `docs/worker-architecture.md` covering:\n\n1. Entry point and CLI argument parsing\n2. The full execution loop (cycles, timeouts, retries)\n3. How headless Claude runs are orchestrated\n4. Token tracking and budget enforcement\n5. Task hydration and status management\n6. Error handling and exit codes\n7. Integration with git (commits, pushes)\n8. PR management (draft creation, ready marking)\n\nInclude code snippets and references to specific functions. The document should be thorough enough that a new developer could understand the entire worker pipeline.",
+  "activeForm": "Analyzing worker architecture",
+  "status": "completed",
+  "blockedBy": [],
+  "doneWhen": "docs/worker-architecture.md exists with comprehensive coverage of all 8 sections."
+}
