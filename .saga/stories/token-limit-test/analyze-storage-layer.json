@@ -3,7 +3,7 @@
   "subject": "Analyze and document the storage layer",
   "description": "Read all files in `packages/saga-utils/src/storage/` and produce a detailed document at `docs/storage-layer.md` covering:\n\n1. All storage functions and their signatures\n2. How stories, tasks, and epics are read/written\n3. The directory structure conventions (.saga/stories/, .saga/epics/, etc.)\n4. Path resolution logic (project root detection, worktree paths)\n5. Config file handling (.saga/config.json)\n6. File format schemas and validation\n\nInclude examples of how each function is used in the codebase by searching for call sites.",
   "activeForm": "Analyzing storage layer",
-  "status": "pending",
+  "status": "completed",
   "blockedBy": [],
   "doneWhen": "docs/storage-layer.md exists with comprehensive coverage of all 6 sections."
 }
