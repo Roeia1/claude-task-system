@@ -17,3 +17,11 @@
 **Key decisions and deviations:** Documented all hooks in detail since they are integral to the worker's behavior (scope enforcement, journal reminders, task sync, auto-commit, pacing, token limits). Included an end-to-end flow diagram for quick reference.
 
 **Next steps:** Proceed to the next pending task.
+
+### Task: analyze-schema-system
+
+**What was done:** Read all schema files in `packages/saga-utils/src/schemas/` (story.ts, task.ts, epic.ts, claude-code-task.ts, session.ts, worker-message.ts, index.ts) and the `scripts/schemas.ts` CLI script. Produced comprehensive documentation at `docs/schema-system.md` covering: all Zod schemas with field-by-field documentation, types, constraints, and defaults; the `schemas.js` CLI tool and its Zod introspection mechanism; the `create-story-input` combined format; schema relationships (Epic->Story->Task); status derivation chain; how schemas are used for validation, documentation generation, type safety, and conversion.
+
+**Key decisions and deviations:** Included the full `create-story-input` format documentation since the schemas.ts script dedicates significant logic to it. Documented the Zod introspection approach (`describeZodType`) since it's a non-obvious pattern.
+
+**Next steps:** Proceed to the next pending task. Context utilization is high -- may need to exit after this task.
