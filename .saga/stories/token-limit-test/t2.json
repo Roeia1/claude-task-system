@@ -1,0 +1,9 @@
+{
+  "id": "t2",
+  "subject": "Create file dummy-2.txt",
+  "description": "Create a file called dummy-2.txt in the project root with the content 'Hello from task 2'.",
+  "activeForm": "Creating dummy-2.txt",
+  "status": "pending",
+  "blockedBy": [],
+  "doneWhen": "File dummy-2.txt exists with the correct content."
+}

@@ -1,0 +1,9 @@
+{
+  "id": "token-limit-test",
+  "title": "Token limit test story",
+  "description": "A dummy story with many tasks to test the token limit restriction. Each task asks the worker to create a simple file.",
+  "doneWhen": "All files are created.",
+  "branch": "story/token-limit-test",
+  "pr": "https://github.com/Roeia1/SAGA/pull/76",
+  "worktree": ".saga/worktrees/token-limit-test/"
+}
