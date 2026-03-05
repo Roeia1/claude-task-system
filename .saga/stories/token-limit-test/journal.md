@@ -25,3 +25,13 @@
 **Key decisions and deviations:** Included the full `create-story-input` format documentation since the schemas.ts script dedicates significant logic to it. Documented the Zod introspection approach (`describeZodType`) since it's a non-obvious pattern.
 
 **Next steps:** Proceed to the next pending task. Context utilization is high -- may need to exit after this task.
+
+## Session: 2026-03-05T00:01:00Z
+
+### Task: analyze-skill-system
+
+**What was done:** Read all SKILL.md files across plugin/skills/ (plan, execute-story, init, resolve-blocker, list-sessions, dashboard, create-epic, generate-stories), the worker-prompt.md, hooks.json, and session-init.sh. Also examined find.js to understand the bang command pattern. Produced comprehensive documentation at `docs/skill-system.md` covering: SKILL.md frontmatter format and all supported fields, skill discovery and loading, the task table format with dependency resolution, `$0` argument substitution, `!` bang command pre-execution, the AskUserQuestion collaboration pattern (disambiguation, multi-turn dialog, approval gates), hook lifecycle (SessionStart and worker hooks), sub-script invocation patterns, environment variable usage, and four recurring skill design patterns.
+
+**Key decisions and deviations:** Documented worker hooks briefly with a cross-reference to worker-architecture.md rather than duplicating that content. Included deprecated skills (create-epic, generate-stories) since they illustrate additional patterns. Covered the worker-prompt.md as part of the execute-story skill documentation.
+
+**Next steps:** Proceed to the next pending task (analyze-plugin-scripts or analyze-dashboard-package or analyze-test-suite).

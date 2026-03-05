@@ -3,7 +3,7 @@
   "subject": "Analyze and document how skills work end-to-end",
   "description": "Read the skill files in `plugin/skills/` — specifically plan, execute-story, and init. Also read any hook files in `plugin/hooks/`. Produce a document at `docs/skill-system.md` covering:\n\n1. SKILL.md frontmatter format and all supported fields\n2. How skills are discovered and loaded by Claude Code\n3. The task table format and dependency resolution\n4. How `$0` argument substitution works\n5. How `!` bang commands embed script output\n6. The collaboration pattern (AskUserQuestion loops)\n7. Hook lifecycle (pre-tool-use, post-tool-use, session start)\n8. How skills invoke sub-scripts (find.js, create-story.js, worker.js)\n\nCross-reference actual skill files to illustrate each concept.",
   "activeForm": "Analyzing skill system",
-  "status": "pending",
+  "status": "completed",
   "blockedBy": [],
   "doneWhen": "docs/skill-system.md exists with comprehensive coverage of all 8 sections."
 }
