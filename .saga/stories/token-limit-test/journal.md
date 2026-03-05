@@ -35,3 +35,13 @@
 **Key decisions and deviations:** Documented worker hooks briefly with a cross-reference to worker-architecture.md rather than duplicating that content. Included deprecated skills (create-epic, generate-stories) since they illustrate additional patterns. Covered the worker-prompt.md as part of the execute-story skill documentation.
 
 **Next steps:** Proceed to the next pending task (analyze-plugin-scripts or analyze-dashboard-package or analyze-test-suite).
+
+## Session: 2026-03-05T00:02:00Z
+
+### Task: analyze-plugin-scripts
+
+**What was done:** Read all script source files in `packages/saga-utils/src/scripts/`: CLI scripts (find.ts, create-story.ts, hydrate.ts, schemas.ts, worker.ts, sessions-kill.ts), hook scripts (scope-validator-hook.ts, journal-gate-hook.ts, sync-hook.ts, auto-commit-hook.ts, task-pacing-hook.ts, token-limit-hook.ts), library modules (scope-validator.ts, shared/env.ts), service modules (find/finder.ts, create-story/service.ts), and the esbuild build config. Produced comprehensive documentation at `docs/plugin-scripts.md` covering: purpose and CLI interface of each script, input/output formats with examples, exit codes, dependencies between scripts (dependency graph), git/GitHub/filesystem interactions, error handling patterns (JSON output, hook resilience, graceful degradation), and the esbuild build/distribution pipeline.
+
+**Key decisions and deviations:** Grouped scripts into CLI scripts, shared utilities, and hook scripts for clarity. Documented scope-validator.ts as a library (not CLI) since it's only used by the hook. Included the full dependency graph between scripts. Documented the esbuild config in detail since it explains the self-contained bundling strategy.
+
+**Next steps:** Context utilization is getting high. Should assess whether to continue with remaining tasks or exit cleanly.
