@@ -45,3 +45,13 @@
 **Key decisions and deviations:** Grouped scripts into CLI scripts, shared utilities, and hook scripts for clarity. Documented scope-validator.ts as a library (not CLI) since it's only used by the hook. Included the full dependency graph between scripts. Documented the esbuild config in detail since it explains the self-contained bundling strategy.
 
 **Next steps:** Context utilization is getting high. Should assess whether to continue with remaining tasks or exit cleanly.
+
+## Session: 2026-03-05T00:03:00Z
+
+### Task: analyze-dashboard-package
+
+**What was done:** Read all source files in `packages/dashboard/`: CLI entry point (cli.ts), commands (dashboard.ts, sessions/index.ts), server modules (index.ts, routes.ts, session-routes.ts, parser.ts, watcher.ts, websocket.ts), library modules (sessions.ts, session-polling.ts, log-stream-manager.ts), utility (project-discovery.ts), and all client source files (App.tsx, router.tsx, dashboardMachine.ts, dashboard-context.tsx, types/dashboard.ts, all pages and key components, vite.config.ts). Produced comprehensive documentation at `docs/dashboard-package.md` covering: tech stack, file structure, CLI interface, project discovery, Express server architecture, REST API endpoints, filesystem parser with status derivation, file watcher with debouncing, WebSocket server with subscription model, tmux session management, session polling, log stream manager with incremental JSONL delivery, React client architecture with XState state machine, component hierarchy (ASCII art), build pipeline (esbuild CLI + Vite client), npm publish process, configuration options, and a full data flow diagram.
+
+**Key decisions and deviations:** Documented all server and client layers in a single document rather than splitting, since they form a cohesive package. Included the XState state machine diagram and component hierarchy in ASCII art as requested. Covered the dual build system (esbuild for CLI, Vite for client) in detail.
+
+**Next steps:** Proceed to analyze-test-suite or assess context utilization.
