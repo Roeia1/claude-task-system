@@ -189,9 +189,9 @@ test.describe('Empty States', () => {
       await expect(page.getByText('Pending')).toBeVisible();
       await expect(page.getByText('0/0 tasks completed')).toBeVisible();
 
-      // Verify breadcrumb navigation is present (stories show Epics > storyId)
+      // Verify breadcrumb navigation is present (stories show Board > storyId)
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
-      await expect(breadcrumb.getByRole('link', { name: 'Epics' })).toBeVisible();
+      await expect(breadcrumb.getByRole('link', { name: 'Board' })).toBeVisible();
       await expect(breadcrumb.getByText('completely-empty')).toBeVisible();
     });
   });

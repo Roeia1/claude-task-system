@@ -8,15 +8,18 @@ test.beforeEach(async ({ fixtureUtils }) => {
 /** Regex pattern for matching socket.io routes */
 const SOCKET_IO_ROUTE_PATTERN = /\/socket\.io\//;
 
-/** Regex pattern for matching /api/epics endpoint (exact match, not /api/epics/*) */
-const API_EPICS_ROUTE_PATTERN = /\/api\/epics$/;
+/** Regex pattern for matching /api/stories endpoint (exact match, not /api/stories/*) */
+const API_STORIES_ROUTE_PATTERN = /\/api\/stories$/;
+
+/** Number of Kanban board columns (Pending, In Progress, Completed) */
+const KANBAN_COLUMN_COUNT = 3;
 
 /**
  * Error path E2E tests for the SAGA dashboard.
  *
  * These tests verify the dashboard handles error conditions gracefully:
  * - 404 handling for non-existent epic/story
- * - Empty state when no epics exist
+ * - Empty state when no stories exist (Kanban board)
  * - WebSocket disconnection behavior
  *
  * Each worker has its own isolated fixtures and server instance.
@@ -46,7 +49,7 @@ test.describe('404 Error Handling', () => {
     await expect(page.getByText('Back to epics')).toBeVisible();
   });
 
-  test('back link from epic 404 navigates to epic list', async ({ page }) => {
+  test('back link from epic 404 navigates to home', async ({ page }) => {
     await page.goto('/epic/nonexistent-epic');
 
     // Wait for 404 page to render
@@ -55,12 +58,12 @@ test.describe('404 Error Handling', () => {
     // Click back link
     await page.getByText('Back to epic list').click();
 
-    // Verify navigation to home page
+    // Verify navigation to home page (Kanban board)
     await expect(page).toHaveURL('/');
-    await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
+    await expect(page.getByTestId('kanban-board')).toBeVisible();
   });
 
-  test('back link from story 404 navigates to epic list', async ({ page }) => {
+  test('back link from story 404 navigates to home', async ({ page }) => {
     await page.goto('/story/nonexistent-story');
 
     // Wait for 404 page to render
@@ -69,22 +72,26 @@ test.describe('404 Error Handling', () => {
     // Click back link
     await page.getByText('Back to epics').click();
 
-    // Verify navigation to the epic list
+    // Verify navigation to home page (Kanban board)
     await expect(page).toHaveURL('/');
-    await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
+    await expect(page.getByTestId('kanban-board')).toBeVisible();
   });
 });
 
 test.describe('Empty State Handling', () => {
-  test('displays no epics message when saga directory is empty', async ({ page, fixtureUtils }) => {
-    // Delete all epics from the temp fixtures directory
+  test('displays empty columns when saga directory has no stories', async ({
+    page,
+    fixtureUtils,
+  }) => {
+    // Delete all epics and stories from the temp fixtures directory
     await fixtureUtils.deleteAllEpics();
 
     await page.goto('/');
 
-    // Should show empty state
-    await expect(page.getByText('No epics found.')).toBeVisible();
-    await expect(page.getByText('/create-epic')).toBeVisible();
+    // Kanban board should render with empty columns showing "No stories"
+    await expect(page.getByTestId('kanban-board')).toBeVisible();
+    const noStoriesTexts = page.getByText('No stories');
+    await expect(noStoriesTexts).toHaveCount(KANBAN_COLUMN_COUNT);
   });
 
   test('empty epic displays no stories message', async ({ page }) => {
@@ -109,14 +116,13 @@ test.describe('Empty State Handling', () => {
 });
 
 test.describe('API Error Handling', () => {
-  test('handles network error gracefully on epic list', async ({ page, fixtureUtils }) => {
-    // First delete all epics so there's no data even if a request slips through
+  test('handles network error gracefully on kanban board', async ({ page, fixtureUtils }) => {
+    // First delete all stories so there's no data even if a request slips through
     // This handles the race condition with React StrictMode double-renders
     await fixtureUtils.deleteAllEpics();
 
-    // Intercept ALL requests to /api/epics and abort them
-    // Use regex pattern to ensure exact match (not matching /api/epics/*)
-    await page.route(API_EPICS_ROUTE_PATTERN, (route) => {
+    // Intercept ALL requests to /api/stories and abort them
+    await page.route(API_STORIES_ROUTE_PATTERN, (route) => {
       route.abort('failed');
     });
 
@@ -125,20 +131,12 @@ test.describe('API Error Handling', () => {
     // Wait for network activity to settle
     await page.waitForLoadState('networkidle');
 
-    // The page should handle the error gracefully
-    // Errors trigger a toast notification
-    const toast = page.getByText('API Error', { exact: true }).first();
-    await expect(toast).toBeVisible({ timeout: 5000 });
-
-    // Should show empty state since fetch failed (no data loaded)
-    await expect(page.getByText('No epics found.')).toBeVisible();
+    // Should show error state since fetch failed
+    await expect(page.getByTestId('kanban-error')).toBeVisible();
+    await expect(page.getByText('Failed to load stories')).toBeVisible();
   });
 
   test('handles server error (500) on epic detail', async ({ page }) => {
-    // First load the epic list normally
-    await page.goto('/');
-    await expect(page.locator('a[href="/epic/feature-development"]')).toBeVisible();
-
     // Intercept the specific epic API request and return 500
     await page.route('/api/epics/feature-development', (route) => {
       route.fulfill({
@@ -148,8 +146,8 @@ test.describe('API Error Handling', () => {
       });
     });
 
-    // Navigate to the epic
-    await page.locator('a[href="/epic/feature-development"]').click();
+    // Navigate directly to the epic detail page
+    await page.goto('/epic/feature-development');
 
     // Should show error state
     await expect(page.getByText('Error')).toBeVisible();
@@ -160,10 +158,6 @@ test.describe('API Error Handling', () => {
   });
 
   test('handles server error (500) on story detail', async ({ page }) => {
-    // Navigate to epic first
-    await page.goto('/epic/feature-development');
-    await expect(page.locator('a[href="/story/auth-implementation"]')).toBeVisible();
-
     // Intercept the story API request and return 500
     await page.route('/api/stories/auth-implementation', (route) => {
       route.fulfill({
@@ -173,8 +167,8 @@ test.describe('API Error Handling', () => {
       });
     });
 
-    // Navigate to the story
-    await page.locator('a[href="/story/auth-implementation"]').click();
+    // Navigate directly to the story detail page
+    await page.goto('/story/auth-implementation');
 
     // Should show error state
     await expect(page.getByText('Error')).toBeVisible();
@@ -186,8 +180,6 @@ test.describe('API Error Handling', () => {
 });
 
 test.describe('WebSocket Disconnection', () => {
-  // WebSocket tests are challenging because the dashboard doesn't auto-connect to WebSocket.
-  // The WebSocket connection is only initiated when connect() is explicitly called.
   // These tests verify the UI doesn't break when WebSocket is unavailable.
 
   test('dashboard loads and functions without WebSocket connection', async ({ page }) => {
@@ -199,11 +191,14 @@ test.describe('WebSocket Disconnection', () => {
     // Navigate to the dashboard
     await page.goto('/');
 
-    // Dashboard should still load and function (HTTP API works independently)
-    await expect(page.locator('a[href="/epic/feature-development"]')).toBeVisible();
+    // Kanban board should still load (HTTP API works independently)
+    await expect(page.getByTestId('kanban-board')).toBeVisible();
+    await expect(page.getByTestId('column-inProgress')).toContainText(
+      'User Authentication Implementation',
+    );
 
-    // Navigate to epic detail
-    await page.locator('a[href="/epic/feature-development"]').click();
+    // Navigate to epic detail directly
+    await page.goto('/epic/feature-development');
     await expect(page.locator('h1.text-2xl:has-text("Feature Development")')).toBeVisible();
 
     // Navigate to story detail (story links now go to /story/:storyId)
@@ -219,14 +214,15 @@ test.describe('WebSocket Disconnection', () => {
       route.abort('connectionrefused');
     });
 
-    // Load dashboard
+    // Load dashboard - Kanban board should render
     await page.goto('/');
+    await expect(page.getByTestId('kanban-board')).toBeVisible();
 
-    // Verify can navigate to feature-development epic
-    await page.locator('a[href="/epic/feature-development"]').click();
+    // Navigate to epic detail directly
+    await page.goto('/epic/feature-development');
     await expect(page.locator('h1.text-2xl:has-text("Feature Development")')).toBeVisible();
 
-    // Verify stories are displayed with status names (auth-implementation=In Progress, api-design=Completed)
+    // Verify stories are displayed with status names
     await expect(page.getByText('In Progress').first()).toBeVisible();
     await expect(page.getByText('Completed').first()).toBeVisible();
   });
@@ -236,26 +232,30 @@ test.describe('Dynamic Content Changes', () => {
   // These tests verify the dashboard reflects file system changes correctly
   // (after page refresh, since WebSocket auto-connect is not implemented)
 
-  test('newly created epic appears after refresh', async ({ page, fixtureUtils }) => {
+  test('newly created story appears on kanban board after refresh', async ({
+    page,
+    fixtureUtils,
+  }) => {
     await page.goto('/');
-    await expect(page.locator('a[href="/epic/feature-development"]')).toBeVisible();
+    await expect(page.getByTestId('kanban-board')).toBeVisible();
 
-    // Verify the new epic doesn't exist yet
-    await expect(page.locator('a[href="/epic/dynamic-epic"]')).toHaveCount(0);
+    // Verify the new story doesn't exist yet
+    await expect(page.getByText('New Dynamic Story')).toHaveCount(0);
 
-    // Create a new epic
-    await fixtureUtils.createEpic('dynamic-epic', 'Dynamic Epic');
+    // Create a new story in an existing epic (no tasks = pending status)
+    await fixtureUtils.createStory('feature-development', 'new-story', 'New Dynamic Story');
 
     // Refresh the page
     await page.reload();
 
-    // New epic card should appear with title
-    const epicCard = page.locator('a[href="/epic/dynamic-epic"]');
-    await expect(epicCard).toBeVisible();
-    await expect(epicCard).toContainText('Dynamic Epic');
+    // New story should appear in the Pending column
+    await expect(page.getByTestId('column-pending')).toContainText('New Dynamic Story');
   });
 
-  test('newly created story appears after refresh', async ({ page, fixtureUtils }) => {
+  test('newly created story appears in epic detail after refresh', async ({
+    page,
+    fixtureUtils,
+  }) => {
     // Create a new story in an existing epic
     await fixtureUtils.createStory('feature-development', 'new-story', 'New Dynamic Story');
 
@@ -265,22 +265,26 @@ test.describe('Dynamic Content Changes', () => {
     await expect(page.getByText('New Dynamic Story')).toBeVisible();
   });
 
-  test('deleted epic disappears after refresh', async ({ page, fixtureUtils }) => {
+  test('deleted stories disappear from kanban board after refresh', async ({
+    page,
+    fixtureUtils,
+  }) => {
     await page.goto('/');
 
-    // Verify empty-epic exists
-    await expect(page.locator('a[href="/epic/empty-epic"]')).toBeVisible();
+    // Verify stories from testing-suite epic are visible
+    await expect(page.getByTestId('column-pending')).toContainText('Unit Testing Framework');
 
-    // Delete the epic
-    await fixtureUtils.deleteEpic('empty-epic');
+    // Delete the testing-suite epic and its stories
+    await fixtureUtils.deleteEpic('testing-suite');
 
     // Refresh the page
     await page.reload();
 
-    // Wait for other epics to load first
-    await expect(page.locator('a[href="/epic/feature-development"]')).toBeVisible();
+    // Wait for board to load
+    await expect(page.getByTestId('kanban-board')).toBeVisible();
 
-    // Epic should no longer appear
-    await expect(page.locator('a[href="/epic/empty-epic"]')).toHaveCount(0);
+    // Stories from testing-suite should no longer appear
+    await expect(page.getByText('Unit Testing Framework')).toHaveCount(0);
+    await expect(page.getByText('Integration Testing Setup')).toHaveCount(0);
   });
 });

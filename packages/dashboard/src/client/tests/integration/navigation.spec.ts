@@ -171,10 +171,10 @@ test.describe('Navigation', () => {
         timeout: 10_000,
       });
 
-      // Verify breadcrumb shows "Epics" link and current epic
+      // Verify breadcrumb shows "Board" link and current epic
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
       await expect(breadcrumb).toBeVisible();
-      await expect(breadcrumb.getByText('Epics')).toBeVisible();
+      await expect(breadcrumb.getByText('Board')).toBeVisible();
       await expect(breadcrumb.getByText('my-epic')).toBeVisible();
     });
 
@@ -194,9 +194,9 @@ test.describe('Navigation', () => {
         timeout: 10_000,
       });
 
-      // Click on "Epics" in breadcrumb
+      // Click on "Board" in breadcrumb
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
-      await breadcrumb.getByText('Epics').click();
+      await breadcrumb.getByText('Board').click();
 
       // Verify navigation back to home (kanban board)
       await expect(page).toHaveURL('/');
@@ -230,10 +230,10 @@ test.describe('Navigation', () => {
         timeout: 10_000,
       });
 
-      // Verify breadcrumb shows path with epic context: Epics > parent-epic > child-story
+      // Verify breadcrumb shows path with epic context: Board > parent-epic > child-story
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
       await expect(breadcrumb).toBeVisible();
-      await expect(breadcrumb.getByText('Epics')).toBeVisible();
+      await expect(breadcrumb.getByText('Board')).toBeVisible();
       await expect(breadcrumb.getByText('parent-epic')).toBeVisible();
       await expect(breadcrumb.getByText('child-story')).toBeVisible();
     });
@@ -314,7 +314,7 @@ test.describe('Navigation', () => {
 
       // Navigate back to kanban via breadcrumb
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
-      await breadcrumb.getByText('Epics').click();
+      await breadcrumb.getByText('Board').click();
       await expect(page).toHaveURL('/');
     });
 

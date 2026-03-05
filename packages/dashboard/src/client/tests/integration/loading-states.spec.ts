@@ -43,9 +43,7 @@ test.describe('Loading States', () => {
       // Add delay to the stories API response
       await mockApiDelay(
         page,
-        (url) =>
-          (url.pathname === '/api/stories' || url.pathname === '/api/stories/') &&
-          url.searchParams.get('all') === 'true',
+        (url) => url.pathname === '/api/stories' || url.pathname === '/api/stories/',
         DELAY_MEDIUM_MS,
         {
           status: HTTP_OK,
@@ -72,9 +70,7 @@ test.describe('Loading States', () => {
       // Mock with delay
       await mockApiDelay(
         page,
-        (url) =>
-          (url.pathname === '/api/stories' || url.pathname === '/api/stories/') &&
-          url.searchParams.get('all') === 'true',
+        (url) => url.pathname === '/api/stories' || url.pathname === '/api/stories/',
         DELAY_VERY_LONG_MS,
         {
           status: HTTP_OK,
@@ -98,9 +94,7 @@ test.describe('Loading States', () => {
       // Mock with a short delay
       await mockApiDelay(
         page,
-        (url) =>
-          (url.pathname === '/api/stories' || url.pathname === '/api/stories/') &&
-          url.searchParams.get('all') === 'true',
+        (url) => url.pathname === '/api/stories' || url.pathname === '/api/stories/',
         DELAY_SHORT_MS,
         {
           status: HTTP_OK,

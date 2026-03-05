@@ -8,8 +8,9 @@ import {
 } from '../utils/mock-api.ts';
 
 /**
- * ActiveSessions integration tests for the home page (KanbanBoard).
- * Tests the active sessions section that appears when running sessions exist.
+ * Running session indicator integration tests for the home page (KanbanBoard).
+ * Tests the running indicator (pulsing green dot) that appears on story cards
+ * when a session is active for that story.
  */
 
 // Session test data constants
@@ -47,87 +48,79 @@ const sampleStories = [
   createMockStoryDetail({ id: 'story-gamma', title: 'Story Gamma', status: 'completed' }),
 ];
 
-test.describe('ActiveSessions on Home Page', () => {
-  test('should not show ActiveSessions section when no running sessions', async ({ page }) => {
+test.describe('Running Session Indicators on Home Page', () => {
+  test('should not show running indicator when no sessions are active', async ({ page }) => {
     await mockAllStories(page, sampleStories);
     await mockSessions(page, []);
 
     await page.goto('/');
     await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
-    // Verify ActiveSessions section is not displayed
-    await expect(page.getByTestId('active-sessions')).not.toBeVisible();
-    // But kanban board is still visible
+    // Verify no running indicators are shown
+    await expect(page.getByTestId('running-indicator')).toHaveCount(0);
+    // But story cards are still visible
     await expect(page.getByText('Story Alpha')).toBeVisible();
   });
 
-  test('should show ActiveSessions section heading when running sessions exist', async ({
-    page,
-  }) => {
+  test('should show running indicator on story card when session is active', async ({ page }) => {
     await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1]);
 
     await page.goto('/');
     await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
-    // Verify ActiveSessions section is displayed with heading
-    await expect(page.getByTestId('active-sessions')).toBeVisible();
-    await expect(page.getByText('Active Sessions')).toBeVisible();
+    // Verify the story card has a running indicator
+    const storyCard = page.getByTestId('story-card-story-alpha');
+    await expect(storyCard).toBeVisible();
+    await expect(storyCard.getByTestId('running-indicator')).toBeVisible();
   });
 
-  test('should display session cards with story ids', async ({ page }) => {
+  test('should show running indicators on multiple story cards', async ({ page }) => {
     await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1, RUNNING_SESSION_2]);
 
     await page.goto('/');
     await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
-    // Verify session cards show story ids
-    await expect(page.getByTestId('active-sessions')).toBeVisible();
-    await expect(page.getByText('story-alpha')).toBeVisible();
-    await expect(page.getByText('story-beta')).toBeVisible();
+    // Verify both story cards have running indicators
+    const alphaCard = page.getByTestId('story-card-story-alpha');
+    const betaCard = page.getByTestId('story-card-story-beta');
+    await expect(alphaCard.getByTestId('running-indicator')).toBeVisible();
+    await expect(betaCard.getByTestId('running-indicator')).toBeVisible();
   });
 
-  test('should navigate to story detail with ?tab=sessions when clicking session card', async ({
-    page,
-  }) => {
+  test('should navigate to story detail via "Open story" link', async ({ page }) => {
     await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1]);
 
     await page.goto('/');
     await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
-    // Click on the session card (which is a link)
-    await page.getByText('story-alpha').click();
+    // Expand the story card
+    await page.getByTestId('story-card-trigger-story-alpha').click();
 
-    // Verify navigation to story detail with sessions tab
-    await expect(page).toHaveURL('/story/story-alpha?tab=sessions');
+    // Click on "Open story →" link
+    await page.getByTestId('story-card-content-story-alpha').getByText('Open story →').click();
+
+    // Verify navigation to story detail
+    await expect(page).toHaveURL('/story/story-alpha');
   });
 
-  test('should only show running sessions, not completed ones', async ({ page }) => {
+  test('should only show running indicators for running sessions, not completed ones', async ({
+    page,
+  }) => {
     await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1, COMPLETED_SESSION]);
 
     await page.goto('/');
     await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
-    // Verify only running session is shown
-    await expect(page.getByTestId('active-sessions')).toBeVisible();
-    await expect(page.getByText('story-alpha')).toBeVisible();
-    // Completed session (story-gamma) should not be visible in ActiveSessions
-    const activeSessionsSection = page.getByTestId('active-sessions');
-    await expect(activeSessionsSection.getByText('story-gamma')).not.toBeVisible();
-  });
+    // Running session's story should have an indicator
+    const alphaCard = page.getByTestId('story-card-story-alpha');
+    await expect(alphaCard.getByTestId('running-indicator')).toBeVisible();
 
-  test('should show output preview on session cards', async ({ page }) => {
-    await mockAllStories(page, sampleStories);
-    await mockSessions(page, [RUNNING_SESSION_1]);
-
-    await page.goto('/');
-    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
-
-    // Verify output preview is displayed
-    await expect(page.getByTestId('active-sessions')).toBeVisible();
-    await expect(page.getByText('Running tests...')).toBeVisible();
+    // Completed session's story should NOT have an indicator
+    const gammaCard = page.getByTestId('story-card-story-gamma');
+    await expect(gammaCard.getByTestId('running-indicator')).toHaveCount(0);
   });
 });

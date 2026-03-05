@@ -146,3 +146,30 @@
 **Next steps:**
 - All implementation tasks are complete
 - The Playwright e2e integration tests still need updating for the new KanbanBoard home page
+
+## Session: 2026-03-05T04:00:00Z
+
+### Task: Refactor/cleanup — remove epic list API and server/client infrastructure
+
+**What was done:**
+- Removed `GET /api/epics` list endpoint from `routes.ts` (kept `GET /api/epics/:epicId` for epic detail page)
+- Simplified `GET /api/stories` to always return all stories with epicName resolved — removed `?all=true` query param
+- Removed `epics:updated` WebSocket broadcast and `broadcastEpicsUpdated` method from `websocket.ts`; epic watcher events now trigger `stories:updated` instead
+- Removed `standaloneStories` from `ScanResult` interface and `scanSagaDirectory` in `parser.ts`
+- Removed `epics` from XState dashboard machine context, removed `EPICS_LOADED`/`EPICS_UPDATED` events, removed `setEpics`/`updateEpics` actions
+- Removed `setEpics` and `epics` from `useDashboard()` context hook
+- Updated `KanbanBoard.tsx` fetch URL from `/api/stories?all=true` to `/api/stories`
+- Deleted `EpicList.tsx`, `epic-card.stories.tsx`, `epic-list.stories.tsx` and their snapshots
+- Added `kanban-board.stories.tsx` with DOM and pixel snapshots
+- Updated all server tests: removed `GET /api/epics` test section, merged `?all=true` tests into `GET /api/stories`, updated WebSocket and integration tests to expect `stories:updated` instead of `epics:updated`, removed `standaloneStories` assertions from parser tests
+- Updated client tests: removed epics-related machine tests/fixtures, updated kanban board test fetch URLs, updated integration test mock utilities (`mockEpicList` removed, `mockAllStories` simplified, `setupApiMocks` signature updated)
+- Build passes, all 599 unit tests pass (38 test files)
+
+**Key decisions and deviations:**
+- Kept `EpicSummary` type in both server and client — still needed by `ParsedEpic extends EpicSummary` (server) and `Epic extends EpicSummary` (client) for the epic detail page
+- Kept `createMockEpicSummary` in integration test utils — still exported and used by `mock-api.spec.ts`
+- Did not update the e2e tests in `e2e/error-paths.spec.ts` — they reference the old epic list homepage behavior and are out of scope for this cleanup
+- Net result: 52 files changed, -903 lines removed
+
+**Next steps:**
+- Fix the e2e tests (`e2e/error-paths.spec.ts`, `e2e/happy-paths.spec.ts`) that still reference the old epic list homepage
