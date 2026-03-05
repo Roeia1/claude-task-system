@@ -55,3 +55,13 @@
 **Key decisions and deviations:** Documented all server and client layers in a single document rather than splitting, since they form a cohesive package. Included the XState state machine diagram and component hierarchy in ASCII art as requested. Covered the dual build system (esbuild for CLI, Vite for client) in detail.
 
 **Next steps:** Proceed to analyze-test-suite or assess context utilization.
+
+## Session: 2026-03-05T00:04:00Z
+
+### Task: analyze-test-suite
+
+**What was done:** Read all 38 test files across `packages/saga-utils/src/` (schemas, core library, hooks, CLI entry points, services, worker modules, shared utilities). Ran the full test suite (590 tests, all passing). Produced comprehensive documentation at `docs/testing-guide.md` covering: Vitest framework and configuration, how to run tests, file organization and naming conventions, all test suites with descriptions, 5 mocking patterns (real filesystem with temp dirs, vi.mock module mocking, process execution for CLI tests, factory helper functions, environment variable manipulation), fixture/helper utilities, test coverage gaps (dashboard package, plugin skills, shell hooks, etc.), and recurring test design patterns (pure validation, hook tests, integration tests).
+
+**Key decisions and deviations:** No shared test fixtures exist in the codebase — documented this as a finding rather than a gap. Grouped the 38 test files into 7 categories for clarity. Identified 7 areas lacking test coverage, most notably the entire dashboard package.
+
+**Next steps:** Proceed to write-comprehensive-readme (now unblocked).
