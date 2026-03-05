@@ -4,5 +4,9 @@
       "command": "pnpm",
       "args": ["dlx", "shadcn@latest", "mcp"]
     }
+  },
+  "worker": {
+    "maxTokensPerSession": 30000,
+    "maxTasksPerSession": 10
   }
 }
