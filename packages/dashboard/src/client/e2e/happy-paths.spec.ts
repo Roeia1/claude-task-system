@@ -29,42 +29,45 @@ const SESSIONS_TAB_PATTERN = /Sessions/;
  * Each worker has its own isolated fixtures and server instance.
  */
 
-test.describe('Epic List', () => {
-  test('displays all fixture epics with correct information', async ({ page }) => {
+test.describe('Kanban Board', () => {
+  test('displays stories in correct columns', async ({ page }) => {
     await page.goto('/');
 
-    // Verify all 3 epics are displayed by checking for their card links
-    const featureDevCard = page.locator('a[href="/epic/feature-development"]');
-    const emptyEpicCard = page.locator('a[href="/epic/empty-epic"]');
-    const testingSuiteCard = page.locator('a[href="/epic/testing-suite"]');
+    // Verify Kanban board renders with 3 columns
+    await expect(page.getByTestId('kanban-board')).toBeVisible();
+    const pendingCol = page.getByTestId('column-pending');
+    const inProgressCol = page.getByTestId('column-inProgress');
+    const completedCol = page.getByTestId('column-completed');
 
-    await expect(featureDevCard).toBeVisible();
-    await expect(emptyEpicCard).toBeVisible();
-    await expect(testingSuiteCard).toBeVisible();
+    await expect(pendingCol).toBeVisible();
+    await expect(inProgressCol).toBeVisible();
+    await expect(completedCol).toBeVisible();
 
-    // Verify epic titles
-    await expect(featureDevCard).toContainText('Feature Development');
-    await expect(emptyEpicCard).toContainText('Empty Epic');
-    await expect(testingSuiteCard).toContainText('Testing Suite');
+    // Verify story placement: auth-implementation is In Progress
+    await expect(inProgressCol).toContainText('User Authentication Implementation');
 
-    // Verify story counts
-    await expect(featureDevCard).toContainText('1/2 stories');
-    await expect(testingSuiteCard).toContainText('0/2 stories');
-    await expect(emptyEpicCard).toContainText('0/0 stories');
+    // api-design is Completed
+    await expect(completedCol).toContainText('RESTful API Design');
+
+    // unit-tests and integration-tests are Pending
+    await expect(pendingCol).toContainText('Unit Testing Framework');
+    await expect(pendingCol).toContainText('Integration Testing Setup');
   });
 
-  test('displays status badges for epics with stories', async ({ page }) => {
+  test('displays column counts correctly', async ({ page }) => {
     await page.goto('/');
 
-    // Feature Development should show In Progress and Completed badges
-    const featureDevCard = page.locator('a[href="/epic/feature-development"]');
-    await expect(featureDevCard).toContainText('In Progress: 1');
-    await expect(featureDevCard).toContainText('Completed: 1');
+    // Pending column: 2 stories (unit-tests, integration-tests)
+    const pendingCol = page.getByTestId('column-pending');
+    await expect(pendingCol.locator('span.rounded-full')).toContainText('2');
 
-    // Testing Suite: integration-tests has 1 completed + 1 pending task = pending (no in_progress task),
-    // unit-tests has all pending tasks = pending. Both stories are pending.
-    const testingSuiteCard = page.locator('a[href="/epic/testing-suite"]');
-    await expect(testingSuiteCard).toContainText('Pending: 2');
+    // In Progress column: 1 story (auth-implementation)
+    const inProgressCol = page.getByTestId('column-inProgress');
+    await expect(inProgressCol.locator('span.rounded-full')).toContainText('1');
+
+    // Completed column: 1 story (api-design)
+    const completedCol = page.getByTestId('column-completed');
+    await expect(completedCol.locator('span.rounded-full')).toContainText('1');
   });
 });
 
@@ -203,7 +206,7 @@ test.describe('WebSocket Real-time Updates', () => {
   test.describe.configure({ mode: 'serial' });
   test.setTimeout(WEBSOCKET_TEST_TIMEOUT_MS);
 
-  test('epic list updates when story status changes', async ({ page, fixtureUtils }) => {
+  test('kanban board updates when story status changes', async ({ page, fixtureUtils }) => {
     await page.goto('/');
 
     // Wait for WebSocket connection to be established before modifying files
@@ -211,9 +214,10 @@ test.describe('WebSocket Real-time Updates', () => {
       timeout: 10_000,
     });
 
-    // Verify initial state - Feature Development shows 1 completed
-    const featureDevCard = page.locator('a[href="/epic/feature-development"]');
-    await expect(featureDevCard).toContainText('Completed: 1');
+    // Verify initial state - auth-implementation is in the In Progress column
+    const inProgressCol = page.getByTestId('column-inProgress');
+    const completedCol = page.getByTestId('column-completed');
+    await expect(inProgressCol).toContainText('User Authentication Implementation');
 
     // Change all tasks in auth-implementation to completed (status is derived from tasks)
     try {
@@ -251,9 +255,8 @@ test.describe('WebSocket Real-time Updates', () => {
         }),
       );
 
-      // Wait for WebSocket update to be reflected in UI
-      // The epic should now show Completed: 2
-      await expect(featureDevCard).toContainText('Completed: 2', {
+      // Wait for WebSocket update - story should move to Completed column
+      await expect(completedCol).toContainText('User Authentication Implementation', {
         timeout: WEBSOCKET_ASSERTION_TIMEOUT_MS,
       });
     } finally {
@@ -416,8 +419,8 @@ test.describe('Sessions Tab', () => {
   });
 });
 
-test.describe('ActiveSessions on Home Page', () => {
-  test('shows ActiveSessions section when running sessions exist', async ({ page }) => {
+test.describe('Running Session Indicators on Home Page', () => {
+  test('shows running indicator on story card when session is active', async ({ page }) => {
     // Mock sessions API with running session
     await page.route('**/api/sessions*', async (route) => {
       await route.fulfill({
@@ -439,13 +442,13 @@ test.describe('ActiveSessions on Home Page', () => {
 
     await page.goto('/');
 
-    // Verify ActiveSessions section is visible with running session
-    await expect(page.getByTestId('active-sessions')).toBeVisible();
-    await expect(page.getByText('Active Sessions')).toBeVisible();
-    await expect(page.getByText('auth-implementation')).toBeVisible();
+    // Verify the story card has a running indicator (pulsing green dot)
+    const storyCard = page.getByTestId('story-card-auth-implementation');
+    await expect(storyCard).toBeVisible();
+    await expect(storyCard.getByTestId('running-indicator')).toBeVisible();
   });
 
-  test('clicking session card navigates to story with sessions tab', async ({ page }) => {
+  test('clicking story card "Open story" link navigates to story detail', async ({ page }) => {
     // Mock sessions API with running session
     await page.route('**/api/sessions*', async (route) => {
       await route.fulfill({
@@ -466,13 +469,16 @@ test.describe('ActiveSessions on Home Page', () => {
 
     await page.goto('/');
 
-    // Wait for sessions to load
-    await expect(page.getByTestId('active-sessions')).toBeVisible();
+    // Expand the story card
+    await page.getByTestId('story-card-trigger-auth-implementation').click();
 
-    // Click on the session card (story link)
-    await page.getByText('auth-implementation').click();
+    // Click on "Open story →" link
+    await page
+      .getByTestId('story-card-content-auth-implementation')
+      .getByText('Open story →')
+      .click();
 
-    // Verify navigation to story detail with sessions tab
-    await expect(page).toHaveURL('/story/auth-implementation?tab=sessions');
+    // Verify navigation to story detail
+    await expect(page).toHaveURL('/story/auth-implementation');
   });
 });

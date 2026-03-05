@@ -147,6 +147,7 @@ export interface StoryDetail {
   title: string;
   description: string;
   epic?: string;
+  epicName?: string;
   status: ApiStatus;
   tasks: Task[];
   journal?: JournalEntry[];
@@ -191,7 +192,62 @@ export interface ParsedEpic extends EpicSummary {
  */
 export interface ScanResult {
   epics: ParsedEpic[];
-  standaloneStories: StoryDetail[];
+}
+
+/**
+ * Get all stories (both standalone and epic-owned) with epicName resolved.
+ *
+ * Scans all stories and epics, then resolves epicName from the parent epic's
+ * title for stories that belong to an epic. Stories referencing a non-existent
+ * epic are included with epicName undefined.
+ *
+ * @param sagaRoot - Path to the project root containing .saga/ directory
+ * @returns Array of StoryDetail with epicName populated where applicable
+ */
+export function getAllStoriesWithEpicNames(sagaRoot: string): StoryDetail[] {
+  const scannedStories = scanStories(sagaRoot);
+  const allStoryDetails = scannedStories.map(toStoryDetail);
+
+  // Build a map from epic ID to epic title
+  let scannedEpics: Epic[] = [];
+  try {
+    scannedEpics = listEpics(sagaRoot);
+  } catch {
+    // No epics directory
+  }
+
+  const epicTitleMap = new Map<string, string>();
+  for (const epic of scannedEpics) {
+    epicTitleMap.set(epic.id, epic.title);
+  }
+
+  // Resolve epicName for each story
+  return allStoryDetails.map((story) => {
+    if (story.epic) {
+      const epicName = epicTitleMap.get(story.epic);
+      if (epicName) {
+        return { ...story, epicName };
+      }
+    }
+    return story;
+  });
+}
+
+/**
+ * Resolve the epic title for a given epic ID.
+ *
+ * @param sagaRoot - Path to the project root containing .saga/ directory
+ * @param epicId - The epic ID to resolve the title for
+ * @returns The epic title or undefined if not found
+ */
+export function resolveEpicName(sagaRoot: string, epicId: string): string | undefined {
+  try {
+    const epics = listEpics(sagaRoot);
+    const epic = epics.find((e) => e.id === epicId);
+    return epic?.title;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -338,15 +394,12 @@ export function scanSagaDirectory(sagaRoot: string): ScanResult {
 
   // Group stories by epic
   const storiesByEpic = new Map<string, StoryDetail[]>();
-  const standaloneStories: StoryDetail[] = [];
 
   for (const story of allStories) {
     if (story.epic) {
       const existing = storiesByEpic.get(story.epic) || [];
       existing.push(story);
       storiesByEpic.set(story.epic, existing);
-    } else {
-      standaloneStories.push(story);
     }
   }
 
@@ -356,5 +409,5 @@ export function scanSagaDirectory(sagaRoot: string): ScanResult {
     return buildEpic(scannedEpic, epicStories);
   });
 
-  return { epics, standaloneStories };
+  return { epics };
 }

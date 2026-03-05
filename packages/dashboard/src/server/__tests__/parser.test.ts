@@ -386,7 +386,6 @@ Implemented GitHub OAuth.
       const result = scanSagaDirectory(testDir);
 
       expect(result.epics).toEqual([]);
-      expect(result.standaloneStories).toEqual([]);
     });
 
     it('should scan an epic with stories and derive status', () => {
@@ -516,27 +515,6 @@ Implemented GitHub OAuth.
       expect(ids).toEqual(['epic-one', 'epic-two']);
     });
 
-    it('should include standalone stories (no epic)', () => {
-      writeStoryJson(sagaDir, 'standalone-story', {
-        id: 'standalone-story',
-        title: 'Standalone',
-        description: 'No epic',
-      });
-      writeTaskJson(sagaDir, 'standalone-story', 't1', {
-        id: 't1',
-        subject: 'Task',
-        description: 'd',
-        status: 'pending',
-        blockedBy: [],
-      });
-
-      const result = scanSagaDirectory(testDir);
-
-      expect(result.standaloneStories).toHaveLength(1);
-      expect(result.standaloneStories[0].id).toBe('standalone-story');
-      expect(result.standaloneStories[0].status).toBe('pending');
-    });
-
     it('should handle epic with no matching stories', () => {
       writeEpicJson(sagaDir, 'empty-epic', {
         id: 'empty-epic',
@@ -636,7 +614,6 @@ Implemented GitHub OAuth.
       try {
         const result = scanSagaDirectory(emptyDir);
         expect(result.epics).toEqual([]);
-        expect(result.standaloneStories).toEqual([]);
       } finally {
         rmSync(emptyDir, { recursive: true, force: true });
       }

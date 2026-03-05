@@ -2,7 +2,7 @@ import { createActorContext } from '@xstate/react';
 import { useCallback, useMemo } from 'react';
 import type { ActorRefFrom } from 'xstate';
 import { dashboardMachine } from '@/machines/dashboardMachine';
-import type { Epic, EpicSummary, SessionInfo, StoryDetail } from '@/types/dashboard';
+import type { Epic, SessionInfo, StoryDetail } from '@/types/dashboard';
 
 type DashboardActorRef = ActorRefFrom<typeof dashboardMachine>;
 
@@ -43,8 +43,8 @@ function useConnectionActions(actorRef: DashboardActorRef) {
  * Hook to create memoized data actions
  */
 function useDataActions(actorRef: DashboardActorRef) {
-  const setEpics = useCallback(
-    (epics: EpicSummary[]) => actorRef.send({ type: 'EPICS_LOADED', epics }),
+  const setAllStories = useCallback(
+    (stories: StoryDetail[]) => actorRef.send({ type: 'ALL_STORIES_LOADED', stories }),
     [actorRef],
   );
   const setCurrentEpic = useCallback(
@@ -62,7 +62,7 @@ function useDataActions(actorRef: DashboardActorRef) {
   const clearCurrentEpic = useCallback(() => actorRef.send({ type: 'CLEAR_EPIC' }), [actorRef]);
   const clearCurrentStory = useCallback(() => actorRef.send({ type: 'CLEAR_STORY' }), [actorRef]);
   return {
-    setEpics,
+    setAllStories,
     setCurrentEpic,
     setCurrentStory,
     setSessions,
@@ -129,7 +129,7 @@ function useDashboard() {
       isConnected,
       isReconnecting,
       isError,
-      epics: context.epics,
+      allStories: context.allStories,
       currentEpic: context.currentEpic,
       currentStory: context.currentStory,
       sessions: context.sessions,

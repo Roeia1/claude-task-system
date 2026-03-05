@@ -1,0 +1,12 @@
+{
+  "id": "add-websocket-broadcast",
+  "subject": "Add WebSocket broadcast for all-stories updates",
+  "description": "## Goal\nEnsure the WebSocket server broadcasts story updates in a way the Kanban board can consume. The board shows ALL stories, so when any story changes, the board needs to know.\n\n## Implementation\n\n### Check Existing Broadcasts\n- The watcher already watches `.saga/` directory changes and broadcasts `story:updated` events\n- Verify that `story:updated` includes the full `StoryDetail` with `epicName` resolved\n- If not, extend the broadcast to include `epicName` when available\n\n### New/Modified Broadcast\n- When a story file changes, broadcast the updated story with `epicName` resolved\n- Consider adding an `allStories:updated` event that sends the full list, or stick with individual `story:updated` events that the client can use to patch its local state\n\n## Notes\nThis may not require changes if the existing `story:updated` already sends sufficient data. Investigate first.",
+  "activeForm": "Adding WebSocket story broadcasts",
+  "status": "completed",
+  "blockedBy": [
+    "add-all-stories-endpoint"
+  ],
+  "guidance": "Check src/server/websocket.ts and src/server/watcher.ts to see what events are already broadcast and what data they include.",
+  "doneWhen": "WebSocket broadcasts include all necessary data for the Kanban board to update in real-time, including epicName resolution."
+}

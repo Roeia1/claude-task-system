@@ -1,0 +1,12 @@
+{
+  "id": "update-router-and-integrate",
+  "subject": "Update router to use KanbanBoard as home page",
+  "description": "## Goal\nReplace the `/` route to render `KanbanBoard` instead of `EpicList`.\n\n## Implementation\n\n### Router (`src/client/src/router.tsx`)\n- Change the `/` route element from `<EpicList />` to `<KanbanBoard />`\n- Keep the import of `EpicList` if it's used elsewhere, or just leave the file (don't delete it)\n- Keep `/epic/:epicId` and `/story/:storyId` routes unchanged\n\n### Breadcrumb/Navigation\n- Ensure the breadcrumb shows appropriate text for the home page (e.g., \"Board\" or \"Stories\")\n- Verify the header logo/home link still navigates to `/`\n\n### Verify Integration\n- Navigate to `/` — should show Kanban board\n- Navigate to `/epic/:id` — should show epic detail\n- Navigate to `/story/:id` — should show story detail\n- Click \"Open story →\" on a card — should navigate to story detail\n- Click back — should return to the board",
+  "activeForm": "Updating router integration",
+  "status": "completed",
+  "blockedBy": [
+    "integrate-realtime-updates"
+  ],
+  "guidance": "The router is in src/client/src/router.tsx. Check if there's a breadcrumb component that derives labels from routes.",
+  "doneWhen": "Home page shows KanbanBoard. All existing routes still work. Navigation between board and detail pages works correctly."
+}

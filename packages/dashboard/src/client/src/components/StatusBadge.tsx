@@ -19,12 +19,3 @@ const statusLabels: Record<StoryStatus, string> = {
 export function StatusBadge({ status }: { status: StoryStatus }) {
   return <Badge className={statusVariants[status]}>{statusLabels[status]}</Badge>;
 }
-
-/** Status badge with count - used in EpicList to show story counts per status */
-export function StatusBadgeWithCount({ status, count }: { status: StoryStatus; count: number }) {
-  return (
-    <Badge className={statusVariants[status]}>
-      {statusLabels[status]}: {count}
-    </Badge>
-  );
-}

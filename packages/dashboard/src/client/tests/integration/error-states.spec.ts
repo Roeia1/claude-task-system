@@ -2,11 +2,12 @@ import { expect } from '@playwright/test';
 import { test } from '../fixtures.ts';
 import {
   createMockEpic,
-  createMockEpicSummary,
+  createMockStoryDetail,
+  mockAllStories,
   mockApiError,
   mockEpicDetail,
-  mockEpicList,
   mockNetworkFailure,
+  mockSessions,
 } from '../utils/mock-api.ts';
 
 // HTTP Status Codes
@@ -24,57 +25,51 @@ const LOADING_TIMEOUT_MS = 10_000;
 // Regex patterns for case-insensitive matching
 const BACK_TO_EPIC_LIST_REGEX = /Back to epic list/i;
 const BACK_TO_EPIC_REGEX = /Back to epic/i;
-const GOOD_EPIC_REGEX = /Good Epic/i;
-const WORKING_EPIC_REGEX = /Working Epic/i;
 
 /**
  * Error state tests for the dashboard.
  * These tests verify that error messages are displayed when API calls fail.
  */
 test.describe('Error States', () => {
-  test.describe('Epic List Page', () => {
-    test('should show empty state on 500 server error', async ({ page }) => {
-      // Mock the API to return a 500 error
-      // Note: The dashboard code only shows toast for network failures (thrown errors),
-      // not for non-OK HTTP responses. A 500 response results in empty state.
-      await mockApiError(page, '**/api/epics', HTTP_INTERNAL_SERVER_ERROR, 'Internal Server Error');
+  test.describe('Kanban Board (Home Page)', () => {
+    test('should show error state on 500 server error', async ({ page }) => {
+      // Mock the stories API to return a 500 error
+      await mockApiError(
+        page,
+        (url) =>
+          (url.pathname === '/api/stories' || url.pathname === '/api/stories/') &&
+          url.searchParams.get('all') === 'true',
+        HTTP_INTERNAL_SERVER_ERROR,
+        'Internal Server Error',
+      );
+      await mockSessions(page, []);
 
       await page.goto('/');
 
-      // Wait for loading to complete
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
+      // Should show kanban error state
+      await expect(page.getByTestId('kanban-error')).toBeVisible({
         timeout: LOADING_TIMEOUT_MS,
       });
-
-      // Should show empty state (no toast for 500 errors in current implementation)
-      await expect(page.getByText('No epics found.')).toBeVisible();
+      await expect(page.getByText('Failed to load stories')).toBeVisible();
     });
 
-    test('should show toast notification on network failure', async ({ page }) => {
+    test('should show error state on network failure', async ({ page }) => {
       // Mock network failure (connection refused)
-      await mockNetworkFailure(page, '**/api/epics');
+      await mockNetworkFailure(
+        page,
+        (url) =>
+          (url.pathname === '/api/stories' || url.pathname === '/api/stories/') &&
+          url.searchParams.get('all') === 'true',
+      );
+      await mockSessions(page, []);
 
       await page.goto('/');
 
-      // Toast notification should appear - use .first() as defensive measure
-      // since toast deduplication should prevent duplicates but edge cases exist
-      const toast = page.getByText('API Error', { exact: true }).first();
-      await expect(toast).toBeVisible({ timeout: TOAST_TIMEOUT_MS });
-    });
-
-    test('should display empty state after error when no cached data', async ({ page }) => {
-      // Mock the API to return a 500 error
-      await mockApiError(page, '**/api/epics', HTTP_INTERNAL_SERVER_ERROR, 'Internal Server Error');
-
-      await page.goto('/');
-
-      // Wait for loading to complete
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
+      // Should show kanban error state
+      await expect(page.getByTestId('kanban-error')).toBeVisible({
         timeout: LOADING_TIMEOUT_MS,
       });
-
-      // The empty state message should appear (no cached epics to show)
-      await expect(page.getByText('No epics found.')).toBeVisible();
+      await expect(page.getByText('Failed to load stories')).toBeVisible();
     });
   });
 
@@ -127,9 +122,10 @@ test.describe('Error States', () => {
       await expect(page.getByRole('heading', { name: 'Error' })).toBeVisible();
     });
 
-    test('should allow navigation back to epic list from error page', async ({ page }) => {
-      // First mock the epic list
-      await mockEpicList(page, [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })]);
+    test('should allow navigation back to home from error page', async ({ page }) => {
+      // Mock the kanban board
+      await mockAllStories(page, []);
+      await mockSessions(page, []);
 
       // Mock 404 for the detail page
       await mockApiError(page, '**/api/epics/missing-epic', HTTP_NOT_FOUND, 'Epic not found');
@@ -144,14 +140,10 @@ test.describe('Error States', () => {
       // Click the back link
       await page.getByRole('link', { name: BACK_TO_EPIC_LIST_REGEX }).click();
 
-      // Wait for epic list to load
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
+      // Should navigate to home (kanban board)
+      await expect(page.getByTestId('kanban-board')).toBeVisible({
         timeout: LOADING_TIMEOUT_MS,
       });
-
-      // Should navigate to epic list and show the epic
-      await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
-      await expect(page.getByText('Test Epic')).toBeVisible();
     });
   });
 
@@ -209,9 +201,10 @@ test.describe('Error States', () => {
       await expect(page.getByRole('heading', { name: 'Error' })).toBeVisible();
     });
 
-    test('should allow navigation back to epic list from error page', async ({ page }) => {
-      // Mock the epic list
-      await mockEpicList(page, [createMockEpicSummary({ id: 'test-epic', title: 'Test Epic' })]);
+    test('should allow navigation back from error page', async ({ page }) => {
+      // Mock the kanban board
+      await mockAllStories(page, []);
+      await mockSessions(page, []);
 
       // Mock 404 for the story
       await mockApiError(page, '**/api/stories/missing-story', HTTP_NOT_FOUND, 'Story not found');
@@ -226,20 +219,24 @@ test.describe('Error States', () => {
       // Click the back link
       await page.getByRole('link', { name: BACK_TO_EPIC_REGEX }).click();
 
-      // Should navigate to epic list and show the Epics heading
-      await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible({
+      // Should navigate to home (kanban board)
+      await expect(page.getByTestId('kanban-board')).toBeVisible({
         timeout: LOADING_TIMEOUT_MS,
       });
-
-      // Verify the epic is listed
-      await expect(page.getByText('Test Epic')).toBeVisible();
     });
   });
 
   test.describe('Mixed Error Scenarios', () => {
     test('should handle error on one page and success on another', async ({ page }) => {
-      // Epic list works
-      await mockEpicList(page, [createMockEpicSummary({ id: 'good-epic', title: 'Good Epic' })]);
+      // Kanban board works
+      const story = createMockStoryDetail({
+        id: 'good-story',
+        title: 'Good Story',
+        status: 'pending',
+        epic: 'good-epic',
+      });
+      await mockAllStories(page, [story]);
+      await mockSessions(page, []);
 
       // But epic detail fails
       await mockApiError(
@@ -249,25 +246,24 @@ test.describe('Error States', () => {
         'Server Error',
       );
 
-      // Navigate to epic list - should work
+      // Navigate to kanban board - should work
       await page.goto('/');
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
+      await expect(page.getByTestId('kanban-board')).toBeVisible({
         timeout: LOADING_TIMEOUT_MS,
       });
-      await expect(page.getByText('Good Epic')).toBeVisible();
+      await expect(page.getByText('Good Story')).toBeVisible();
 
-      // Click to navigate to epic detail - should fail
-      await page.getByRole('link', { name: GOOD_EPIC_REGEX }).click();
+      // Navigate to epic detail - should fail
+      await page.goto('/epic/good-epic');
 
       // Should show error state
       await expect(page.getByRole('heading', { name: 'Error' })).toBeVisible();
     });
 
     test('should recover after navigating away from error page', async ({ page }) => {
-      // Mock working epic list
-      await mockEpicList(page, [
-        createMockEpicSummary({ id: 'working-epic', title: 'Working Epic' }),
-      ]);
+      // Mock working kanban board
+      await mockAllStories(page, []);
+      await mockSessions(page, []);
 
       // Mock working epic detail
       await mockEpicDetail(
@@ -282,12 +278,14 @@ test.describe('Error States', () => {
       await page.goto('/epic/broken-epic');
       await expect(page.getByRole('heading', { name: 'Epic not found' })).toBeVisible();
 
-      // Navigate back and then to working epic
+      // Navigate back to home
       await page.getByRole('link', { name: BACK_TO_EPIC_LIST_REGEX }).click();
-      await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
+      await expect(page.getByTestId('kanban-board')).toBeVisible({
         timeout: LOADING_TIMEOUT_MS,
       });
-      await page.getByRole('link', { name: WORKING_EPIC_REGEX }).click();
+
+      // Navigate to working epic
+      await page.goto('/epic/working-epic');
       await expect(page.getByTestId('epic-header-skeleton')).toHaveCount(0, {
         timeout: LOADING_TIMEOUT_MS,
       });

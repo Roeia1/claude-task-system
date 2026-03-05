@@ -1,0 +1,12 @@
+{
+  "id": "integrate-realtime-updates",
+  "subject": "Integrate WebSocket real-time updates for the board",
+  "description": "## Goal\nEnsure the Kanban board updates in real-time when stories, epics, or sessions change.\n\n## Implementation\n\n### WebSocket Events to Handle\n1. **`story:updated`** — When a story's tasks change status, the board should re-group and move cards between columns if status changed\n2. **`epics:updated`** — If epic names change, update the badges on affected cards\n3. **`sessions:updated`** — Update running session indicators on cards\n\n### Approach\n- The XState dashboard machine already receives these WebSocket events and updates context\n- If using `useDashboard()` context, the component should reactively update\n- If using local state, subscribe to WebSocket events and re-fetch or patch local state\n- Ensure cards smoothly transition between columns (no jarring re-renders)\n\n### Initial Load + Live Updates\n- Fetch all stories on mount (REST)\n- Then receive incremental updates via WebSocket\n- Handle the case where a WebSocket update arrives for a story not yet in the local list (new story created)",
+  "activeForm": "Integrating real-time updates",
+  "status": "completed",
+  "blockedBy": [
+    "implement-kanban-board"
+  ],
+  "guidance": "Check how EpicDetail.tsx or StoryDetail.tsx handles WebSocket updates. The dashboard machine events are defined in dashboardMachine.ts. Sessions are already tracked in context — just read them.",
+  "doneWhen": "Board updates in real-time: cards move between columns on status change, session indicators toggle, and new stories appear without page refresh."
+}

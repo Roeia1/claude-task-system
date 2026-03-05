@@ -1,15 +1,16 @@
 import { expect } from '@playwright/test';
 import { test } from '../fixtures.ts';
 import {
-  createMockEpicSummary,
+  createMockStoryDetail,
   type MockSession,
-  mockEpicList,
+  mockAllStories,
   mockSessions,
 } from '../utils/mock-api.ts';
 
 /**
- * ActiveSessions integration tests for the home page.
- * Tests the active sessions section that appears when running sessions exist.
+ * Running session indicator integration tests for the home page (KanbanBoard).
+ * Tests the running indicator (pulsing green dot) that appears on story cards
+ * when a session is active for that story.
  */
 
 // Session test data constants
@@ -40,120 +41,86 @@ const COMPLETED_SESSION: MockSession = {
   outputPreview: 'Build complete.',
 };
 
-test.describe('ActiveSessions on Home Page', () => {
-  test('should not show ActiveSessions section when no running sessions', async ({ page }) => {
-    const epics = [
-      createMockEpicSummary({ id: 'epic-one', title: 'Epic One' }),
-      createMockEpicSummary({ id: 'epic-two', title: 'Epic Two' }),
-    ];
+// Sample stories for the kanban board
+const sampleStories = [
+  createMockStoryDetail({ id: 'story-alpha', title: 'Story Alpha', status: 'inProgress' }),
+  createMockStoryDetail({ id: 'story-beta', title: 'Story Beta', status: 'inProgress' }),
+  createMockStoryDetail({ id: 'story-gamma', title: 'Story Gamma', status: 'completed' }),
+];
 
-    await mockEpicList(page, epics);
+test.describe('Running Session Indicators on Home Page', () => {
+  test('should not show running indicator when no sessions are active', async ({ page }) => {
+    await mockAllStories(page, sampleStories);
     await mockSessions(page, []);
 
     await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
-    // Verify ActiveSessions section is not displayed
-    await expect(page.getByTestId('active-sessions')).not.toBeVisible();
-    // But epic list is still visible
-    await expect(page.getByText('Epic One')).toBeVisible();
+    // Verify no running indicators are shown
+    await expect(page.getByTestId('running-indicator')).toHaveCount(0);
+    // But story cards are still visible
+    await expect(page.getByText('Story Alpha')).toBeVisible();
   });
 
-  test('should show ActiveSessions section heading when running sessions exist', async ({
-    page,
-  }) => {
-    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
-
-    await mockEpicList(page, epics);
+  test('should show running indicator on story card when session is active', async ({ page }) => {
+    await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1]);
 
     await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
-    // Verify ActiveSessions section is displayed with heading
-    await expect(page.getByTestId('active-sessions')).toBeVisible();
-    await expect(page.getByText('Active Sessions')).toBeVisible();
+    // Verify the story card has a running indicator
+    const storyCard = page.getByTestId('story-card-story-alpha');
+    await expect(storyCard).toBeVisible();
+    await expect(storyCard.getByTestId('running-indicator')).toBeVisible();
   });
 
-  test('should display session cards with story ids', async ({ page }) => {
-    const epics = [
-      createMockEpicSummary({ id: 'epic-one', title: 'Epic One' }),
-      createMockEpicSummary({ id: 'epic-two', title: 'Epic Two' }),
-    ];
-
-    await mockEpicList(page, epics);
+  test('should show running indicators on multiple story cards', async ({ page }) => {
+    await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1, RUNNING_SESSION_2]);
 
     await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
-    // Verify session cards show story ids
-    await expect(page.getByTestId('active-sessions')).toBeVisible();
-    await expect(page.getByText('story-alpha')).toBeVisible();
-    await expect(page.getByText('story-beta')).toBeVisible();
+    // Verify both story cards have running indicators
+    const alphaCard = page.getByTestId('story-card-story-alpha');
+    const betaCard = page.getByTestId('story-card-story-beta');
+    await expect(alphaCard.getByTestId('running-indicator')).toBeVisible();
+    await expect(betaCard.getByTestId('running-indicator')).toBeVisible();
   });
 
-  test('should navigate to story detail with ?tab=sessions when clicking session card', async ({
-    page,
-  }) => {
-    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
-
-    await mockEpicList(page, epics);
+  test('should navigate to story detail via "Open story" link', async ({ page }) => {
+    await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1]);
 
     await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
-    // Click on the session card (which is a link)
-    await page.getByText('story-alpha').click();
+    // Expand the story card
+    await page.getByTestId('story-card-trigger-story-alpha').click();
 
-    // Verify navigation to story detail with sessions tab
-    await expect(page).toHaveURL('/story/story-alpha?tab=sessions');
+    // Click on "Open story →" link
+    await page.getByTestId('story-card-content-story-alpha').getByText('Open story →').click();
+
+    // Verify navigation to story detail
+    await expect(page).toHaveURL('/story/story-alpha');
   });
 
-  test('should only show running sessions, not completed ones', async ({ page }) => {
-    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
-
-    await mockEpicList(page, epics);
-    // Note: The ActiveSessions component filters to only running sessions client-side
-    // but it also fetches with ?status=running, so the mock should respect that
+  test('should only show running indicators for running sessions, not completed ones', async ({
+    page,
+  }) => {
+    await mockAllStories(page, sampleStories);
     await mockSessions(page, [RUNNING_SESSION_1, COMPLETED_SESSION]);
 
     await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 10_000 });
 
-    // Verify only running session is shown
-    await expect(page.getByTestId('active-sessions')).toBeVisible();
-    await expect(page.getByText('story-alpha')).toBeVisible();
-    // Completed session (story-gamma) should not be visible in ActiveSessions
-    // (it may appear elsewhere in the UI, so we check specifically within the section)
-    const activeSessionsSection = page.getByTestId('active-sessions');
-    await expect(activeSessionsSection.getByText('story-gamma')).not.toBeVisible();
-  });
+    // Running session's story should have an indicator
+    const alphaCard = page.getByTestId('story-card-story-alpha');
+    await expect(alphaCard.getByTestId('running-indicator')).toBeVisible();
 
-  test('should show output preview on session cards', async ({ page }) => {
-    const epics = [createMockEpicSummary({ id: 'epic-one', title: 'Epic One' })];
-
-    await mockEpicList(page, epics);
-    await mockSessions(page, [RUNNING_SESSION_1]);
-
-    await page.goto('/');
-    await expect(page.getByTestId('epic-card-skeleton')).toHaveCount(0, {
-      timeout: 10_000,
-    });
-
-    // Verify output preview is displayed
-    await expect(page.getByTestId('active-sessions')).toBeVisible();
-    await expect(page.getByText('Running tests...')).toBeVisible();
+    // Completed session's story should NOT have an indicator
+    const gammaCard = page.getByTestId('story-card-story-gamma');
+    await expect(gammaCard.getByTestId('running-indicator')).toHaveCount(0);
   });
 });

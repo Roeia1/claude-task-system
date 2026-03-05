@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
-import { StatusBadge, StatusBadgeWithCount } from '@/components/StatusBadge';
+import { StatusBadge } from '@/components/StatusBadge';
 import { matchDomSnapshot, matchPixelSnapshot } from '@/test-utils/visual-snapshot';
 import type { StoryStatus } from '@/types/dashboard';
 
@@ -29,16 +29,14 @@ type StatusPreset = (typeof statusPresets)[number];
 /**
  * Status badges showing story or task status.
  *
- * Two variants exist:
- * - **Without count**: Used in EpicDetail and StoryDetail for individual items
- * - **With count**: Used in EpicList to show aggregated story counts per status
+ * Used in EpicDetail and StoryDetail for individual items.
  *
  * Color tokens:
  * - **Pending** (gray): `bg-text-muted/20 text-text-muted`
  * - **In Progress** (blue): `bg-primary/20 text-primary`
  * - **Completed** (green): `bg-success/20 text-success`
  */
-const meta: Meta<{ preset: StatusPreset; count: number }> = {
+const meta: Meta<{ preset: StatusPreset }> = {
   title: 'Atoms/StatusBadge',
   argTypes: {
     preset: {
@@ -46,14 +44,9 @@ const meta: Meta<{ preset: StatusPreset; count: number }> = {
       options: statusPresets,
       description: 'Status preset determining badge color and label',
     },
-    count: {
-      control: { type: 'number', min: 0, max: 100 },
-      description: 'Count to display (for WithCount variant)',
-    },
   },
   args: {
     preset: 'pending',
-    count: 5,
   },
 };
 
@@ -70,46 +63,12 @@ type Story = StoryObj<typeof meta>;
 const Showcase: Story = {
   render: () => (
     <div className="space-y-8">
-      {/* Without Count Section */}
       <section>
-        <h3 className="text-sm font-medium text-text-muted mb-3">
-          Without Count (EpicDetail/StoryDetail)
-        </h3>
+        <h3 className="text-sm font-medium text-text-muted mb-3">Status Badges</h3>
         <div className="flex flex-wrap gap-2">
           <StatusBadge status="pending" />
           <StatusBadge status="inProgress" />
           <StatusBadge status="completed" />
-        </div>
-      </section>
-
-      {/* With Count Section */}
-      <section>
-        <h3 className="text-sm font-medium text-text-muted mb-3">With Count (EpicList)</h3>
-        <div className="flex flex-wrap gap-2">
-          <StatusBadgeWithCount status="pending" count={5} />
-          <StatusBadgeWithCount status="inProgress" count={3} />
-          <StatusBadgeWithCount status="completed" count={8} />
-        </div>
-      </section>
-
-      {/* Edge Cases Section */}
-      <section>
-        <h3 className="text-sm font-medium text-text-muted mb-3">Edge Cases</h3>
-        <div className="space-y-2">
-          <div>
-            <span className="text-xs text-text-muted mr-2">Zero counts:</span>
-            <StatusBadgeWithCount status="pending" count={0} />
-            <span className="ml-2">
-              <StatusBadgeWithCount status="completed" count={0} />
-            </span>
-          </div>
-          <div>
-            <span className="text-xs text-text-muted mr-2">Large counts:</span>
-            <StatusBadgeWithCount status="pending" count={42} />
-            <span className="ml-2">
-              <StatusBadgeWithCount status="completed" count={100} />
-            </span>
-          </div>
         </div>
       </section>
     </div>
@@ -117,26 +76,10 @@ const Showcase: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // Verify section headers
-    await expect(canvas.getByText('Without Count (EpicDetail/StoryDetail)')).toBeInTheDocument();
-    await expect(canvas.getByText('With Count (EpicList)')).toBeInTheDocument();
-    await expect(canvas.getByText('Edge Cases')).toBeInTheDocument();
-
-    // Verify badges without count
+    // Verify all badges render
     await expect(canvas.getByText('Pending')).toBeInTheDocument();
     await expect(canvas.getByText('In Progress')).toBeInTheDocument();
     await expect(canvas.getByText('Completed')).toBeInTheDocument();
-
-    // Verify badges with count
-    await expect(canvas.getByText('Pending: 5')).toBeInTheDocument();
-    await expect(canvas.getByText('In Progress: 3')).toBeInTheDocument();
-    await expect(canvas.getByText('Completed: 8')).toBeInTheDocument();
-
-    // Verify edge cases
-    await expect(canvas.getByText('Pending: 0')).toBeInTheDocument();
-    await expect(canvas.getByText('Completed: 0')).toBeInTheDocument();
-    await expect(canvas.getByText('Pending: 42')).toBeInTheDocument();
-    await expect(canvas.getByText('Completed: 100')).toBeInTheDocument();
 
     // Visual snapshot tests
     await matchDomSnapshot(canvasElement, 'status-badge-showcase');
@@ -156,19 +99,13 @@ const Playground: Story = {
   render: (args) => (
     <div className="space-y-6">
       <section>
-        <h3 className="text-sm font-medium text-text-muted mb-3">Without Count</h3>
+        <h3 className="text-sm font-medium text-text-muted mb-3">Badge Preview</h3>
         <StatusBadge status={args.preset} />
-      </section>
-
-      <section>
-        <h3 className="text-sm font-medium text-text-muted mb-3">With Count</h3>
-        <StatusBadgeWithCount status={args.preset} count={args.count} />
       </section>
     </div>
   ),
   args: {
     preset: 'pending',
-    count: 5,
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
@@ -176,12 +113,11 @@ const Playground: Story = {
     // Verify the badge renders with the selected preset
     const expectedLabel = statusLabels[args.preset];
     await expect(canvas.getByText(expectedLabel)).toBeInTheDocument();
-    await expect(canvas.getByText(`${expectedLabel}: ${args.count}`)).toBeInTheDocument();
 
-    // Verify correct classes are applied using Promise.all
-    const badges = canvas.getAllByText(new RegExp(expectedLabel));
+    // Verify correct classes are applied
+    const badge = canvas.getByText(expectedLabel);
     const expectedClass = statusVariants[args.preset].split(' ')[0];
-    await Promise.all(badges.map((badge) => expect(badge).toHaveClass(expectedClass)));
+    await expect(badge).toHaveClass(expectedClass);
   },
 };
 

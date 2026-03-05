@@ -90,7 +90,7 @@ The SAGA Dashboard needs Storybook for component development and documentation.
     },
     {
       id: 't5',
-      subject: 'Create stories for EpicList page',
+      subject: 'Create stories for dashboard pages',
       description: '',
       status: 'completed',
       blockedBy: [],

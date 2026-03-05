@@ -2,19 +2,16 @@
  * REST API Routes
  *
  * Provides endpoints for reading epic and story data:
- * - GET /api/epics - returns EpicSummary[]
  * - GET /api/epics/:epicId - returns ParsedEpic with full story list and dependencies
- * - GET /api/stories - returns standalone stories (not belonging to any epic)
+ * - GET /api/stories - returns all stories (standalone + epic-owned) with epicName resolved
  * - GET /api/stories/:storyId - returns StoryDetail with parsed journal
  */
 
 import { type Request, type Response, Router } from 'express';
 import {
-  type EpicSummary,
-  type ParsedEpic,
+  getAllStoriesWithEpicNames,
   parseJournal,
   parseStory,
-  type ScanResult,
   scanSagaDirectory,
 } from './parser.ts';
 import { createSessionApiRouter } from './session-routes.ts';
@@ -24,43 +21,9 @@ const HTTP_NOT_FOUND = 404;
 const HTTP_INTERNAL_ERROR = 500;
 
 /**
- * Scan the saga directory and return structured data
- */
-function getScanResult(sagaRoot: string): ScanResult {
-  return scanSagaDirectory(sagaRoot);
-}
-
-/**
- * Convert ParsedEpic to EpicSummary (remove stories, children, and content)
- */
-function toEpicSummary(epic: ParsedEpic): EpicSummary {
-  return {
-    id: epic.id,
-    title: epic.title,
-    description: epic.description,
-    status: epic.status,
-    storyCounts: epic.storyCounts,
-  };
-}
-
-/**
  * Register epics endpoints on router
  */
 function registerEpicsRoutes(router: Router, sagaRoot: string): void {
-  /**
-   * GET /api/epics
-   * Returns list of epic summaries without full story details
-   */
-  router.get('/epics', (_req: Request, res: Response) => {
-    try {
-      const { epics } = getScanResult(sagaRoot);
-      const summaries = epics.map(toEpicSummary);
-      res.json(summaries);
-    } catch (_error) {
-      res.status(HTTP_INTERNAL_ERROR).json({ error: 'Failed to fetch epics' });
-    }
-  });
-
   /**
    * GET /api/epics/:epicId
    * Returns epic detail with full story list and dependency graph
@@ -68,7 +31,7 @@ function registerEpicsRoutes(router: Router, sagaRoot: string): void {
   router.get('/epics/:epicId', (req: Request, res: Response) => {
     try {
       const { epicId } = req.params;
-      const { epics } = getScanResult(sagaRoot);
+      const { epics } = scanSagaDirectory(sagaRoot);
       const epic = epics.find((e) => e.id === epicId);
 
       if (!epic) {
@@ -89,12 +52,12 @@ function registerEpicsRoutes(router: Router, sagaRoot: string): void {
 function registerStoriesRoutes(router: Router, sagaRoot: string): void {
   /**
    * GET /api/stories
-   * Returns standalone stories (those not belonging to any epic)
+   * Returns all stories (standalone + epic-owned) with epicName resolved
    */
   router.get('/stories', (_req: Request, res: Response) => {
     try {
-      const { standaloneStories } = getScanResult(sagaRoot);
-      res.json(standaloneStories);
+      const allStories = getAllStoriesWithEpicNames(sagaRoot);
+      res.json(allStories);
     } catch (_error) {
       res.status(HTTP_INTERNAL_ERROR).json({ error: 'Failed to fetch stories' });
     }

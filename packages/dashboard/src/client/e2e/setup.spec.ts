@@ -5,8 +5,8 @@ test.beforeEach(async ({ fixtureUtils }) => {
   await fixtureUtils.resetAllFixtures();
 });
 
-/** Expected number of fixture epics */
-const EXPECTED_EPIC_COUNT = 3;
+/** Expected number of fixture stories */
+const EXPECTED_STORY_COUNT = 4;
 
 /**
  * E2E setup verification tests.
@@ -24,19 +24,20 @@ test.describe('E2E Setup Verification', () => {
     expect(data).toEqual({ status: 'ok' });
   });
 
-  test('fixtures are loaded correctly - epics API returns fixture data', async ({ request }) => {
-    const response = await request.get('/api/epics');
+  test('fixtures are loaded correctly - stories API returns fixture data', async ({ request }) => {
+    const response = await request.get('/api/stories');
     expect(response.ok()).toBe(true);
 
-    const epics = await response.json();
+    const stories = await response.json();
 
-    // Verify we have the expected fixture epics
-    expect(epics).toHaveLength(EXPECTED_EPIC_COUNT);
+    // Verify we have the expected fixture stories
+    expect(stories).toHaveLength(EXPECTED_STORY_COUNT);
 
-    const epicIds = epics.map((e: { id: string }) => e.id);
-    expect(epicIds).toContain('feature-development');
-    expect(epicIds).toContain('empty-epic');
-    expect(epicIds).toContain('testing-suite');
+    const storyIds = stories.map((s: { id: string }) => s.id);
+    expect(storyIds).toContain('auth-implementation');
+    expect(storyIds).toContain('api-design');
+    expect(storyIds).toContain('unit-tests');
+    expect(storyIds).toContain('integration-tests');
   });
 
   test('dashboard loads in browser', async ({ page }) => {
@@ -45,7 +46,7 @@ test.describe('E2E Setup Verification', () => {
     // The dashboard should render with content - verify no error page
     await expect(page.locator('body')).not.toContainText('Cannot GET');
 
-    // Verify actual content loads
-    await expect(page.getByRole('heading', { name: 'Epics' })).toBeVisible();
+    // Verify Kanban board columns load
+    await expect(page.getByTestId('kanban-board')).toBeVisible();
   });
 });

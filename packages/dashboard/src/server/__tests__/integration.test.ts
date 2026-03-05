@@ -233,17 +233,17 @@ describe('integration', () => {
         }),
       );
 
-      // Both clients should receive epics:updated
+      // Both clients should receive stories:updated
       const [msg1, msg2] = await Promise.all([
-        waitForEvent(ws1, 'epics:updated', EVENT_TIMEOUT_MS),
-        waitForEvent(ws2, 'epics:updated', EVENT_TIMEOUT_MS),
+        waitForEvent(ws1, 'stories:updated', EVENT_TIMEOUT_MS),
+        waitForEvent(ws2, 'stories:updated', EVENT_TIMEOUT_MS),
       ]);
 
       const elapsed = Date.now() - startTime;
 
       expect(elapsed).toBeLessThan(EVENT_TIMEOUT_MS);
-      expect(msg1.event).toBe('epics:updated');
-      expect(msg2.event).toBe('epics:updated');
+      expect(msg1.event).toBe('stories:updated');
+      expect(msg2.event).toBe('stories:updated');
 
       ws1.close();
       ws2.close();
