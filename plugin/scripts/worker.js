@@ -4439,9 +4439,49 @@ function resolveMcpServers(projectDir) {
   }
 }
 
+// src/scripts/worker/resolve-worker-config.ts
+import { readFileSync as readFileSync3 } from "node:fs";
+var INT_KEYS = [
+  "maxCycles",
+  "maxTime",
+  "maxTasksPerSession",
+  "maxTokensPerSession"
+];
+function toPositiveInt(value) {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    return void 0;
+  }
+  return value;
+}
+function resolveWorkerConfig(projectDir) {
+  const { saga } = createSagaPaths(projectDir);
+  const configPath = `${saga}/config.json`;
+  try {
+    const raw = readFileSync3(configPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    if (!parsed.worker || typeof parsed.worker !== "object") {
+      return {};
+    }
+    const worker = parsed.worker;
+    const result = {};
+    for (const key of INT_KEYS) {
+      const value = toPositiveInt(worker[key]);
+      if (value !== void 0) {
+        result[key] = value;
+      }
+    }
+    if (typeof worker.model === "string" && worker.model.length > 0) {
+      result.model = worker.model;
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
 // src/scripts/worker/run-headless-loop.ts
 import { execFileSync as execFileSync4 } from "node:child_process";
-import { readdirSync as readdirSync3, readFileSync as readFileSync5 } from "node:fs";
+import { readdirSync as readdirSync3, readFileSync as readFileSync6 } from "node:fs";
 import { join as join4 } from "node:path";
 import process7 from "node:process";
 
@@ -13516,7 +13556,7 @@ function createScopeValidatorHook(worktreePath, storyId) {
 }
 
 // src/scripts/sync-hook.ts
-import { existsSync as existsSync3, readFileSync as readFileSync4, writeFileSync as writeFileSync2 } from "node:fs";
+import { existsSync as existsSync3, readFileSync as readFileSync5, writeFileSync as writeFileSync2 } from "node:fs";
 function createSyncHook(worktreePath, storyId) {
   return (_input, _toolUseID, _options) => {
     const hookInput = _input;
@@ -13527,7 +13567,7 @@ function createSyncHook(worktreePath, storyId) {
       try {
         const taskPath = createTaskPath(worktreePath, storyId, taskId);
         if (existsSync3(taskPath)) {
-          const taskData = JSON.parse(readFileSync4(taskPath, "utf-8"));
+          const taskData = JSON.parse(readFileSync5(taskPath, "utf-8"));
           taskData.status = status;
           writeFileSync2(taskPath, JSON.stringify(taskData, null, 2));
         }
@@ -13647,7 +13687,7 @@ function checkAllTasksCompleted(storyDir) {
   }
   for (const file of files) {
     const filePath = join4(storyDir, file);
-    const raw = readFileSync5(filePath, "utf-8");
+    const raw = readFileSync6(filePath, "utf-8");
     const task = JSON.parse(raw);
     if (task.status !== "completed") {
       return false;
@@ -13935,11 +13975,20 @@ Arguments:
   story-id      The ID of the story to execute
 
 Options:
-  --max-cycles <n>       Maximum worker cycles (default: 10)
-  --max-time <n>         Maximum time in minutes (default: 60)
-  --model <model>        Model to use (default: opus)
   --messages-file <path> Write JSONL message stream to file
   --help, -h             Show this help message
+
+Configuration:
+  Worker options are read from .saga/config.json under the "worker" key:
+    {
+      "worker": {
+        "maxCycles": 10,
+        "maxTime": 60,
+        "maxTasksPerSession": 3,
+        "maxTokensPerSession": 120000,
+        "model": "opus"
+      }
+    }
 
 Environment (required):
   SAGA_PROJECT_DIR       Project root directory
@@ -13957,8 +14006,8 @@ Examples:
   # Execute a story
   node worker.js auth-setup-db
 
-  # Run with custom options
-  node worker.js auth-setup-db --max-cycles 5 --model sonnet
+  # Execute with JSONL output
+  node worker.js auth-setup-db --messages-file output.jsonl
 `.trim();
   process9.stdout.write(`${usage}
 `);
@@ -13967,108 +14016,41 @@ function printError(message) {
   process9.stderr.write(`Error: ${message}
 `);
 }
-function parsePositiveInt(value) {
-  const parsed = Number.parseInt(value, 10);
-  if (Number.isNaN(parsed) || parsed < 1) {
-    return null;
-  }
-  return parsed;
-}
-function consumeNextArg(iter) {
-  const next = iter.next();
-  return next.done ? null : next.value;
-}
-function parseIntOption(name, iter) {
-  const raw = consumeNextArg(iter);
-  if (raw === null) {
-    printError(`${name} requires a value`);
-    return null;
-  }
-  const value = parsePositiveInt(raw);
-  if (value === null) {
-    printError(`${name} must be a positive integer`);
-    return null;
-  }
-  return value;
-}
-function parseStringOption(name, iter) {
-  const raw = consumeNextArg(iter);
-  if (raw === null) {
-    printError(`${name} requires a value`);
-    return null;
-  }
-  return raw;
-}
-function processOption(arg, iter, options) {
-  if (arg === "--max-cycles") {
-    const value = parseIntOption("--max-cycles", iter);
-    if (value === null) {
-      return false;
-    }
-    options.maxCycles = value;
-    return true;
-  }
-  if (arg === "--max-time") {
-    const value = parseIntOption("--max-time", iter);
-    if (value === null) {
-      return false;
-    }
-    options.maxTime = value;
-    return true;
-  }
-  if (arg === "--model") {
-    const raw = parseStringOption("--model", iter);
-    if (raw === null) {
-      return false;
-    }
-    options.model = raw;
-    return true;
-  }
-  if (arg === "--messages-file") {
-    const raw = parseStringOption("--messages-file", iter);
-    if (raw === null) {
-      return false;
-    }
-    options.messagesFile = raw;
-    return true;
-  }
-  return null;
-}
-function processArg(arg, iter, options, state) {
-  if (arg === "--help" || arg === "-h") {
-    printUsage();
-    process9.exit(0);
-  }
-  const optionResult = processOption(arg, iter, options);
-  if (optionResult !== null) {
-    return optionResult;
-  }
-  if (arg.startsWith("-") && arg !== "-") {
-    printError(`Unknown option: ${arg}`);
-    return false;
-  }
-  if (!state.storyId) {
-    state.storyId = arg;
-    return true;
-  }
-  printError(`Unexpected argument: ${arg}`);
-  return false;
-}
 function parseArgs(args) {
-  const options = {};
-  const state = {};
+  let storyId;
+  let messagesFile;
   const iter = args[Symbol.iterator]();
   for (const arg of iter) {
-    if (!processArg(arg, iter, options, state)) {
+    if (arg === "--help" || arg === "-h") {
+      printUsage();
+      process9.exit(0);
+    }
+    if (arg === "--messages-file") {
+      const next = iter.next();
+      if (next.done) {
+        printError("--messages-file requires a value");
+        return null;
+      }
+      messagesFile = next.value;
+      continue;
+    }
+    if (arg.startsWith("-") && arg !== "-") {
+      printError(`Unknown option: ${arg}`);
       return null;
     }
+    if (!storyId) {
+      storyId = arg;
+      continue;
+    }
+    printError(`Unexpected argument: ${arg}`);
+    return null;
   }
-  if (!state.storyId) {
+  if (!storyId) {
     printError("Missing required argument: story-id");
     printUsage();
     return null;
   }
-  return { storyId: state.storyId, options };
+  return { storyId, messagesFile };
 }
 function createWriter(messagesFile) {
   return messagesFile ? createFileMessageWriter(messagesFile) : createNoopMessageWriter();
@@ -14102,9 +14084,10 @@ function writePipelineStart(writer, storyId) {
     storyId
   });
 }
-async function runPipeline(storyId, options) {
+async function runPipeline(storyId, messagesFile) {
   const projectDir = getProjectDir();
-  const writer = createWriter(options.messagesFile);
+  const options = resolveWorkerConfig(projectDir);
+  const writer = createWriter(messagesFile);
   writePipelineStart(writer, storyId);
   const worktreeResult = setupWorktree(storyId, projectDir);
   writeStep(
@@ -14141,10 +14124,10 @@ async function main() {
   if (!parsed) {
     process9.exit(1);
   }
-  const { storyId, options } = parsed;
+  const { storyId, messagesFile } = parsed;
   process9.stdout.write(`[worker] Starting pipeline for story: ${storyId}
 `);
-  const summary = await runPipeline(storyId, options);
+  const summary = await runPipeline(storyId, messagesFile);
   process9.stdout.write(
     `[worker] Pipeline complete. Status: ${summary.status}, cycles: ${summary.cycles}, elapsed: ${summary.elapsedMinutes.toFixed(1)}m
 `
