@@ -3,7 +3,7 @@
   "subject": "Create file dummy-7.txt",
   "description": "Create a file called dummy-7.txt in the project root with the content 'Hello from task 7'.",
   "activeForm": "Creating dummy-7.txt",
-  "status": "pending",
+  "status": "completed",
   "blockedBy": [],
   "doneWhen": "File dummy-7.txt exists with the correct content."
 }
