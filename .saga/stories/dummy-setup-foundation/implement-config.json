@@ -1,0 +1,11 @@
+{
+  "id": "implement-config",
+  "subject": "Implement config object",
+  "description": "Update `dummy/index.js` to export a `config` object with:\n\n1. `name` field set to 'dummy-project'\n2. `version` field set to '1.0.0'\n3. `debug` field set to false",
+  "activeForm": "Implementing config object",
+  "status": "completed",
+  "blockedBy": [
+    "write-config-tests"
+  ],
+  "doneWhen": "All config tests pass."
+}
