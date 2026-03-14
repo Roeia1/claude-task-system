@@ -1,0 +1,9 @@
+{
+  "id": "write-feature-tests",
+  "subject": "Write calculate function tests",
+  "description": "Create a test file `dummy/__tests__/calculate.test.js` with tests for:\n\n- `calculate(2, 3, 'add')` returns `5`\n- `calculate(5, 2, 'subtract')` returns `3`\n- `calculate(4, 3, 'multiply')` returns `12`\n- `calculate(1, 1, 'invalid')` throws an error\n\nUse Jest for testing.",
+  "activeForm": "Writing calculate function tests",
+  "status": "pending",
+  "blockedBy": [],
+  "doneWhen": "Tests are written and fail (TDD red phase)."
+}
